@@ -1,0 +1,16 @@
+id: profile_review_v1
+description: Internal review-oriented profile that permits scaffolded synthetic sources.
+include_sources:
+  - nli_any_use_permitted
+  - project_synthetic
+exclude_sources: []
+allowed_rights_classifications:
+  - open
+  - review_required
+synthetic_fraction_max: 0.5
+privacy_mode: review
+publish_targets: []
+split_policy:
+  train: 0.7
+  validation: 0.15
+  test: 0.15

@@ -1,1 +1,7 @@
 .DS_Store
+.pytest_cache/
+.work/
+build/
+dist/
+__pycache__/
+*.egg-info/

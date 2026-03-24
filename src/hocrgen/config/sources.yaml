@@ -1,0 +1,30 @@
+version: 1
+sources:
+  - id: nli_any_use_permitted
+    name: National Library of Israel - Any Use Permitted items
+    fetcher: nli
+    status: allowed
+    default_public_release: true
+    allowed_content_types:
+      - handwritten_modern
+      - printed_modern
+    rights_strategy:
+      type: exact_match
+      values:
+        - Any Use Permitted
+    normalized_license: PD-IL
+    rights_classification: open
+    requires_manual_review: false
+  - id: project_synthetic
+    name: Project synthetic generator
+    fetcher: synthetic
+    status: review_only
+    default_public_release: false
+    allowed_content_types:
+      - synthetic_hebrew_document
+    rights_strategy:
+      type: manual_review
+      values: []
+    normalized_license: Project-Owned
+    rights_classification: review_required
+    requires_manual_review: true

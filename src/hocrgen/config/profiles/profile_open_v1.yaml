@@ -1,0 +1,18 @@
+id: profile_open_v1
+description: Conservative public HeOCR release profile for Milestone 1 dry runs.
+include_sources:
+  - nli_any_use_permitted
+exclude_sources:
+  - project_synthetic
+allowed_rights_classifications:
+  - open
+  - open_with_attribution
+synthetic_fraction_max: 0.0
+privacy_mode: conservative
+publish_targets:
+  - huggingface
+  - github_dataset_repo
+split_policy:
+  train: 0.8
+  validation: 0.1
+  test: 0.1
