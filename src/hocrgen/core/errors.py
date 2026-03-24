@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
 from typing import Any
 
 
@@ -8,10 +7,11 @@ class HocrgenError(Exception):
     """Base error for hocrgen."""
 
 
-@dataclass
 class ConfigValidationError(HocrgenError):
-    message: str
-    details: list[Any] = field(default_factory=list)
+    def __init__(self, message: str, details: list[Any] | None = None) -> None:
+        self.message = message
+        self.details = details or []
+        super().__init__(message, self.details)
 
     def __str__(self) -> str:
         if not self.details:

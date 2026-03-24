@@ -8,7 +8,7 @@ This repository currently implements Milestone 1 of the roadmap: the package, co
 
 - Python package with `src/` layout and installable `hocrgen` CLI
 - Typed config loading and validation for source registries, release profiles, and license metadata
-- Example committed configs under [`src/hocrgen/config`](/Users/shaypalachy/clones/hocrgen/src/hocrgen/config)
+- Example committed configs under [`src/hocrgen/config`](./src/hocrgen/config)
 - Stage-oriented dry-run pipeline commands:
   - `hocrgen config validate`
   - `hocrgen discover`
@@ -81,8 +81,8 @@ The generated artifacts are intentionally small, machine-readable JSON files tha
 
 ## Repository reference
 
-- Product/design spec: [`docs/hocrgen_design_and_spec.md`](/Users/shaypalachy/clones/hocrgen/docs/hocrgen_design_and_spec.md)
-- Long-term roadmap: [`docs/HeOCR_hocrgen_long_term_roadmap.md`](/Users/shaypalachy/clones/hocrgen/docs/HeOCR_hocrgen_long_term_roadmap.md)
+- Product/design spec: [`docs/hocrgen_design_and_spec.md`](./docs/hocrgen_design_and_spec.md)
+- Long-term roadmap: [`docs/HeOCR_hocrgen_long_term_roadmap.md`](./docs/HeOCR_hocrgen_long_term_roadmap.md)
 
 ## Development checks
 

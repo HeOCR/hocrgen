@@ -60,9 +60,16 @@ def load_profiles(config_root: Path | None = None) -> dict[str, ReleaseProfile]:
         raise ConfigValidationError(f"missing profiles directory: {profiles_dir}")
 
     profiles: dict[str, ReleaseProfile] = {}
+    profile_paths: dict[str, Path] = {}
     for path in sorted(profiles_dir.glob("*.yaml")):
         profile = _validate("release profile", ReleaseProfile, load_yaml_file(path), path)
+        if profile.id in profiles:
+            original_path = profile_paths[profile.id]
+            raise ConfigValidationError(
+                f'duplicate profile id "{profile.id}" in {path} (already defined in {original_path})'
+            )
         profiles[profile.id] = profile
+        profile_paths[profile.id] = path
 
     if not profiles:
         raise ConfigValidationError(f"no release profiles found in {profiles_dir}")
@@ -84,7 +91,6 @@ def validate_bundle_references(bundle: ConfigBundle) -> None:
     for profile in bundle.profiles.values():
         unknown = (set(profile.include_sources) | set(profile.exclude_sources)) - source_ids
         if unknown:
-            joined = ", ".join(sorted(unknown))
             raise ConfigValidationError(
                 f"profile {profile.id} references unknown source ids",
                 details=[{"profile_id": profile.id, "unknown_source_ids": sorted(unknown)}],

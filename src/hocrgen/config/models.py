@@ -50,11 +50,11 @@ class SourceConfig(ConfigBaseModel):
     rights_strategy: RightsStrategy
     normalized_license: str
     rights_classification: RightsClassification
-    requires_manual_review: bool = False
+    requires_manual_review: bool
 
 
 class SourceRegistry(ConfigBaseModel):
-    version: int = 1
+    version: Literal[1] = 1
     sources: list[SourceConfig] = Field(min_length=1)
 
     @field_validator("sources")
@@ -85,11 +85,11 @@ class ReleaseProfile(ConfigBaseModel):
     id: str = Field(pattern=r"^[a-z0-9_]+$")
     description: str
     include_sources: list[str] = Field(min_length=1)
-    exclude_sources: list[str] = Field(default_factory=list)
+    exclude_sources: list[str]
     allowed_rights_classifications: list[RightsClassification] = Field(min_length=1)
     synthetic_fraction_max: float = Field(ge=0, le=1)
     privacy_mode: Literal["conservative", "review", "off"]
-    publish_targets: list[PublishTarget] = Field(default_factory=list)
+    publish_targets: list[PublishTarget]
     split_policy: SplitPolicy
 
     @model_validator(mode="after")
@@ -109,5 +109,5 @@ class LicenseEntry(ConfigBaseModel):
 
 
 class LicenseRegistry(ConfigBaseModel):
-    version: int = 1
+    version: Literal[1] = 1
     licenses: list[LicenseEntry] = Field(min_length=1)
