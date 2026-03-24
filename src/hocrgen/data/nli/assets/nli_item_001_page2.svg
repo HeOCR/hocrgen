@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200">
+  <rect width="900" height="1200" fill="#f4efe6"/>
+  <rect x="70" y="70" width="760" height="1060" fill="#fffdf8" stroke="#c4b59d" stroke-width="2"/>
+  <text x="760" y="180" text-anchor="end" font-size="30" font-family="serif">המשך המכתב</text>
+  <text x="760" y="260" text-anchor="end" font-size="24" font-family="serif">יש להביא פנקסים ישנים לצורך בדיקה</text>
+  <text x="760" y="320" text-anchor="end" font-size="24" font-family="serif">המסירה תיערך ביום רביעי</text>
+</svg>

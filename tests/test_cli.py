@@ -8,35 +8,30 @@ from hocrgen.cli import main
 
 def test_config_validate_command_succeeds(capsys) -> None:
     exit_code = main(["config", "validate"])
+    payload = json.loads(capsys.readouterr().out)
 
-    captured = capsys.readouterr()
-    payload = json.loads(captured.out)
     assert exit_code == 0
     assert payload["status"] == "ok"
-    assert payload["source_count"] >= 1
+    assert payload["profile_count"] == 2
+    assert payload["source_count"] == 4
 
 
-def test_stage_command_emits_run_artifacts(tmp_path: Path, capsys) -> None:
-    exit_code = main(["discover", "--profile", "profile_open_v1", "--dry-run", "--workdir", str(tmp_path)])
-
-    captured = capsys.readouterr()
-    payload = json.loads(captured.out)
+def test_build_release_command_creates_real_manifests(tmp_path: Path, capsys) -> None:
+    exit_code = main(["build-release", "--profile", "profile_open_v1", "--dry-run", "--workdir", str(tmp_path)])
+    payload = json.loads(capsys.readouterr().out)
     run_dir = Path(payload["run_dir"])
-    summary_path = Path(payload["summary_path"])
 
     assert exit_code == 0
-    assert payload["status"] == "ok"
-    assert run_dir.exists()
-    assert (run_dir / "run.json").exists()
-    assert (run_dir / "discover" / "summary.json").exists()
     assert (run_dir / "discover" / "candidates.json").exists()
-    assert summary_path.exists()
+    assert (run_dir / "fetch_metadata" / "enriched_candidates.json").exists()
+    assert (run_dir / "policy_filter" / "accepted_items.json").exists()
+    assert (run_dir / "acquire" / "acquired_items.json").exists()
+    assert (run_dir / "build_release" / "release_summary.json").exists()
 
 
 def test_unknown_profile_fails(capsys) -> None:
     exit_code = main(["build-release", "--profile", "missing_profile", "--dry-run"])
+    payload = json.loads(capsys.readouterr().out)
 
-    captured = capsys.readouterr()
-    payload = json.loads(captured.out)
     assert exit_code == 1
     assert payload["status"] == "error"

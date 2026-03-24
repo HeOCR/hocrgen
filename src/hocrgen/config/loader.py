@@ -5,6 +5,7 @@ from importlib.resources import files
 from pathlib import Path
 from typing import Any
 
+import json
 import yaml
 from pydantic import ValidationError
 
@@ -19,9 +20,35 @@ class ConfigBundle:
     licenses: LicenseRegistry
     config_root: Path
 
+    def resolve_path(self, reference: str | Path) -> Path:
+        return resolve_path(reference, self.config_root)
+
 
 def default_config_root() -> Path:
     return Path(files("hocrgen.config"))
+
+
+def package_root() -> Path:
+    return Path(files("hocrgen"))
+
+
+def resolve_path(reference: str | Path, config_root: Path | None = None) -> Path:
+    raw = Path(reference) if isinstance(reference, Path) else reference
+    if isinstance(raw, Path):
+        if raw.is_absolute():
+            return raw
+        if config_root is None:
+            raise ConfigValidationError(f"cannot resolve relative path without config root: {raw}")
+        return (config_root / raw).resolve()
+
+    if raw.startswith("package://"):
+        return (package_root() / raw.removeprefix("package://")).resolve()
+    path = Path(raw)
+    if path.is_absolute():
+        return path
+    if config_root is None:
+        raise ConfigValidationError(f"cannot resolve relative path without config root: {reference}")
+    return (config_root / path).resolve()
 
 
 def load_yaml_file(path: Path) -> Any:
@@ -32,6 +59,16 @@ def load_yaml_file(path: Path) -> Any:
         raise ConfigValidationError(f"missing config file: {path}") from exc
     except yaml.YAMLError as exc:
         raise ConfigValidationError(f"invalid YAML in {path}: {exc}") from exc
+
+
+def load_json_file(path: Path) -> Any:
+    try:
+        with path.open("r", encoding="utf-8") as handle:
+            return json.load(handle)
+    except FileNotFoundError as exc:
+        raise ConfigValidationError(f"missing JSON file: {path}") from exc
+    except json.JSONDecodeError as exc:
+        raise ConfigValidationError(f"invalid JSON in {path}: {exc}") from exc
 
 
 def _validate(model_name: str, model_type: type, data: Any, source_path: Path):

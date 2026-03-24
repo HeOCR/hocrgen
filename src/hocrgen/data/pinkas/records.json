@@ -1,0 +1,14 @@
+{
+  "records": [
+    {
+      "id": "pinkas-ledger-001",
+      "title": "Pinkas ledger folio 12",
+      "source_url": "https://example.org/pinkas/folio-12",
+      "upstream_identifier": "folio-12",
+      "collection": "Pinkas Open Historical Set",
+      "period": "historical",
+      "raw_rights": "CC-BY-4.0",
+      "asset_path": "package://data/pinkas/assets/pinkas_001.svg"
+    }
+  ]
+}

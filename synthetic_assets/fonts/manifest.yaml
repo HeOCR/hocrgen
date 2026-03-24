@@ -1,0 +1,9 @@
+fonts:
+  - id: noto-serif-hebrew
+    css_family: serif
+    style: printed
+    notes: Mirror of the packaged sample manifest used by the milestone-2 synthetic generator.
+  - id: cursive-hand
+    css_family: cursive
+    style: handwritten_like
+    notes: Mirror of the packaged sample manifest used by the milestone-2 synthetic generator.

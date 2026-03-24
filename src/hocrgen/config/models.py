@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
@@ -20,8 +20,8 @@ class RightsClassification(str, Enum):
     open = "open"
     open_with_attribution = "open_with_attribution"
     sharealike = "sharealike"
-    review_required = "review_required"
-    restricted = "restricted"
+    restricted_review_only = "restricted_review_only"
+    blocked = "blocked"
 
 
 class PublishTarget(str, Enum):
@@ -40,6 +40,17 @@ class RightsStrategy(ConfigBaseModel):
         return self
 
 
+class SourceSettings(ConfigBaseModel):
+    seed_manifest: str | None = None
+    records_path: str | None = None
+    synthetic_batch_size: int | None = Field(default=None, ge=1)
+    synthetic_seed: int | None = None
+    template_ids: list[str] = Field(default_factory=list)
+    font_manifest: str | None = None
+    text_corpus_path: str | None = None
+    extra: dict[str, Any] = Field(default_factory=dict)
+
+
 class SourceConfig(ConfigBaseModel):
     id: str = Field(pattern=r"^[a-z0-9_]+$")
     name: str
@@ -51,6 +62,7 @@ class SourceConfig(ConfigBaseModel):
     normalized_license: str
     rights_classification: RightsClassification
     requires_manual_review: bool
+    settings: SourceSettings = Field(default_factory=SourceSettings)
 
 
 class SourceRegistry(ConfigBaseModel):
@@ -91,6 +103,7 @@ class ReleaseProfile(ConfigBaseModel):
     privacy_mode: Literal["conservative", "review", "off"]
     publish_targets: list[PublishTarget]
     split_policy: SplitPolicy
+    allow_unknown_rights: bool = False
 
     @model_validator(mode="after")
     def validate_sources(self) -> "ReleaseProfile":
@@ -105,6 +118,8 @@ class LicenseEntry(ConfigBaseModel):
     id: str
     name: str
     rights_classification: RightsClassification
+    public_release_allowed: bool
+    aliases: list[str] = Field(default_factory=list)
     notes: str = ""
 
 

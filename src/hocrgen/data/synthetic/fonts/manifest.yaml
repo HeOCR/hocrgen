@@ -1,0 +1,9 @@
+fonts:
+  - id: noto-serif-hebrew
+    css_family: serif
+    style: printed
+    notes: Uses the host serif stack for deterministic sample SVG output.
+  - id: cursive-hand
+    css_family: cursive
+    style: handwritten_like
+    notes: Uses the host cursive stack for handwritten-look sample SVG output.

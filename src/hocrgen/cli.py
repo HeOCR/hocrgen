@@ -9,7 +9,8 @@ from hocrgen.config.loader import ConfigBundle, load_and_validate_bundle
 from hocrgen.core.context import create_run_context
 from hocrgen.core.errors import ConfigValidationError
 from hocrgen.core.logging import configure_logging
-from hocrgen.pipeline import run_stage, write_run_metadata, write_run_summary
+from hocrgen.fetchers.base import StageOptions
+from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_summary
 
 
 STAGE_COMMANDS = ("discover", "fetch-metadata", "policy-filter", "acquire", "build-release")
@@ -30,7 +31,10 @@ def build_parser() -> argparse.ArgumentParser:
         stage_parser.add_argument("--profile", required=True, help="Release profile id")
         stage_parser.add_argument("--workdir", type=Path, default=None, help="Work directory root")
         stage_parser.add_argument("--config-root", type=Path, default=None, help="Override config root directory")
-        stage_parser.add_argument("--dry-run", action="store_true", help="Emit scaffold outputs without real acquisition")
+        stage_parser.add_argument("--dry-run", action="store_true", help="Run the fixture/sample-backed milestone workflow without publishing")
+        stage_parser.add_argument("--source", action="append", default=None, help="Limit execution to one or more source ids")
+        stage_parser.add_argument("--max-items", type=int, default=None, help="Limit items per source during discovery/import")
+        stage_parser.add_argument("--seed", type=int, default=None, help="Override the synthetic generator seed")
         stage_parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
         stage_parser.set_defaults(handler=handle_stage, stage_name=stage)
 
@@ -83,8 +87,17 @@ def handle_stage(args: argparse.Namespace) -> int:
     )
 
     run_path = write_run_metadata(context)
-    stage_result = run_stage(args.stage_name, bundle, context)
-    run_summary_path = write_run_summary(context, args.stage_name, [run_path, stage_result.summary_path, *stage_result.extra_artifacts])
+    options = StageOptions(
+        source_filter=set(args.source) if args.source else None,
+        max_items=args.max_items,
+        synthetic_seed=args.seed,
+    )
+    stage_results = execute_pipeline(args.stage_name, bundle, context, options)
+    artifacts = [run_path]
+    for result in stage_results:
+        artifacts.append(result.summary_path)
+        artifacts.extend(result.extra_artifacts)
+    run_summary_path = write_run_summary(context, args.stage_name, artifacts)
     logger.info(
         "stage completed",
         extra={"run_id": context.run_id, "stage": args.stage_name, "profile": args.profile, "dry_run": args.dry_run},

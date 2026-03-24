@@ -35,10 +35,13 @@
           "open",
           "open_with_attribution",
           "sharealike",
-          "review_required",
-          "restricted"
+          "restricted_review_only",
+          "blocked"
         ]
       }
+    },
+    "allow_unknown_rights": {
+      "type": "boolean"
     },
     "synthetic_fraction_max": {
       "type": "number",

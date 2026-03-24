@@ -2,30 +2,45 @@
 
 `hocrgen` is the open-source dataset operations toolchain for the HeOCR project.
 
-This repository currently implements Milestone 1 of the roadmap: the package, config, CLI, run/workdir, and CI foundations for a policy-driven Hebrew OCR dataset pipeline. It does not yet implement real crawling, metadata extraction, rights parsing, acquisition, packaging, or publishing.
+This repository now implements Milestone 2: a narrow but real acquisition MVP on top of the earlier package/config/pipeline foundation. The current implementation is intentionally conservative and fixture/sample-driven, but it now performs real source ingestion, metadata parsing, rights normalization, policy filtering, asset materialization, and synthetic sample generation.
 
-## What exists today
+## What `hocrgen` can do today
 
-- Python package with `src/` layout and installable `hocrgen` CLI
-- Typed config loading and validation for source registries, release profiles, and license metadata
-- Example committed configs under [`src/hocrgen/config`](./src/hocrgen/config)
-- Stage-oriented dry-run pipeline commands:
-  - `hocrgen config validate`
-  - `hocrgen discover`
-  - `hocrgen fetch-metadata`
-  - `hocrgen policy-filter`
-  - `hocrgen acquire`
-  - `hocrgen build-release`
-- Run/workdir artifact emission under `.work/hocrgen/runs/<run_id>/`
-- Initial tests and GitHub Actions validation
+- validate typed source, profile, and license config
+- ingest a seed-driven NLI source for items explicitly marked `Any Use Permitted`
+- ingest bounded static sample packages for Pinkas and BiblIA
+- generate deterministic synthetic Hebrew sample documents as SVG assets
+- normalize rights into controlled license values and policy classifications
+- apply release-profile eligibility rules
+- materialize acquired/generated sample assets into a run workdir
+- build a meaningful dry-run release manifest with per-source and per-rights stats
 
-## What does not exist yet
+## Supported sources in Milestone 2
 
-- Real source adapters or scraping logic
-- Real metadata fetch/parsing
-- Real policy engine beyond config validation and profile/source reference checks
-- Real acquisition, packaging, or publication
-- Later-milestone modules such as dedupe, privacy screening, review handling, and release diffing
+- `nli_any_use_permitted`
+  - implemented as a conservative seed-manifest flow
+  - parses committed sample HTML item pages
+  - extracts title, description, rights text, and page-image references
+- `pinkas_open`
+  - static importer over a packaged sample record set
+- `biblia_open`
+  - static importer over a packaged sample record set
+- `project_synthetic`
+  - deterministic SVG-based synthetic generator
+  - includes tracked font manifest and text corpus inputs
+
+This is not a broad crawler yet. The NLI support is intentionally narrow and reliable rather than site-wide.
+
+## What is still future work
+
+- broad live-source crawling
+- mature normalization and QA
+- deduplication
+- advanced classification
+- privacy/sensitivity screening
+- manual review queues
+- final publication to Hugging Face or the GitHub dataset repo
+- full release packaging maturity
 
 ## Local setup
 
@@ -35,54 +50,106 @@ source .venv/bin/activate
 pip install -e '.[dev]'
 ```
 
-## Validate configuration
+## Validate config
 
 ```bash
 hocrgen config validate
 ```
 
-Expected behavior:
+This validates:
 
-- loads the committed source registry, release profiles, and licenses
-- validates them with typed models
-- fails fast on malformed YAML or broken references
+- committed sources under [`src/hocrgen/config/sources.yaml`](./src/hocrgen/config/sources.yaml)
+- release profiles under [`src/hocrgen/config/profiles`](./src/hocrgen/config/profiles)
+- normalized license mappings under [`src/hocrgen/config/licenses.yaml`](./src/hocrgen/config/licenses.yaml)
 
-## Run a sample dry-run stage
+## Run a real Milestone 2 dry-run
 
 ```bash
-hocrgen discover --profile profile_open_v1 --dry-run
+hocrgen build-release --profile profile_open_v1 --dry-run
 ```
 
-This creates a run directory similar to:
+This now runs a real sample-backed pipeline and emits populated artifacts such as:
 
 ```text
 .work/hocrgen/
   runs/
-    20260324T120000000000Z/
+    <run_id>/
       run.json
       summary.json
-      logs/
-        run.log
-      discover/
-        summary.json
-        candidates.json
+      logs/run.log
+      discover/candidates.json
+      fetch_metadata/enriched_candidates.json
+      policy_filter/accepted_items.json
+      policy_filter/rejected_items.json
+      acquire/acquired_items.json
+      acquire/assets/
+      build_release/item_manifest.json
+      build_release/release_summary.json
+      build_release/source_stats.json
 ```
 
-Other scaffolded stage commands follow the same pattern:
+## Stage commands
+
+Each stage command is now meaningfully functional:
 
 ```bash
+hocrgen discover --profile profile_open_v1 --dry-run
 hocrgen fetch-metadata --profile profile_open_v1 --dry-run
 hocrgen policy-filter --profile profile_open_v1 --dry-run
 hocrgen acquire --profile profile_open_v1 --dry-run
 hocrgen build-release --profile profile_open_v1 --dry-run
 ```
 
-The generated artifacts are intentionally small, machine-readable JSON files that document the run and show where later milestones will plug in.
+Useful implemented flags:
 
-## Repository reference
+```bash
+hocrgen build-release --profile profile_open_v1 --dry-run --source nli_any_use_permitted
+hocrgen build-release --profile profile_open_v1 --dry-run --max-items 1
+hocrgen build-release --profile profile_open_v1 --dry-run --seed 23
+```
 
-- Product/design spec: [`docs/hocrgen_design_and_spec.md`](./docs/hocrgen_design_and_spec.md)
-- Long-term roadmap: [`docs/HeOCR_hocrgen_long_term_roadmap.md`](./docs/HeOCR_hocrgen_long_term_roadmap.md)
+## Rights normalization and policy behavior
+
+The current milestone normalizes rights into these controlled values:
+
+- `PD-IL`
+- `CC-BY-4.0`
+- `CC-BY-SA-4.0`
+- `PROJECT-SYNTHETIC`
+- `RESTRICTED-NONOPEN`
+- `UNKNOWN`
+
+And these policy classes:
+
+- `open`
+- `open_with_attribution`
+- `sharealike`
+- `restricted_review_only`
+- `blocked`
+
+The default public profile is conservative: unknown or non-public rights are rejected during `policy-filter`.
+
+## Synthetic generation
+
+The synthetic subsystem is modest but real:
+
+- deterministic from seed
+- outputs SVG page assets plus metadata
+- uses tracked inputs from [`src/hocrgen/data/synthetic/fonts/manifest.yaml`](./src/hocrgen/data/synthetic/fonts/manifest.yaml)
+- uses a packaged Hebrew text corpus from [`src/hocrgen/data/synthetic/texts/hebrew_lines.txt`](./src/hocrgen/data/synthetic/texts/hebrew_lines.txt)
+- supports a printed-style and handwritten-look template family
+- may include short English fragments in otherwise Hebrew pages
+
+## Fixtures and tests
+
+All tests are network-free and run against committed fixtures/sample data.
+
+Key fixture locations:
+
+- [`src/hocrgen/data/nli`](./src/hocrgen/data/nli)
+- [`src/hocrgen/data/pinkas`](./src/hocrgen/data/pinkas)
+- [`src/hocrgen/data/biblia`](./src/hocrgen/data/biblia)
+- [`tests/fixtures`](./tests/fixtures)
 
 ## Development checks
 
@@ -91,3 +158,8 @@ pytest
 hocrgen config validate
 hocrgen build-release --profile profile_open_v1 --dry-run
 ```
+
+## Repository reference
+
+- Product/design spec: [`docs/hocrgen_design_and_spec.md`](./docs/hocrgen_design_and_spec.md)
+- Long-term roadmap: [`docs/HeOCR_hocrgen_long_term_roadmap.md`](./docs/HeOCR_hocrgen_long_term_roadmap.md)

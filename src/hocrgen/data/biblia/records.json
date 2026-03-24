@@ -1,0 +1,14 @@
+{
+  "records": [
+    {
+      "id": "biblia-doc-001",
+      "title": "BiblIA note fragment 4",
+      "source_url": "https://example.org/biblia/fragment-4",
+      "upstream_identifier": "fragment-4",
+      "collection": "BiblIA Open Packaged Subset",
+      "period": "historical",
+      "raw_rights": "CC-BY-SA-4.0",
+      "asset_path": "package://data/biblia/assets/biblia_001.svg"
+    }
+  ]
+}

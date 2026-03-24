@@ -1,0 +1,55 @@
+from __future__ import annotations
+
+from typing import Any
+
+from pydantic import BaseModel, ConfigDict, Field
+
+from hocrgen.config.models import RightsClassification
+
+
+class ManifestModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class AssetReference(ManifestModel):
+    reference: str
+    resolved_path: str | None = None
+    media_type: str = "image/svg+xml"
+
+
+class CandidateRecord(ManifestModel):
+    candidate_id: str
+    source_id: str
+    source_item_id: str
+    source_url: str
+    discovery_method: str
+    title: str | None = None
+    fixture_path: str | None = None
+    raw_metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class EnrichedCandidateRecord(CandidateRecord):
+    raw_rights_text: str | None = None
+    asset_references: list[AssetReference] = Field(default_factory=list)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ItemRecord(EnrichedCandidateRecord):
+    item_id: str
+    normalized_license: str
+    rights_classification: RightsClassification
+    eligibility: str
+    eligibility_reason: str
+    is_synthetic: bool = False
+    provenance: dict[str, Any] = Field(default_factory=dict)
+
+
+class AcquiredAsset(ManifestModel):
+    item_id: str
+    path: str
+    sha256: str
+    media_type: str = "image/svg+xml"
+
+
+class AcquiredItemRecord(ItemRecord):
+    acquired_assets: list[AcquiredAsset] = Field(default_factory=list)
