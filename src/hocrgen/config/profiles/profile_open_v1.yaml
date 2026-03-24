@@ -11,6 +11,7 @@ allowed_rights_classifications:
   - open_with_attribution
   - sharealike
 allow_unknown_rights: false
+require_public_release_licenses: true
 synthetic_fraction_max: 0.25
 privacy_mode: conservative
 publish_targets:

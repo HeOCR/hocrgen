@@ -58,3 +58,36 @@ def test_unknown_rights_are_rejected_in_pipeline(tmp_path: Path, capsys) -> None
     assert exit_code == 0
     assert accepted["items"] == []
     assert rejected["items"][0]["eligibility_reason"] == "unknown_rights"
+
+
+def test_excluded_sources_are_not_selected(tmp_path: Path, capsys) -> None:
+    config_root = tmp_path / "config"
+    shutil.copytree(default_config_root(), config_root)
+    profile_path = config_root / "profiles" / "profile_open_v1.yaml"
+    profile_path.write_text(
+        profile_path.read_text(encoding="utf-8")
+        .replace("  - project_synthetic\n", "")
+        .replace("exclude_sources: []", "exclude_sources:\n  - project_synthetic"),
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "build-release",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--workdir",
+            str(tmp_path / "work"),
+            "--config-root",
+            str(config_root),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    run_dir = Path(payload["run_dir"])
+    release_summary = json.loads((run_dir / "build_release" / "release_summary.json").read_text(encoding="utf-8"))
+    source_stats = json.loads((run_dir / "build_release" / "source_stats.json").read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert release_summary["synthetic_items"] == 0
+    assert "project_synthetic" not in source_stats["sources"]

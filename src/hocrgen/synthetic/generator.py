@@ -67,6 +67,12 @@ def generate_documents(
     font_manifest = load_font_manifest(font_manifest_path)
     fonts = font_manifest["fonts"]
     corpus = load_text_corpus(text_corpus_path)
+    if not template_ids:
+        raise ValueError("Synthetic generation requires at least one template_id.")
+    if not fonts:
+        raise ValueError(f"Synthetic font manifest has no registered fonts: {font_manifest_path}")
+    if not corpus:
+        raise ValueError(f"Synthetic text corpus is empty: {text_corpus_path}")
     output_dir.mkdir(parents=True, exist_ok=True)
 
     documents: list[SyntheticDocument] = []

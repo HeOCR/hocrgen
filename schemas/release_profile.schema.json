@@ -43,6 +43,9 @@
     "allow_unknown_rights": {
       "type": "boolean"
     },
+    "require_public_release_licenses": {
+      "type": "boolean"
+    },
     "synthetic_fraction_max": {
       "type": "number",
       "minimum": 0,

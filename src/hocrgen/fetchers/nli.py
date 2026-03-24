@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urljoin
 
 from hocrgen.config.loader import ConfigBundle, load_yaml_file
 from hocrgen.config.models import SourceConfig

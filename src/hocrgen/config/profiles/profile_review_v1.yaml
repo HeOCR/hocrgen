@@ -12,6 +12,7 @@ allowed_rights_classifications:
   - sharealike
   - restricted_review_only
 allow_unknown_rights: true
+require_public_release_licenses: false
 synthetic_fraction_max: 0.5
 privacy_mode: review
 publish_targets: []

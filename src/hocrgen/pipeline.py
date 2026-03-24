@@ -78,7 +78,13 @@ def write_run_summary(context: RunContext, stage: str, artifacts: list[Path]) ->
 
 def _selected_sources(bundle: ConfigBundle, profile_id: str, options: StageOptions) -> list[SourceConfig]:
     profile = bundle.profiles[profile_id]
-    sources = [source for source in bundle.source_registry.sources if source.id in profile.include_sources]
+    exclude_ids = set(profile.exclude_sources)
+    sources_by_id = {source.id: source for source in bundle.source_registry.sources}
+    sources = [
+        sources_by_id[source_id]
+        for source_id in profile.include_sources
+        if source_id not in exclude_ids and source_id in sources_by_id
+    ]
     if options.source_filter:
         sources = [source for source in sources if source.id in options.source_filter]
     return sources

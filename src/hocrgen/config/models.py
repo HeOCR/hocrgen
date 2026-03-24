@@ -104,6 +104,7 @@ class ReleaseProfile(ConfigBaseModel):
     publish_targets: list[PublishTarget]
     split_policy: SplitPolicy
     allow_unknown_rights: bool = False
+    require_public_release_licenses: bool = True
 
     @model_validator(mode="after")
     def validate_sources(self) -> "ReleaseProfile":

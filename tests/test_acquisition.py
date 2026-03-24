@@ -9,7 +9,8 @@ from hocrgen.fetchers.nli import NliFetcher
 from hocrgen.fetchers.pinkas import PinkasImporter
 from hocrgen.fetchers.synthetic import SyntheticFetcher
 from hocrgen.manifests.models import ItemRecord
-from hocrgen.parsers.rights import normalize_rights
+from hocrgen.parsers.rights import RightsResult, classify_eligibility, normalize_rights
+from hocrgen.synthetic.generator import generate_documents
 
 
 def test_nli_fetcher_parses_fixture_metadata() -> None:
@@ -50,6 +51,24 @@ def test_rights_normalization_maps_known_and_unknown_values() -> None:
     assert unknown_result.rights_classification.value == "blocked"
 
 
+def test_review_profile_accepts_restricted_nonpublic_items() -> None:
+    bundle = load_and_validate_bundle()
+    review_profile = bundle.profiles["profile_review_v1"]
+
+    eligibility, reason = classify_eligibility(
+        RightsResult(
+            raw_text="Restricted",
+            normalized_license="RESTRICTED-NONOPEN",
+            rights_classification="restricted_review_only",
+        ),
+        review_profile,
+        public_release_allowed=False,
+    )
+
+    assert eligibility == "accepted"
+    assert reason == "allowed_by_profile"
+
+
 def test_synthetic_generation_is_deterministic(tmp_path: Path) -> None:
     bundle = load_and_validate_bundle()
     source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
@@ -85,3 +104,24 @@ def test_synthetic_generation_is_deterministic(tmp_path: Path) -> None:
     )
 
     assert acquired_once[0].acquired_assets[0].sha256 == acquired_twice[0].acquired_assets[0].sha256
+
+
+def test_synthetic_generation_fails_for_empty_inputs(tmp_path: Path) -> None:
+    font_manifest_path = tmp_path / "fonts.yaml"
+    text_corpus_path = tmp_path / "corpus.txt"
+    font_manifest_path.write_text("fonts: []\n", encoding="utf-8")
+    text_corpus_path.write_text("", encoding="utf-8")
+
+    try:
+        generate_documents(
+            count=1,
+            seed=7,
+            template_ids=[],
+            font_manifest_path=font_manifest_path,
+            text_corpus_path=text_corpus_path,
+            output_dir=tmp_path / "out",
+        )
+    except ValueError as exc:
+        assert str(exc) == "Synthetic generation requires at least one template_id."
+    else:
+        raise AssertionError("Expected generate_documents to reject empty template_ids")

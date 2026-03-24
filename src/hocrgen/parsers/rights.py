@@ -61,7 +61,7 @@ def classify_eligibility(
 ) -> tuple[str, str]:
     if rights.normalized_license == "UNKNOWN" and not profile.allow_unknown_rights:
         return "rejected", "unknown_rights"
-    if not public_release_allowed:
+    if profile.require_public_release_licenses and not public_release_allowed:
         return "rejected", "license_not_public"
     if rights.rights_classification not in profile.allowed_rights_classifications:
         return "rejected", f"rights_classification_not_allowed:{rights.rights_classification.value}"
