@@ -1,0 +1,1056 @@
+# HeOCR / hocrgen Long-Term Roadmap and Milestone Plan
+
+## 1. Purpose
+
+This document provides a long-term planning framework for the **HeOCR** dataset and the **hocrgen** tool.
+
+It is intended to guide:
+
+- implementation sequencing
+- public release strategy
+- operational hardening
+- governance
+- quality expansion
+- community adoption
+- future annotation and benchmark work
+
+The roadmap assumes the following product split:
+
+- **HeOCR**: the public dataset
+- **hocrgen**: the open-source toolchain that generates, curates, versions, and publishes HeOCR
+
+The roadmap is deliberately staged. The early goal is not maximal scale. The early goal is to establish a **clean, defensible, reproducible public pipeline** that can expand safely over time.
+
+---
+
+## 2. Strategic objectives
+
+Over the long term, the project should aim to achieve the following:
+
+1. Build the best openly usable, practically valuable Hebrew document OCR/HTR dataset possible under conservative rights constraints.
+2. Establish **modern handwritten Hebrew** as the core identity of the dataset.
+3. Keep the dataset legally and operationally trustworthy through per-item provenance and explicit release policies.
+4. Make expansion sustainable through policy-driven automation and GitHub-first operations.
+5. Publish stable, versioned releases that researchers and developers can rely on.
+6. Evolve from a raw document-image dataset into a richer evaluation and benchmarking resource.
+7. Build enough process maturity that new sources, new policies, and new annotations can be added without destabilizing the project.
+
+---
+
+## 3. Guiding roadmap principles
+
+### 3.1 Start narrow, then expand
+The first public release should be intentionally modest and high-confidence.
+
+### 3.2 Public release quality matters more than candidate-pool size
+A smaller, cleaner release is strategically better than a large, ambiguous one.
+
+### 3.3 Rights and provenance are infrastructure, not paperwork
+These are core system capabilities and must mature early.
+
+### 3.4 Synthetic data should help, not dominate
+Synthetic should remain useful and bounded.
+
+### 3.5 Tooling maturity should grow in lockstep with dataset scale
+Do not scale sources or release size faster than review, QA, and publication processes.
+
+### 3.6 Public trust is a product feature
+Clear policies, changelogs, schema docs, and release behavior are part of the product.
+
+---
+
+## 4. Roadmap structure
+
+This roadmap is organized into phases and milestones.
+
+### Phases
+- **Phase A**: Foundation
+- **Phase B**: First public release capability
+- **Phase C**: Curation and operational hardening
+- **Phase D**: Expansion and benchmark formation
+- **Phase E**: Ecosystem maturity
+
+### Milestone types
+Each milestone includes:
+- objective
+- scope
+- key deliverables
+- exit criteria
+- risks / dependencies
+
+---
+
+# Phase A — Foundation
+
+## Milestone A1 — Project scaffolding and governance baseline
+
+### Objective
+Create the structural foundation for both repositories and define the project’s basic operating model.
+
+### Scope
+- initialize `hocrgen`
+- initialize `HeOCR`
+- define project mission and scope
+- define contribution and governance basics
+- define initial repository conventions
+
+### Deliverables
+- `hocrgen` repository created
+- `HeOCR` repository created
+- top-level READMEs
+- initial architecture document
+- initial dataset design/spec
+- initial acquisition plan
+- contribution guidelines
+- issue templates
+- pull request template
+- basic coding/tooling setup
+
+### Exit criteria
+- both repos exist and are publicly structured
+- project documentation explains the split between tool and dataset
+- there is a clear stated policy that public releases will be conservative and policy-driven
+
+### Risks / dependencies
+- over-scoping governance too early
+- under-documenting release boundaries
+
+---
+
+## Milestone A2 — Configuration and schema foundations
+
+### Objective
+Define the typed and serialized foundations required for deterministic dataset operations.
+
+### Scope
+- source registry schema
+- release profile schema
+- item schema
+- review decision schema
+- release manifest schema
+- config loading/validation
+
+### Deliverables
+- `sources.yaml`
+- `licenses.yaml`
+- release profile YAML(s)
+- JSON schema files
+- Python models for config and manifests
+- config validation CLI command
+
+### Exit criteria
+- invalid source or release configs fail fast
+- schemas are documented and versioned
+- a dry-run config validation step works in CI
+
+### Risks / dependencies
+- schema churn from premature design detail
+- underspecified rights metadata fields
+
+---
+
+## Milestone A3 — Core CLI and pipeline skeleton
+
+### Objective
+Create the base `hocrgen` CLI and stage-oriented execution model.
+
+### Scope
+- CLI entrypoint
+- stage commands
+- run context model
+- workdir layout
+- manifest/logging conventions
+
+### Deliverables
+- `hocrgen config validate`
+- `hocrgen discover`
+- `hocrgen fetch-metadata`
+- `hocrgen policy-filter`
+- `hocrgen acquire`
+- `hocrgen build-release`
+- structured logging
+- run summary output
+
+### Exit criteria
+- stage commands execute end-to-end on fixtures
+- each stage emits expected manifests/logs
+- CLI contract is documented
+
+### Risks / dependencies
+- too much orchestration complexity too early
+- fragile coupling between pipeline stages
+
+---
+
+# Phase B — First public release capability
+
+## Milestone B1 — NLI acquisition MVP
+
+### Objective
+Implement the first real acquisition adapter for the main real-scan source.
+
+### Scope
+- NLI discovery logic
+- item-page parsing
+- rights parsing for `Any Use Permitted`
+- image link extraction
+- acquisition metadata capture
+
+### Deliverables
+- `nli` fetcher
+- source parser fixtures
+- normalized NLI metadata mapping
+- initial NLI candidate manifest generation
+
+### Exit criteria
+- `hocrgen` can discover and parse NLI candidates
+- `Any Use Permitted` items are reliably recognized
+- parse failures are logged and test-covered
+
+### Risks / dependencies
+- NLI HTML/API changes
+- overly loose rights matching
+
+---
+
+## Milestone B2 — Static open-source importers
+
+### Objective
+Support bounded historical sources with clear upstream open licenses.
+
+### Scope
+- Pinkas importer
+- BiblIA importer
+- provenance mapping
+- license normalization for imported datasets
+
+### Deliverables
+- `pinkas` importer
+- `biblia` importer
+- source manifests for imported datasets
+- import tests
+
+### Exit criteria
+- imported records preserve upstream provenance
+- licenses normalize correctly
+- imported data appears as distinct source families in manifests
+
+### Risks / dependencies
+- mixed upstream packaging details
+- accidental over-ingestion beyond explicitly packaged open files
+
+---
+
+## Milestone B3 — Synthetic generation MVP
+
+### Objective
+Add a first useful synthetic generation capability to HeOCR.
+
+### Scope
+- synthetic recipe model
+- font manifest
+- project-owned text sources
+- simple layouts
+- scan degradation basics
+- synthetic metadata emission
+
+### Deliverables
+- synthetic generator module
+- 2–4 initial layout families
+- printed Hebrew pages
+- handwritten-look Hebrew pages
+- mixed Hebrew+English examples
+- synthetic asset manifest validation
+
+### Exit criteria
+- synthetic items can be generated reproducibly from a seed
+- all assets used are tracked
+- synthetic items include required metadata
+- public release caps can be enforced
+
+### Risks / dependencies
+- asset-license drift
+- unrealistic or low-utility synthetic outputs
+
+---
+
+## Milestone B4 — Rights normalization and release eligibility engine
+
+### Objective
+Make policy enforcement real rather than aspirational.
+
+### Scope
+- raw rights capture
+- normalized license mapping
+- rights classification mapping
+- release profile enforcement
+- hard-fail rules for public release
+
+### Deliverables
+- rights parsing module
+- normalized license taxonomy
+- release eligibility checks
+- blocked/review-only item handling
+- public-release validator
+
+### Exit criteria
+- public-release profile fails if unknown or restricted items appear
+- rights metadata is present in manifests
+- source policy rules are deterministic and test-covered
+
+### Risks / dependencies
+- rights edge cases becoming silent includes
+- overcomplicated policy logic before it is needed
+
+---
+
+## Milestone B5 — First end-to-end pilot release
+
+### Objective
+Produce the first small public HeOCR release.
+
+### Scope
+- acquire bounded NLI subset
+- import Pinkas
+- import BiblIA open package subset
+- generate synthetic pages
+- package train/validation/test
+- publish a pilot release
+
+### Deliverables
+- `HeOCR v0.1.0`
+- release manifests
+- dataset card
+- changelog
+- QA summary
+- first Hugging Face publication
+- first GitHub dataset repo release sync
+
+### Exit criteria
+- a public release exists and is reproducible/auditable
+- the release contains only allowed/open items
+- the release metadata is coherent
+- publication to both targets succeeds
+
+### Risks / dependencies
+- first-release packaging complexity
+- mismatch between Hugging Face and GitHub output structures
+
+---
+
+# Phase C — Curation and operational hardening
+
+## Milestone C1 — Normalization and technical QA
+
+### Objective
+Standardize file handling and establish baseline technical quality controls.
+
+### Scope
+- image normalization
+- thumbnail generation
+- checksum computation
+- dimension capture
+- decodability checks
+- minimum quality thresholds
+
+### Deliverables
+- normalization module
+- technical QA report
+- failed-asset handling
+- consistent normalized output structure
+
+### Exit criteria
+- corrupt/invalid assets are rejected cleanly
+- normalized files have stable layout and metadata
+- technical QA is part of release builds
+
+### Risks / dependencies
+- over-normalization losing fidelity
+- source-specific format edge cases
+
+---
+
+## Milestone C2 — Deduplication pipeline
+
+### Objective
+Prevent the dataset from bloating or leaking duplicates across releases and splits.
+
+### Scope
+- exact duplicate detection
+- perceptual hash duplicate detection
+- duplicate clustering
+- canonical-retention policy
+
+### Deliverables
+- exact hash pass
+- pHash pass
+- dedupe relation table
+- duplicate cluster manifest
+- release-time duplicate checks
+
+### Exit criteria
+- exact duplicates do not survive release packaging
+- near-duplicates are at least surfaced and handled deterministically
+- duplicate clusters do not leak across splits
+
+### Risks / dependencies
+- false positives on visually similar handwriting
+- weak duplicate handling across sources
+
+---
+
+## Milestone C3 — Basic classification and quality scoring
+
+### Objective
+Add operational labels needed for filtering, balancing, and future analysis.
+
+### Scope
+- handwritten/printed/mixed classification
+- modern/historical classification
+- Hebrew-only/mixed-language classification
+- heuristic quality score
+
+### Deliverables
+- classification modules
+- confidence fields
+- release composition stats by class
+- low-confidence routing hooks
+
+### Exit criteria
+- all release items have classification labels
+- composition reports can be generated automatically
+- suspicious/low-confidence items can route to review
+
+### Risks / dependencies
+- noisy automatic classification
+- classification logic drifting into pseudo-ground-truth claims
+
+---
+
+## Milestone C4 — Privacy and sensitivity screening MVP
+
+### Objective
+Reduce the chance of publishing inappropriate modern documents.
+
+### Scope
+- source-level privacy rules
+- metadata-based risk rules
+- optional OCR/text heuristics
+- review triggers
+
+### Deliverables
+- privacy rules config
+- privacy flag values
+- review queue generation for flagged items
+- public-release blocking rules
+
+### Exit criteria
+- flagged items are excluded or reviewed under public profiles
+- privacy signals are recorded in metadata
+- the public release can demonstrate a conservative privacy posture
+
+### Risks / dependencies
+- false negatives on sensitive material
+- overblocking useful but harmless items
+
+---
+
+## Milestone C5 — Manual review system
+
+### Objective
+Create a controlled human-in-the-loop path for borderline cases.
+
+### Scope
+- review queue artifact generation
+- structured decision files
+- allowlists/blocklists
+- decision merge into pipeline
+
+### Deliverables
+- review queue format
+- review decision schema
+- CLI commands for review export/merge
+- support for manual overrides
+
+### Exit criteria
+- review decisions deterministically affect release outcomes
+- reviewers can approve/reject items without ad hoc editing
+- review state is versioned and auditable
+
+### Risks / dependencies
+- review UX being too cumbersome
+- human decisions not being captured in stable structured form
+
+---
+
+## Milestone C6 — Release diffs and changelog automation
+
+### Objective
+Make every new dataset release explainable.
+
+### Scope
+- compare with prior release
+- added/removed/changed item reporting
+- source-wise delta reporting
+- release notes automation
+
+### Deliverables
+- release diff engine
+- changelog generator
+- per-source addition/removal stats
+- removal-reason support
+
+### Exit criteria
+- every release includes a machine-readable diff and human-readable changelog
+- removals are documented explicitly
+- release history becomes inspectable over time
+
+### Risks / dependencies
+- unstable item IDs
+- poor handling of metadata-only changes vs asset changes
+
+---
+
+# Phase D — Expansion and benchmark formation
+
+## Milestone D1 — Scheduled GitHub-first expansion workflows
+
+### Objective
+Move from one-off releases to sustainable scheduled maintenance.
+
+### Scope
+- scheduled candidate discovery
+- scheduled synthetic generation
+- scheduled dry-run builds
+- artifact handoff between workflows
+- publish on manual approval/tag
+
+### Deliverables
+- GitHub Actions workflows for recurring runs
+- resumable artifact-based flow
+- scheduled reports
+- manual-dispatch publication workflow
+
+### Exit criteria
+- most routine maintenance runs can occur on GitHub Actions
+- dry-run builds happen without local intervention
+- publication remains gated and deliberate
+
+### Risks / dependencies
+- GitHub storage/runtime limits
+- brittle workflow coupling
+
+---
+
+## Milestone D2 — Stable source-operations maturity
+
+### Objective
+Make supported sources operationally reliable.
+
+### Scope
+- parser regression fixtures
+- source-health checks
+- source-specific error dashboards/reports
+- configurable retry/backoff logic
+
+### Deliverables
+- fixture suite for each adapter
+- source health status report
+- operational alerts in CI summaries
+- source freeze/degrade modes
+
+### Exit criteria
+- adapter breakages are detected quickly
+- source instability does not silently corrupt releases
+- source-specific operational behavior is documented
+
+### Risks / dependencies
+- upstream source churn
+- overengineering observability before enough sources exist
+
+---
+
+## Milestone D3 — Benchmark subset v1
+
+### Objective
+Create a smaller, more stable, more review-intensive subset suitable for consistent evaluation.
+
+### Scope
+- benchmark selection policy
+- stronger review requirements
+- lower-duplication tolerance
+- stable split commitment
+
+### Deliverables
+- `benchmark v1`
+- benchmark selection manifest
+- benchmark card / usage guidance
+- benchmark stability policy
+
+### Exit criteria
+- a clearly defined evaluation subset exists
+- benchmark churn is low across subsequent releases
+- users can evaluate on HeOCR without depending on the entire changing corpus
+
+### Risks / dependencies
+- selecting benchmark content too early
+- benchmark not matching the dataset’s core identity
+
+---
+
+## Milestone D4 — Richer synthetic generation
+
+### Objective
+Make the synthetic component more useful and document-like.
+
+### Scope
+- more document templates
+- forms and marginalia
+- mixed printed/handwritten overlays
+- stamps/signatures/annotations
+- harder degradation families
+- bilingual fragments
+
+### Deliverables
+- expanded recipe library
+- richer asset manifests
+- improved realism controls
+- synthetic diversity reports
+
+### Exit criteria
+- synthetic data covers more realistic Hebrew document patterns
+- users can selectively filter synthetic subsets by type
+- synthetic still remains within configured release caps
+
+### Risks / dependencies
+- realism drift without measurement
+- synthetic overpowering real-data identity
+
+---
+
+## Milestone D5 — Optional transcription-ready architecture
+
+### Objective
+Prepare the system for annotated subsets without making annotation a prerequisite for progress.
+
+### Scope
+- transcription field conventions
+- annotation file paths/schema
+- subset-level annotation support
+- import hooks for external labels
+
+### Deliverables
+- additive annotation schema
+- manifest support for transcriptions/layout labels
+- doc describing annotation-ready subset structure
+
+### Exit criteria
+- a future annotated subset can be added without breaking the core dataset
+- annotation storage and publication patterns are defined
+
+### Risks / dependencies
+- scope creep into full annotation pipeline prematurely
+
+---
+
+# Phase E — Ecosystem maturity
+
+## Milestone E1 — Community contribution model
+
+### Objective
+Enable outside contributors to safely help expand or improve the project.
+
+### Scope
+- contribution docs for sources
+- source proposal workflow
+- review policy for external changes
+- synthetic asset contribution rules
+- dataset issue taxonomy
+
+### Deliverables
+- `CONTRIBUTING.md` for code and data policy
+- source-adapter contribution guide
+- synthetic asset contribution guide
+- release governance notes
+
+### Exit criteria
+- a contributor can understand how to propose a new source or improvement
+- external contributions are constrained by policy and schema validation
+- contribution pathways do not bypass rights or privacy safeguards
+
+### Risks / dependencies
+- community contributions increasing rights ambiguity
+- underdocumented acceptance criteria
+
+---
+
+## Milestone E2 — Baselines and evaluation utilities
+
+### Objective
+Make HeOCR easier to use in practice.
+
+### Scope
+- example loading code
+- baseline OCR/HTR evaluation scripts
+- metric helpers
+- benchmark evaluation examples
+
+### Deliverables
+- example notebooks/scripts
+- benchmark usage examples
+- evaluation utilities
+- optional lightweight leaderboard-ready conventions
+
+### Exit criteria
+- users can quickly run baselines on HeOCR
+- benchmark subset has documented evaluation pathways
+- the project becomes more than a data dump
+
+### Risks / dependencies
+- baseline maintenance burden
+- distracting from dataset core work
+
+---
+
+## Milestone E3 — Annotation subset pilots
+
+### Objective
+Introduce carefully bounded annotated subsets.
+
+### Scope
+- manually transcribed subset pilot
+- line or region annotation pilot
+- release and schema extension for annotations
+
+### Deliverables
+- one or more annotated micro-subsets
+- annotation guidelines
+- provenance link between images and labels
+
+### Exit criteria
+- an annotated subset exists without destabilizing the core dataset
+- annotation format is documented and versioned
+- labels can be consumed by users cleanly
+
+### Risks / dependencies
+- annotation quality bottlenecks
+- annotation tooling burden
+
+---
+
+## Milestone E4 — Multi-release governance maturity
+
+### Objective
+Handle growth in dataset history, removal events, and source-policy evolution gracefully.
+
+### Scope
+- stronger version governance
+- removal/takedown workflow
+- schema migration policy
+- source deprecation policy
+- benchmark stability guarantees
+
+### Deliverables
+- governance docs for versioning/removals
+- deprecation rules
+- schema evolution guidance
+- release compatibility statements
+
+### Exit criteria
+- the project can evolve without chaotic breaking changes
+- removals and corrections are part of the normal process
+- users can understand compatibility and release semantics
+
+### Risks / dependencies
+- historical burden as versions accumulate
+- governance becoming too heavy for project size
+
+---
+
+# Cross-cutting workstreams
+
+## Workstream 1 — Documentation
+This must continue across all phases.
+
+### Ongoing outputs
+- architecture docs
+- schema docs
+- source policy docs
+- release profile docs
+- privacy docs
+- licensing docs
+- changelogs
+- benchmark docs
+
+### Success condition
+A technically strong outsider can understand what the system does and why items are or are not in the public release.
+
+---
+
+## Workstream 2 — Testing and reliability
+This must grow with system complexity.
+
+### Ongoing outputs
+- parser fixtures
+- schema validation tests
+- pipeline integration tests
+- regression tests
+- publishing mocks
+- CI dry-run builds
+
+### Success condition
+A source breakage or config mistake is caught before a public release is corrupted.
+
+---
+
+## Workstream 3 — Rights and policy maintenance
+This is permanent.
+
+### Ongoing outputs
+- source registry updates
+- license normalization updates
+- review-only source support
+- removal/takedown handling
+- release-profile validation
+
+### Success condition
+The public release remains defensible as sources and project scope evolve.
+
+---
+
+## Workstream 4 — Dataset composition monitoring
+The dataset should be intentionally shaped, not just accumulated.
+
+### Ongoing outputs
+- modern vs historical stats
+- handwritten vs printed stats
+- synthetic fraction stats
+- source concentration stats
+- quality distribution stats
+
+### Success condition
+The dataset continues to match its intended identity: mainly modern handwritten Hebrew, with bounded complements.
+
+---
+
+# Suggested version-aligned milestone map
+
+## Version line 0.x — Prove the core concept
+Focus:
+- build the pipeline
+- ship a first public release
+- validate policy architecture
+- prove publishability
+
+Likely milestones:
+- A1, A2, A3
+- B1, B2, B3, B4, B5
+
+Outcome:
+- `HeOCR v0.1.x`
+- `hocrgen v0.1.x`
+
+---
+
+## Version line 0.2–0.4 — Make the system trustworthy
+Focus:
+- normalization
+- dedupe
+- classification
+- privacy review
+- release diffs
+- operational QA
+
+Likely milestones:
+- C1, C2, C3, C4, C5, C6
+
+Outcome:
+- public releases become cleaner, more auditable, and safer
+
+---
+
+## Version line 0.5–0.9 — Make the system sustainable
+Focus:
+- scheduled GitHub-first operations
+- source reliability
+- review process hardening
+- richer synthetic coverage
+
+Likely milestones:
+- D1, D2, D4
+- partial D5
+
+Outcome:
+- recurring releases become routine rather than bespoke
+
+---
+
+## Version line 1.0 — Stable public dataset and benchmark posture
+Focus:
+- benchmark subset
+- stable schemas
+- strong documentation
+- reproducible release discipline
+
+Likely milestones:
+- D3
+- finalization of D5 foundations
+- parts of E1 and E4
+
+Outcome:
+- `HeOCR v1.0`
+- public confidence in release discipline and benchmark usage
+
+---
+
+## Version line 1.x — Ecosystem and research utility
+Focus:
+- community adoption
+- baselines
+- annotated subsets
+- mature governance
+
+Likely milestones:
+- E1, E2, E3, E4
+
+Outcome:
+- the project becomes a durable ecosystem asset rather than only an internal pipeline
+
+---
+
+# Recommended implementation order
+
+If implementation resources are limited, the order should be:
+
+1. A1 — scaffolding and governance baseline
+2. A2 — schemas and config validation
+3. A3 — CLI/pipeline skeleton
+4. B1 — NLI acquisition MVP
+5. B3 — synthetic generation MVP
+6. B4 — rights normalization and release eligibility
+7. B2 — open-source importers
+8. B5 — first pilot release
+9. C1 — normalization and technical QA
+10. C2 — dedupe
+11. C4 — privacy and sensitivity screening
+12. C5 — manual review system
+13. C6 — release diffs/changelog
+14. C3 — classification/quality scoring
+15. D1 — scheduled GitHub-first workflows
+16. D2 — source operational maturity
+17. D3 — benchmark subset v1
+18. D4 — richer synthetic generation
+19. D5 — annotation-ready architecture
+20. E1 / E2 / E3 / E4 — ecosystem maturity work
+
+This order emphasizes public-release safety before scale and polish before aggressive expansion.
+
+---
+
+# Milestone dependency notes
+
+## Hard dependencies
+- B5 depends on B1, B2, B3, B4
+- C5 depends on A2 and partial C4
+- D1 depends on a stable enough B5/C1-C2 foundation
+- D3 depends on C2, C3, C4, C5, C6
+- E3 depends on D5
+
+## Soft dependencies
+- C3 can start before C5, but review hooks become more valuable once C5 exists
+- D4 can progress in parallel with D1/D2 once synthetic asset governance is stable
+- E2 can begin once D3 exists, even before E1 is fully mature
+
+---
+
+# Risks across the roadmap
+
+## Risk 1 — Rights complexity grows faster than tooling maturity
+### Mitigation
+Keep the public release narrow and formalize review-only profiles early.
+
+## Risk 2 — GitHub Actions becomes a bottleneck
+### Mitigation
+Keep pipelines incremental and artifact-driven; use local/manual fallback for exceptional rebuilds.
+
+## Risk 3 — Dataset identity drifts
+### Mitigation
+Track composition stats and enforce release-level caps/targets.
+
+## Risk 4 — Too much manual review load
+### Mitigation
+Bias toward strong source policies and targeted review, not broad manual curation.
+
+## Risk 5 — Source fragility
+### Mitigation
+Use modular adapters, parser fixtures, and source-health reporting.
+
+## Risk 6 — Synthetic data becomes easier than real acquisition and starts dominating
+### Mitigation
+Enforce synthetic fraction caps and real-data minimum targets in public releases.
+
+---
+
+# Recommended success criteria by phase
+
+## End of Phase A
+- the project is structurally coherent
+- schemas and configs exist
+- CLI scaffolding works
+
+## End of Phase B
+- a public pilot release exists
+- rights gating and publication work
+- synthetic and real data coexist in one release pipeline
+
+## End of Phase C
+- releases are cleaner, safer, and explainable
+- duplicates, privacy flags, and review decisions are operationalized
+
+## End of Phase D
+- recurring expansion is sustainable
+- benchmark subset exists
+- source operations are stable
+
+## End of Phase E
+- the project supports community use and contribution
+- annotated subsets and baselines increase practical value
+- governance can handle long-term maintenance
+
+---
+
+# Suggested management cadence
+
+## Weekly / near-term
+- issue triage
+- source/parser breakage checks
+- small implementation milestones
+- config/review updates
+
+## Per release
+- release diff review
+- QA report review
+- composition check review
+- publication verification
+
+## Quarterly / phase review
+- reassess source policies
+- reassess composition targets
+- decide whether to promote new sources into public profiles
+- update roadmap priorities
+
+---
+
+# Summary
+
+The long-term success of HeOCR and hocrgen depends less on raw scraping volume and more on disciplined sequencing.
+
+The roadmap should prioritize:
+
+1. a narrow, defensible public release pipeline
+2. strong rights and provenance infrastructure
+3. operational hardening before aggressive source expansion
+4. benchmark and annotation value once the dataset core is stable
+5. governance and documentation as first-class project outputs
+
+The project reaches maturity when it can repeatedly and transparently produce useful public Hebrew OCR dataset releases while maintaining a conservative legal posture, a clear dataset identity, and sustainable maintenance practices.
