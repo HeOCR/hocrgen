@@ -1,0 +1,10 @@
+version: 1
+licenses:
+  - id: PD-IL
+    name: Public Domain or equivalent open use under source policy
+    rights_classification: open
+    notes: Normalized bucket for high-confidence public items accepted into open releases.
+  - id: Project-Owned
+    name: Project controlled synthetic assets
+    rights_classification: review_required
+    notes: Synthetic generation is scaffolded in Milestone 1 and remains review-gated.
