@@ -1,0 +1,34 @@
+name: pr-agent-context-refresh
+
+on:
+  pull_request_review:
+    types: [submitted]
+  pull_request_review_comment:
+    types: [created]
+  check_run:
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+  pull-requests: write
+
+jobs:
+  pr-agent-context-refresh:
+    if: >
+      github.event_name != 'check_run' ||
+      github.event.check_run.app.slug != 'github-actions'
+    uses: shaypal5/pr-agent-context/.github/workflows/pr-agent-context.yml@v4
+    with:
+      tool_ref: v4
+      execution_mode: refresh
+      publish_mode: append
+      publish_all_clear_comments_in_refresh: false
+      include_patch_coverage: true
+      patch_coverage_source_mode: coverage_xml_artifact
+      coverage_report_artifact_name: coverage-xml
+      coverage_report_filename: coverage.xml
+      enable_cross_run_coverage_lookup: true
+      coverage_source_workflows: Validate
+      wait_for_reviews_to_settle: true
+      debug_artifacts: true
