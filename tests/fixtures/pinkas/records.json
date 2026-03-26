@@ -1,0 +1,14 @@
+{
+  "records": [
+    {
+      "id": "pinkas-fixture-001",
+      "title": "Pinkas fixture page",
+      "source_url": "https://example.org/pinkas/fixture",
+      "upstream_identifier": "fixture-001",
+      "collection": "Pinkas Fixture Collection",
+      "period": "historical",
+      "raw_rights": "CC-BY-4.0",
+      "asset_path": "tests/fixtures/pinkas/pinkas_fixture.svg"
+    }
+  ]
+}

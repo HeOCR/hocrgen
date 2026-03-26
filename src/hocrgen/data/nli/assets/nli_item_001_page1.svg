@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1200" viewBox="0 0 900 1200">
+  <rect width="900" height="1200" fill="#f4efe6"/>
+  <rect x="70" y="70" width="760" height="1060" fill="#fffdf8" stroke="#c4b59d" stroke-width="2"/>
+  <text x="760" y="160" text-anchor="end" font-size="34" font-family="serif">מכתב קהילתי</text>
+  <text x="760" y="240" text-anchor="end" font-size="26" font-family="serif">ירושלים, טבת תרצ״ו</text>
+  <text x="760" y="340" text-anchor="end" font-size="24" font-family="serif">לכבוד ועד השכונה</text>
+  <text x="760" y="400" text-anchor="end" font-size="24" font-family="serif">הננו מודיעים על חלוקת מצרכים</text>
+</svg>

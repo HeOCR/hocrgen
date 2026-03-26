@@ -1,13 +1,18 @@
 id: profile_open_v1
-description: Conservative public HeOCR release profile for Milestone 1 dry runs.
+description: Conservative public HeOCR release profile for the milestone-2 acquisition MVP.
 include_sources:
   - nli_any_use_permitted
-exclude_sources:
+  - pinkas_open
+  - biblia_open
   - project_synthetic
+exclude_sources: []
 allowed_rights_classifications:
   - open
   - open_with_attribution
-synthetic_fraction_max: 0.0
+  - sharealike
+allow_unknown_rights: false
+require_public_release_licenses: true
+synthetic_fraction_max: 0.25
 privacy_mode: conservative
 publish_targets:
   - huggingface

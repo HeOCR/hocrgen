@@ -1,0 +1,5 @@
+items:
+  - id: nli-ms-001
+    url: https://www.nli.org.il/en/discover/manuscripts/nli-ms-001
+    title: מכתב קהילתי, ירושלים 1936
+    fixture_html: package://data/nli/item_001.html

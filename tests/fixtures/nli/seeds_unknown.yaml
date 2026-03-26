@@ -1,0 +1,5 @@
+items:
+  - id: nli-ms-unknown
+    url: https://www.nli.org.il/en/discover/manuscripts/nli-ms-unknown
+    title: Unknown-rights manuscript
+    fixture_html: item_unknown.html

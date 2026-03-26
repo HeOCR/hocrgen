@@ -1,0 +1,14 @@
+{
+  "records": [
+    {
+      "id": "biblia-fixture-001",
+      "title": "BiblIA fixture fragment",
+      "source_url": "https://example.org/biblia/fixture",
+      "upstream_identifier": "fixture-001",
+      "collection": "BiblIA Fixture Collection",
+      "period": "historical",
+      "raw_rights": "CC-BY-SA-4.0",
+      "asset_path": "tests/fixtures/biblia/biblia_fixture.svg"
+    }
+  ]
+}

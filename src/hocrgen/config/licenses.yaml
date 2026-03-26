@@ -3,8 +3,45 @@ licenses:
   - id: PD-IL
     name: Public Domain or equivalent open use under source policy
     rights_classification: open
+    public_release_allowed: true
+    aliases:
+      - Any Use Permitted
     notes: Normalized bucket for high-confidence public items accepted into open releases.
-  - id: Project-Owned
-    name: Project controlled synthetic assets
-    rights_classification: review_required
-    notes: Synthetic generation is scaffolded in Milestone 1 and remains review-gated.
+  - id: CC-BY-4.0
+    name: Creative Commons Attribution 4.0 International
+    rights_classification: open_with_attribution
+    public_release_allowed: true
+    aliases:
+      - CC-BY-4.0
+      - Creative Commons Attribution 4.0
+    notes: Attribution required for public redistribution.
+  - id: CC-BY-SA-4.0
+    name: Creative Commons Attribution-ShareAlike 4.0 International
+    rights_classification: sharealike
+    public_release_allowed: true
+    aliases:
+      - CC-BY-SA-4.0
+      - Creative Commons Attribution ShareAlike 4.0
+    notes: Share-alike obligations must be preserved in downstream packaging.
+  - id: PROJECT-SYNTHETIC
+    name: Project generated synthetic sample
+    rights_classification: open
+    public_release_allowed: true
+    aliases:
+      - PROJECT-SYNTHETIC
+    notes: Used for deterministic synthetic samples emitted by the milestone-2 generator.
+  - id: RESTRICTED-NONOPEN
+    name: Restricted non-open material
+    rights_classification: restricted_review_only
+    public_release_allowed: false
+    aliases:
+      - RESTRICTED-NONOPEN
+      - Restricted
+    notes: Retained only for future review-oriented workflows.
+  - id: UNKNOWN
+    name: Unknown or unmapped rights state
+    rights_classification: blocked
+    public_release_allowed: false
+    aliases:
+      - UNKNOWN
+    notes: Conservative default when rights cannot be normalized confidently.

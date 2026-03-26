@@ -1,12 +1,18 @@
 id: profile_review_v1
-description: Internal review-oriented profile that permits scaffolded synthetic sources.
+description: Review-oriented profile for inspecting milestone-2 acquisitions, including restricted material.
 include_sources:
   - nli_any_use_permitted
+  - pinkas_open
+  - biblia_open
   - project_synthetic
 exclude_sources: []
 allowed_rights_classifications:
   - open
-  - review_required
+  - open_with_attribution
+  - sharealike
+  - restricted_review_only
+allow_unknown_rights: true
+require_public_release_licenses: false
 synthetic_fraction_max: 0.5
 privacy_mode: review
 publish_targets: []

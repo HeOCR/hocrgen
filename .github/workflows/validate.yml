@@ -27,5 +27,5 @@ jobs:
       - name: Validate committed config
         run: hocrgen config validate
 
-      - name: Dry-run CLI smoke test
-        run: hocrgen discover --profile profile_open_v1 --dry-run
+      - name: End-to-end dry-run build smoke test
+        run: hocrgen build-release --profile profile_open_v1 --dry-run

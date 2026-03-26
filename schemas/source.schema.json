@@ -57,11 +57,28 @@
               "open",
               "open_with_attribution",
               "sharealike",
-              "review_required",
-              "restricted"
+              "restricted_review_only",
+              "blocked"
             ]
           },
-          "requires_manual_review": { "type": "boolean" }
+          "requires_manual_review": { "type": "boolean" },
+          "settings": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "seed_manifest": { "type": "string" },
+              "records_path": { "type": "string" },
+              "synthetic_batch_size": { "type": "integer", "minimum": 1 },
+              "synthetic_seed": { "type": "integer" },
+              "template_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "font_manifest": { "type": "string" },
+              "text_corpus_path": { "type": "string" },
+              "extra": { "type": "object" }
+            }
+          }
         }
       }
     }
