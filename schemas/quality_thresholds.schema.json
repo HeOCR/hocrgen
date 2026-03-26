@@ -1,0 +1,38 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://heocr.github.io/hocrgen/schemas/quality_thresholds.schema.json",
+  "title": "hocrgen quality thresholds",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "minimum_width",
+    "minimum_height",
+    "minimum_bytes",
+    "allowed_raster_formats",
+    "allow_svg",
+    "preview_policy"
+  ],
+  "properties": {
+    "version": { "const": 1 },
+    "minimum_width": { "type": "integer", "minimum": 1 },
+    "minimum_height": { "type": "integer", "minimum": 1 },
+    "minimum_bytes": { "type": "integer", "minimum": 1 },
+    "allowed_raster_formats": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "enum": ["png", "jpeg"] }
+    },
+    "allow_svg": { "type": "boolean" },
+    "preview_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mode", "require_for_raster", "require_for_svg"],
+      "properties": {
+        "mode": { "enum": ["copy_if_supported", "skip"] },
+        "require_for_raster": { "type": "boolean" },
+        "require_for_svg": { "type": "boolean" }
+      }
+    }
+  }
+}

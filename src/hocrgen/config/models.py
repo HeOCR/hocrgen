@@ -29,6 +29,16 @@ class PublishTarget(str, Enum):
     github_dataset_repo = "github_dataset_repo"
 
 
+class RasterFormat(str, Enum):
+    png = "png"
+    jpeg = "jpeg"
+
+
+class PreviewGenerationMode(str, Enum):
+    copy_if_supported = "copy_if_supported"
+    skip = "skip"
+
+
 class RightsStrategy(ConfigBaseModel):
     type: Literal["exact_match", "contains", "manual_review"]
     values: list[str] = Field(default_factory=list)
@@ -127,3 +137,19 @@ class LicenseEntry(ConfigBaseModel):
 class LicenseRegistry(ConfigBaseModel):
     version: Literal[1] = 1
     licenses: list[LicenseEntry] = Field(min_length=1)
+
+
+class PreviewPolicy(ConfigBaseModel):
+    mode: PreviewGenerationMode
+    require_for_raster: bool = False
+    require_for_svg: bool = False
+
+
+class QualityThresholds(ConfigBaseModel):
+    version: Literal[1] = 1
+    minimum_width: int = Field(ge=1)
+    minimum_height: int = Field(ge=1)
+    minimum_bytes: int = Field(ge=1)
+    allowed_raster_formats: list[RasterFormat] = Field(min_length=1)
+    allow_svg: bool = True
+    preview_policy: PreviewPolicy
