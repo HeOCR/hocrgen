@@ -93,3 +93,15 @@ def test_normalize_items_fails_thresholds_for_small_png(tmp_path: Path) -> None:
     assert outputs.failed_items[0].qa_status == "failed"
     assert "width_below_threshold" in outputs.failed_items[0].qa_fail_reasons
     assert "height_below_threshold" in outputs.failed_items[0].qa_fail_reasons
+
+
+def test_detect_asset_metadata_rejects_truncated_jpeg(tmp_path: Path) -> None:
+    path = tmp_path / "truncated.jpg"
+    path.write_bytes(b"\xff\xd8\xff")
+
+    try:
+        detect_asset_metadata(path)
+    except ValueError as exc:
+        assert "truncated jpeg" in str(exc) or "jpeg dimensions not found" in str(exc)
+    else:
+        raise AssertionError("Expected truncated JPEG to fail metadata detection")

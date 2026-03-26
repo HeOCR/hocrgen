@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import struct
-import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from pathlib import Path
+
+from defusedxml import ElementTree as DefusedET
 
 from hocrgen.utils.hashing import sha256_file
 
@@ -30,7 +31,7 @@ def _parse_svg_dimension(value: str | None) -> int | None:
 
 
 def _parse_svg(path: Path) -> tuple[int | None, int | None]:
-    root = ET.fromstring(path.read_text(encoding="utf-8"))
+    root = DefusedET.fromstring(path.read_text(encoding="utf-8"))
     width = _parse_svg_dimension(root.attrib.get("width"))
     height = _parse_svg_dimension(root.attrib.get("height"))
     if width is not None and height is not None:
@@ -53,27 +54,65 @@ def _parse_png_dimensions(header: bytes) -> tuple[int, int]:
 
 
 def _parse_jpeg_dimensions(path: Path) -> tuple[int, int]:
-    data = path.read_bytes()
-    if len(data) < 4 or data[:2] != b"\xff\xd8":
-        raise ValueError("invalid jpeg header")
-    offset = 2
-    while offset < len(data):
-        if data[offset] != 0xFF:
-            offset += 1
-            continue
-        marker = data[offset + 1]
-        offset += 2
-        if marker in {0xD8, 0xD9}:
-            continue
-        if offset + 2 > len(data):
-            break
-        segment_length = struct.unpack(">H", data[offset : offset + 2])[0]
-        if marker in {0xC0, 0xC1, 0xC2, 0xC3, 0xC5, 0xC6, 0xC7, 0xC9, 0xCA, 0xCB, 0xCD, 0xCE, 0xCF}:
-            if offset + 7 > len(data):
+    sof_markers = {
+        0xC0,
+        0xC1,
+        0xC2,
+        0xC3,
+        0xC5,
+        0xC6,
+        0xC7,
+        0xC9,
+        0xCA,
+        0xCB,
+        0xCD,
+        0xCE,
+        0xCF,
+    }
+    with path.open("rb") as handle:
+        if handle.read(2) != b"\xff\xd8":
+            raise ValueError("invalid jpeg header")
+        while True:
+            byte = handle.read(1)
+            if not byte:
                 break
-            height, width = struct.unpack(">HH", data[offset + 3 : offset + 7])
-            return width, height
-        offset += segment_length
+            if byte != b"\xff":
+                continue
+
+            while True:
+                marker_byte = handle.read(1)
+                if not marker_byte:
+                    raise ValueError("truncated jpeg while reading marker")
+                if marker_byte != b"\xff":
+                    break
+
+            marker = marker_byte[0]
+            if marker in {0xD8, 0xD9}:
+                continue
+
+            length_bytes = handle.read(2)
+            if len(length_bytes) != 2:
+                raise ValueError("truncated jpeg while reading segment length")
+            segment_length = struct.unpack(">H", length_bytes)[0]
+            if segment_length < 2:
+                raise ValueError("invalid jpeg segment length")
+
+            if marker in sof_markers:
+                segment_data = handle.read(segment_length - 2)
+                if len(segment_data) != segment_length - 2:
+                    raise ValueError("truncated jpeg while reading SOF segment")
+                if len(segment_data) < 5:
+                    raise ValueError("invalid SOF segment length")
+                height, width = struct.unpack(">HH", segment_data[1:5])
+                return width, height
+
+            to_skip = segment_length - 2
+            if handle.seekable():
+                handle.seek(to_skip, 1)
+            else:
+                skipped = handle.read(to_skip)
+                if len(skipped) != to_skip:
+                    raise ValueError("truncated jpeg while skipping segment")
     raise ValueError("jpeg dimensions not found")
 
 

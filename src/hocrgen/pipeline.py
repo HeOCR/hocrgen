@@ -285,7 +285,6 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             "acquired_count": len(state.acquired_items),
             "is_dry_run": context.dry_run,
             "normalized_count": len(state.normalized_items),
-            "normalize_failed_count": len(state.failed_normalized_items),
             "profile_id": context.profile_id,
             "publish_targets": [target.value for target in bundle.profiles[context.profile_id].publish_targets],
             "qa_passed_count": len(state.normalized_items),

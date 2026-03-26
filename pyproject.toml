@@ -13,6 +13,7 @@ authors = [
   { name = "HeOCR maintainers" }
 ]
 dependencies = [
+  "defusedxml>=0.7.1,<1",
   "pydantic>=2.7,<3",
   "PyYAML>=6.0,<7",
 ]
