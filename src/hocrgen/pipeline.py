@@ -15,11 +15,12 @@ from hocrgen.fetchers.nli import NliFetcher
 from hocrgen.fetchers.pinkas import PinkasImporter
 from hocrgen.fetchers.synthetic import SyntheticFetcher
 from hocrgen.manifests.io import write_json
-from hocrgen.manifests.models import AcquiredItemRecord, CandidateRecord, EnrichedCandidateRecord, ItemRecord
+from hocrgen.manifests.models import AcquiredItemRecord, CandidateRecord, EnrichedCandidateRecord, ItemRecord, NormalizedItemRecord
+from hocrgen.normalize.metadata import normalize_items
 from hocrgen.parsers.rights import classify_eligibility, normalize_rights
 
 
-STAGE_ORDER = ("discover", "fetch-metadata", "policy-filter", "acquire", "build-release")
+STAGE_ORDER = ("discover", "fetch-metadata", "policy-filter", "acquire", "normalize", "build-release")
 
 
 FETCHERS = {
@@ -44,6 +45,8 @@ class PipelineState:
     accepted_items: list[ItemRecord]
     rejected_items: list[ItemRecord]
     acquired_items: list[AcquiredItemRecord]
+    normalized_items: list[NormalizedItemRecord]
+    failed_normalized_items: list[NormalizedItemRecord]
 
 
 def write_run_metadata(context: RunContext) -> Path:
@@ -251,40 +254,110 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     stage_dir = context.stage_dir("build_release")
     stage_dir.mkdir(parents=True, exist_ok=True)
     item_manifest_path = stage_dir / "item_manifest.json"
+    failed_item_manifest_path = stage_dir / "failed_item_manifest.json"
     release_summary_path = stage_dir / "release_summary.json"
     source_stats_path = stage_dir / "source_stats.json"
     summary_path = stage_dir / "summary.json"
 
-    source_counts = dict(Counter(item.source_id for item in state.acquired_items))
-    rights_counts = dict(Counter(item.rights_classification.value for item in state.acquired_items))
-    write_json(item_manifest_path, {"items": _dump_models(state.acquired_items)})
-    write_json(source_stats_path, {"sources": source_counts, "rights_classifications": rights_counts})
+    source_counts = dict(Counter(item.source_id for item in state.normalized_items))
+    rights_counts = dict(Counter(item.rights_classification.value for item in state.normalized_items))
+    format_counts = dict(
+        Counter(asset.asset_format for item in state.normalized_items for asset in item.normalized_assets)
+    )
+    qa_fail_reasons = dict(
+        Counter(reason for item in state.failed_normalized_items for reason in item.qa_fail_reasons)
+    )
+    write_json(item_manifest_path, {"items": _dump_models(state.normalized_items)})
+    write_json(failed_item_manifest_path, {"items": _dump_models(state.failed_normalized_items)})
+    write_json(
+        source_stats_path,
+        {
+            "asset_formats": format_counts,
+            "qa_fail_reasons": qa_fail_reasons,
+            "rights_classifications": rights_counts,
+            "sources": source_counts,
+        },
+    )
     write_json(
         release_summary_path,
         {
             "accepted_count": len(state.accepted_items),
             "acquired_count": len(state.acquired_items),
             "is_dry_run": context.dry_run,
+            "normalized_count": len(state.normalized_items),
             "profile_id": context.profile_id,
             "publish_targets": [target.value for target in bundle.profiles[context.profile_id].publish_targets],
-            "real_items": sum(1 for item in state.acquired_items if not item.is_synthetic),
-            "synthetic_items": sum(1 for item in state.acquired_items if item.is_synthetic),
+            "qa_passed_count": len(state.normalized_items),
+            "qa_failed_count": len(state.failed_normalized_items),
+            "real_items": sum(1 for item in state.normalized_items if not item.is_synthetic),
+            "synthetic_items": sum(1 for item in state.normalized_items if item.is_synthetic),
         },
     )
     write_json(
         summary_path,
         {
+            "failed_item_manifest": str(failed_item_manifest_path.relative_to(context.run_dir)),
             "item_manifest": str(item_manifest_path.relative_to(context.run_dir)),
             "release_summary": str(release_summary_path.relative_to(context.run_dir)),
             "source_stats": str(source_stats_path.relative_to(context.run_dir)),
             "stage": "build-release",
         },
     )
-    return StageResult(stage="build-release", summary_path=summary_path, extra_artifacts=[item_manifest_path, release_summary_path, source_stats_path])
+    return StageResult(
+        stage="build-release",
+        summary_path=summary_path,
+        extra_artifacts=[item_manifest_path, failed_item_manifest_path, release_summary_path, source_stats_path],
+    )
+
+
+def _run_normalize(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
+    stage_dir = context.stage_dir("normalize")
+    assets_dir = stage_dir / "assets"
+    thumbnails_dir = stage_dir / "thumbnails"
+    stage_dir.mkdir(parents=True, exist_ok=True)
+
+    outputs = normalize_items(
+        items=state.acquired_items,
+        thresholds=bundle.quality_thresholds,
+        assets_dir=assets_dir,
+        thumbnails_dir=thumbnails_dir,
+    )
+    normalized_manifest_path = stage_dir / "normalized_items.json"
+    failed_manifest_path = stage_dir / "failed_items.json"
+    qa_report_path = stage_dir / "qa_report.json"
+    summary_path = stage_dir / "summary.json"
+
+    write_json(normalized_manifest_path, {"items": _dump_models(outputs.normalized_items)})
+    write_json(failed_manifest_path, {"items": _dump_models(outputs.failed_items)})
+    write_json(qa_report_path, outputs.qa_report)
+    write_json(
+        summary_path,
+        {
+            "failed_count": len(outputs.failed_items),
+            "normalized_count": len(outputs.normalized_items),
+            "qa_report": str(qa_report_path.relative_to(context.run_dir)),
+            "stage": "normalize",
+        },
+    )
+    state.normalized_items = outputs.normalized_items
+    state.failed_normalized_items = outputs.failed_items
+    return StageResult(
+        stage="normalize",
+        summary_path=summary_path,
+        extra_artifacts=[normalized_manifest_path, failed_manifest_path, qa_report_path],
+    )
 
 
 def execute_pipeline(target_stage: str, bundle: ConfigBundle, context: RunContext, options: StageOptions) -> list[StageResult]:
-    state = PipelineState(candidates=[], enriched_candidates=[], accepted_items=[], rejected_items=[], acquired_items=[])
+    state = PipelineState(
+        candidates=[],
+        enriched_candidates=[],
+        accepted_items=[],
+        rejected_items=[],
+        acquired_items=[],
+        normalized_items=[],
+        failed_normalized_items=[],
+    )
     results: list[StageResult] = []
     for stage in STAGE_ORDER:
         if stage == "discover":
@@ -297,6 +370,8 @@ def execute_pipeline(target_stage: str, bundle: ConfigBundle, context: RunContex
             results.append(_run_policy_filter(bundle, context, options, state))
         elif stage == "acquire":
             results.append(_run_acquire(bundle, context, options, state))
+        elif stage == "normalize":
+            results.append(_run_normalize(bundle, context, options, state))
         elif stage == "build-release":
             results.append(_run_build_release(bundle, context, options, state))
         if stage == target_stage:

@@ -9,7 +9,7 @@ import json
 import yaml
 from pydantic import ValidationError
 
-from hocrgen.config.models import LicenseRegistry, ReleaseProfile, SourceRegistry
+from hocrgen.config.models import LicenseRegistry, QualityThresholds, ReleaseProfile, SourceRegistry
 from hocrgen.core.errors import ConfigValidationError
 
 
@@ -18,6 +18,7 @@ class ConfigBundle:
     source_registry: SourceRegistry
     profiles: dict[str, ReleaseProfile]
     licenses: LicenseRegistry
+    quality_thresholds: QualityThresholds
     config_root: Path
 
     def resolve_path(self, reference: str | Path) -> Path:
@@ -113,12 +114,19 @@ def load_profiles(config_root: Path | None = None) -> dict[str, ReleaseProfile]:
     return profiles
 
 
+def load_quality_thresholds(config_root: Path | None = None) -> QualityThresholds:
+    root = config_root or default_config_root()
+    path = root / "quality_thresholds.yaml"
+    return _validate("quality thresholds", QualityThresholds, load_yaml_file(path), path)
+
+
 def load_config_bundle(config_root: Path | None = None) -> ConfigBundle:
     root = config_root or default_config_root()
     return ConfigBundle(
         source_registry=load_source_registry(root),
         profiles=load_profiles(root),
         licenses=load_license_registry(root),
+        quality_thresholds=load_quality_thresholds(root),
         config_root=root,
     )
 

@@ -2,7 +2,7 @@
 
 `hocrgen` is the open-source dataset operations toolchain for the HeOCR project.
 
-This repository now implements Milestone 2: a narrow but real acquisition MVP on top of the earlier package/config/pipeline foundation. The current implementation is intentionally conservative and fixture/sample-driven, but it now performs real source ingestion, metadata parsing, rights normalization, policy filtering, asset materialization, and synthetic sample generation.
+This repository now implements Milestone 3: a conservative normalization and technical-QA layer on top of the earlier acquisition MVP. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, rights filtering, asset materialization, technical normalization, checksum/integrity tracking, preview generation, and QA reporting.
 
 ## What `hocrgen` can do today
 
@@ -13,7 +13,11 @@ This repository now implements Milestone 2: a narrow but real acquisition MVP on
 - normalize rights into controlled license values and policy classifications
 - apply release-profile eligibility rules
 - materialize acquired/generated sample assets into a run workdir
-- build a meaningful dry-run release manifest with per-source and per-rights stats
+- normalize acquired assets into a stable run layout with technical metadata
+- compute checksums, dimensions, file sizes, and format metadata
+- generate preview copies for supported SVG/raster assets
+- emit QA pass/fail reports and normalized-item manifests
+- build a meaningful dry-run release manifest with per-source, per-format, and QA stats
 
 ## Supported sources in Milestone 2
 
@@ -34,7 +38,6 @@ This is not a broad crawler yet. The NLI support is intentionally narrow and rel
 ## What is still future work
 
 - broad live-source crawling
-- mature normalization and QA
 - deduplication
 - advanced classification
 - privacy/sensitivity screening
@@ -61,6 +64,7 @@ This validates:
 - committed sources under [`src/hocrgen/config/sources.yaml`](./src/hocrgen/config/sources.yaml)
 - release profiles under [`src/hocrgen/config/profiles`](./src/hocrgen/config/profiles)
 - normalized license mappings under [`src/hocrgen/config/licenses.yaml`](./src/hocrgen/config/licenses.yaml)
+- technical QA thresholds under [`src/hocrgen/config/quality_thresholds.yaml`](./src/hocrgen/config/quality_thresholds.yaml)
 
 ## Run a real Milestone 2 dry-run
 
@@ -83,7 +87,13 @@ This now runs a real sample-backed pipeline and emits populated artifacts such a
       policy_filter/rejected_items.json
       acquire/acquired_items.json
       acquire/assets/
+      normalize/normalized_items.json
+      normalize/failed_items.json
+      normalize/qa_report.json
+      normalize/assets/
+      normalize/thumbnails/
       build_release/item_manifest.json
+      build_release/failed_item_manifest.json
       build_release/release_summary.json
       build_release/source_stats.json
 ```
@@ -97,6 +107,7 @@ hocrgen discover --profile profile_open_v1 --dry-run
 hocrgen fetch-metadata --profile profile_open_v1 --dry-run
 hocrgen policy-filter --profile profile_open_v1 --dry-run
 hocrgen acquire --profile profile_open_v1 --dry-run
+hocrgen normalize --profile profile_open_v1 --dry-run
 hocrgen build-release --profile profile_open_v1 --dry-run
 ```
 
@@ -129,6 +140,28 @@ And these policy classes:
 
 The default public profile is conservative: unknown or non-public rights are rejected during `policy-filter`.
 
+## Normalization and technical QA
+
+Milestone 3 adds a real `normalize` stage that operates on acquired assets and writes a stable release-prep layout under the run workdir.
+
+What normalization does today:
+
+- verifies the acquired asset exists and is non-empty
+- checks that the asset is decodable as a supported SVG, PNG, or JPEG image
+- extracts technical metadata such as width, height, file size, media type, and `sha256`
+- copies the asset into a normalized layout under `normalize/assets/`
+- generates a preview copy under `normalize/thumbnails/` for supported SVG/raster formats
+- evaluates threshold-based QA rules and writes pass/fail reasons
+
+Current QA thresholds are configured in [`src/hocrgen/config/quality_thresholds.yaml`](./src/hocrgen/config/quality_thresholds.yaml). The current implementation is conservative and lightweight:
+
+- SVG is supported and treated explicitly as vector input
+- raster support covers PNG and JPEG
+- preview generation currently uses a copied normalized asset for supported formats instead of raster re-rendering
+- unsupported formats are rejected with structured QA reasons
+
+See [`docs/hocrgen_normalization_and_qa.md`](./docs/hocrgen_normalization_and_qa.md) for the artifact layout and QA report shape.
+
 ## Synthetic generation
 
 The synthetic subsystem is modest but real:
@@ -156,6 +189,7 @@ Key fixture locations:
 ```bash
 pytest
 hocrgen config validate
+hocrgen normalize --profile profile_open_v1 --dry-run
 hocrgen build-release --profile profile_open_v1 --dry-run
 ```
 
@@ -163,3 +197,4 @@ hocrgen build-release --profile profile_open_v1 --dry-run
 
 - Product/design spec: [`docs/hocrgen_design_and_spec.md`](./docs/hocrgen_design_and_spec.md)
 - Long-term roadmap: [`docs/HeOCR_hocrgen_long_term_roadmap.md`](./docs/HeOCR_hocrgen_long_term_roadmap.md)
+- Normalization and QA notes: [`docs/hocrgen_normalization_and_qa.md`](./docs/hocrgen_normalization_and_qa.md)
