@@ -15,6 +15,8 @@ def test_load_and_validate_bundle_uses_committed_examples() -> None:
     assert bundle.source_registry.version == 1
     assert "profile_open_v1" in bundle.profiles
     assert "profile_review_v1" in bundle.profiles
+    assert bundle.quality_thresholds.version == 1
+    assert bundle.quality_thresholds.allow_svg is True
     assert {"nli_any_use_permitted", "pinkas_open", "biblia_open", "project_synthetic"} <= {
         source.id for source in bundle.source_registry.sources
     }

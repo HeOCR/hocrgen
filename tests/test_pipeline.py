@@ -10,16 +10,23 @@ from hocrgen.config.loader import default_config_root
 
 def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> None:
     exit_code = main(["build-release", "--profile", "profile_open_v1", "--dry-run", "--workdir", str(tmp_path)])
+    assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)
     run_dir = Path(payload["run_dir"])
+    normalized_items = json.loads((run_dir / "normalize" / "normalized_items.json").read_text(encoding="utf-8"))
+    qa_report = json.loads((run_dir / "normalize" / "qa_report.json").read_text(encoding="utf-8"))
     release_summary = json.loads((run_dir / "build_release" / "release_summary.json").read_text(encoding="utf-8"))
     source_stats = json.loads((run_dir / "build_release" / "source_stats.json").read_text(encoding="utf-8"))
 
-    assert exit_code == 0
+    assert len(normalized_items["items"]) == 4
+    assert qa_report["failed_count"] == 0
     assert release_summary["accepted_count"] == 4
     assert release_summary["acquired_count"] == 4
+    assert release_summary["normalized_count"] == 4
+    assert release_summary["qa_failed_count"] == 0
     assert release_summary["real_items"] == 3
     assert release_summary["synthetic_items"] == 1
+    assert source_stats["asset_formats"]["svg"] == 5
     assert source_stats["sources"]["nli_any_use_permitted"] == 1
     assert source_stats["sources"]["project_synthetic"] == 1
 

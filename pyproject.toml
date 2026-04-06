@@ -13,6 +13,7 @@ authors = [
   { name = "HeOCR maintainers" }
 ]
 dependencies = [
+  "defusedxml>=0.7.1,<1",
   "pydantic>=2.7,<3",
   "PyYAML>=6.0,<7",
 ]
@@ -35,7 +36,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "hocrgen.config" = ["*.yaml", "profiles/*.yaml"]
-"hocrgen" = ["data/**/*.json", "data/**/*.svg", "data/**/*.yaml", "data/**/*.html", "data/**/*.txt"]
+"hocrgen" = ["data/**/*.json", "data/**/*.svg", "data/**/*.png", "data/**/*.jpg", "data/**/*.jpeg", "data/**/*.yaml", "data/**/*.html", "data/**/*.txt"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

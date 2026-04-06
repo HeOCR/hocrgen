@@ -1,0 +1,12 @@
+version: 1
+minimum_width: 200
+minimum_height: 200
+minimum_bytes: 100
+allowed_raster_formats:
+  - png
+  - jpeg
+allow_svg: true
+preview_policy:
+  mode: copy_if_supported
+  require_for_raster: false
+  require_for_svg: false

@@ -53,3 +53,27 @@ class AcquiredAsset(ManifestModel):
 
 class AcquiredItemRecord(ItemRecord):
     acquired_assets: list[AcquiredAsset] = Field(default_factory=list)
+
+
+class NormalizedAssetRecord(ManifestModel):
+    item_id: str
+    source_asset_path: str
+    normalized_asset_path: str
+    asset_format: str
+    media_type: str
+    width: int | None = None
+    height: int | None = None
+    file_size_bytes: int
+    sha256: str
+    is_vector: bool = False
+    normalization_action: str
+    preview_generated: bool = False
+    preview_path: str | None = None
+    preview_action: str | None = None
+    preview_reason: str | None = None
+
+
+class NormalizedItemRecord(AcquiredItemRecord):
+    normalized_assets: list[NormalizedAssetRecord] = Field(default_factory=list)
+    qa_status: str
+    qa_fail_reasons: list[str] = Field(default_factory=list)
