@@ -193,6 +193,25 @@ hocrgen normalize --profile profile_open_v1 --dry-run
 hocrgen build-release --profile profile_open_v1 --dry-run
 ```
 
+## PR agent context
+
+This repository publishes `pr-agent-context` comments for pull requests and later refresh events.
+
+- [`.github/workflows/validate.yml`](./.github/workflows/validate.yml) runs the test and smoke-check
+  suite, exports a combined `coverage.xml`, uploads it as the `coverage-xml` artifact, and invokes
+  `pr-agent-context` on pull requests.
+- [`.github/workflows/pr-agent-context-refresh.yml`](./.github/workflows/pr-agent-context-refresh.yml)
+  handles later review/check signals and re-runs `pr-agent-context` in refresh mode.
+
+Both workflows use XML-based patch coverage inputs:
+
+- `patch_coverage_source_mode: coverage_xml_artifact`
+- `coverage_report_artifact_name: coverage-xml`
+- `coverage_report_filename: coverage.xml`
+
+Both workflows also use `publish_mode: append`, so refresh runs append new managed comments rather
+than updating earlier ones.
+
 ## Repository reference
 
 - Product/design spec: [`docs/hocrgen_design_and_spec.md`](./docs/hocrgen_design_and_spec.md)
