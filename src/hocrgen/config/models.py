@@ -39,6 +39,13 @@ class PreviewGenerationMode(str, Enum):
     skip = "skip"
 
 
+class PrivacyFlag(str, Enum):
+    clear = "clear"
+    possible_personal_data = "possible_personal_data"
+    needs_review = "needs_review"
+    blocked_sensitive = "blocked_sensitive"
+
+
 class RightsStrategy(ConfigBaseModel):
     type: Literal["exact_match", "contains", "manual_review"]
     values: list[str] = Field(default_factory=list)
@@ -153,3 +160,19 @@ class QualityThresholds(ConfigBaseModel):
     allowed_raster_formats: list[RasterFormat] = Field(min_length=1)
     allow_svg: bool = True
     preview_policy: PreviewPolicy
+
+
+class PrivacyRule(ConfigBaseModel):
+    id: str = Field(pattern=r"^[a-z0-9_]+$")
+    flag: PrivacyFlag
+    patterns: list[str] = Field(min_length=1)
+    fields: list[Literal["title", "description", "metadata", "source_url"]] = Field(min_length=1)
+    applies_to_sources: list[str] = Field(default_factory=list)
+    applies_to_periods: list[Literal["modern", "historical"]] = Field(default_factory=list)
+    case_sensitive: bool = False
+
+
+class PrivacyRules(ConfigBaseModel):
+    version: Literal[1] = 1
+    source_defaults: dict[str, PrivacyFlag] = Field(default_factory=dict)
+    rules: list[PrivacyRule] = Field(default_factory=list)

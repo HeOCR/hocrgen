@@ -9,7 +9,7 @@ import json
 import yaml
 from pydantic import ValidationError
 
-from hocrgen.config.models import LicenseRegistry, QualityThresholds, ReleaseProfile, SourceRegistry
+from hocrgen.config.models import LicenseRegistry, PrivacyRules, QualityThresholds, ReleaseProfile, SourceRegistry
 from hocrgen.core.errors import ConfigValidationError
 
 
@@ -19,6 +19,7 @@ class ConfigBundle:
     profiles: dict[str, ReleaseProfile]
     licenses: LicenseRegistry
     quality_thresholds: QualityThresholds
+    privacy_rules: PrivacyRules
     config_root: Path
 
     def resolve_path(self, reference: str | Path) -> Path:
@@ -120,6 +121,12 @@ def load_quality_thresholds(config_root: Path | None = None) -> QualityThreshold
     return _validate("quality thresholds", QualityThresholds, load_yaml_file(path), path)
 
 
+def load_privacy_rules(config_root: Path | None = None) -> PrivacyRules:
+    root = config_root or default_config_root()
+    path = root / "privacy_rules.yaml"
+    return _validate("privacy rules", PrivacyRules, load_yaml_file(path), path)
+
+
 def load_config_bundle(config_root: Path | None = None) -> ConfigBundle:
     root = config_root or default_config_root()
     return ConfigBundle(
@@ -127,6 +134,7 @@ def load_config_bundle(config_root: Path | None = None) -> ConfigBundle:
         profiles=load_profiles(root),
         licenses=load_license_registry(root),
         quality_thresholds=load_quality_thresholds(root),
+        privacy_rules=load_privacy_rules(root),
         config_root=root,
     )
 
@@ -139,6 +147,19 @@ def validate_bundle_references(bundle: ConfigBundle) -> None:
             raise ConfigValidationError(
                 f"profile {profile.id} references unknown source ids",
                 details=[{"profile_id": profile.id, "unknown_source_ids": sorted(unknown)}],
+            )
+    unknown_privacy_sources = set(bundle.privacy_rules.source_defaults) - source_ids
+    if unknown_privacy_sources:
+        raise ConfigValidationError(
+            "privacy rules reference unknown source ids",
+            details=[{"unknown_source_ids": sorted(unknown_privacy_sources)}],
+        )
+    for rule in bundle.privacy_rules.rules:
+        unknown_rule_sources = set(rule.applies_to_sources) - source_ids
+        if unknown_rule_sources:
+            raise ConfigValidationError(
+                f"privacy rule {rule.id} references unknown source ids",
+                details=[{"privacy_rule_id": rule.id, "unknown_source_ids": sorted(unknown_rule_sources)}],
             )
 
 

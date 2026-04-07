@@ -1,0 +1,19 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://heocr.github.io/hocrgen/schemas/review_decision.schema.json",
+  "title": "hocrgen review decision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["review_item_id", "item_id", "decision", "reviewer", "timestamp", "rationale"],
+  "properties": {
+    "review_item_id": { "type": "string" },
+    "item_id": { "type": "string" },
+    "decision": {
+      "enum": ["approve", "reject", "needs_legal_review", "needs_privacy_review", "defer"]
+    },
+    "reviewer": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "rationale": { "type": "string" },
+    "notes": { "type": ["string", "null"] }
+  }
+}

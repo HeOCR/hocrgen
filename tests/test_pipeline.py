@@ -20,6 +20,10 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     source_stats = json.loads((run_dir / "build_release" / "source_stats.json").read_text(encoding="utf-8"))
     item_manifest = json.loads((run_dir / "build_release" / "item_manifest.json").read_text(encoding="utf-8"))
     removed_duplicate_items = json.loads((run_dir / "build_release" / "removed_duplicate_items.json").read_text(encoding="utf-8"))
+    review_required_items = json.loads((run_dir / "build_release" / "review_required_items.json").read_text(encoding="utf-8"))
+    review_queue = json.loads((run_dir / "build_release" / "review_queue.json").read_text(encoding="utf-8"))
+    classification_stats = json.loads((run_dir / "build_release" / "classification_stats.json").read_text(encoding="utf-8"))
+    privacy_stats = json.loads((run_dir / "build_release" / "privacy_stats.json").read_text(encoding="utf-8"))
 
     assert len(normalized_items["items"]) == 4
     assert qa_report["failed_count"] == 0
@@ -29,15 +33,26 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert release_summary["retained_count"] == 4
     assert release_summary["duplicate_removed_count"] == 0
     assert release_summary["qa_failed_count"] == 0
-    assert release_summary["real_items"] == 3
+    assert release_summary["release_ready_count"] == 3
+    assert release_summary["review_required_count"] == 1
+    assert release_summary["blocked_count"] == 0
+    assert release_summary["real_items"] == 2
     assert release_summary["synthetic_items"] == 1
-    assert sum(release_summary["split_counts"].values()) == 4
-    assert source_stats["asset_formats"]["svg"] == 5
-    assert source_stats["sources"]["nli_any_use_permitted"] == 1
+    assert sum(release_summary["split_counts"].values()) == 3
+    assert source_stats["asset_formats"]["svg"] == 3
+    assert source_stats["sources"]["biblia_open"] == 1
+    assert source_stats["sources"]["pinkas_open"] == 1
     assert source_stats["sources"]["project_synthetic"] == 1
-    assert len(split_manifest["items"]) == 4
-    assert len(item_manifest["items"]) == 4
+    assert "nli_any_use_permitted" not in source_stats["sources"]
+    assert len(split_manifest["items"]) == 3
+    assert len(item_manifest["items"]) == 3
     assert removed_duplicate_items["items"] == []
+    assert len(review_required_items["items"]) == 1
+    assert review_required_items["items"][0]["source_id"] == "nli_any_use_permitted"
+    assert len(review_queue["items"]) == 1
+    assert review_queue["items"][0]["review_item_id"] == "review:nli_any_use_permitted:nli-ms-001"
+    assert classification_stats["period_class"]["modern"] == 2
+    assert privacy_stats["privacy_flag"]["possible_personal_data"] == 1
 
 
 def test_unknown_rights_are_rejected_in_pipeline(tmp_path: Path, capsys) -> None:
@@ -165,12 +180,17 @@ def test_build_release_removes_exact_duplicates(tmp_path: Path, capsys) -> None:
     split_manifest = json.loads((run_dir / "build_release" / "split_manifest.json").read_text(encoding="utf-8"))
     item_manifest = json.loads((run_dir / "build_release" / "item_manifest.json").read_text(encoding="utf-8"))
 
+    review_required_items = json.loads((run_dir / "build_release" / "review_required_items.json").read_text(encoding="utf-8"))
+
     assert release_summary["normalized_count"] == 4
     assert release_summary["retained_count"] == 3
     assert release_summary["duplicate_removed_count"] == 1
+    assert release_summary["release_ready_count"] == 2
+    assert release_summary["review_required_count"] == 1
     assert len(duplicate_relations["items"]) == 1
     assert duplicate_relations["items"][0]["reason"] == "exact_asset_sequence_match"
     assert len(duplicate_clusters["items"]) == 1
     assert len(removed_duplicate_items["items"]) == 1
-    assert len(split_manifest["items"]) == 3
-    assert len(item_manifest["items"]) == 3
+    assert len(split_manifest["items"]) == 2
+    assert len(item_manifest["items"]) == 2
+    assert len(review_required_items["items"]) == 1

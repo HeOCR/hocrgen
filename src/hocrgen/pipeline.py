@@ -1,11 +1,12 @@
 from __future__ import annotations
 
 from collections import Counter
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from math import floor
 from pathlib import Path
 from typing import Any
 
+from hocrgen.classify.heuristics import classify_items
 from hocrgen.config.loader import ConfigBundle
 from hocrgen.config.models import LicenseEntry, SourceConfig
 from hocrgen.core.context import RunContext
@@ -19,20 +20,37 @@ from hocrgen.manifests.io import write_json
 from hocrgen.manifests.models import (
     AcquiredItemRecord,
     CandidateRecord,
+    ClassifiedItemRecord,
     CuratedItemRecord,
     DuplicateClusterRecord,
     DuplicateRelationRecord,
     EnrichedCandidateRecord,
     ItemRecord,
     NormalizedItemRecord,
+    PrivacyScannedItemRecord,
+    ReviewQueueRecord,
     SplitAssignmentRecord,
 )
 from hocrgen.normalize.metadata import normalize_items
 from hocrgen.parsers.rights import classify_eligibility, normalize_rights
+from hocrgen.privacy.rules import apply_privacy_rules
+from hocrgen.review.queue import export_review_queue
 from hocrgen.split.assign import assign_splits
 
 
-STAGE_ORDER = ("discover", "fetch-metadata", "policy-filter", "acquire", "normalize", "dedupe", "split", "build-release")
+STAGE_ORDER = (
+    "discover",
+    "fetch-metadata",
+    "policy-filter",
+    "acquire",
+    "normalize",
+    "dedupe",
+    "classify",
+    "privacy-scan",
+    "review-export",
+    "split",
+    "build-release",
+)
 
 
 FETCHERS = {
@@ -52,19 +70,25 @@ class StageResult:
 
 @dataclass
 class PipelineState:
-    candidates: list[CandidateRecord]
-    enriched_candidates: list[EnrichedCandidateRecord]
-    accepted_items: list[ItemRecord]
-    rejected_items: list[ItemRecord]
-    acquired_items: list[AcquiredItemRecord]
-    normalized_items: list[NormalizedItemRecord]
-    failed_normalized_items: list[NormalizedItemRecord]
-    retained_items: list[CuratedItemRecord]
-    duplicate_items: list[CuratedItemRecord]
-    duplicate_relations: list[DuplicateRelationRecord]
-    duplicate_clusters: list[DuplicateClusterRecord]
-    split_assignments: list[SplitAssignmentRecord]
-    leakage_report: dict[str, Any]
+    candidates: list[CandidateRecord] = field(default_factory=list)
+    enriched_candidates: list[EnrichedCandidateRecord] = field(default_factory=list)
+    accepted_items: list[ItemRecord] = field(default_factory=list)
+    rejected_items: list[ItemRecord] = field(default_factory=list)
+    acquired_items: list[AcquiredItemRecord] = field(default_factory=list)
+    normalized_items: list[NormalizedItemRecord] = field(default_factory=list)
+    failed_normalized_items: list[NormalizedItemRecord] = field(default_factory=list)
+    retained_items: list[CuratedItemRecord] = field(default_factory=list)
+    duplicate_items: list[CuratedItemRecord] = field(default_factory=list)
+    duplicate_relations: list[DuplicateRelationRecord] = field(default_factory=list)
+    duplicate_clusters: list[DuplicateClusterRecord] = field(default_factory=list)
+    classified_items: list[ClassifiedItemRecord] = field(default_factory=list)
+    privacy_scanned_items: list[PrivacyScannedItemRecord] = field(default_factory=list)
+    release_ready_items: list[PrivacyScannedItemRecord] = field(default_factory=list)
+    review_required_items: list[PrivacyScannedItemRecord] = field(default_factory=list)
+    blocked_items: list[PrivacyScannedItemRecord] = field(default_factory=list)
+    review_queue: list[ReviewQueueRecord] = field(default_factory=list)
+    split_assignments: list[SplitAssignmentRecord] = field(default_factory=list)
+    leakage_report: dict[str, Any] = field(default_factory=dict)
 
 
 def write_run_metadata(context: RunContext) -> Path:
@@ -119,7 +143,11 @@ def _dump_models(items) -> list[dict[str, Any]]:
     return [item.model_dump(mode="json") for item in items]
 
 
-def _apply_synthetic_cap(accepted_items: list[ItemRecord], rejected_items: list[ItemRecord], synthetic_fraction_max: float) -> tuple[list[ItemRecord], list[ItemRecord]]:
+def _apply_synthetic_cap(
+    accepted_items: list[ItemRecord],
+    rejected_items: list[ItemRecord],
+    synthetic_fraction_max: float,
+) -> tuple[list[ItemRecord], list[ItemRecord]]:
     synthetic = [item for item in accepted_items if item.is_synthetic]
     real = [item for item in accepted_items if not item.is_synthetic]
     if not synthetic or synthetic_fraction_max >= 1:
@@ -156,8 +184,9 @@ def _item_from_enriched(record: EnrichedCandidateRecord, source: SourceConfig, b
         eligibility_reason=reason,
         is_synthetic=source.fetcher == "synthetic",
         provenance={
-            "source_name": source.name,
             "fetcher": source.fetcher,
+            "source_name": source.name,
+            "source_status": source.status.value,
             "upstream_identifier": record.source_item_id,
         },
     )
@@ -189,7 +218,10 @@ def _run_fetch_metadata(bundle: ConfigBundle, context: RunContext, options: Stag
     stage_dir = context.stage_dir("fetch_metadata")
     stage_dir.mkdir(parents=True, exist_ok=True)
     selected_sources = _selected_sources(bundle, context.profile_id, options)
-    candidates_by_source = {source.id: [candidate for candidate in state.candidates if candidate.source_id == source.id] for source in selected_sources}
+    candidates_by_source = {
+        source.id: [candidate for candidate in state.candidates if candidate.source_id == source.id]
+        for source in selected_sources
+    }
     enriched: list[EnrichedCandidateRecord] = []
     for source in selected_sources:
         enriched.extend(FETCHERS[source.fetcher].fetch_candidate_metadata(source, bundle, candidates_by_source[source.id], options))
@@ -201,8 +233,8 @@ def _run_fetch_metadata(bundle: ConfigBundle, context: RunContext, options: Stag
         summary_path,
         {
             "enriched_candidate_count": len(enriched),
-            "stage": "fetch-metadata",
             "rights_samples": sorted({item.raw_rights_text for item in enriched if item.raw_rights_text}),
+            "stage": "fetch-metadata",
         },
     )
     state.enriched_candidates = enriched
@@ -223,7 +255,11 @@ def _run_policy_filter(bundle: ConfigBundle, context: RunContext, options: Stage
         else:
             rejected.append(item)
 
-    accepted, rejected = _apply_synthetic_cap(accepted, rejected, bundle.profiles[context.profile_id].synthetic_fraction_max)
+    accepted, rejected = _apply_synthetic_cap(
+        accepted,
+        rejected,
+        bundle.profiles[context.profile_id].synthetic_fraction_max,
+    )
     accepted_path = stage_dir / "accepted_items.json"
     rejected_path = stage_dir / "rejected_items.json"
     summary_path = stage_dir / "summary.json"
@@ -268,6 +304,44 @@ def _run_acquire(bundle: ConfigBundle, context: RunContext, options: StageOption
     return StageResult(stage="acquire", summary_path=summary_path, extra_artifacts=[manifest_path])
 
 
+def _run_normalize(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
+    stage_dir = context.stage_dir("normalize")
+    assets_dir = stage_dir / "assets"
+    thumbnails_dir = stage_dir / "thumbnails"
+    stage_dir.mkdir(parents=True, exist_ok=True)
+
+    outputs = normalize_items(
+        items=state.acquired_items,
+        thresholds=bundle.quality_thresholds,
+        assets_dir=assets_dir,
+        thumbnails_dir=thumbnails_dir,
+    )
+    normalized_manifest_path = stage_dir / "normalized_items.json"
+    failed_manifest_path = stage_dir / "failed_items.json"
+    qa_report_path = stage_dir / "qa_report.json"
+    summary_path = stage_dir / "summary.json"
+
+    write_json(normalized_manifest_path, {"items": _dump_models(outputs.normalized_items)})
+    write_json(failed_manifest_path, {"items": _dump_models(outputs.failed_items)})
+    write_json(qa_report_path, outputs.qa_report)
+    write_json(
+        summary_path,
+        {
+            "failed_count": len(outputs.failed_items),
+            "normalized_count": len(outputs.normalized_items),
+            "qa_report": str(qa_report_path.relative_to(context.run_dir)),
+            "stage": "normalize",
+        },
+    )
+    state.normalized_items = outputs.normalized_items
+    state.failed_normalized_items = outputs.failed_items
+    return StageResult(
+        stage="normalize",
+        summary_path=summary_path,
+        extra_artifacts=[normalized_manifest_path, failed_manifest_path, qa_report_path],
+    )
+
+
 def _run_dedupe(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
     del options
     stage_dir = context.stage_dir("dedupe")
@@ -307,13 +381,65 @@ def _run_dedupe(bundle: ConfigBundle, context: RunContext, options: StageOptions
     )
 
 
+def _run_classify(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
+    del options
+    stage_dir = context.stage_dir("classify")
+    stage_dir.mkdir(parents=True, exist_ok=True)
+    outputs = classify_items(state.retained_items, bundle)
+    manifest_path = stage_dir / "classified_items.json"
+    summary_path = stage_dir / "summary.json"
+    write_json(manifest_path, {"items": _dump_models(outputs.classified_items)})
+    write_json(summary_path, {**outputs.summary, "classified_count": len(outputs.classified_items), "stage": "classify"})
+    state.classified_items = outputs.classified_items
+    return StageResult(stage="classify", summary_path=summary_path, extra_artifacts=[manifest_path])
+
+
+def _run_privacy_scan(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
+    del options
+    stage_dir = context.stage_dir("privacy_scan")
+    stage_dir.mkdir(parents=True, exist_ok=True)
+    outputs = apply_privacy_rules(state.classified_items, bundle, context.profile_id)
+    manifest_path = stage_dir / "privacy_scanned_items.json"
+    summary_path = stage_dir / "summary.json"
+    write_json(manifest_path, {"items": _dump_models(outputs.scanned_items)})
+    write_json(summary_path, {**outputs.summary, "scanned_count": len(outputs.scanned_items), "stage": "privacy-scan"})
+    state.privacy_scanned_items = outputs.scanned_items
+    return StageResult(stage="privacy-scan", summary_path=summary_path, extra_artifacts=[manifest_path])
+
+
+def _run_review_export(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
+    del bundle, options
+    stage_dir = context.run_dir / "review"
+    stage_dir.mkdir(parents=True, exist_ok=True)
+    outputs = export_review_queue(state.privacy_scanned_items)
+    queue_path = stage_dir / "queue.json"
+    release_ready_path = stage_dir / "release_ready_items.json"
+    review_required_path = stage_dir / "review_required_items.json"
+    blocked_path = stage_dir / "blocked_items.json"
+    summary_path = stage_dir / "summary.json"
+    write_json(queue_path, {"items": _dump_models(outputs.review_queue)})
+    write_json(release_ready_path, {"items": _dump_models(outputs.release_ready_items)})
+    write_json(review_required_path, {"items": _dump_models(outputs.review_required_items)})
+    write_json(blocked_path, {"items": _dump_models(outputs.blocked_items)})
+    write_json(summary_path, {**outputs.summary, "stage": "review-export"})
+    state.release_ready_items = outputs.release_ready_items
+    state.review_required_items = outputs.review_required_items
+    state.blocked_items = outputs.blocked_items
+    state.review_queue = outputs.review_queue
+    return StageResult(
+        stage="review-export",
+        summary_path=summary_path,
+        extra_artifacts=[queue_path, release_ready_path, review_required_path, blocked_path],
+    )
+
+
 def _run_split(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
     del options
     stage_dir = context.stage_dir("split")
     stage_dir.mkdir(parents=True, exist_ok=True)
     outputs = assign_splits(
-        retained_items=state.retained_items,
-        duplicate_items=state.duplicate_items,
+        retained_items=state.release_ready_items,
+        duplicate_items=[],
         split_policy=bundle.profiles[context.profile_id].split_policy,
     )
 
@@ -332,8 +458,7 @@ def _run_split(bundle: ConfigBundle, context: RunContext, options: StageOptions,
             "stage": "split",
         },
     )
-    state.retained_items = outputs.retained_items
-    state.duplicate_items = outputs.duplicate_items
+    state.release_ready_items = outputs.retained_items
     state.split_assignments = outputs.assignments
     state.leakage_report = outputs.leakage_report
     return StageResult(stage="split", summary_path=summary_path, extra_artifacts=[split_manifest_path, leakage_report_path])
@@ -347,33 +472,53 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     removed_duplicate_items_path = stage_dir / "removed_duplicate_items.json"
     duplicate_relations_path = stage_dir / "duplicate_relations.json"
     duplicate_clusters_path = stage_dir / "duplicate_clusters.json"
+    review_queue_path = stage_dir / "review_queue.json"
+    review_required_items_path = stage_dir / "review_required_items.json"
+    blocked_items_path = stage_dir / "blocked_items.json"
     split_manifest_path = stage_dir / "split_manifest.json"
     leakage_report_path = stage_dir / "leakage_report.json"
     release_summary_path = stage_dir / "release_summary.json"
     source_stats_path = stage_dir / "source_stats.json"
+    classification_stats_path = stage_dir / "classification_stats.json"
+    privacy_stats_path = stage_dir / "privacy_stats.json"
     summary_path = stage_dir / "summary.json"
 
-    retained_source_counts = dict(Counter(item.source_id for item in state.retained_items))
+    retained_source_counts = dict(Counter(item.source_id for item in state.release_ready_items))
     duplicate_source_counts = dict(Counter(item.source_id for item in state.duplicate_items))
-    rights_counts = dict(Counter(item.rights_classification.value for item in state.retained_items))
-    format_counts = dict(
-        Counter(asset.asset_format for item in state.retained_items for asset in item.normalized_assets)
-    )
-    split_counts = dict(Counter(item.split for item in state.retained_items if item.split))
+    rights_counts = dict(Counter(item.rights_classification.value for item in state.release_ready_items))
+    format_counts = dict(Counter(asset.asset_format for item in state.release_ready_items for asset in item.normalized_assets))
+    split_counts = dict(Counter(item.split for item in state.release_ready_items if item.split))
     source_split_counts: dict[str, dict[str, int]] = {}
-    for item in state.retained_items:
+    for item in state.release_ready_items:
         if item.split is None:
             continue
         source_split_counts.setdefault(item.source_id, {})
         source_split_counts[item.source_id][item.split] = source_split_counts[item.source_id].get(item.split, 0) + 1
     qa_fail_reasons = dict(Counter(reason for item in state.failed_normalized_items for reason in item.qa_fail_reasons))
+    classification_stats = {
+        "content_class": dict(Counter(item.content_class for item in state.classified_items)),
+        "period_class": dict(Counter(item.period_class for item in state.classified_items)),
+        "language_class": dict(Counter(item.language_class for item in state.classified_items)),
+        "quality_tier": dict(Counter(item.quality_tier for item in state.classified_items)),
+        "low_confidence_reason": dict(Counter(reason for item in state.classified_items for reason in item.classification_review_reasons)),
+    }
+    privacy_stats = {
+        "privacy_flag": dict(Counter(item.privacy_flag.value for item in state.privacy_scanned_items)),
+        "privacy_reason": dict(Counter(reason for item in state.privacy_scanned_items for reason in item.privacy_reasons)),
+        "source_id": dict(Counter(item.source_id for item in state.privacy_scanned_items)),
+    }
 
-    write_json(item_manifest_path, {"items": _dump_models(state.retained_items)})
+    write_json(item_manifest_path, {"items": _dump_models(state.release_ready_items)})
     write_json(removed_duplicate_items_path, {"items": _dump_models(state.duplicate_items)})
     write_json(duplicate_relations_path, {"items": _dump_models(state.duplicate_relations)})
     write_json(duplicate_clusters_path, {"items": _dump_models(state.duplicate_clusters)})
+    write_json(review_queue_path, {"items": _dump_models(state.review_queue)})
+    write_json(review_required_items_path, {"items": _dump_models(state.review_required_items)})
+    write_json(blocked_items_path, {"items": _dump_models(state.blocked_items)})
     write_json(split_manifest_path, {"items": _dump_models(state.split_assignments)})
     write_json(leakage_report_path, state.leakage_report)
+    write_json(classification_stats_path, classification_stats)
+    write_json(privacy_stats_path, privacy_stats)
     write_json(
         source_stats_path,
         {
@@ -391,27 +536,35 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         {
             "accepted_count": len(state.accepted_items),
             "acquired_count": len(state.acquired_items),
+            "blocked_count": len(state.blocked_items),
             "duplicate_removed_count": len(state.duplicate_items),
             "is_dry_run": context.dry_run,
             "normalized_count": len(state.normalized_items),
             "profile_id": context.profile_id,
             "publish_targets": [target.value for target in bundle.profiles[context.profile_id].publish_targets],
             "qa_failed_count": len(state.failed_normalized_items),
-            "real_items": sum(1 for item in state.retained_items if not item.is_synthetic),
+            "real_items": sum(1 for item in state.release_ready_items if not item.is_synthetic),
+            "release_ready_count": len(state.release_ready_items),
             "retained_count": len(state.retained_items),
+            "review_required_count": len(state.review_required_items),
             "split_counts": split_counts,
-            "synthetic_items": sum(1 for item in state.retained_items if item.is_synthetic),
+            "synthetic_items": sum(1 for item in state.release_ready_items if item.is_synthetic),
         },
     )
     write_json(
         summary_path,
         {
+            "blocked_items": str(blocked_items_path.relative_to(context.run_dir)),
+            "classification_stats": str(classification_stats_path.relative_to(context.run_dir)),
             "duplicate_clusters": str(duplicate_clusters_path.relative_to(context.run_dir)),
             "duplicate_relations": str(duplicate_relations_path.relative_to(context.run_dir)),
             "item_manifest": str(item_manifest_path.relative_to(context.run_dir)),
             "leakage_report": str(leakage_report_path.relative_to(context.run_dir)),
+            "privacy_stats": str(privacy_stats_path.relative_to(context.run_dir)),
             "removed_duplicate_items": str(removed_duplicate_items_path.relative_to(context.run_dir)),
             "release_summary": str(release_summary_path.relative_to(context.run_dir)),
+            "review_queue": str(review_queue_path.relative_to(context.run_dir)),
+            "review_required_items": str(review_required_items_path.relative_to(context.run_dir)),
             "split_manifest": str(split_manifest_path.relative_to(context.run_dir)),
             "source_stats": str(source_stats_path.relative_to(context.run_dir)),
             "stage": "build-release",
@@ -425,49 +578,16 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             removed_duplicate_items_path,
             duplicate_relations_path,
             duplicate_clusters_path,
+            review_queue_path,
+            review_required_items_path,
+            blocked_items_path,
             split_manifest_path,
             leakage_report_path,
             release_summary_path,
             source_stats_path,
+            classification_stats_path,
+            privacy_stats_path,
         ],
-    )
-
-
-def _run_normalize(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
-    stage_dir = context.stage_dir("normalize")
-    assets_dir = stage_dir / "assets"
-    thumbnails_dir = stage_dir / "thumbnails"
-    stage_dir.mkdir(parents=True, exist_ok=True)
-
-    outputs = normalize_items(
-        items=state.acquired_items,
-        thresholds=bundle.quality_thresholds,
-        assets_dir=assets_dir,
-        thumbnails_dir=thumbnails_dir,
-    )
-    normalized_manifest_path = stage_dir / "normalized_items.json"
-    failed_manifest_path = stage_dir / "failed_items.json"
-    qa_report_path = stage_dir / "qa_report.json"
-    summary_path = stage_dir / "summary.json"
-
-    write_json(normalized_manifest_path, {"items": _dump_models(outputs.normalized_items)})
-    write_json(failed_manifest_path, {"items": _dump_models(outputs.failed_items)})
-    write_json(qa_report_path, outputs.qa_report)
-    write_json(
-        summary_path,
-        {
-            "failed_count": len(outputs.failed_items),
-            "normalized_count": len(outputs.normalized_items),
-            "qa_report": str(qa_report_path.relative_to(context.run_dir)),
-            "stage": "normalize",
-        },
-    )
-    state.normalized_items = outputs.normalized_items
-    state.failed_normalized_items = outputs.failed_items
-    return StageResult(
-        stage="normalize",
-        summary_path=summary_path,
-        extra_artifacts=[normalized_manifest_path, failed_manifest_path, qa_report_path],
     )
 
 
@@ -484,6 +604,12 @@ def execute_pipeline(target_stage: str, bundle: ConfigBundle, context: RunContex
         duplicate_items=[],
         duplicate_relations=[],
         duplicate_clusters=[],
+        classified_items=[],
+        privacy_scanned_items=[],
+        release_ready_items=[],
+        review_required_items=[],
+        blocked_items=[],
+        review_queue=[],
         split_assignments=[],
         leakage_report={},
     )
@@ -503,6 +629,12 @@ def execute_pipeline(target_stage: str, bundle: ConfigBundle, context: RunContex
             results.append(_run_normalize(bundle, context, options, state))
         elif stage == "dedupe":
             results.append(_run_dedupe(bundle, context, options, state))
+        elif stage == "classify":
+            results.append(_run_classify(bundle, context, options, state))
+        elif stage == "privacy-scan":
+            results.append(_run_privacy_scan(bundle, context, options, state))
+        elif stage == "review-export":
+            results.append(_run_review_export(bundle, context, options, state))
         elif stage == "split":
             results.append(_run_split(bundle, context, options, state))
         elif stage == "build-release":
