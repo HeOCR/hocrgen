@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -77,3 +77,34 @@ class NormalizedItemRecord(AcquiredItemRecord):
     normalized_assets: list[NormalizedAssetRecord] = Field(default_factory=list)
     qa_status: str
     qa_fail_reasons: list[str] = Field(default_factory=list)
+
+
+class CuratedItemRecord(NormalizedItemRecord):
+    content_fingerprint: str
+    dedupe_cluster_id: str | None = None
+    dedupe_status: Literal["retained", "duplicate"]
+    canonical_item_id: str
+    split: Literal["train", "validation", "test"] | None = None
+    split_group_id: str | None = None
+
+
+class DuplicateRelationRecord(ManifestModel):
+    cluster_id: str
+    canonical_item_id: str
+    duplicate_item_id: str
+    reason: Literal["exact_asset_sequence_match"]
+    content_fingerprint: str
+
+
+class DuplicateClusterRecord(ManifestModel):
+    cluster_id: str
+    canonical_item_id: str
+    member_item_ids: list[str] = Field(min_length=2)
+    method: Literal["exact"] = "exact"
+
+
+class SplitAssignmentRecord(ManifestModel):
+    item_id: str
+    split: Literal["train", "validation", "test"]
+    split_group_id: str
+    dedupe_cluster_id: str | None = None

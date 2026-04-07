@@ -2,7 +2,7 @@
 
 `hocrgen` is the open-source dataset operations toolchain for the HeOCR project.
 
-This repository now implements Milestone 3: a conservative normalization and technical-QA layer on top of the earlier acquisition MVP. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, rights filtering, asset materialization, technical normalization, checksum/integrity tracking, preview generation, and QA reporting.
+This repository now implements Milestone 4: a conservative curation-ready pipeline on top of the earlier acquisition, normalization, and technical-QA milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, rights filtering, asset materialization, technical normalization, exact item-level deduplication, deterministic split assignment, and curated dry-run release assembly.
 
 ## What `hocrgen` can do today
 
@@ -17,9 +17,11 @@ This repository now implements Milestone 3: a conservative normalization and tec
 - compute checksums, dimensions, file sizes, and format metadata
 - generate preview copies for supported SVG/raster assets
 - emit QA pass/fail reports and normalized-item manifests
-- build a meaningful dry-run release manifest with per-source, per-format, and QA stats
+- perform exact item-level deduplication using ordered normalized-asset checksums
+- assign deterministic `train` / `validation` / `test` splits over the retained deduped set
+- emit curated release manifests with duplicate-cluster, split, and leakage-report artifacts
 
-## Supported sources in Milestone 2
+## Supported sources in the current MVP
 
 - `nli_any_use_permitted`
   - implemented as a conservative seed-manifest flow
@@ -38,7 +40,7 @@ This is not a broad crawler yet. The NLI support is intentionally narrow and rel
 ## What is still future work
 
 - broad live-source crawling
-- deduplication
+- near-duplicate / perceptual deduplication
 - advanced classification
 - privacy/sensitivity screening
 - manual review queues
@@ -66,7 +68,7 @@ This validates:
 - normalized license mappings under [`src/hocrgen/config/licenses.yaml`](./src/hocrgen/config/licenses.yaml)
 - technical QA thresholds under [`src/hocrgen/config/quality_thresholds.yaml`](./src/hocrgen/config/quality_thresholds.yaml)
 
-## Run a real Milestone 2 dry-run
+## Run a real Milestone 4 dry-run
 
 ```bash
 hocrgen build-release --profile profile_open_v1 --dry-run
@@ -92,8 +94,19 @@ This now runs a real sample-backed pipeline and emits populated artifacts such a
       normalize/qa_report.json
       normalize/assets/
       normalize/thumbnails/
+      dedupe/retained_items.json
+      dedupe/duplicate_items.json
+      dedupe/duplicate_relations.json
+      dedupe/duplicate_clusters.json
+      dedupe/report.json
+      split/split_manifest.json
+      split/leakage_report.json
       build_release/item_manifest.json
-      build_release/failed_item_manifest.json
+      build_release/removed_duplicate_items.json
+      build_release/duplicate_relations.json
+      build_release/duplicate_clusters.json
+      build_release/split_manifest.json
+      build_release/leakage_report.json
       build_release/release_summary.json
       build_release/source_stats.json
 ```
@@ -108,6 +121,8 @@ hocrgen fetch-metadata --profile profile_open_v1 --dry-run
 hocrgen policy-filter --profile profile_open_v1 --dry-run
 hocrgen acquire --profile profile_open_v1 --dry-run
 hocrgen normalize --profile profile_open_v1 --dry-run
+hocrgen dedupe --profile profile_open_v1 --dry-run
+hocrgen split --profile profile_open_v1 --dry-run
 hocrgen build-release --profile profile_open_v1 --dry-run
 ```
 
@@ -162,6 +177,26 @@ Current QA thresholds are configured in [`src/hocrgen/config/quality_thresholds.
 
 See [`docs/hocrgen_normalization_and_qa.md`](./docs/hocrgen_normalization_and_qa.md) for the artifact layout and QA report shape.
 
+## Deduplication and split assignment
+
+Milestone 4 adds a conservative curation layer after normalization.
+
+What it does today:
+
+- computes an item-level content fingerprint from the ordered list of normalized-asset `sha256` values
+- detects exact duplicate items when those ordered asset sequences match exactly
+- retains a deterministic canonical item using source priority, then non-synthetic preference, then `item_id`
+- emits duplicate-cluster and duplicate-relation manifests
+- assigns deterministic `train` / `validation` / `test` splits using the profile `split_policy`
+- keeps duplicate clusters and source-item groups together by using stable split-group ids
+- emits a leakage report confirming that retained items do not cross split boundaries incorrectly
+
+What it does not do yet:
+
+- perceptual or semantic near-duplicate detection
+- OCR-aware grouping
+- content-quality ranking beyond technical QA
+
 ## Synthetic generation
 
 The synthetic subsystem is modest but real:
@@ -190,6 +225,8 @@ Key fixture locations:
 pytest
 hocrgen config validate
 hocrgen normalize --profile profile_open_v1 --dry-run
+hocrgen dedupe --profile profile_open_v1 --dry-run
+hocrgen split --profile profile_open_v1 --dry-run
 hocrgen build-release --profile profile_open_v1 --dry-run
 ```
 

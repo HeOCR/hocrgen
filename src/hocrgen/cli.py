@@ -13,7 +13,7 @@ from hocrgen.fetchers.base import StageOptions
 from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_summary
 
 
-STAGE_COMMANDS = ("discover", "fetch-metadata", "policy-filter", "acquire", "normalize", "build-release")
+STAGE_COMMANDS = ("discover", "fetch-metadata", "policy-filter", "acquire", "normalize", "dedupe", "split", "build-release")
 
 
 def build_parser() -> argparse.ArgumentParser:

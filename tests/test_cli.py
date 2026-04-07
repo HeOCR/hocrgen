@@ -28,6 +28,8 @@ def test_build_release_command_creates_real_manifests(tmp_path: Path, capsys) ->
     assert (run_dir / "policy_filter" / "accepted_items.json").exists()
     assert (run_dir / "acquire" / "acquired_items.json").exists()
     assert (run_dir / "normalize" / "normalized_items.json").exists()
+    assert (run_dir / "dedupe" / "retained_items.json").exists()
+    assert (run_dir / "split" / "split_manifest.json").exists()
     assert (run_dir / "build_release" / "release_summary.json").exists()
 
 
@@ -40,6 +42,29 @@ def test_normalize_command_creates_qa_artifacts(tmp_path: Path, capsys) -> None:
     assert (run_dir / "normalize" / "normalized_items.json").exists()
     assert (run_dir / "normalize" / "failed_items.json").exists()
     assert (run_dir / "normalize" / "qa_report.json").exists()
+
+
+def test_dedupe_command_creates_duplicate_artifacts(tmp_path: Path, capsys) -> None:
+    exit_code = main(["dedupe", "--profile", "profile_open_v1", "--dry-run", "--workdir", str(tmp_path)])
+    payload = json.loads(capsys.readouterr().out)
+    run_dir = Path(payload["run_dir"])
+
+    assert exit_code == 0
+    assert (run_dir / "dedupe" / "retained_items.json").exists()
+    assert (run_dir / "dedupe" / "duplicate_items.json").exists()
+    assert (run_dir / "dedupe" / "duplicate_relations.json").exists()
+    assert (run_dir / "dedupe" / "duplicate_clusters.json").exists()
+    assert (run_dir / "dedupe" / "report.json").exists()
+
+
+def test_split_command_creates_split_artifacts(tmp_path: Path, capsys) -> None:
+    exit_code = main(["split", "--profile", "profile_open_v1", "--dry-run", "--workdir", str(tmp_path)])
+    payload = json.loads(capsys.readouterr().out)
+    run_dir = Path(payload["run_dir"])
+
+    assert exit_code == 0
+    assert (run_dir / "split" / "split_manifest.json").exists()
+    assert (run_dir / "split" / "leakage_report.json").exists()
 
 
 def test_unknown_profile_fails(capsys) -> None:
