@@ -295,6 +295,7 @@ def write_promotion_outputs(
     report: dict[str, Any],
     overwrite: bool,
 ) -> None:
+    output_dir.mkdir(parents=True, exist_ok=True)
     assets_dir = output_dir / "assets"
     for promotion in promotions:
         fixture_path = output_dir / promotion.fixture_file_name
