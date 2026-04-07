@@ -9,18 +9,30 @@ from typing import Any
 from hocrgen.config.loader import ConfigBundle
 from hocrgen.config.models import LicenseEntry, SourceConfig
 from hocrgen.core.context import RunContext
+from hocrgen.dedupe.exact import deduplicate_items
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.biblia import BibliaImporter
 from hocrgen.fetchers.nli import NliFetcher
 from hocrgen.fetchers.pinkas import PinkasImporter
 from hocrgen.fetchers.synthetic import SyntheticFetcher
 from hocrgen.manifests.io import write_json
-from hocrgen.manifests.models import AcquiredItemRecord, CandidateRecord, EnrichedCandidateRecord, ItemRecord, NormalizedItemRecord
+from hocrgen.manifests.models import (
+    AcquiredItemRecord,
+    CandidateRecord,
+    CuratedItemRecord,
+    DuplicateClusterRecord,
+    DuplicateRelationRecord,
+    EnrichedCandidateRecord,
+    ItemRecord,
+    NormalizedItemRecord,
+    SplitAssignmentRecord,
+)
 from hocrgen.normalize.metadata import normalize_items
 from hocrgen.parsers.rights import classify_eligibility, normalize_rights
+from hocrgen.split.assign import assign_splits
 
 
-STAGE_ORDER = ("discover", "fetch-metadata", "policy-filter", "acquire", "normalize", "build-release")
+STAGE_ORDER = ("discover", "fetch-metadata", "policy-filter", "acquire", "normalize", "dedupe", "split", "build-release")
 
 
 FETCHERS = {
@@ -47,6 +59,12 @@ class PipelineState:
     acquired_items: list[AcquiredItemRecord]
     normalized_items: list[NormalizedItemRecord]
     failed_normalized_items: list[NormalizedItemRecord]
+    retained_items: list[CuratedItemRecord]
+    duplicate_items: list[CuratedItemRecord]
+    duplicate_relations: list[DuplicateRelationRecord]
+    duplicate_clusters: list[DuplicateClusterRecord]
+    split_assignments: list[SplitAssignmentRecord]
+    leakage_report: dict[str, Any]
 
 
 def write_run_metadata(context: RunContext) -> Path:
@@ -250,32 +268,122 @@ def _run_acquire(bundle: ConfigBundle, context: RunContext, options: StageOption
     return StageResult(stage="acquire", summary_path=summary_path, extra_artifacts=[manifest_path])
 
 
+def _run_dedupe(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
+    del options
+    stage_dir = context.stage_dir("dedupe")
+    stage_dir.mkdir(parents=True, exist_ok=True)
+    outputs = deduplicate_items(state.normalized_items, bundle.profiles[context.profile_id])
+
+    retained_path = stage_dir / "retained_items.json"
+    duplicate_path = stage_dir / "duplicate_items.json"
+    relations_path = stage_dir / "duplicate_relations.json"
+    clusters_path = stage_dir / "duplicate_clusters.json"
+    report_path = stage_dir / "report.json"
+    summary_path = stage_dir / "summary.json"
+
+    write_json(retained_path, {"items": _dump_models(outputs.retained_items)})
+    write_json(duplicate_path, {"items": _dump_models(outputs.duplicate_items)})
+    write_json(relations_path, {"items": _dump_models(outputs.duplicate_relations)})
+    write_json(clusters_path, {"items": _dump_models(outputs.duplicate_clusters)})
+    write_json(report_path, outputs.report)
+    write_json(
+        summary_path,
+        {
+            "duplicate_cluster_count": len(outputs.duplicate_clusters),
+            "duplicate_item_count": len(outputs.duplicate_items),
+            "report": str(report_path.relative_to(context.run_dir)),
+            "retained_count": len(outputs.retained_items),
+            "stage": "dedupe",
+        },
+    )
+    state.retained_items = outputs.retained_items
+    state.duplicate_items = outputs.duplicate_items
+    state.duplicate_relations = outputs.duplicate_relations
+    state.duplicate_clusters = outputs.duplicate_clusters
+    return StageResult(
+        stage="dedupe",
+        summary_path=summary_path,
+        extra_artifacts=[retained_path, duplicate_path, relations_path, clusters_path, report_path],
+    )
+
+
+def _run_split(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
+    del options
+    stage_dir = context.stage_dir("split")
+    stage_dir.mkdir(parents=True, exist_ok=True)
+    outputs = assign_splits(
+        retained_items=state.retained_items,
+        duplicate_items=state.duplicate_items,
+        split_policy=bundle.profiles[context.profile_id].split_policy,
+    )
+
+    split_manifest_path = stage_dir / "split_manifest.json"
+    leakage_report_path = stage_dir / "leakage_report.json"
+    summary_path = stage_dir / "summary.json"
+
+    write_json(split_manifest_path, {"items": _dump_models(outputs.assignments)})
+    write_json(leakage_report_path, outputs.leakage_report)
+    write_json(
+        summary_path,
+        {
+            "leakage_report": str(leakage_report_path.relative_to(context.run_dir)),
+            "retained_count": len(outputs.retained_items),
+            "split_counts": dict(Counter(item.split for item in outputs.retained_items if item.split)),
+            "stage": "split",
+        },
+    )
+    state.retained_items = outputs.retained_items
+    state.duplicate_items = outputs.duplicate_items
+    state.split_assignments = outputs.assignments
+    state.leakage_report = outputs.leakage_report
+    return StageResult(stage="split", summary_path=summary_path, extra_artifacts=[split_manifest_path, leakage_report_path])
+
+
 def _run_build_release(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
+    del options
     stage_dir = context.stage_dir("build_release")
     stage_dir.mkdir(parents=True, exist_ok=True)
     item_manifest_path = stage_dir / "item_manifest.json"
-    failed_item_manifest_path = stage_dir / "failed_item_manifest.json"
+    removed_duplicate_items_path = stage_dir / "removed_duplicate_items.json"
+    duplicate_relations_path = stage_dir / "duplicate_relations.json"
+    duplicate_clusters_path = stage_dir / "duplicate_clusters.json"
+    split_manifest_path = stage_dir / "split_manifest.json"
+    leakage_report_path = stage_dir / "leakage_report.json"
     release_summary_path = stage_dir / "release_summary.json"
     source_stats_path = stage_dir / "source_stats.json"
     summary_path = stage_dir / "summary.json"
 
-    source_counts = dict(Counter(item.source_id for item in state.normalized_items))
-    rights_counts = dict(Counter(item.rights_classification.value for item in state.normalized_items))
+    retained_source_counts = dict(Counter(item.source_id for item in state.retained_items))
+    duplicate_source_counts = dict(Counter(item.source_id for item in state.duplicate_items))
+    rights_counts = dict(Counter(item.rights_classification.value for item in state.retained_items))
     format_counts = dict(
-        Counter(asset.asset_format for item in state.normalized_items for asset in item.normalized_assets)
+        Counter(asset.asset_format for item in state.retained_items for asset in item.normalized_assets)
     )
-    qa_fail_reasons = dict(
-        Counter(reason for item in state.failed_normalized_items for reason in item.qa_fail_reasons)
-    )
-    write_json(item_manifest_path, {"items": _dump_models(state.normalized_items)})
-    write_json(failed_item_manifest_path, {"items": _dump_models(state.failed_normalized_items)})
+    split_counts = dict(Counter(item.split for item in state.retained_items if item.split))
+    source_split_counts: dict[str, dict[str, int]] = {}
+    for item in state.retained_items:
+        if item.split is None:
+            continue
+        source_split_counts.setdefault(item.source_id, {})
+        source_split_counts[item.source_id][item.split] = source_split_counts[item.source_id].get(item.split, 0) + 1
+    qa_fail_reasons = dict(Counter(reason for item in state.failed_normalized_items for reason in item.qa_fail_reasons))
+
+    write_json(item_manifest_path, {"items": _dump_models(state.retained_items)})
+    write_json(removed_duplicate_items_path, {"items": _dump_models(state.duplicate_items)})
+    write_json(duplicate_relations_path, {"items": _dump_models(state.duplicate_relations)})
+    write_json(duplicate_clusters_path, {"items": _dump_models(state.duplicate_clusters)})
+    write_json(split_manifest_path, {"items": _dump_models(state.split_assignments)})
+    write_json(leakage_report_path, state.leakage_report)
     write_json(
         source_stats_path,
         {
             "asset_formats": format_counts,
+            "duplicate_sources": duplicate_source_counts,
             "qa_fail_reasons": qa_fail_reasons,
             "rights_classifications": rights_counts,
-            "sources": source_counts,
+            "sources": retained_source_counts,
+            "sources_by_split": source_split_counts,
+            "splits": split_counts,
         },
     )
     write_json(
@@ -283,22 +391,28 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         {
             "accepted_count": len(state.accepted_items),
             "acquired_count": len(state.acquired_items),
+            "duplicate_removed_count": len(state.duplicate_items),
             "is_dry_run": context.dry_run,
             "normalized_count": len(state.normalized_items),
             "profile_id": context.profile_id,
             "publish_targets": [target.value for target in bundle.profiles[context.profile_id].publish_targets],
-            "qa_passed_count": len(state.normalized_items),
             "qa_failed_count": len(state.failed_normalized_items),
-            "real_items": sum(1 for item in state.normalized_items if not item.is_synthetic),
-            "synthetic_items": sum(1 for item in state.normalized_items if item.is_synthetic),
+            "real_items": sum(1 for item in state.retained_items if not item.is_synthetic),
+            "retained_count": len(state.retained_items),
+            "split_counts": split_counts,
+            "synthetic_items": sum(1 for item in state.retained_items if item.is_synthetic),
         },
     )
     write_json(
         summary_path,
         {
-            "failed_item_manifest": str(failed_item_manifest_path.relative_to(context.run_dir)),
+            "duplicate_clusters": str(duplicate_clusters_path.relative_to(context.run_dir)),
+            "duplicate_relations": str(duplicate_relations_path.relative_to(context.run_dir)),
             "item_manifest": str(item_manifest_path.relative_to(context.run_dir)),
+            "leakage_report": str(leakage_report_path.relative_to(context.run_dir)),
+            "removed_duplicate_items": str(removed_duplicate_items_path.relative_to(context.run_dir)),
             "release_summary": str(release_summary_path.relative_to(context.run_dir)),
+            "split_manifest": str(split_manifest_path.relative_to(context.run_dir)),
             "source_stats": str(source_stats_path.relative_to(context.run_dir)),
             "stage": "build-release",
         },
@@ -306,7 +420,16 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     return StageResult(
         stage="build-release",
         summary_path=summary_path,
-        extra_artifacts=[item_manifest_path, failed_item_manifest_path, release_summary_path, source_stats_path],
+        extra_artifacts=[
+            item_manifest_path,
+            removed_duplicate_items_path,
+            duplicate_relations_path,
+            duplicate_clusters_path,
+            split_manifest_path,
+            leakage_report_path,
+            release_summary_path,
+            source_stats_path,
+        ],
     )
 
 
@@ -357,6 +480,12 @@ def execute_pipeline(target_stage: str, bundle: ConfigBundle, context: RunContex
         acquired_items=[],
         normalized_items=[],
         failed_normalized_items=[],
+        retained_items=[],
+        duplicate_items=[],
+        duplicate_relations=[],
+        duplicate_clusters=[],
+        split_assignments=[],
+        leakage_report={},
     )
     results: list[StageResult] = []
     for stage in STAGE_ORDER:
@@ -372,6 +501,10 @@ def execute_pipeline(target_stage: str, bundle: ConfigBundle, context: RunContex
             results.append(_run_acquire(bundle, context, options, state))
         elif stage == "normalize":
             results.append(_run_normalize(bundle, context, options, state))
+        elif stage == "dedupe":
+            results.append(_run_dedupe(bundle, context, options, state))
+        elif stage == "split":
+            results.append(_run_split(bundle, context, options, state))
         elif stage == "build-release":
             results.append(_run_build_release(bundle, context, options, state))
         if stage == target_stage:

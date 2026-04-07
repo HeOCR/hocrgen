@@ -15,20 +15,29 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     run_dir = Path(payload["run_dir"])
     normalized_items = json.loads((run_dir / "normalize" / "normalized_items.json").read_text(encoding="utf-8"))
     qa_report = json.loads((run_dir / "normalize" / "qa_report.json").read_text(encoding="utf-8"))
+    split_manifest = json.loads((run_dir / "split" / "split_manifest.json").read_text(encoding="utf-8"))
     release_summary = json.loads((run_dir / "build_release" / "release_summary.json").read_text(encoding="utf-8"))
     source_stats = json.loads((run_dir / "build_release" / "source_stats.json").read_text(encoding="utf-8"))
+    item_manifest = json.loads((run_dir / "build_release" / "item_manifest.json").read_text(encoding="utf-8"))
+    removed_duplicate_items = json.loads((run_dir / "build_release" / "removed_duplicate_items.json").read_text(encoding="utf-8"))
 
     assert len(normalized_items["items"]) == 4
     assert qa_report["failed_count"] == 0
     assert release_summary["accepted_count"] == 4
     assert release_summary["acquired_count"] == 4
     assert release_summary["normalized_count"] == 4
+    assert release_summary["retained_count"] == 4
+    assert release_summary["duplicate_removed_count"] == 0
     assert release_summary["qa_failed_count"] == 0
     assert release_summary["real_items"] == 3
     assert release_summary["synthetic_items"] == 1
+    assert sum(release_summary["split_counts"].values()) == 4
     assert source_stats["asset_formats"]["svg"] == 5
     assert source_stats["sources"]["nli_any_use_permitted"] == 1
     assert source_stats["sources"]["project_synthetic"] == 1
+    assert len(split_manifest["items"]) == 4
+    assert len(item_manifest["items"]) == 4
+    assert removed_duplicate_items["items"] == []
 
 
 def test_unknown_rights_are_rejected_in_pipeline(tmp_path: Path, capsys) -> None:
@@ -98,3 +107,70 @@ def test_excluded_sources_are_not_selected(tmp_path: Path, capsys) -> None:
     assert exit_code == 0
     assert release_summary["synthetic_items"] == 0
     assert "project_synthetic" not in source_stats["sources"]
+
+
+def test_build_release_removes_exact_duplicates(tmp_path: Path, capsys) -> None:
+    config_root = tmp_path / "config"
+    shutil.copytree(default_config_root(), config_root)
+    duplicate_records_path = tmp_path / "duplicate_biblia_records.json"
+    duplicate_records_path.write_text(
+        json.dumps(
+            {
+                "records": [
+                    {
+                        "id": "biblia-duplicate-001",
+                        "title": "BiblIA duplicate fixture",
+                        "source_url": "https://example.org/biblia/duplicate-1",
+                        "upstream_identifier": "duplicate-1",
+                        "collection": "BiblIA Open Packaged Subset",
+                        "period": "historical",
+                        "raw_rights": "CC-BY-SA-4.0",
+                        "asset_path": "package://data/pinkas/assets/pinkas_001.svg",
+                    }
+                ]
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    sources_path = config_root / "sources.yaml"
+    sources_path.write_text(
+        sources_path.read_text(encoding="utf-8").replace(
+            "package://data/biblia/records.json", str(duplicate_records_path)
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "build-release",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--workdir",
+            str(tmp_path / "work"),
+            "--config-root",
+            str(config_root),
+        ]
+    )
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    run_dir = Path(payload["run_dir"])
+    release_summary = json.loads((run_dir / "build_release" / "release_summary.json").read_text(encoding="utf-8"))
+    duplicate_relations = json.loads((run_dir / "build_release" / "duplicate_relations.json").read_text(encoding="utf-8"))
+    duplicate_clusters = json.loads((run_dir / "build_release" / "duplicate_clusters.json").read_text(encoding="utf-8"))
+    removed_duplicate_items = json.loads((run_dir / "build_release" / "removed_duplicate_items.json").read_text(encoding="utf-8"))
+    split_manifest = json.loads((run_dir / "build_release" / "split_manifest.json").read_text(encoding="utf-8"))
+    item_manifest = json.loads((run_dir / "build_release" / "item_manifest.json").read_text(encoding="utf-8"))
+
+    assert release_summary["normalized_count"] == 4
+    assert release_summary["retained_count"] == 3
+    assert release_summary["duplicate_removed_count"] == 1
+    assert len(duplicate_relations["items"]) == 1
+    assert duplicate_relations["items"][0]["reason"] == "exact_asset_sequence_match"
+    assert len(duplicate_clusters["items"]) == 1
+    assert len(removed_duplicate_items["items"]) == 1
+    assert len(split_manifest["items"]) == 3
+    assert len(item_manifest["items"]) == 3
