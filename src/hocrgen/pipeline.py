@@ -409,7 +409,7 @@ def _run_privacy_scan(bundle: ConfigBundle, context: RunContext, options: StageO
 
 def _run_review_export(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
     del bundle, options
-    stage_dir = context.run_dir / "review"
+    stage_dir = context.stage_dir("review-export")
     stage_dir.mkdir(parents=True, exist_ok=True)
     outputs = export_review_queue(state.privacy_scanned_items)
     queue_path = stage_dir / "queue.json"
