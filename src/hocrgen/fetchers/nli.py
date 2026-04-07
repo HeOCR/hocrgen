@@ -5,6 +5,7 @@ from pathlib import Path
 
 from hocrgen.config.loader import ConfigBundle, load_yaml_file
 from hocrgen.config.models import SourceConfig
+from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.manifests.models import AcquiredAsset, AcquiredItemRecord, AssetReference, CandidateRecord, EnrichedCandidateRecord, ItemRecord
 from hocrgen.utils.hashing import sha256_file
@@ -64,15 +65,17 @@ class NliFetcher:
         for index, item in enumerate(seeds):
             if options.max_items is not None and index >= options.max_items:
                 break
-            fixture_reference = item["fixture_html"]
-            if isinstance(fixture_reference, str) and fixture_reference.startswith("package://"):
-                fixture_path = bundle.resolve_path(fixture_reference)
-            else:
-                fixture_path = (
-                    Path(fixture_reference).resolve()
-                    if Path(fixture_reference).is_absolute()
-                    else (seed_manifest.parent / fixture_reference).resolve()
-                )
+            fixture_reference = item.get("fixture_html")
+            fixture_path: Path | None = None
+            if fixture_reference:
+                if isinstance(fixture_reference, str) and fixture_reference.startswith("package://"):
+                    fixture_path = bundle.resolve_path(fixture_reference)
+                else:
+                    fixture_path = (
+                        Path(fixture_reference).resolve()
+                        if Path(fixture_reference).is_absolute()
+                        else (seed_manifest.parent / fixture_reference).resolve()
+                    )
             candidates.append(
                 CandidateRecord(
                     candidate_id=f"{source.id}:{item['id']}",
@@ -81,8 +84,11 @@ class NliFetcher:
                     source_url=item["url"],
                     discovery_method="seed_manifest",
                     title=item.get("title"),
-                    fixture_path=str(fixture_path),
-                    raw_metadata={"seed_manifest": str(seed_manifest)},
+                    fixture_path=str(fixture_path) if fixture_path else None,
+                    raw_metadata={
+                        "notes": item.get("notes"),
+                        "seed_manifest": str(seed_manifest),
+                    },
                 )
             )
         return candidates
@@ -96,7 +102,11 @@ class NliFetcher:
     ) -> list[EnrichedCandidateRecord]:
         enriched: list[EnrichedCandidateRecord] = []
         for candidate in candidates:
-            fixture_path = Path(candidate.fixture_path or "")
+            if not candidate.fixture_path:
+                raise StageExecutionError(
+                    f"NLI seed {candidate.source_item_id} is missing fixture_html; live fetching is not implemented yet."
+                )
+            fixture_path = Path(candidate.fixture_path)
             parser = _NLIHTMLParser()
             parser.feed(read_text(fixture_path))
             asset_refs = [
