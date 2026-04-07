@@ -6,6 +6,10 @@ from pathlib import Path
 
 
 DEFAULT_WORKDIR = Path(".work/hocrgen")
+STAGE_DIR_ALIASES = {
+    "review-export": "review",
+    "review_export": "review",
+}
 
 
 @dataclass(frozen=True)
@@ -19,7 +23,8 @@ class RunContext:
     created_at: str
 
     def stage_dir(self, stage_name: str) -> Path:
-        return self.run_dir / stage_name.replace("-", "_")
+        normalized = stage_name.replace("-", "_")
+        return self.run_dir / STAGE_DIR_ALIASES.get(stage_name, STAGE_DIR_ALIASES.get(normalized, normalized))
 
 
 def make_run_id(now: datetime | None = None) -> str:

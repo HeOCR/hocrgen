@@ -1,0 +1,34 @@
+version: 1
+source_defaults:
+  nli_any_use_permitted: clear
+  pinkas_open: clear
+  biblia_open: clear
+  project_synthetic: clear
+rules:
+  - id: modern_letter_review
+    flag: possible_personal_data
+    patterns:
+      - מכתב
+      - letter
+      - community
+      - קהילתי
+    fields:
+      - title
+      - description
+      - metadata
+    applies_to_sources:
+      - nli_any_use_permitted
+    applies_to_periods:
+      - modern
+  - id: identity_document_block
+    flag: blocked_sensitive
+    patterns:
+      - תעודת זהות
+      - מספר זהות
+      - id number
+      - passport
+      - medical record
+    fields:
+      - title
+      - description
+      - metadata

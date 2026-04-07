@@ -244,18 +244,8 @@ def test_build_release_ignores_retained_items_without_split_in_source_split_stat
         bundle.profiles["profile_open_v1"],
     ).retained_items
     state = PipelineState(
-        candidates=[],
-        enriched_candidates=[],
-        accepted_items=[],
-        rejected_items=[],
-        acquired_items=[],
-        normalized_items=[],
-        failed_normalized_items=[],
         retained_items=retained,
-        duplicate_items=[],
-        duplicate_relations=[],
-        duplicate_clusters=[],
-        split_assignments=[],
+        release_ready_items=retained,
         leakage_report={"status": "ok", "duplicate_cluster_leaks": [], "split_group_leaks": [], "group_count": 0},
     )
 

@@ -4,7 +4,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from hocrgen.config.models import RightsClassification
+from hocrgen.config.models import PrivacyFlag, RightsClassification
 
 
 class ManifestModel(BaseModel):
@@ -108,3 +108,46 @@ class SplitAssignmentRecord(ManifestModel):
     split: Literal["train", "validation", "test"]
     split_group_id: str
     dedupe_cluster_id: str | None = None
+
+
+class ClassifiedItemRecord(CuratedItemRecord):
+    content_class: Literal["handwritten", "printed", "mixed"]
+    content_confidence: float = Field(ge=0, le=1)
+    period_class: Literal["modern", "historical"]
+    period_confidence: float = Field(ge=0, le=1)
+    language_class: Literal["hebrew_only", "mixed_language"]
+    language_confidence: float = Field(ge=0, le=1)
+    quality_score: float = Field(ge=0, le=1)
+    quality_tier: Literal["low", "medium", "high"]
+    classification_review_reasons: list[str] = Field(default_factory=list)
+
+
+class PrivacyScannedItemRecord(ClassifiedItemRecord):
+    privacy_flag: PrivacyFlag
+    privacy_reasons: list[str] = Field(default_factory=list)
+    privacy_decision: Literal["release_ready", "review_required", "blocked"]
+
+
+class ReviewQueueRecord(ManifestModel):
+    review_item_id: str
+    item_id: str
+    source_id: str
+    canonical_item_id: str
+    split_group_id_pre_review: str
+    review_reasons: list[str] = Field(default_factory=list)
+    suggested_decision: Literal["needs_privacy_review", "needs_classification_review", "needs_policy_review"]
+    privacy_flag: PrivacyFlag
+    classification_summary: dict[str, Any] = Field(default_factory=dict)
+    preview_paths: list[str] = Field(default_factory=list)
+    source_url: str
+    title: str | None = None
+
+
+class ReviewDecisionRecord(ManifestModel):
+    review_item_id: str
+    item_id: str
+    decision: Literal["approve", "reject", "needs_legal_review", "needs_privacy_review", "defer"]
+    reviewer: str
+    timestamp: str
+    rationale: str
+    notes: str | None = None

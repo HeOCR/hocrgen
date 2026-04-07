@@ -13,7 +13,19 @@ from hocrgen.fetchers.base import StageOptions
 from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_summary
 
 
-STAGE_COMMANDS = ("discover", "fetch-metadata", "policy-filter", "acquire", "normalize", "dedupe", "split", "build-release")
+STAGE_COMMANDS = (
+    "discover",
+    "fetch-metadata",
+    "policy-filter",
+    "acquire",
+    "normalize",
+    "dedupe",
+    "classify",
+    "privacy-scan",
+    "review-export",
+    "split",
+    "build-release",
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -61,6 +73,7 @@ def handle_config_validate(args: argparse.Namespace) -> int:
             "config_root": str(bundle.config_root),
             "profile_count": len(bundle.profiles),
             "profiles": sorted(bundle.profiles),
+            "privacy_rules_version": bundle.privacy_rules.version,
             "quality_thresholds_version": bundle.quality_thresholds.version,
             "source_count": len(bundle.source_registry.sources),
             "status": "ok",

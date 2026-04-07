@@ -1,0 +1,48 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://heocr.github.io/hocrgen/schemas/privacy_rules.schema.json",
+  "title": "hocrgen privacy rules",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "source_defaults", "rules"],
+  "properties": {
+    "version": { "type": "integer", "const": 1 },
+    "source_defaults": {
+      "type": "object",
+      "additionalProperties": {
+        "enum": ["clear", "possible_personal_data", "needs_review", "blocked_sensitive"]
+      }
+    },
+    "rules": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "flag", "patterns", "fields"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^[a-z0-9_]+$" },
+          "flag": { "enum": ["clear", "possible_personal_data", "needs_review", "blocked_sensitive"] },
+          "patterns": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string" }
+          },
+          "fields": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "enum": ["title", "description", "metadata", "source_url"] }
+          },
+          "applies_to_sources": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "applies_to_periods": {
+            "type": "array",
+            "items": { "enum": ["modern", "historical"] }
+          },
+          "case_sensitive": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

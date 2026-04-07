@@ -2,7 +2,7 @@
 
 `hocrgen` is the open-source dataset operations toolchain for the HeOCR project.
 
-This repository now implements Milestone 4: a conservative curation-ready pipeline on top of the earlier acquisition, normalization, and technical-QA milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, rights filtering, asset materialization, technical normalization, exact item-level deduplication, deterministic split assignment, and curated dry-run release assembly.
+This repository now implements Milestone 5: a conservative review-readiness pipeline on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, and curated dry-run release assembly.
 
 ## What `hocrgen` can do today
 
@@ -18,8 +18,11 @@ This repository now implements Milestone 4: a conservative curation-ready pipeli
 - generate preview copies for supported SVG/raster assets
 - emit QA pass/fail reports and normalized-item manifests
 - perform exact item-level deduplication using ordered normalized-asset checksums
-- assign deterministic `train` / `validation` / `test` splits over the retained deduped set
-- emit curated release manifests with duplicate-cluster, split, and leakage-report artifacts
+- classify retained items with heuristic content/period/language/quality labels
+- apply conservative metadata-based privacy rules before release assembly
+- export review-ready, blocked, and release-ready subsets as machine-readable manifests
+- assign deterministic `train` / `validation` / `test` splits over the release-ready deduped set
+- emit curated release manifests with duplicate-cluster, review-queue, split, and leakage-report artifacts
 
 ## Supported sources in the current MVP
 
@@ -41,9 +44,9 @@ This is not a broad crawler yet. The NLI support is intentionally narrow and rel
 
 - broad live-source crawling
 - near-duplicate / perceptual deduplication
-- advanced classification
-- privacy/sensitivity screening
-- manual review queues
+- review-decision merge and human-in-the-loop approval
+- OCR-aware privacy screening
+- advanced classification and benchmark subset logic
 - final publication to Hugging Face or the GitHub dataset repo
 - full release packaging maturity
 
@@ -67,8 +70,9 @@ This validates:
 - release profiles under [`src/hocrgen/config/profiles`](./src/hocrgen/config/profiles)
 - normalized license mappings under [`src/hocrgen/config/licenses.yaml`](./src/hocrgen/config/licenses.yaml)
 - technical QA thresholds under [`src/hocrgen/config/quality_thresholds.yaml`](./src/hocrgen/config/quality_thresholds.yaml)
+- privacy rules under [`src/hocrgen/config/privacy_rules.yaml`](./src/hocrgen/config/privacy_rules.yaml)
 
-## Run a real Milestone 4 dry-run
+## Run a real Milestone 5 dry-run
 
 ```bash
 hocrgen build-release --profile profile_open_v1 --dry-run
@@ -99,16 +103,29 @@ This now runs a real sample-backed pipeline and emits populated artifacts such a
       dedupe/duplicate_relations.json
       dedupe/duplicate_clusters.json
       dedupe/report.json
+      classify/classified_items.json
+      classify/summary.json
+      privacy_scan/privacy_scanned_items.json
+      privacy_scan/summary.json
+      review/queue.json
+      review/release_ready_items.json
+      review/review_required_items.json
+      review/blocked_items.json
       split/split_manifest.json
       split/leakage_report.json
       build_release/item_manifest.json
       build_release/removed_duplicate_items.json
       build_release/duplicate_relations.json
       build_release/duplicate_clusters.json
+      build_release/review_queue.json
+      build_release/review_required_items.json
+      build_release/blocked_items.json
       build_release/split_manifest.json
       build_release/leakage_report.json
       build_release/release_summary.json
       build_release/source_stats.json
+      build_release/classification_stats.json
+      build_release/privacy_stats.json
 ```
 
 ## Stage commands
@@ -122,6 +139,9 @@ hocrgen policy-filter --profile profile_open_v1 --dry-run
 hocrgen acquire --profile profile_open_v1 --dry-run
 hocrgen normalize --profile profile_open_v1 --dry-run
 hocrgen dedupe --profile profile_open_v1 --dry-run
+hocrgen classify --profile profile_open_v1 --dry-run
+hocrgen privacy-scan --profile profile_open_v1 --dry-run
+hocrgen review-export --profile profile_open_v1 --dry-run
 hocrgen split --profile profile_open_v1 --dry-run
 hocrgen build-release --profile profile_open_v1 --dry-run
 ```
@@ -177,9 +197,34 @@ Current QA thresholds are configured in [`src/hocrgen/config/quality_thresholds.
 
 See [`docs/hocrgen_normalization_and_qa.md`](./docs/hocrgen_normalization_and_qa.md) for the artifact layout and QA report shape.
 
+## Classification, privacy, and review export
+
+Milestone 5 adds a conservative review-readiness layer after exact dedupe.
+
+What it does today:
+
+- classifies retained deduped items as `handwritten`, `printed`, or `mixed`
+- assigns heuristic `historical` / `modern` period labels and Hebrew-only vs mixed-language labels
+- emits a lightweight quality score and tier for downstream review/export logic
+- applies metadata-first privacy rules from [`src/hocrgen/config/privacy_rules.yaml`](./src/hocrgen/config/privacy_rules.yaml)
+- routes items into `release_ready`, `review_required`, or `blocked` outcomes
+- exports a stable review queue with preview paths and suggested decision types
+
+The default public profile is conservative:
+
+- `privacy_flag=clear` items can proceed to split and release assembly
+- `possible_personal_data` and `needs_review` items are routed to the review queue
+- `blocked_sensitive` items are excluded from both the review queue and the release-ready split set
+
+What it still does not do:
+
+- merge human review decisions back into the pipeline
+- inspect image text via OCR
+- perform scholarly/semantic classification
+
 ## Deduplication and split assignment
 
-Milestone 4 adds a conservative curation layer after normalization.
+Milestone 4 remains the curation base that Milestone 5 builds on.
 
 What it does today:
 
@@ -189,7 +234,7 @@ What it does today:
 - emits duplicate-cluster and duplicate-relation manifests
 - assigns deterministic `train` / `validation` / `test` splits using the profile `split_policy`
 - keeps duplicate clusters and source-item groups together by using stable split-group ids
-- emits a leakage report confirming that retained items do not cross split boundaries incorrectly
+- emits a leakage report confirming that release-ready items do not cross split boundaries incorrectly
 
 What it does not do yet:
 
@@ -226,6 +271,9 @@ pytest
 hocrgen config validate
 hocrgen normalize --profile profile_open_v1 --dry-run
 hocrgen dedupe --profile profile_open_v1 --dry-run
+hocrgen classify --profile profile_open_v1 --dry-run
+hocrgen privacy-scan --profile profile_open_v1 --dry-run
+hocrgen review-export --profile profile_open_v1 --dry-run
 hocrgen split --profile profile_open_v1 --dry-run
 hocrgen build-release --profile profile_open_v1 --dry-run
 ```
