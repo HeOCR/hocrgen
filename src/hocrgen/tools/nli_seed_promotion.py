@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import json
 import mimetypes
+import os
 import re
 import sys
 import time
@@ -127,12 +128,22 @@ def render_fixture_html(
     )
 
 
+def build_fixture_reference(*, fixture_file_name: str, output_dir: Path, runnable_seeds_path: Path) -> str:
+    package_data_dir = Path(__file__).resolve().parents[1] / "data" / "nli"
+    if output_dir.resolve() == package_data_dir.resolve():
+        return f"package://data/nli/{fixture_file_name}"
+    fixture_path = output_dir / fixture_file_name
+    return Path(os.path.relpath(fixture_path, runnable_seeds_path.parent)).as_posix()
+
+
 def build_promotion(
     *,
     seed: dict[str, Any],
     extracted: ExtractedSeedPage,
     downloaded_assets: list[tuple[str, str | None, bytes]],
     require_rights: str,
+    output_dir: Path | None = None,
+    runnable_seeds_path: Path | None = None,
 ) -> PromotionSuccess:
     if not extracted.rights:
         raise StageExecutionError(FAILURE_RIGHTS_MISSING)
@@ -169,11 +180,20 @@ def build_promotion(
         rights=extracted.rights,
         asset_relative_paths=asset_relative_paths,
     )
+    fixture_reference = (
+        build_fixture_reference(
+            fixture_file_name=fixture_file_name,
+            output_dir=output_dir,
+            runnable_seeds_path=runnable_seeds_path,
+        )
+        if output_dir is not None and runnable_seeds_path is not None
+        else f"package://data/nli/{fixture_file_name}"
+    )
     promoted_seed_entry = {
         "id": seed["id"],
         "url": seed["url"],
         "title": extracted.title,
-        "fixture_html": f"package://data/nli/{fixture_file_name}",
+        "fixture_html": fixture_reference,
     }
     if seed.get("notes"):
         promoted_seed_entry["notes"] = seed["notes"]
@@ -183,7 +203,7 @@ def build_promotion(
         rights=extracted.rights,
         fixture_file_name=fixture_file_name,
         fixture_html=fixture_html,
-        fixture_reference=promoted_seed_entry["fixture_html"],
+        fixture_reference=fixture_reference,
         asset_downloads=asset_download_records,
         promoted_seed_entry=promoted_seed_entry,
     )
@@ -357,6 +377,8 @@ def main(argv: list[str] | None = None) -> int:
                     extracted=extracted,
                     downloaded_assets=downloads,
                     require_rights=args.require_rights,
+                    output_dir=args.output_dir,
+                    runnable_seeds_path=args.runnable_seeds,
                 )
             )
         except StageExecutionError as exc:

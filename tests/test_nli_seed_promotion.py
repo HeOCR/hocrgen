@@ -24,6 +24,7 @@ from hocrgen.tools.nli_seed_promotion import (
     _text_or_none,
     _wait_for_item_page_ready,
     apply_promotions,
+    build_fixture_reference,
     build_promotion,
     build_report,
     infer_asset_extension,
@@ -299,7 +300,14 @@ def test_page_matches_seed_url_accepts_exact_and_query_urls() -> None:
 
 
 def test_infer_asset_extension_maps_jpe_to_jpg() -> None:
-    assert infer_asset_extension("https://example.com/file", "image/jpeg") == ".jpg"
+    import hocrgen.tools.nli_seed_promotion as mod
+
+    original = mod.mimetypes.guess_extension
+    mod.mimetypes.guess_extension = lambda _content_type: ".jpe"
+    try:
+        assert infer_asset_extension("https://example.com/file", "image/jpeg") == ".jpg"
+    finally:
+        mod.mimetypes.guess_extension = original
 
 
 def test_build_promotion_rejects_asset_count_mismatch() -> None:
@@ -381,6 +389,43 @@ def test_write_promotion_outputs_writes_fixture_assets_manifests_and_report(tmp_
     assert load_yaml_manifest(runnable_path) == runnable_manifest
     assert load_yaml_manifest(catalog_path) == catalog_manifest
     assert json.loads(report_path.read_text(encoding="utf-8")) == report
+
+
+def test_build_fixture_reference_supports_package_and_relative_paths(tmp_path: Path) -> None:
+    package_reference = build_fixture_reference(
+        fixture_file_name="item_seed.html",
+        output_dir=Path("src/hocrgen/data/nli"),
+        runnable_seeds_path=Path("src/hocrgen/data/nli/seeds.yaml"),
+    )
+    assert package_reference == "package://data/nli/item_seed.html"
+
+    custom_output_dir = tmp_path / "fixtures"
+    runnable_seeds_path = tmp_path / "manifests" / "seeds.yaml"
+    relative_reference = build_fixture_reference(
+        fixture_file_name="item_seed.html",
+        output_dir=custom_output_dir,
+        runnable_seeds_path=runnable_seeds_path,
+    )
+    assert relative_reference == "../fixtures/item_seed.html"
+
+
+def test_build_promotion_uses_relative_fixture_reference_for_custom_output_dir(tmp_path: Path) -> None:
+    promotion = build_promotion(
+        seed={"id": "custom-seed", "url": "https://example.com/custom"},
+        extracted=ExtractedSeedPage(
+            title="Custom",
+            description="Description",
+            rights="Any Use Permitted",
+            asset_urls=["https://example.com/a.svg"],
+        ),
+        downloaded_assets=[("https://example.com/a.svg", "image/svg+xml", b"<svg />")],
+        require_rights="Any Use Permitted",
+        output_dir=tmp_path / "fixtures",
+        runnable_seeds_path=tmp_path / "manifests" / "seeds.yaml",
+    )
+
+    assert promotion.fixture_reference == "../fixtures/item_custom_seed.html"
+    assert promotion.promoted_seed_entry["fixture_html"] == "../fixtures/item_custom_seed.html"
 
 
 def test_write_promotion_outputs_respects_overwrite_flag(tmp_path: Path) -> None:
@@ -713,11 +758,34 @@ def test_extract_failure_reason_and_rights_hint() -> None:
 def test_escape_html_first_non_empty_text_or_none_and_rights_fallback() -> None:
     assert _escape_html('a&<>"b') == "a&amp;&lt;&gt;&quot;b"
     assert _first_non_empty(None, "  ", "value ") == "value"
+    assert _first_non_empty(None, " ", "\t") is None
     assert _text_or_none(_FakeLocator(count=0)) is None
     assert _text_or_none(_FakeLocator(count=1, text="Text")) == "Text"
     assert _text_or_none(_FakeLocator(should_raise=True)) is None
     assert _fallback_find_rights("<html>No Known Copyright Restrictions</html>") == "No Known Copyright Restrictions"
     assert _fallback_find_rights("<html>nothing here</html>") is None
+
+
+def test_fake_helpers_cover_raise_and_misc_branches() -> None:
+    with pytest.raises(RuntimeError, match="text failed"):
+        _FakeLocator(should_raise=True).text_content()
+    with pytest.raises(RuntimeError, match="attr failed"):
+        _FakeLocator(should_raise=True).get_attribute("content")
+    with pytest.raises(RuntimeError, match="eval failed"):
+        _FakeLocator(should_raise=True).evaluate_all("els => els")
+
+    page = _FakePage()
+    assert page.locator("meta[name='description']").get_attribute("content") == "Meta Description"
+    assert page.locator(".item-description").text_content() == "Description"
+    assert page.locator("unknown").count() == 0
+    page.goto("https://example.com/other")
+    assert page.url == "https://example.com/other"
+
+    context = _FakeContext()
+    assert context.new_context() is context
+    browser = _FakeBrowser()
+    browser.close()
+    assert browser.closed
 
 
 def test_page_has_item_markers_and_wait_for_ready() -> None:
@@ -849,6 +917,7 @@ def test_extract_page_data_uses_title_description_rights_and_asset_urls() -> Non
     assert extracted.description == "Meta Description"
     assert extracted.rights == "Any Use Permitted"
     assert extracted.asset_urls == ["https://example.com/a.svg", "https://example.com/b.png"]
+    assert PageForExtract().locator("unknown").count() == 0
 
 
 def test_capture_seed_via_browser_import_error(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -901,6 +970,52 @@ def test_capture_seed_via_browser_happy_path_and_context_close(monkeypatch: pyte
     assert extracted.title == "Title"
     assert downloads == [("https://example.com/a.svg", "image/svg+xml", b"svg")]
     assert context.closed
+
+
+def test_capture_seed_via_browser_navigates_to_seed_url_when_existing_page_does_not_match(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    import hocrgen.tools.nli_seed_promotion as mod
+
+    class ContextWithMismatchedExistingPage(_FakeContext):
+        def __init__(self):
+            super().__init__([_FakePage(url="https://example.com/other", markers=[True], html="<html></html>")])
+
+        def new_page(self):
+            self.new_page_created = _FakePage(markers=[True], html="<html></html>")
+            self.pages.append(self.new_page_created)
+            return self.new_page_created
+
+    context = ContextWithMismatchedExistingPage()
+    browser = _FakeBrowser(contexts=[context])
+    request_context = _FakeRequestContext([_FakeRequestResponse(ok=True, body=b"svg", content_type="image/svg+xml")])
+    fake_playwright = _FakePlaywright(browser=browser, context=context, request_context=request_context)
+    sync_module = types.SimpleNamespace(sync_playwright=lambda: _FakeSyncPlaywright(fake_playwright))
+    monkeypatch.setitem(sys.modules, "playwright", types.SimpleNamespace())
+    monkeypatch.setitem(sys.modules, "playwright.sync_api", sync_module)
+    monkeypatch.setattr(
+        mod,
+        "extract_page_data",
+        lambda _page: ExtractedSeedPage(
+            title="Title",
+            description="Desc",
+            rights="Any Use Permitted",
+            asset_urls=["https://example.com/a.svg"],
+        ),
+    )
+
+    mod.capture_seed_via_browser(
+        seed={"id": "seed", "url": "https://example.com/seed"},
+        browser_state_dir=tmp_path,
+        connect_cdp="http://127.0.0.1:9222",
+        pause_on_first_page=False,
+        pause_on_every_challenge=False,
+        manual_wait_timeout_seconds=1,
+    )
+
+    assert context.new_page_created is not None
+    assert context.new_page_created.goto_calls == [("https://example.com/seed", "domcontentloaded")]
+    assert not context.closed
 
 
 def test_capture_seed_via_browser_manual_prompt_and_reload_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
