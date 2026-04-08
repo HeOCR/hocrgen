@@ -1,0 +1,81 @@
+items:
+- id: nli-ms-seed-001
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990027114740205171/NLI
+  title: קובץ
+  notes: Good general manuscript seed; digitized manuscript item page.
+- id: nli-ms-seed-002
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990001286000205171/NLI
+  title: קובץ
+  notes: General manuscript seed.
+- id: nli-ms-seed-003
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990001788140205171/NLI
+  title: קובץ
+  notes: General manuscript seed.
+- id: nli-ms-seed-004
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990041033010205171/NLI
+  title: קובץ
+  notes: General manuscript seed.
+- id: nli-ms-seed-005
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990025817680205171/NLI
+  title: פנקס
+  notes: Ledger/notebook-style seed; useful document-like layout.
+- id: nli-ms-seed-006
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990025691010205171/NLI
+  title: פנקס
+  notes: Another ledger/notebook-style seed.
+- id: nli-ms-seed-007
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990032554560205171/NLI
+  title: כתובה. טנג'יר, מרוקו. תרס"א
+  notes: Ketubah seed; good decorative/document hybrid.
+- id: nli-ms-seed-008
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990003004950205171/NLI
+  title: כתובה. בוצולו, איטליה. תקנ"ד
+  notes: Ketubah seed.
+- id: nli-ms-seed-009
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990003026310205171/NLI
+  title: כתובה. קזאלה מונפרטו, איטליה. תר"ם
+  notes: Ketubah seed.
+- id: nli-ms-seed-010
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990001747950205171/NLI
+  title: מגלת אסתר
+  notes: Megillah seed.
+- id: nli-ms-seed-011
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990025926440205171/NLI
+  title: מגלת אסתר
+  notes: Megillah seed.
+- id: nli-ms-seed-012
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990040583750205171/NLI
+  title: מגלת אסתר
+  notes: Megillah seed.
+- id: nli-ms-seed-013
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH997011416135405171/NLI
+  title: מגלת אסתר
+  notes: Strong candidate; item page shows explicit download options.
+- id: nli-ms-seed-014
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH997009761766505171/NLI
+  title: מגלת אסתר
+  notes: Megillah seed.
+- id: nli-ms-seed-015
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990000844540205171/NLI
+  title: תכלאל
+  notes: Yemenite prayer manuscript seed.
+- id: nli-ms-seed-016
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990000443610205171/NLI
+  title: תכלאל
+  notes: Another תכלאל seed.
+- id: nli-ms-seed-017
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990000448250205171/NLI
+  title: תאג'
+  notes: Yemenite manuscript seed.
+- id: nli-ms-seed-018
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990025837680205171/NLI
+  title: העתקי כתבי-יד
+  notes: Manuscript-copy seed.
+- id: nli-ms-seed-019
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990001054670205171/NLI
+  title: שטרות, תנאים וכתובות
+  notes: Document-heavy seed.
+- id: nli-ms-seed-020
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH997013215301605171/NLI
+  title: הקדשת ספרים בידי מחבריהם
+  notes: Manuscript note/dedication seed.

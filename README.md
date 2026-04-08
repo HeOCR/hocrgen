@@ -40,6 +40,39 @@ This repository now implements Milestone 5: a conservative review-readiness pipe
 
 This is not a broad crawler yet. The NLI support is intentionally narrow and reliable rather than site-wide.
 
+The NLI seed data is split on purpose:
+
+- runnable fixture-backed seeds live in [`src/hocrgen/data/nli/seeds.yaml`](./src/hocrgen/data/nli/seeds.yaml)
+- broader exploratory/manual candidate URLs live in [`src/hocrgen/data/nli/seed_catalog.yaml`](./src/hocrgen/data/nli/seed_catalog.yaml)
+
+To promote exploratory entries into runnable local fixtures, use the local operator script:
+
+```bash
+python scripts/promote_nli_seeds.py \
+  --seed-id nli-ms-seed-001 \
+  --browser-state-dir .cache/nli-playwright
+```
+
+The script opens a persistent browser, lets you solve any Cloudflare challenge once, captures the current item into a normalized local fixture HTML plus local asset files, appends the promoted entry to `seeds.yaml`, removes it from `seed_catalog.yaml`, and writes a machine-readable promotion report.
+
+If Cloudflare resists Playwright-launched Chromium, the script can instead attach to a normal Chrome instance that you launch yourself with remote debugging enabled:
+
+```bash
+/Applications/Google\ Chrome.app/Contents/MacOS/Google\ Chrome \
+  --remote-debugging-port=9222 \
+  --user-data-dir=/tmp/hocrgen-chrome
+```
+
+Then open the target NLI item page in that browser, solve any challenge there, and run:
+
+```bash
+python scripts/promote_nli_seeds.py \
+  --seed-id nli-ms-seed-001 \
+  --connect-cdp http://127.0.0.1:9222 \
+  --manual-wait-timeout 90 \
+  --pause-on-every-challenge
+```
+
 ## What is still future work
 
 - broad live-source crawling

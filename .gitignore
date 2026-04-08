@@ -1,7 +1,9 @@
 .DS_Store
 .pytest_cache/
+.cache/
 .work/
 build/
 dist/
 __pycache__/
 *.egg-info/
+src/hocrgen/data/nli/promotion_report.json

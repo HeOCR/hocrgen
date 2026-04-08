@@ -2,7 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
+
 from hocrgen.config.loader import load_and_validate_bundle
+from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.biblia import BibliaImporter
 from hocrgen.fetchers.nli import NliFetcher
@@ -24,6 +27,43 @@ def test_nli_fetcher_parses_fixture_metadata() -> None:
     assert enriched[0].raw_rights_text == "Any Use Permitted"
     assert len(enriched[0].asset_references) == 2
     assert enriched[0].title == "מכתב קהילתי, ירושלים 1936"
+
+
+def test_nli_fetcher_allows_fixtureless_seeds_but_fails_on_metadata_fetch(tmp_path: Path) -> None:
+    bundle = load_and_validate_bundle()
+    base_source = next(source for source in bundle.source_registry.sources if source.id == "nli_any_use_permitted")
+    package_data_dir = Path(__file__).resolve().parents[1] / "src" / "hocrgen" / "data" / "nli"
+    (package_data_dir / "seeds_custom.yaml").write_text(
+        """
+items:
+  - id: nli-manual-001
+    url: https://example.com/manual
+    title: Exploratory seed
+    notes: no fixture yet
+""".strip()
+            + "\n",
+            encoding="utf-8",
+        )
+    try:
+        source = base_source.model_copy(
+            update={
+                "settings": base_source.settings.model_copy(
+                    update={"seed_manifest": "package://data/nli/seeds_custom.yaml"}
+                )
+            }
+        )
+        fetcher = NliFetcher()
+        candidates = fetcher.discover_candidates(source, bundle, StageOptions())
+
+        assert candidates[0].fixture_path is None
+        assert candidates[0].raw_metadata["notes"] == "no fixture yet"
+
+        with pytest.raises(StageExecutionError, match="missing fixture_html"):
+            fetcher.fetch_candidate_metadata(source, bundle, candidates, StageOptions())
+    finally:
+        custom_seed_path = package_data_dir / "seeds_custom.yaml"
+        if custom_seed_path.exists():
+            custom_seed_path.unlink()
 
 
 def test_static_importers_map_fixture_records() -> None:
