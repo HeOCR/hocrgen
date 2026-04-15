@@ -4,3 +4,39 @@ items:
   title: מכתב קהילתי, ירושלים 1936
   fixture_html: package://data/nli/item_001.html
   notes: Fixture-backed runnable NLI seed for the current sample pipeline.
+- id: nli-ms-seed-001
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990027114740205171/NLI
+  title: קובץ | Manuscript | NNL_ALEPH990027114740205171 | The National Library of
+    Israel
+  fixture_html: package://data/nli/item_nli_ms_seed_001.html
+  notes: Good general manuscript seed; digitized manuscript item page.
+- id: nli-ms-seed-002
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990001286000205171/NLI
+  title: קובץ | Manuscript | NNL_ALEPH990001286000205171 | The National Library of
+    Israel
+  fixture_html: package://data/nli/item_nli_ms_seed_002.html
+  notes: General manuscript seed.
+- id: nli-ms-seed-003
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990001788140205171/NLI
+  title: קובץ | Manuscript | NNL_ALEPH990001788140205171 | The National Library of
+    Israel
+  fixture_html: package://data/nli/item_nli_ms_seed_003.html
+  notes: General manuscript seed.
+- id: nli-ms-seed-004
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990041033010205171/NLI
+  title: קובץ | Manuscript | NNL_ALEPH990041033010205171 | The National Library of
+    Israel
+  fixture_html: package://data/nli/item_nli_ms_seed_004.html
+  notes: General manuscript seed.
+- id: nli-ms-seed-006
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990025691010205171/NLI
+  title: פנקס | Manuscript | NNL_ALEPH990025691010205171 | The National Library of
+    Israel
+  fixture_html: package://data/nli/item_nli_ms_seed_006.html
+  notes: Another ledger/notebook-style seed.
+- id: nli-ms-seed-007
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990032554560205171/NLI
+  title: כתובה. טנג'יר, מרוקו. תרס"א | Manuscript | NNL_ALEPH990032554560205171 |
+    The National Library of Israel
+  fixture_html: package://data/nli/item_nli_ms_seed_007.html
+  notes: Ketubah seed; good decorative/document hybrid.

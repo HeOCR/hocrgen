@@ -34,6 +34,8 @@ CHALLENGE_MARKERS = (
     "attention required",
     "cdn-cgi/challenge-platform",
 )
+NLI_PROMOTION_IMAGE_WIDTH = 256
+NLI_PROMOTION_MAX_ASSETS = 5
 
 
 @dataclass(frozen=True)
@@ -481,7 +483,12 @@ def capture_seed_via_browser(
                             f"{FAILURE_PAGE_LOAD}: {seed['id']}: item page markers not found within {manual_wait_timeout_seconds}s; screenshot={screenshot}"
                         )
             extracted = extract_page_data(page)
-            downloads = download_assets(playwright, context.storage_state(), extracted.asset_urls)
+            downloads = download_assets(
+                playwright,
+                context.storage_state(),
+                extracted.asset_urls,
+                browser_context=context,
+            )
             return extracted, downloads
         except Exception as exc:  # pragma: no cover - browser path is intentionally local/manual
             raise StageExecutionError(f"{FAILURE_PAGE_LOAD}: {seed['id']}: {exc}") from exc
@@ -491,18 +498,25 @@ def capture_seed_via_browser(
 
 
 def extract_page_data(page) -> ExtractedSeedPage:  # pragma: no cover - exercised through local browser only
+    manifest = _fetch_nli_viewer_manifest(page)
     title = _first_non_empty(
         page.locator("meta[property='og:title']").first.get_attribute("content"),
         _text_or_none(page.locator(".item-title").first),
+        _text_or_none(page.locator("h1.pageTitle--title").first),
+        _manifest_value(manifest, "label"),
+        _manifest_metadata_value(manifest, "Title"),
         page.title(),
     )
     description = _first_non_empty(
         page.locator("meta[name='description']").first.get_attribute("content"),
         _text_or_none(page.locator(".item-description").first),
+        _manifest_value(manifest, "description"),
         "",
     )
     rights = _first_non_empty(
         _text_or_none(page.locator(".rights-label").first),
+        _normalize_nli_rights(_manifest_first(manifest, "license")),
+        _normalize_nli_rights(_text_or_none(page.locator("#accessRights-collapse").first)),
         _fallback_find_rights(page.content()),
     )
     asset_urls = [
@@ -510,6 +524,8 @@ def extract_page_data(page) -> ExtractedSeedPage:  # pragma: no cover - exercise
         for value in page.locator("img.page-image").evaluate_all("els => els.map(el => el.getAttribute('src'))")
         if value
     ]
+    if not asset_urls:
+        asset_urls = _manifest_asset_urls(manifest)
     return ExtractedSeedPage(
         title=title or "Untitled NLI item",
         description=description or "",
@@ -518,7 +534,15 @@ def extract_page_data(page) -> ExtractedSeedPage:  # pragma: no cover - exercise
     )
 
 
-def download_assets(playwright, storage_state: dict[str, Any], asset_urls: list[str]) -> list[tuple[str, str | None, bytes]]:  # pragma: no cover
+def download_assets(
+    playwright,
+    storage_state: dict[str, Any],
+    asset_urls: list[str],
+    *,
+    browser_context=None,
+) -> list[tuple[str, str | None, bytes]]:  # pragma: no cover
+    if browser_context is not None:
+        return _download_assets_via_browser_context(browser_context, asset_urls)
     request_context = playwright.request.new_context(storage_state=storage_state)
     try:
         downloads: list[tuple[str, str | None, bytes]] = []
@@ -638,10 +662,12 @@ def _wait_for_item_page_ready(page, *, timeout_seconds: int) -> bool:  # pragma:
 def _page_has_item_markers(page) -> bool:  # pragma: no cover - browser path only
     try:
         has_item_title = page.locator(".item-title").count() > 0
+        has_page_title = page.locator("h1.pageTitle--title").count() > 0
         has_rights = page.locator(".rights-label").count() > 0
-        has_assets = page.locator("img.page-image").count() > 0
+        has_assets = page.locator("img.page-image").count() > 0 or page.locator("img[src*='DeliveryManagerServlet']").count() > 0
         has_meta_title = bool(page.locator("meta[property='og:title']").first.get_attribute("content"))
-        return has_assets and (has_item_title or has_meta_title or has_rights)
+        has_viewer = page.locator("#viewer[data-info]").count() > 0 or page.locator("#MainIframe").count() > 0
+        return (has_assets or has_viewer) and (has_item_title or has_page_title or has_meta_title or has_rights)
     except Exception:
         return False
 
@@ -655,3 +681,121 @@ def _save_failure_screenshot(page, seed_id: str, browser_state_dir: Path) -> Pat
     except Exception:
         screenshot_path.write_text("Screenshot capture failed.\n", encoding="utf-8")
     return screenshot_path
+
+
+def _fetch_nli_viewer_manifest(page) -> dict[str, Any] | None:
+    viewer_data = page.evaluate(
+        """() => {
+          const viewer = document.getElementById('viewer');
+          if (!viewer) return null;
+          return {
+            docId: viewer.getAttribute('data-info'),
+            mmsId: viewer.getAttribute('data-info-mmsid'),
+          };
+        }"""
+    )
+    if not viewer_data or not viewer_data.get("docId") or not viewer_data.get("mmsId"):
+        return None
+    response = page.evaluate(
+        """async ({docId, mmsId}) => {
+          const params = new URLSearchParams({
+            docID: docId,
+            MmsId: mmsId,
+            isMmsId: 'true',
+          });
+          const resp = await fetch(`/umbraco/api/ViewerApi/GetManifestByDocID?${params.toString()}`, {
+            credentials: 'include',
+          });
+          const text = await resp.text();
+          return {status: resp.status, ok: resp.ok, text};
+        }""",
+        viewer_data,
+    )
+    if not response.get("ok"):
+        return None
+    payload = json.loads(response["text"])
+    value = payload.get("Value")
+    if not value:
+        return None
+    return json.loads(value)
+
+
+def _manifest_value(manifest: dict[str, Any] | None, key: str) -> str | None:
+    if not manifest:
+        return None
+    value = manifest.get(key)
+    if isinstance(value, str):
+        return value
+    return None
+
+
+def _manifest_first(manifest: dict[str, Any] | None, key: str) -> str | None:
+    if not manifest:
+        return None
+    value = manifest.get(key)
+    if isinstance(value, list) and value:
+        first = value[0]
+        return first if isinstance(first, str) else None
+    return None
+
+
+def _manifest_metadata_value(manifest: dict[str, Any] | None, label: str) -> str | None:
+    if not manifest:
+        return None
+    for item in manifest.get("metadata", []):
+        if item.get("label") == label:
+            value = item.get("value")
+            if isinstance(value, str):
+                return value
+            if isinstance(value, list) and value:
+                first = value[0]
+                if isinstance(first, str):
+                    return first
+    return None
+
+
+def _normalize_nli_rights(rights: str | None) -> str | None:
+    if not rights:
+        return None
+    normalized = rights.strip()
+    lowered = normalized.lower()
+    if normalized == DEFAULT_REQUIRED_RIGHTS:
+        return normalized
+    if "ללא מגבלות" in normalized or "public domain" in lowered or "no known copyright restrictions" in lowered:
+        return DEFAULT_REQUIRED_RIGHTS
+    return normalized
+
+
+def _manifest_asset_urls(manifest: dict[str, Any] | None) -> list[str]:
+    if not manifest:
+        return []
+    asset_urls: list[str] = []
+    for sequence in manifest.get("sequences", []):
+        for canvas in sequence.get("canvases", []):
+            for image in canvas.get("images", []):
+                resource = image.get("resource") or {}
+                service = resource.get("service") or {}
+                service_id = service.get("@id")
+                resource_id = resource.get("@id")
+                if isinstance(service_id, str):
+                    asset_urls.append(f"{service_id}/full/{NLI_PROMOTION_IMAGE_WIDTH},/0/default.jpg")
+                elif isinstance(resource_id, str):
+                    asset_urls.append(resource_id)
+                if len(asset_urls) >= NLI_PROMOTION_MAX_ASSETS:
+                    return asset_urls
+    return asset_urls
+
+
+def _download_assets_via_browser_context(browser_context, asset_urls: list[str]) -> list[tuple[str, str | None, bytes]]:
+    page = browser_context.new_page()
+    try:
+        downloads: list[tuple[str, str | None, bytes]] = []
+        for asset_url in asset_urls:
+            response = page.goto(asset_url, wait_until="commit", timeout=60000)
+            if response is None or not response.ok:
+                status = response.status if response is not None else "no_response"
+                raise StageExecutionError(f"{FAILURE_DOWNLOAD}: {asset_url}: HTTP {status}")
+            downloads.append((asset_url, response.headers.get("content-type"), response.body()))
+        return downloads
+    finally:
+        page.close()

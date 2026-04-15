@@ -1,32 +1,8 @@
 items:
-- id: nli-ms-seed-001
-  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990027114740205171/NLI
-  title: קובץ
-  notes: Good general manuscript seed; digitized manuscript item page.
-- id: nli-ms-seed-002
-  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990001286000205171/NLI
-  title: קובץ
-  notes: General manuscript seed.
-- id: nli-ms-seed-003
-  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990001788140205171/NLI
-  title: קובץ
-  notes: General manuscript seed.
-- id: nli-ms-seed-004
-  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990041033010205171/NLI
-  title: קובץ
-  notes: General manuscript seed.
 - id: nli-ms-seed-005
   url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990025817680205171/NLI
   title: פנקס
   notes: Ledger/notebook-style seed; useful document-like layout.
-- id: nli-ms-seed-006
-  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990025691010205171/NLI
-  title: פנקס
-  notes: Another ledger/notebook-style seed.
-- id: nli-ms-seed-007
-  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990032554560205171/NLI
-  title: כתובה. טנג'יר, מרוקו. תרס"א
-  notes: Ketubah seed; good decorative/document hybrid.
 - id: nli-ms-seed-008
   url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990003004950205171/NLI
   title: כתובה. בוצולו, איטליה. תקנ"ד
