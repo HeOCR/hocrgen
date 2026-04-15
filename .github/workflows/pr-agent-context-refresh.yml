@@ -24,6 +24,7 @@ jobs:
       execution_mode: refresh
       publish_mode: append
       publish_all_clear_comments_in_refresh: false
+      include_failed_step_output: true
       include_patch_coverage: true
       patch_coverage_source_mode: coverage_xml_artifact
       coverage_report_artifact_name: coverage-xml
