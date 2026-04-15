@@ -6,8 +6,10 @@ import subprocess
 from argparse import Namespace
 from pathlib import Path
 
+import pytest
+
 from hocrgen.cli import handle_export_alpha, main
-from hocrgen.config.loader import default_config_root
+from hocrgen.config.loader import default_config_root, load_and_validate_bundle
 from hocrgen.config.models import RightsClassification
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.manifests.models import AlphaExportedItemRecord, NormalizedAssetRecord, PrivacyScannedItemRecord
@@ -16,9 +18,11 @@ from hocrgen.package.alpha import (
     _build_source_stats,
     _copy_export_assets,
     _current_commit_sha,
+    _public_item_payload,
     _select_alpha_items,
     _source_priority,
     _split_sort_key,
+    export_alpha_release,
 )
 
 
@@ -95,12 +99,17 @@ def test_export_alpha_only_copies_release_ready_items(tmp_path: Path, capsys) ->
     assert len(review_required["items"]) == 1
     assert review_required["items"][0]["source_id"] == "nli_any_use_permitted"
     assert blocked["items"] == []
+    assert "normalized_assets" not in item_manifest["items"][0]
+    assert "asset_references" not in item_manifest["items"][0]
+    assert "acquired_assets" not in item_manifest["items"][0]
 
     for item in item_manifest["items"]:
         item_dir = export_dir / "data" / item["split"] / item["item_id"]
         assert item_dir.exists()
         for asset in item["exported_assets"]:
             assert (export_dir / asset["release_asset_path"]).exists()
+            assert "source_normalized_asset_path" not in asset
+            assert "source_preview_path" not in asset
 
 
 def test_export_alpha_enforces_real_and_synthetic_caps_deterministically(tmp_path: Path, capsys) -> None:
@@ -179,23 +188,27 @@ def test_export_alpha_docs_and_release_record_include_metadata(tmp_path: Path, c
     dataset_card = (export_dir / "docs" / "DATASET_CARD.md").read_text(encoding="utf-8")
     release_notes = (export_dir / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
     provenance = (export_dir / "docs" / "PROVENANCE.md").read_text(encoding="utf-8")
-    current_commit = subprocess.run(
+    git_result = subprocess.run(
         ["git", "rev-parse", "HEAD"],
         cwd=Path(__file__).resolve().parents[1],
         capture_output=True,
         text=True,
-        check=True,
-    ).stdout.strip()
+        check=False,
+    )
 
     assert release_record["profile_id"] == "profile_open_v1"
     assert release_record["included_sources"] == ["pinkas_open", "biblia_open", "project_synthetic"]
-    assert release_record["hocrgen_commit"] == current_commit
+    if git_result.returncode == 0:
+        current_commit = git_result.stdout.strip()
+        assert release_record["hocrgen_commit"] == current_commit
+        assert f"`{current_commit}`" in provenance
+    else:
+        assert release_record["hocrgen_commit"] == "unknown"
     assert "# HeOCR alpha-v0" in dataset_card
     assert "Release Notes: alpha-v0" in release_notes
-    assert f"`{current_commit}`" in provenance
 
 
-def test_export_alpha_recreates_existing_output_dir(tmp_path: Path, capsys) -> None:
+def test_export_alpha_fails_when_output_dir_exists_without_overwrite(tmp_path: Path, capsys) -> None:
     config_root = _fixture_config_root(tmp_path)
     output_dir = tmp_path / "HeOCR" / "releases" / "alpha-v0"
     stale_file = output_dir / "stale.txt"
@@ -216,6 +229,34 @@ def test_export_alpha_recreates_existing_output_dir(tmp_path: Path, capsys) -> N
             str(output_dir),
         ]
     )
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 1
+    assert payload["error"] == f"alpha export directory already exists: {output_dir.resolve()}"
+    assert stale_file.exists()
+
+
+def test_export_alpha_overwrites_existing_output_dir_when_requested(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    output_dir = tmp_path / "HeOCR" / "releases" / "alpha-v0"
+    stale_file = output_dir / "stale.txt"
+    stale_file.parent.mkdir(parents=True, exist_ok=True)
+    stale_file.write_text("stale", encoding="utf-8")
+
+    exit_code = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--output-dir",
+            str(output_dir),
+            "--overwrite",
+        ]
+    )
     assert exit_code == 0
     assert not stale_file.exists()
 
@@ -232,6 +273,7 @@ def test_export_alpha_handles_cli_error_paths(monkeypatch, tmp_path: Path, capsy
         verbose=False,
         version="alpha-v0",
         output_dir=None,
+        overwrite=False,
         max_real_items=10,
         max_synthetic_items=2,
     )
@@ -301,11 +343,33 @@ def test_select_alpha_items_can_return_empty_when_real_cap_is_zero(tmp_path: Pat
         for item in json.loads((run_dir / "build_release" / "item_manifest.json").read_text(encoding="utf-8"))["items"]
     ]
     bundle_root = _fixture_config_root(tmp_path / "other")
-    from hocrgen.config.loader import load_and_validate_bundle
-
     bundle = load_and_validate_bundle(bundle_root)
     selected = _select_alpha_items(release_items, bundle.profiles["profile_open_v1"], AlphaExportConfig(version="alpha-v0", max_real_items=0, max_synthetic_items=2))
     assert selected == []
+
+
+def test_export_alpha_release_raises_on_empty_selection(monkeypatch, tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    exit_code = main(
+        [
+            "build-release",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+        ]
+    )
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    run_dir = Path(payload["run_dir"])
+    bundle = load_and_validate_bundle(config_root)
+
+    monkeypatch.setattr("hocrgen.package.alpha._select_alpha_items", lambda *args, **kwargs: [])
+    with pytest.raises(StageExecutionError, match="alpha export selection is empty"):
+        export_alpha_release(bundle, run_dir, "profile_open_v1", AlphaExportConfig(version="alpha-v0"))
 
 
 def test_copy_export_assets_requires_split_and_copies_preview(tmp_path: Path) -> None:
@@ -329,12 +393,8 @@ def test_copy_export_assets_requires_split_and_copies_preview(tmp_path: Path) ->
         split=None,
         normalized_asset_path=str(asset_path),
     )
-    try:
+    with pytest.raises(StageExecutionError, match="release-ready item test:item-002 is missing a split assignment"):
         _copy_export_assets([missing_split_item], tmp_path / "other-export")
-    except StageExecutionError as exc:
-        assert str(exc) == "release-ready item test:item-002 is missing a split assignment"
-    else:
-        raise AssertionError("expected StageExecutionError for missing split")
 
 
 def test_build_source_stats_skips_unsplit_items(tmp_path: Path) -> None:
@@ -364,6 +424,34 @@ def test_alpha_helper_fallbacks(monkeypatch) -> None:
 
     monkeypatch.setattr("subprocess.run", lambda *args, **kwargs: DummyResult())
     assert _current_commit_sha() == "unknown"
+
+
+def test_public_item_payload_excludes_local_paths(tmp_path: Path) -> None:
+    asset_path = tmp_path / "asset.svg"
+    asset_path.write_text("<svg/>", encoding="utf-8")
+    item = AlphaExportedItemRecord.model_validate(
+        _make_item("payload:item", "train", str(asset_path)).model_dump(mode="python")
+        | {
+            "exported_assets": [
+                {
+                    "release_asset_path": "data/train/payload:item/asset.svg",
+                    "media_type": "image/svg+xml",
+                    "asset_format": "svg",
+                    "release_preview_path": None,
+                }
+            ]
+        }
+    )
+    payload = _public_item_payload(item)
+    assert "normalized_assets" not in payload
+    assert "asset_references" not in payload
+    assert "acquired_assets" not in payload
+    assert payload["exported_assets"][0] == {
+        "release_asset_path": "data/train/payload:item/asset.svg",
+        "media_type": "image/svg+xml",
+        "asset_format": "svg",
+        "release_preview_path": None,
+    }
 
 
 def _make_item(

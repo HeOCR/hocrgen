@@ -35,6 +35,7 @@ class AlphaExportConfig:
     output_dir: Path | None = None
     max_real_items: int = 10
     max_synthetic_items: int = 2
+    overwrite: bool = False
 
 
 @dataclass(frozen=True)
@@ -56,6 +57,8 @@ def export_alpha_release(
     build_dir = run_dir / "build_release"
     export_dir = config.output_dir.resolve() if config.output_dir else (run_dir.parent.parent / "exports" / config.version).resolve()
     if export_dir.exists():
+        if not config.overwrite:
+            raise StageExecutionError(f"alpha export directory already exists: {export_dir}")
         shutil.rmtree(export_dir)
     release_items = _load_models(build_dir / "item_manifest.json", PrivacyScannedItemRecord)
     review_required_items = _load_models(build_dir / "review_required_items.json", PrivacyScannedItemRecord)
@@ -72,10 +75,22 @@ def export_alpha_release(
 
     selected_ids = {item.item_id for item in selected_items}
     selected_split_manifest = [assignment for assignment in split_manifest if assignment.item_id in selected_ids]
-    selected_review_queue = [entry for entry in review_queue if entry.item_id in {item.item_id for item in review_required_items}]
+    review_required_ids = {item.item_id for item in review_required_items}
+    selected_review_queue = [entry for entry in review_queue if entry.item_id in review_required_ids]
+    selected_duplicate_relations = [
+        relation
+        for relation in duplicate_relations
+        if relation.canonical_item_id in selected_ids and relation.duplicate_item_id in selected_ids
+    ]
+    selected_duplicate_cluster_ids = {relation.cluster_id for relation in selected_duplicate_relations}
+    selected_duplicate_clusters = [
+        cluster
+        for cluster in duplicate_clusters
+        if cluster.cluster_id in selected_duplicate_cluster_ids
+    ]
 
     exported_items = _copy_export_assets(selected_items, export_dir / "data")
-    source_stats = _build_source_stats(exported_items, duplicate_relations)
+    source_stats = _build_source_stats(exported_items, selected_duplicate_relations)
     classification_stats = _build_classification_stats(exported_items)
     privacy_stats = _build_privacy_stats(exported_items)
     split_counts = dict(Counter(item.split for item in exported_items if item.split))
@@ -120,14 +135,14 @@ def export_alpha_release(
 
     manifests_dir = export_dir / "manifests"
     docs_dir = export_dir / "docs"
-    write_json(manifests_dir / "item_manifest.json", {"items": [item.model_dump(mode="json") for item in exported_items]})
+    write_json(manifests_dir / "item_manifest.json", {"items": [_public_item_payload(item) for item in exported_items]})
     write_json(manifests_dir / "split_manifest.json", {"items": [item.model_dump(mode="json") for item in selected_split_manifest]})
     write_json(manifests_dir / "source_stats.json", source_stats)
     write_json(manifests_dir / "classification_stats.json", classification_stats)
     write_json(manifests_dir / "privacy_stats.json", privacy_stats)
     write_json(manifests_dir / "release_summary.json", release_summary)
-    write_json(manifests_dir / "duplicate_relations.json", {"items": [item.model_dump(mode="json") for item in duplicate_relations]})
-    write_json(manifests_dir / "duplicate_clusters.json", {"items": [item.model_dump(mode="json") for item in duplicate_clusters]})
+    write_json(manifests_dir / "duplicate_relations.json", {"items": [item.model_dump(mode="json") for item in selected_duplicate_relations]})
+    write_json(manifests_dir / "duplicate_clusters.json", {"items": [item.model_dump(mode="json") for item in selected_duplicate_clusters]})
     write_json(manifests_dir / "review_required_items.json", {"items": [item.model_dump(mode="json") for item in review_required_items]})
     write_json(manifests_dir / "blocked_items.json", {"items": [item.model_dump(mode="json") for item in blocked_items]})
     write_json(manifests_dir / "review_queue.json", {"items": [item.model_dump(mode="json") for item in selected_review_queue]})
@@ -211,7 +226,6 @@ def _copy_export_assets(items: list[PrivacyScannedItemRecord], data_dir: Path) -
             target_path = item_dir / source_path.name
             target_path.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source_path, target_path)
-            source_preview_path = None
             release_preview_path = None
             if asset.preview_generated and asset.preview_path:
                 preview_source = Path(asset.preview_path)
@@ -219,15 +233,12 @@ def _copy_export_assets(items: list[PrivacyScannedItemRecord], data_dir: Path) -
                     preview_target = item_dir / "previews" / preview_source.name
                     preview_target.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(preview_source, preview_target)
-                    source_preview_path = str(preview_source)
                     release_preview_path = str(preview_target.relative_to(data_dir.parent))
             exported_assets.append(
                 ExportedAssetRecord(
-                    source_normalized_asset_path=asset.normalized_asset_path,
                     release_asset_path=str(target_path.relative_to(data_dir.parent)),
                     media_type=asset.media_type,
                     asset_format=asset.asset_format,
-                    source_preview_path=source_preview_path,
                     release_preview_path=release_preview_path,
                 )
             )
@@ -256,6 +267,21 @@ def _build_source_stats(items: list[AlphaExportedItemRecord], duplicate_relation
         "sources_by_split": source_split_counts,
         "splits": split_counts,
     }
+
+
+def _public_item_payload(item: AlphaExportedItemRecord) -> dict[str, Any]:
+    payload = item.model_dump(
+        mode="json",
+        exclude={
+            "acquired_assets",
+            "asset_references",
+            "fixture_path",
+            "normalized_assets",
+            "raw_metadata",
+        },
+    )
+    payload["exported_assets"] = [asset.model_dump(mode="json") for asset in item.exported_assets]
+    return payload
 
 
 def _build_classification_stats(items: list[AlphaExportedItemRecord]) -> dict[str, Any]:

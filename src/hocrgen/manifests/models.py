@@ -154,11 +154,9 @@ class ReviewDecisionRecord(ManifestModel):
 
 
 class ExportedAssetRecord(ManifestModel):
-    source_normalized_asset_path: str
     release_asset_path: str
     media_type: str
     asset_format: str
-    source_preview_path: str | None = None
     release_preview_path: str | None = None
 
 

@@ -50,6 +50,7 @@ def build_parser() -> argparse.ArgumentParser:
     export_alpha_parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
     export_alpha_parser.add_argument("--version", default="alpha-v0", help="Versioned release folder name")
     export_alpha_parser.add_argument("--output-dir", type=Path, default=None, help="Override the alpha export root directory")
+    export_alpha_parser.add_argument("--overwrite", action="store_true", help="Replace an existing alpha export directory")
     export_alpha_parser.add_argument("--max-real-items", type=int, default=10, help="Maximum number of real items to include")
     export_alpha_parser.add_argument("--max-synthetic-items", type=int, default=2, help="Maximum number of synthetic items to include")
     export_alpha_parser.set_defaults(handler=handle_export_alpha)
@@ -175,6 +176,7 @@ def handle_export_alpha(args: argparse.Namespace) -> int:
     export_config = AlphaExportConfig(
         version=args.version,
         output_dir=args.output_dir,
+        overwrite=args.overwrite,
         max_real_items=args.max_real_items,
         max_synthetic_items=args.max_synthetic_items,
     )
