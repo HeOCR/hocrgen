@@ -151,3 +151,30 @@ class ReviewDecisionRecord(ManifestModel):
     timestamp: str
     rationale: str
     notes: str | None = None
+
+
+class ExportedAssetRecord(ManifestModel):
+    source_normalized_asset_path: str
+    release_asset_path: str
+    media_type: str
+    asset_format: str
+    source_preview_path: str | None = None
+    release_preview_path: str | None = None
+
+
+class AlphaExportedItemRecord(PrivacyScannedItemRecord):
+    exported_assets: list[ExportedAssetRecord] = Field(default_factory=list)
+
+
+class AlphaReleaseRecord(ManifestModel):
+    version: str
+    profile_id: str
+    included_sources: list[str] = Field(default_factory=list)
+    split_counts: dict[str, int] = Field(default_factory=dict)
+    real_items: int
+    synthetic_items: int
+    review_required_count: int
+    blocked_count: int
+    hocrgen_commit: str
+    exported_at: str
+    schema_version: Literal[1] = 1

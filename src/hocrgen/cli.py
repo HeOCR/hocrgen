@@ -7,9 +7,10 @@ from typing import Sequence
 
 from hocrgen.config.loader import ConfigBundle, load_and_validate_bundle
 from hocrgen.core.context import create_run_context
-from hocrgen.core.errors import ConfigValidationError
+from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.core.logging import configure_logging
 from hocrgen.fetchers.base import StageOptions
+from hocrgen.package.alpha import AlphaExportConfig, export_alpha_release
 from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_summary
 
 
@@ -37,6 +38,21 @@ def build_parser() -> argparse.ArgumentParser:
     validate_parser = config_subparsers.add_parser("validate", help="Validate committed configuration")
     validate_parser.add_argument("--config-root", type=Path, default=None, help="Override config root directory")
     validate_parser.set_defaults(handler=handle_config_validate)
+
+    export_alpha_parser = subparsers.add_parser("export-alpha", help="Export a narrow alpha release tree for the HeOCR repo")
+    export_alpha_parser.add_argument("--profile", required=True, help="Release profile id")
+    export_alpha_parser.add_argument("--workdir", type=Path, default=None, help="Work directory root")
+    export_alpha_parser.add_argument("--config-root", type=Path, default=None, help="Override config root directory")
+    export_alpha_parser.add_argument("--dry-run", action="store_true", help="Run the fixture/sample-backed milestone workflow without publishing")
+    export_alpha_parser.add_argument("--source", action="append", default=None, help="Limit execution to one or more source ids")
+    export_alpha_parser.add_argument("--max-items", type=int, default=None, help="Limit items per source during discovery/import")
+    export_alpha_parser.add_argument("--seed", type=int, default=None, help="Override the synthetic generator seed")
+    export_alpha_parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
+    export_alpha_parser.add_argument("--version", default="alpha-v0", help="Versioned release folder name")
+    export_alpha_parser.add_argument("--output-dir", type=Path, default=None, help="Override the alpha export root directory")
+    export_alpha_parser.add_argument("--max-real-items", type=int, default=10, help="Maximum number of real items to include")
+    export_alpha_parser.add_argument("--max-synthetic-items", type=int, default=2, help="Maximum number of synthetic items to include")
+    export_alpha_parser.set_defaults(handler=handle_export_alpha)
 
     for stage in STAGE_COMMANDS:
         stage_parser = subparsers.add_parser(stage, help=f"Run the {stage} stage")
@@ -124,6 +140,69 @@ def handle_stage(args: argparse.Namespace) -> int:
             "run_dir": str(context.run_dir),
             "run_id": context.run_id,
             "stage": args.stage_name,
+            "status": "ok",
+            "summary_path": str(run_summary_path),
+        }
+    )
+    return 0
+
+
+def handle_export_alpha(args: argparse.Namespace) -> int:
+    try:
+        bundle = _load_bundle(args.config_root)
+    except ConfigValidationError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+
+    if args.profile not in bundle.profiles:
+        _print_json({"status": "error", "error": f"unknown profile: {args.profile}"})
+        return 1
+
+    context = create_run_context(profile_id=args.profile, dry_run=args.dry_run, workdir=args.workdir)
+    logger = configure_logging(context.log_dir / "run.log", verbose=args.verbose)
+    logger.info(
+        "starting alpha export",
+        extra={"run_id": context.run_id, "stage": "export-alpha", "profile": args.profile, "dry_run": args.dry_run},
+    )
+
+    run_path = write_run_metadata(context)
+    options = StageOptions(
+        source_filter=set(args.source) if args.source else None,
+        max_items=args.max_items,
+        synthetic_seed=args.seed,
+    )
+    stage_results = execute_pipeline("build-release", bundle, context, options)
+    export_config = AlphaExportConfig(
+        version=args.version,
+        output_dir=args.output_dir,
+        max_real_items=args.max_real_items,
+        max_synthetic_items=args.max_synthetic_items,
+    )
+    try:
+        export_result = export_alpha_release(bundle, context.run_dir, args.profile, export_config)
+    except StageExecutionError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+
+    artifacts = [run_path]
+    for result in stage_results:
+        artifacts.append(result.summary_path)
+        artifacts.extend(result.extra_artifacts)
+    artifacts.append(export_result.summary_path)
+    run_summary_path = write_run_summary(context, "export-alpha", artifacts)
+    logger.info(
+        "alpha export completed",
+        extra={"run_id": context.run_id, "stage": "export-alpha", "profile": args.profile, "dry_run": args.dry_run},
+    )
+
+    _print_json(
+        {
+            "dry_run": args.dry_run,
+            "export_dir": str(export_result.export_dir),
+            "profile_id": args.profile,
+            "run_dir": str(context.run_dir),
+            "run_id": context.run_id,
+            "stage": "export-alpha",
             "status": "ok",
             "summary_path": str(run_summary_path),
         }
