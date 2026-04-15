@@ -3,10 +3,23 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+from argparse import Namespace
 from pathlib import Path
 
-from hocrgen.cli import main
+from hocrgen.cli import handle_export_alpha, main
 from hocrgen.config.loader import default_config_root
+from hocrgen.config.models import RightsClassification
+from hocrgen.core.errors import ConfigValidationError, StageExecutionError
+from hocrgen.manifests.models import AlphaExportedItemRecord, NormalizedAssetRecord, PrivacyScannedItemRecord
+from hocrgen.package.alpha import (
+    AlphaExportConfig,
+    _build_source_stats,
+    _copy_export_assets,
+    _current_commit_sha,
+    _select_alpha_items,
+    _source_priority,
+    _split_sort_key,
+)
 
 
 def _fixture_config_root(tmp_path: Path) -> Path:
@@ -180,3 +193,242 @@ def test_export_alpha_docs_and_release_record_include_metadata(tmp_path: Path, c
     assert "# HeOCR alpha-v0" in dataset_card
     assert "Release Notes: alpha-v0" in release_notes
     assert f"`{current_commit}`" in provenance
+
+
+def test_export_alpha_recreates_existing_output_dir(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    output_dir = tmp_path / "HeOCR" / "releases" / "alpha-v0"
+    stale_file = output_dir / "stale.txt"
+    stale_file.parent.mkdir(parents=True, exist_ok=True)
+    stale_file.write_text("stale", encoding="utf-8")
+
+    exit_code = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+    assert exit_code == 0
+    assert not stale_file.exists()
+
+
+def test_export_alpha_handles_cli_error_paths(monkeypatch, tmp_path: Path, capsys) -> None:
+    args = Namespace(
+        profile="profile_open_v1",
+        workdir=tmp_path / "work",
+        config_root=tmp_path / "missing-config",
+        dry_run=True,
+        source=None,
+        max_items=None,
+        seed=None,
+        verbose=False,
+        version="alpha-v0",
+        output_dir=None,
+        max_real_items=10,
+        max_synthetic_items=2,
+    )
+
+    def raise_config(_: Path | None) -> None:
+        raise ConfigValidationError("broken config")
+
+    monkeypatch.setattr("hocrgen.cli._load_bundle", raise_config)
+    exit_code = handle_export_alpha(args)
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 1
+    assert payload["error"] == "broken config"
+
+
+def test_export_alpha_handles_unknown_profile(capsys, tmp_path: Path) -> None:
+    exit_code = main(["export-alpha", "--profile", "missing_profile", "--dry-run", "--workdir", str(tmp_path)])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload["status"] == "error"
+    assert payload["error"] == "unknown profile: missing_profile"
+
+
+def test_export_alpha_handles_stage_execution_error(monkeypatch, tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+
+    def raise_stage(*args, **kwargs):
+        raise StageExecutionError("empty export")
+
+    monkeypatch.setattr("hocrgen.cli.export_alpha_release", raise_stage)
+    exit_code = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 1
+    assert payload["error"] == "empty export"
+
+
+def test_select_alpha_items_can_return_empty_when_real_cap_is_zero(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    exit_code = main(
+        [
+            "build-release",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+        ]
+    )
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    run_dir = Path(payload["run_dir"])
+    release_items = [
+        PrivacyScannedItemRecord.model_validate(item)
+        for item in json.loads((run_dir / "build_release" / "item_manifest.json").read_text(encoding="utf-8"))["items"]
+    ]
+    bundle_root = _fixture_config_root(tmp_path / "other")
+    from hocrgen.config.loader import load_and_validate_bundle
+
+    bundle = load_and_validate_bundle(bundle_root)
+    selected = _select_alpha_items(release_items, bundle.profiles["profile_open_v1"], AlphaExportConfig(version="alpha-v0", max_real_items=0, max_synthetic_items=2))
+    assert selected == []
+
+
+def test_copy_export_assets_requires_split_and_copies_preview(tmp_path: Path) -> None:
+    asset_path = tmp_path / "asset.svg"
+    asset_path.write_text("<svg/>", encoding="utf-8")
+    preview_path = tmp_path / "preview.svg"
+    preview_path.write_text("<svg/>", encoding="utf-8")
+    item = _make_item(
+        item_id="test:item-001",
+        split="train",
+        normalized_asset_path=str(asset_path),
+        preview_path=str(preview_path),
+        preview_generated=True,
+    )
+    exported = _copy_export_assets([item], tmp_path / "export-data")
+    assert exported[0].exported_assets[0].release_preview_path is not None
+    assert (tmp_path / "export-data" / "train" / "test:item-001" / "previews" / "preview.svg").exists()
+
+    missing_split_item = _make_item(
+        item_id="test:item-002",
+        split=None,
+        normalized_asset_path=str(asset_path),
+    )
+    try:
+        _copy_export_assets([missing_split_item], tmp_path / "other-export")
+    except StageExecutionError as exc:
+        assert str(exc) == "release-ready item test:item-002 is missing a split assignment"
+    else:
+        raise AssertionError("expected StageExecutionError for missing split")
+
+
+def test_build_source_stats_skips_unsplit_items(tmp_path: Path) -> None:
+    asset_path = tmp_path / "asset.svg"
+    asset_path.write_text("<svg/>", encoding="utf-8")
+    split_item = AlphaExportedItemRecord.model_validate(
+        _make_item("split:item", "validation", str(asset_path)).model_dump(mode="python") | {"exported_assets": []}
+    )
+    unsplit_item = AlphaExportedItemRecord.model_validate(
+        _make_item("unsplit:item", None, str(asset_path)).model_dump(mode="python") | {"exported_assets": []}
+    )
+    stats = _build_source_stats([split_item, unsplit_item], [])
+    assert stats["sources"]["test_source"] == 2
+    assert stats["sources_by_split"]["test_source"] == {"validation": 1}
+
+
+def test_alpha_helper_fallbacks(monkeypatch) -> None:
+    class DummyProfile:
+        include_sources = ["known_source"]
+
+    assert _source_priority(DummyProfile(), "missing_source") == 1
+    assert _split_sort_key(None) == 3
+
+    class DummyResult:
+        returncode = 1
+        stdout = ""
+
+    monkeypatch.setattr("subprocess.run", lambda *args, **kwargs: DummyResult())
+    assert _current_commit_sha() == "unknown"
+
+
+def _make_item(
+    item_id: str,
+    split: str | None,
+    normalized_asset_path: str,
+    preview_path: str | None = None,
+    preview_generated: bool = False,
+) -> PrivacyScannedItemRecord:
+    normalized_asset = NormalizedAssetRecord(
+        item_id=item_id,
+        source_asset_path=normalized_asset_path,
+        normalized_asset_path=normalized_asset_path,
+        asset_format="svg",
+        media_type="image/svg+xml",
+        width=100,
+        height=100,
+        file_size_bytes=6,
+        sha256="abc123",
+        is_vector=True,
+        normalization_action="copied",
+        preview_generated=preview_generated,
+        preview_path=preview_path,
+    )
+    return PrivacyScannedItemRecord.model_validate(
+        {
+            "candidate_id": item_id,
+            "source_id": "test_source",
+            "source_item_id": item_id.split(":", 1)[-1],
+            "source_url": f"https://example.org/{item_id}",
+            "discovery_method": "test",
+            "title": item_id,
+            "fixture_path": None,
+            "raw_metadata": {},
+            "raw_rights_text": "Any Use Permitted",
+            "asset_references": [],
+            "metadata": {},
+            "item_id": item_id,
+            "normalized_license": "CC-BY-4.0",
+            "rights_classification": RightsClassification.open,
+            "eligibility": "accepted",
+            "eligibility_reason": "allowed_by_profile",
+            "is_synthetic": False,
+            "provenance": {},
+            "acquired_assets": [],
+            "normalized_assets": [normalized_asset.model_dump(mode="python")],
+            "qa_status": "passed",
+            "qa_fail_reasons": [],
+            "content_fingerprint": f"fingerprint-{item_id}",
+            "dedupe_cluster_id": None,
+            "dedupe_status": "retained",
+            "canonical_item_id": item_id,
+            "split": split,
+            "split_group_id": f"group-{item_id}",
+            "content_class": "printed",
+            "content_confidence": 0.9,
+            "period_class": "historical",
+            "period_confidence": 0.9,
+            "language_class": "hebrew_only",
+            "language_confidence": 0.9,
+            "quality_score": 0.9,
+            "quality_tier": "high",
+            "classification_review_reasons": [],
+            "privacy_flag": "clear",
+            "privacy_reasons": [],
+            "privacy_decision": "release_ready",
+        }
+    )
