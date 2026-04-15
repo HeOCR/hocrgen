@@ -11,6 +11,7 @@ from hocrgen.core.errors import StageExecutionError
 from hocrgen.tools.nli_seed_promotion import (
     ExtractedSeedPage,
     PromotionFailure,
+    _normalize_downloaded_bytes,
     _escape_html,
     _extract_failure_reason,
     _extract_rights_hint,
@@ -48,6 +49,12 @@ def test_seed_id_to_slug_replaces_hyphens() -> None:
 def test_infer_asset_extension_prefers_url_suffix_and_content_type() -> None:
     assert infer_asset_extension("https://example.com/page.svg", None) == ".svg"
     assert infer_asset_extension("https://example.com/page", "image/png") == ".png"
+
+
+def test_normalize_downloaded_bytes_repairs_utf8_mojibake_jpeg_bytes() -> None:
+    raw = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01"
+    mangled = raw.decode("latin1").encode("utf-8")
+    assert _normalize_downloaded_bytes(mangled) == raw
 
 
 def test_infer_asset_extension_rejects_unsupported_types() -> None:
@@ -611,14 +618,24 @@ class _FakeLocator:
 
 
 class _FakePage:
-    def __init__(self, *, url: str = "", markers: list[bool] | None = None, html: str = "", screenshot_raises: bool = False):
+    def __init__(
+        self,
+        *,
+        url: str = "",
+        markers: list[bool] | None = None,
+        html: str = "",
+        screenshot_raises: bool = False,
+        goto_response=None,
+    ):
         self.url = url
         self._markers = list(markers or [])
         self._html = html
         self._screenshot_raises = screenshot_raises
+        self._goto_response = goto_response or _FakeRequestResponse(ok=True, body=b"svg", content_type="image/svg+xml")
         self.goto_calls: list[tuple[str, str]] = []
         self.reload_calls: list[str] = []
         self.brought_to_front = False
+        self.closed = False
 
     def locator(self, selector: str):
         marker_state = self._markers[0] if self._markers else False
@@ -646,9 +663,10 @@ class _FakePage:
         if len(self._markers) > 1:
             self._markers.pop(0)
 
-    def goto(self, url: str, wait_until: str = "domcontentloaded") -> None:
+    def goto(self, url: str, wait_until: str = "domcontentloaded", timeout: int | None = None):
         self.goto_calls.append((url, wait_until))
         self.url = url
+        return self._goto_response
 
     def reload(self, wait_until: str = "domcontentloaded") -> None:
         self.reload_calls.append(wait_until)
@@ -660,6 +678,12 @@ class _FakePage:
 
     def bring_to_front(self) -> None:
         self.brought_to_front = True
+
+    def evaluate(self, _script: str, *_args):
+        return None
+
+    def close(self) -> None:
+        self.closed = True
 
 
 class _FakeContext:
@@ -980,11 +1004,14 @@ def test_capture_seed_via_browser_navigates_to_seed_url_when_existing_page_does_
     class ContextWithMismatchedExistingPage(_FakeContext):
         def __init__(self):
             super().__init__([_FakePage(url="https://example.com/other", markers=[True], html="<html></html>")])
+            self.created_pages: list[_FakePage] = []
 
         def new_page(self):
-            self.new_page_created = _FakePage(markers=[True], html="<html></html>")
-            self.pages.append(self.new_page_created)
-            return self.new_page_created
+            page = _FakePage(markers=[True], html="<html></html>")
+            self.new_page_created = page
+            self.created_pages.append(page)
+            self.pages.append(page)
+            return page
 
     context = ContextWithMismatchedExistingPage()
     browser = _FakeBrowser(contexts=[context])
@@ -1013,8 +1040,8 @@ def test_capture_seed_via_browser_navigates_to_seed_url_when_existing_page_does_
         manual_wait_timeout_seconds=1,
     )
 
-    assert context.new_page_created is not None
-    assert context.new_page_created.goto_calls == [("https://example.com/seed", "domcontentloaded")]
+    assert context.created_pages
+    assert context.created_pages[0].goto_calls == [("https://example.com/seed", "domcontentloaded")]
     assert not context.closed
 
 

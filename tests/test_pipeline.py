@@ -9,7 +9,28 @@ from hocrgen.config.loader import default_config_root
 
 
 def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> None:
-    exit_code = main(["build-release", "--profile", "profile_open_v1", "--dry-run", "--workdir", str(tmp_path)])
+    config_root = tmp_path / "config"
+    shutil.copytree(default_config_root(), config_root)
+    fixture_seed = (Path(__file__).parent / "fixtures" / "nli" / "seeds_default.yaml").resolve()
+    sources_path = config_root / "sources.yaml"
+    sources_path.write_text(
+        sources_path.read_text(encoding="utf-8").replace(
+            "package://data/nli/seeds.yaml", str(fixture_seed)
+        ),
+        encoding="utf-8",
+    )
+    exit_code = main(
+        [
+            "build-release",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--workdir",
+            str(tmp_path),
+            "--config-root",
+            str(config_root),
+        ]
+    )
     assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)
     run_dir = Path(payload["run_dir"])
@@ -127,6 +148,7 @@ def test_excluded_sources_are_not_selected(tmp_path: Path, capsys) -> None:
 def test_build_release_removes_exact_duplicates(tmp_path: Path, capsys) -> None:
     config_root = tmp_path / "config"
     shutil.copytree(default_config_root(), config_root)
+    fixture_seed = (Path(__file__).parent / "fixtures" / "nli" / "seeds_default.yaml").resolve()
     duplicate_records_path = tmp_path / "duplicate_biblia_records.json"
     duplicate_records_path.write_text(
         json.dumps(
@@ -154,6 +176,8 @@ def test_build_release_removes_exact_duplicates(tmp_path: Path, capsys) -> None:
     sources_path.write_text(
         sources_path.read_text(encoding="utf-8").replace(
             "package://data/biblia/records.json", str(duplicate_records_path)
+        ).replace(
+            "package://data/nli/seeds.yaml", str(fixture_seed)
         ),
         encoding="utf-8",
     )
