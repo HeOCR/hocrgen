@@ -36,6 +36,35 @@ CHALLENGE_MARKERS = (
 )
 NLI_PROMOTION_IMAGE_WIDTH = 256
 NLI_PROMOTION_MAX_ASSETS = 5
+CP1252_REVERSE_MAP = {
+    "€": 0x80,
+    "‚": 0x82,
+    "ƒ": 0x83,
+    "„": 0x84,
+    "…": 0x85,
+    "†": 0x86,
+    "‡": 0x87,
+    "ˆ": 0x88,
+    "‰": 0x89,
+    "Š": 0x8A,
+    "‹": 0x8B,
+    "Œ": 0x8C,
+    "Ž": 0x8E,
+    "‘": 0x91,
+    "’": 0x92,
+    "“": 0x93,
+    "”": 0x94,
+    "•": 0x95,
+    "–": 0x96,
+    "—": 0x97,
+    "˜": 0x98,
+    "™": 0x99,
+    "š": 0x9A,
+    "›": 0x9B,
+    "œ": 0x9C,
+    "ž": 0x9E,
+    "Ÿ": 0x9F,
+}
 
 
 @dataclass(frozen=True)
@@ -92,6 +121,43 @@ def infer_asset_extension(asset_url: str, content_type: str | None = None) -> st
         f"Could not infer supported asset extension for {asset_url}"
         + (f" (content type: {content_type})" if content_type else "")
     )
+
+
+def _asset_signature(data: bytes) -> str | None:
+    if data.startswith(b"\xff\xd8"):
+        return "jpeg"
+    if data.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png"
+    if b"<svg" in data[:512].lower():
+        return "svg"
+    return None
+
+
+def _repair_utf8_mojibake(data: bytes) -> bytes | None:
+    try:
+        text = data.decode("utf-8")
+    except UnicodeDecodeError:
+        return None
+    repaired = bytearray()
+    for char in text:
+        codepoint = ord(char)
+        if codepoint <= 0xFF:
+            repaired.append(codepoint)
+            continue
+        if char in CP1252_REVERSE_MAP:
+            repaired.append(CP1252_REVERSE_MAP[char])
+            continue
+        return None
+    return bytes(repaired)
+
+
+def _normalize_downloaded_bytes(body: bytes) -> bytes:
+    repaired = _repair_utf8_mojibake(body)
+    if repaired is None:
+        return body
+    if _asset_signature(body) is None and _asset_signature(repaired) is not None:
+        return repaired
+    return body
 
 
 def render_fixture_html(
@@ -550,7 +616,13 @@ def download_assets(
             response = request_context.get(asset_url)
             if not response.ok:
                 raise StageExecutionError(f"{FAILURE_DOWNLOAD}: {asset_url}: HTTP {response.status}")
-            downloads.append((asset_url, response.headers.get("content-type"), response.body()))
+            downloads.append(
+                (
+                    asset_url,
+                    response.headers.get("content-type"),
+                    _normalize_downloaded_bytes(response.body()),
+                )
+            )
         return downloads
     finally:
         request_context.dispose()
@@ -795,7 +867,13 @@ def _download_assets_via_browser_context(browser_context, asset_urls: list[str])
             if response is None or not response.ok:
                 status = response.status if response is not None else "no_response"
                 raise StageExecutionError(f"{FAILURE_DOWNLOAD}: {asset_url}: HTTP {status}")
-            downloads.append((asset_url, response.headers.get("content-type"), response.body()))
+            downloads.append(
+                (
+                    asset_url,
+                    response.headers.get("content-type"),
+                    _normalize_downloaded_bytes(response.body()),
+                )
+            )
         return downloads
     finally:
         page.close()

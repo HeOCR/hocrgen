@@ -11,6 +11,7 @@ from hocrgen.core.errors import StageExecutionError
 from hocrgen.tools.nli_seed_promotion import (
     ExtractedSeedPage,
     PromotionFailure,
+    _normalize_downloaded_bytes,
     _escape_html,
     _extract_failure_reason,
     _extract_rights_hint,
@@ -48,6 +49,12 @@ def test_seed_id_to_slug_replaces_hyphens() -> None:
 def test_infer_asset_extension_prefers_url_suffix_and_content_type() -> None:
     assert infer_asset_extension("https://example.com/page.svg", None) == ".svg"
     assert infer_asset_extension("https://example.com/page", "image/png") == ".png"
+
+
+def test_normalize_downloaded_bytes_repairs_utf8_mojibake_jpeg_bytes() -> None:
+    raw = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01"
+    mangled = raw.decode("latin1").encode("utf-8")
+    assert _normalize_downloaded_bytes(mangled) == raw
 
 
 def test_infer_asset_extension_rejects_unsupported_types() -> None:

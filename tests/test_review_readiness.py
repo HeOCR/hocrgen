@@ -9,7 +9,28 @@ from hocrgen.config.loader import default_config_root
 
 
 def test_classify_stage_assigns_expected_source_priors(tmp_path: Path, capsys) -> None:
-    exit_code = main(["classify", "--profile", "profile_open_v1", "--dry-run", "--workdir", str(tmp_path)])
+    config_root = tmp_path / "config"
+    shutil.copytree(default_config_root(), config_root)
+    fixture_seed = (Path(__file__).parent / "fixtures" / "nli" / "seeds_default.yaml").resolve()
+    sources_path = config_root / "sources.yaml"
+    sources_path.write_text(
+        sources_path.read_text(encoding="utf-8").replace(
+            "package://data/nli/seeds.yaml", str(fixture_seed)
+        ),
+        encoding="utf-8",
+    )
+    exit_code = main(
+        [
+            "classify",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--workdir",
+            str(tmp_path),
+            "--config-root",
+            str(config_root),
+        ]
+    )
     assert exit_code == 0
     run_dir = Path(json.loads(capsys.readouterr().out)["run_dir"])
     classified_items = json.loads((run_dir / "classify" / "classified_items.json").read_text(encoding="utf-8"))["items"]
