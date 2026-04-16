@@ -230,10 +230,24 @@ Support bounded historical sources with clear upstream open licenses.
 - source manifests for imported datasets
 - import tests
 
+### Current-state clarification
+Importer readiness and sample realism are separate concerns.
+
+At the current stage, Pinkas and BiblIA are implemented as bounded static importers over packaged sample records, but the committed sample assets are still scaffold-grade fixtures. They are good enough for provenance, licensing, manifest wiring, and pipeline testing, but they should not yet be treated as visually representative archival samples.
+
+### Near-term realism requirement
+Before Pinkas or BiblIA are presented as credible alpha-quality historical examples, the placeholder fixture assets should be replaced with real packaged/open sample pages from the bounded source artifacts. In practical terms, that means:
+
+- keep the importer and provenance model unchanged
+- replace mock SVG-style fixtures with real packaged sample page assets
+- preserve upstream identifiers and license metadata
+- ensure the historical-source visuals no longer resemble synthetic or scaffold-generated placeholders
+
 ### Exit criteria
 - imported records preserve upstream provenance
 - licenses normalize correctly
 - imported data appears as distinct source families in manifests
+- importer readiness is documented separately from source-sample realism
 
 ### Risks / dependencies
 - mixed upstream packaging details

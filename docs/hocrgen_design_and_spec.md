@@ -1334,6 +1334,10 @@ The item schema should be additive-friendly for future fields like:
 - synthetic generator MVP
 - rights normalization MVP
 
+Implementation note:
+- for bounded historical sources such as Pinkas and BiblIA, importer completeness does not automatically imply representative source assets
+- scaffold-grade packaged fixtures are acceptable for early pipeline milestones, but alpha-quality historical examples should use real packaged/open sample pages rather than mock SVG-style stand-ins
+
 ### Milestone 3 — processing and curation
 - normalization
 - dedupe
