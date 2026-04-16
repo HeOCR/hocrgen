@@ -741,6 +741,13 @@ The synthetic subsystem should:
 - produce reproducible samples with rich metadata
 - stay within configured release proportions
 
+For avoidance of doubt, "realistic" here means more than deterministic rendering. In concrete implementation terms, the synthetic subsystem should avoid:
+
+- host-font fallback output that collapses handwritten samples into print-like typography
+- prompt-like or self-referential text that reads like template instructions rather than document content
+- decorative frames or card-like layouts that do not resemble plausible source documents
+- pristine vector output with no scan-like imperfections when the target use case is document OCR
+
 ### 13.2 Subcomponents
 
 - recipe loader
@@ -772,12 +779,25 @@ For each synthetic item:
 - degradation recipe
 - normalized license metadata
 
+For near-term planning, the expected public-release path should assume a raster export mode for synthetic items, even if SVG remains acceptable as an intermediate development format. Synthetic outputs intended for release should therefore support:
+
+- a release-grade raster asset path
+- explicit record of rasterization settings
+- explicit record of degradation settings
+- the ability to distinguish "layout prototype" outputs from "release-ready synthetic sample" outputs
+
 ### 13.5 Asset governance
 
 Synthetic assets must be tracked in a manifest:
 
 - asset path
 - asset type
+
+Font assets should be treated as first-class governed inputs. In practice, this means:
+
+- handwritten-like and print-like Hebrew fonts must be explicitly approved and tracked
+- fallback host CSS stacks are acceptable only for early development scaffolding, not for release-quality synthetic samples
+- each released synthetic sample should be attributable to a specific governed font asset, not an implicit system fallback
 - source
 - license
 - checksum
