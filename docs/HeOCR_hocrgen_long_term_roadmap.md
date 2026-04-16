@@ -101,7 +101,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | A2 | Foundation | A2a | Config, schema, and manifest foundations | completed |
 | A3 | Foundation | A3a | Core CLI and stage-oriented pipeline skeleton | completed |
 | B1 | First public release capability | B1a, B1b | NLI acquisition MVP, then broader seed promotion and fixture capture | completed |
-| B2 | First public release capability | B2a, B2b | Static open-source importers, then real historical sample replacement | partial |
+| B2 | First public release capability | B2a, B2b | Static open-source importers, then real historical sample replacement | completed |
 | B3 | First public release capability | B3a, B3b | Synthetic MVP plumbing, then alpha-quality synthetic realism | partial |
 | B4 | First public release capability | B4a | Rights normalization and release eligibility | completed |
 | B5 | First public release capability | B5a, B5b | First review-ready pilot release, then alpha content freeze and handoff | partial |
@@ -131,7 +131,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | B1a | B1 | Seed-driven NLI acquisition MVP | yes | completed | merged as PR #2 |
 | B1b | B1 | NLI exploratory-seed promotion and CDP-assisted fixture capture | yes | completed | merged as PR #8 |
 | B2a | B2 | Pinkas/BiblIA importer scaffolding over packaged sample records | yes | completed | merged as PR #2 |
-| B2b | B2 | Replace scaffold-grade Pinkas/BiblIA assets with real packaged/open historical sample pages | yes | next | next historical-source realism PR |
+| B2b | B2 | Replace scaffold-grade Pinkas/BiblIA assets with real packaged/open historical sample pages | yes | completed | historical-source sample realism work |
 | B3a | B3 | Deterministic synthetic MVP with tracked inputs and metadata | yes | completed | merged as PR #2 |
 | B3b | B3 | Synthetic alpha-quality upgrade: real fonts, curated text, raster output, degradation, better layouts | yes | planned | follows B2b |
 | B4a | B4 | Rights normalization and release eligibility engine | yes | completed | merged as PR #2 |
@@ -159,11 +159,10 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 
 The immediate implementation critical path to a defensible public alpha is:
 
-1. **B2b**: replace scaffold-grade Pinkas/BiblIA sample assets with real packaged/open historical sample pages
-2. **B3b**: upgrade synthetic generation to alpha-quality realism
-3. **B5b**: freeze alpha contents and hand the versioned export into the separate `HeOCR` repository
+1. **B3b**: upgrade synthetic generation to alpha-quality realism
+2. **B5b**: freeze alpha contents and hand the versioned export into the separate `HeOCR` repository
 
-This ordering is intentional. `B5a` already makes the alpha mechanically exportable, but `B2b` and `B3b` are what make the resulting exported contents visually and evidentially credible.
+This ordering is intentional. `B5a` already makes the alpha mechanically exportable, and `B2b` upgrades the historical-source samples to real packaged pages, but `B3b` is still required before the resulting exported contents are visually credible across the whole dataset.
 
 ## 4.4 Alpha release readiness gates
 
@@ -351,15 +350,15 @@ Support bounded historical sources with clear upstream open licenses.
 ### Current-state clarification
 Importer readiness and sample realism are separate concerns.
 
-At the current stage, Pinkas and BiblIA are implemented as bounded static importers over packaged sample records, but the committed sample assets are still scaffold-grade fixtures. They are good enough for provenance, licensing, manifest wiring, and pipeline testing, but they should not yet be treated as visually representative archival samples.
+Pinkas and BiblIA are now implemented as bounded static importers over packaged sample records backed by real open historical page assets. They are still intentionally small and bounded sample sources, but the committed packaged assets are no longer scaffold-grade mock fixtures.
 
-### Near-term realism requirement
-Before Pinkas or BiblIA are presented as credible alpha-quality historical examples, the placeholder fixture assets should be replaced with real packaged/open sample pages from the bounded source artifacts. In practical terms, that means:
+### Current bounded-source requirement
+Pinkas and BiblIA should remain conservative bounded-source imports. In practical terms, that means:
 
 - keep the importer and provenance model unchanged
-- replace mock SVG-style fixtures with real packaged sample page assets
+- use packaged real open sample page assets rather than mock SVG stand-ins
 - preserve upstream identifiers and license metadata
-- ensure the historical-source visuals no longer resemble synthetic or scaffold-generated placeholders
+- keep source scope explicitly bounded even when the sample assets are visually representative
 
 ### Exit criteria
 - imported records preserve upstream provenance

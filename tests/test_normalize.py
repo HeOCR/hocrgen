@@ -57,7 +57,7 @@ def test_detect_asset_metadata_reads_png_dimensions(tmp_path: Path) -> None:
 
 def test_normalize_items_handles_svg_and_generates_preview(tmp_path: Path) -> None:
     bundle = load_and_validate_bundle()
-    svg_path = bundle.resolve_path("package://data/pinkas/assets/pinkas_001.svg")
+    svg_path = (Path(__file__).parent / "fixtures" / "pinkas" / "pinkas_fixture.svg").resolve()
     thresholds = bundle.quality_thresholds.model_copy(update={"minimum_width": 1, "minimum_height": 1})
 
     outputs = normalize_items(

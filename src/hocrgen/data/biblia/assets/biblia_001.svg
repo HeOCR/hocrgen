@@ -1,6 +1,0 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="850" height="1100" viewBox="0 0 850 1100">
-  <rect width="850" height="1100" fill="#eee6d8"/>
-  <rect x="70" y="80" width="710" height="940" fill="#fffaf1" stroke="#c8b18f" stroke-width="2"/>
-  <text x="710" y="170" text-anchor="end" font-size="28" font-family="serif">פתק ארכיוני</text>
-  <text x="710" y="250" text-anchor="end" font-size="22" font-family="serif">BiblIA packaged subset</text>
-</svg>

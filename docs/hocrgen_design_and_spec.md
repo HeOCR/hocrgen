@@ -1336,7 +1336,7 @@ The item schema should be additive-friendly for future fields like:
 
 Implementation note:
 - for bounded historical sources such as Pinkas and BiblIA, importer completeness does not automatically imply representative source assets
-- scaffold-grade packaged fixtures are acceptable for early pipeline milestones, but alpha-quality historical examples should use real packaged/open sample pages rather than mock SVG-style stand-ins
+- the current packaged Pinkas/BiblIA samples use real open historical page assets, but broader source coverage and source-depth expansion remain future work
 
 ### Milestone 3 — processing and curation
 - normalization

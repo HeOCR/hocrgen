@@ -65,8 +65,8 @@ def test_low_confidence_classification_routes_to_review(tmp_path: Path, capsys) 
                         "upstream_identifier": "administrative-fragment",
                         "collection": "BiblIA Open Packaged Subset",
                         "period": "historical",
-                        "raw_rights": "CC-BY-SA-4.0",
-                        "asset_path": "package://data/biblia/assets/biblia_001.svg",
+                        "raw_rights": "PD-IL",
+                        "asset_path": "package://data/biblia/assets/biblia_001.jpg",
                     }
                 ]
             },
@@ -184,7 +184,7 @@ def test_blocked_items_are_excluded_from_split_and_release_outputs(tmp_path: Pat
     privacy_rules = privacy_path.read_text(encoding="utf-8")
     privacy_rules = privacy_rules.replace(
         "rules:\n",
-        "rules:\n  - id: block_pinkas_fixture\n    flag: blocked_sensitive\n    patterns:\n      - Pinkas ledger\n    fields:\n      - title\n    applies_to_sources:\n      - pinkas_open\n",
+        "rules:\n  - id: block_pinkas_fixture\n    flag: blocked_sensitive\n    patterns:\n      - Kopychintsy\n    fields:\n      - title\n    applies_to_sources:\n      - pinkas_open\n",
         1,
     )
     privacy_path.write_text(privacy_rules, encoding="utf-8")
