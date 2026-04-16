@@ -28,9 +28,9 @@ sources:
     rights_strategy:
       type: exact_match
       values:
-        - CC-BY-4.0
-    normalized_license: CC-BY-4.0
-    rights_classification: open_with_attribution
+        - PD-IL
+    normalized_license: PD-IL
+    rights_classification: open
     requires_manual_review: false
     settings:
       records_path: package://data/pinkas/records.json
@@ -45,9 +45,9 @@ sources:
     rights_strategy:
       type: exact_match
       values:
-        - CC-BY-SA-4.0
-    normalized_license: CC-BY-SA-4.0
-    rights_classification: sharealike
+        - PD-IL
+    normalized_license: PD-IL
+    rights_classification: open
     requires_manual_review: false
     settings:
       records_path: package://data/biblia/records.json

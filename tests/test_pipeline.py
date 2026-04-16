@@ -54,24 +54,30 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert release_summary["retained_count"] == 4
     assert release_summary["duplicate_removed_count"] == 0
     assert release_summary["qa_failed_count"] == 0
-    assert release_summary["release_ready_count"] == 3
-    assert release_summary["review_required_count"] == 1
+    assert release_summary["release_ready_count"] == 2
+    assert release_summary["review_required_count"] == 2
     assert release_summary["blocked_count"] == 0
-    assert release_summary["real_items"] == 2
+    assert release_summary["real_items"] == 1
     assert release_summary["synthetic_items"] == 1
-    assert sum(release_summary["split_counts"].values()) == 3
-    assert source_stats["asset_formats"]["svg"] == 3
-    assert source_stats["sources"]["biblia_open"] == 1
+    assert sum(release_summary["split_counts"].values()) == 2
+    assert source_stats["asset_formats"] == {"jpeg": 1, "svg": 1}
     assert source_stats["sources"]["pinkas_open"] == 1
     assert source_stats["sources"]["project_synthetic"] == 1
+    assert "biblia_open" not in source_stats["sources"]
     assert "nli_any_use_permitted" not in source_stats["sources"]
-    assert len(split_manifest["items"]) == 3
-    assert len(item_manifest["items"]) == 3
+    assert len(split_manifest["items"]) == 2
+    assert len(item_manifest["items"]) == 2
     assert removed_duplicate_items["items"] == []
-    assert len(review_required_items["items"]) == 1
-    assert review_required_items["items"][0]["source_id"] == "nli_any_use_permitted"
-    assert len(review_queue["items"]) == 1
-    assert review_queue["items"][0]["review_item_id"] == "review:nli_any_use_permitted:nli-ms-001"
+    assert len(review_required_items["items"]) == 2
+    assert {item["source_id"] for item in review_required_items["items"]} == {
+        "biblia_open",
+        "nli_any_use_permitted",
+    }
+    assert len(review_queue["items"]) == 2
+    assert {item["review_item_id"] for item in review_queue["items"]} == {
+        "review:biblia_open:biblia-doc-001",
+        "review:nli_any_use_permitted:nli-ms-001",
+    }
     assert classification_stats["period_class"]["modern"] == 2
     assert privacy_stats["privacy_flag"]["possible_personal_data"] == 1
 
@@ -161,8 +167,8 @@ def test_build_release_removes_exact_duplicates(tmp_path: Path, capsys) -> None:
                         "upstream_identifier": "duplicate-1",
                         "collection": "BiblIA Open Packaged Subset",
                         "period": "historical",
-                        "raw_rights": "CC-BY-SA-4.0",
-                        "asset_path": "package://data/pinkas/assets/pinkas_001.svg",
+                        "raw_rights": "PD-IL",
+                        "asset_path": "package://data/pinkas/assets/pinkas_001.jpg",
                     }
                 ]
             },

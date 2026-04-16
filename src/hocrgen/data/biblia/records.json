@@ -2,13 +2,13 @@
   "records": [
     {
       "id": "biblia-doc-001",
-      "title": "BiblIA note fragment 4",
-      "source_url": "https://example.org/biblia/fragment-4",
-      "upstream_identifier": "fragment-4",
-      "collection": "BiblIA Open Packaged Subset",
+      "title": "Hebrew Bible from 1300 (folio 20)",
+      "source_url": "https://commons.wikimedia.org/wiki/File:Bible_from_1300_(20).jpg",
+      "upstream_identifier": "Bible_from_1300_(20)",
+      "collection": "National Library of Israel / Ktiv public-domain sample",
       "period": "historical",
-      "raw_rights": "CC-BY-SA-4.0",
-      "asset_path": "package://data/biblia/assets/biblia_001.svg"
+      "raw_rights": "PD-IL",
+      "asset_path": "package://data/biblia/assets/biblia_001.jpg"
     }
   ]
 }

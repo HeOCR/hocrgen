@@ -97,13 +97,18 @@ def test_export_alpha_only_copies_release_ready_items(tmp_path: Path, capsys) ->
 
     exported_ids = {item["item_id"] for item in item_manifest["items"]}
     assert "nli_any_use_permitted:nli-ms-001" not in exported_ids
-    assert len(item_manifest["items"]) == 3
-    assert len(split_manifest["items"]) == 3
-    assert len(review_required["items"]) == 1
-    assert review_required["items"][0]["source_id"] == "nli_any_use_permitted"
-    assert "raw_metadata" not in review_required["items"][0]
-    assert "fixture_path" not in review_required["items"][0]
-    assert "normalized_assets" not in review_required["items"][0]
+    assert "biblia_open:biblia-doc-001" not in exported_ids
+    assert len(item_manifest["items"]) == 2
+    assert len(split_manifest["items"]) == 2
+    assert len(review_required["items"]) == 2
+    assert {item["source_id"] for item in review_required["items"]} == {
+        "biblia_open",
+        "nli_any_use_permitted",
+    }
+    for item in review_required["items"]:
+        assert "raw_metadata" not in item
+        assert "fixture_path" not in item
+        assert "normalized_assets" not in item
     assert blocked["items"] == []
     assert "normalized_assets" not in item_manifest["items"][0]
     assert "asset_references" not in item_manifest["items"][0]
@@ -213,7 +218,7 @@ def test_export_alpha_docs_and_release_record_include_metadata(
     git_result = subprocess.run(["git", "rev-parse", "HEAD"])
 
     assert release_record["profile_id"] == "profile_open_v1"
-    assert release_record["included_sources"] == ["pinkas_open", "biblia_open", "project_synthetic"]
+    assert release_record["included_sources"] == ["pinkas_open", "project_synthetic"]
     if git_result.returncode == 0:
         current_commit = git_result.stdout.strip()
         assert release_record["hocrgen_commit"] == current_commit
@@ -222,7 +227,8 @@ def test_export_alpha_docs_and_release_record_include_metadata(
         assert release_record["hocrgen_commit"] == "unknown"
     assert "# HeOCR alpha-v0" in dataset_card
     assert "Release Notes: alpha-v0" in release_notes
-    assert dataset_card.index("`pinkas_open`") < dataset_card.index("`biblia_open`") < dataset_card.index("`project_synthetic`")
+    assert dataset_card.index("`pinkas_open`") < dataset_card.index("`project_synthetic`")
+    assert "`biblia_open`" not in dataset_card
 
 
 def test_export_alpha_fails_when_output_dir_exists_without_overwrite(tmp_path: Path, capsys) -> None:
