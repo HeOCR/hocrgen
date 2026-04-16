@@ -1,0 +1,53 @@
+# hocrgen agent sitemap
+
+Core tree
+
+- `src/hocrgen/cli.py` — CLI entrypoint and command handlers
+- `src/hocrgen/pipeline.py` — stage orchestration and build-release flow
+- `src/hocrgen/core/` — run context, errors, logging, shared execution state
+- `src/hocrgen/config/` — config loader, typed models, release profiles, source/license/quality/privacy config
+- `src/hocrgen/fetchers/` — source-specific acquisition adapters
+- `src/hocrgen/parsers/` — rights and source parsing helpers
+- `src/hocrgen/normalize/` — normalization, technical metadata, previews, QA
+- `src/hocrgen/dedupe/` — exact dedupe and duplicate clustering
+- `src/hocrgen/classify/` — heuristic content/period/language/quality classification
+- `src/hocrgen/privacy/` — metadata-first privacy screening
+- `src/hocrgen/review/` — review queue and review export artifacts
+- `src/hocrgen/split/` — deterministic split assignment and leakage checks
+- `src/hocrgen/package/` — release and alpha export packaging
+- `src/hocrgen/synthetic/` — synthetic document generation
+- `src/hocrgen/tools/` — local operator tools (for example NLI seed promotion)
+- `src/hocrgen/data/` — packaged sample assets and seed data
+
+Schemas and typed models
+
+- `src/hocrgen/config/models.py` — config/profile/privacy/quality typed models
+- `src/hocrgen/manifests/models.py` — item/review/export/release typed models
+- `schemas/` — JSON schemas for config and review/export artifacts
+
+Config and policy files
+
+- `src/hocrgen/config/sources.yaml` — source registry
+- `src/hocrgen/config/licenses.yaml` — normalized license mappings
+- `src/hocrgen/config/profiles/` — release profiles (`profile_open_v1`, `profile_review_v1`)
+- `src/hocrgen/config/quality_thresholds.yaml` — normalization and QA thresholds
+- `src/hocrgen/config/privacy_rules.yaml` — privacy screening rules
+
+Critical packaged data
+
+- `src/hocrgen/data/nli/seeds.yaml` — runnable fixture-backed NLI seeds
+- `src/hocrgen/data/nli/seed_catalog.yaml` — exploratory/manual NLI seed catalog
+- `src/hocrgen/data/pinkas/` — Pinkas packaged sample data
+- `src/hocrgen/data/biblia/` — BiblIA packaged sample data
+- `src/hocrgen/data/synthetic/` — fonts, text corpus, synthetic assets
+
+Operational docs
+
+- `README.md` — current capabilities and command examples
+- `docs/HeOCR_hocrgen_long_term_roadmap.md` — milestone/PR roadmap and critical path
+- `docs/hocrgen_design_and_spec.md` — system design and architectural boundaries
+- `docs/hocrgen_normalization_and_qa.md` — normalization and QA artifact behavior
+
+Tests
+
+- `tests/` — fixture-backed regression coverage for pipeline, packaging, review, and promotion flows

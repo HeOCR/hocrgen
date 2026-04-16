@@ -78,6 +78,124 @@ Each milestone includes:
 - exit criteria
 - risks / dependencies
 
+### Implementation state legend
+- `completed`: implemented and merged
+- `partial`: implemented in part, but a planned follow-up PR is still required
+- `next`: the most likely next implementation PR
+- `planned`: not yet started
+
+### State interpretation
+The implementation state in the tables below tracks overall delivery status for a milestone or PR, but it does not by itself imply that the resulting content is already representative enough for public alpha use. In practice, the roadmap now distinguishes three separate ideas:
+
+- **pipeline-complete**: the code path exists and works end to end
+- **content-complete**: representative source/synthetic content exists for that path
+- **release-ready**: the resulting outputs are good enough to ship in a public alpha or later release
+
+Several milestones that are marked `partial` are code-complete enough to exercise the pipeline but still not content-complete enough to serve as credible alpha examples.
+
+## 4.1 Milestone summary
+
+| Milestone | Phase | Planned PRs | Concise scope | Implementation state |
+| --- | --- | --- | --- | --- |
+| A1 | Foundation | A1a | Repository/bootstrap and governance baseline | completed |
+| A2 | Foundation | A2a | Config, schema, and manifest foundations | completed |
+| A3 | Foundation | A3a | Core CLI and stage-oriented pipeline skeleton | completed |
+| B1 | First public release capability | B1a, B1b | NLI acquisition MVP, then broader seed promotion and fixture capture | completed |
+| B2 | First public release capability | B2a, B2b | Static open-source importers, then real historical sample replacement | partial |
+| B3 | First public release capability | B3a, B3b | Synthetic MVP plumbing, then alpha-quality synthetic realism | partial |
+| B4 | First public release capability | B4a | Rights normalization and release eligibility | completed |
+| B5 | First public release capability | B5a, B5b | First review-ready pilot release, then alpha content freeze and handoff | partial |
+| C1 | Curation and operational hardening | C1a | Normalization and technical QA | completed |
+| C2 | Curation and operational hardening | C2a | Exact dedupe and split-safe curated build outputs | completed |
+| C3 | Curation and operational hardening | C3a | Basic classification and quality scoring | completed |
+| C4 | Curation and operational hardening | C4a | Privacy and sensitivity screening MVP | completed |
+| C5 | Curation and operational hardening | C5a, C5b | Review queue export, then review decision merge/operational review loop | partial |
+| C6 | Curation and operational hardening | C6a | Release diffs and changelog automation | planned |
+| D1 | Expansion and benchmark formation | D1a | Scheduled GitHub-first expansion workflows | planned |
+| D2 | Expansion and benchmark formation | D2a | Stable source-operations maturity | planned |
+| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | planned |
+| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | planned |
+| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | planned |
+| E1 | Ecosystem maturity | E1a | Community contribution model | planned |
+| E2 | Ecosystem maturity | E2a | Baselines and evaluation utilities | planned |
+| E3 | Ecosystem maturity | E3a | Annotation subset pilots | planned |
+| E4 | Ecosystem maturity | E4a | Multi-release governance maturity | planned |
+
+## 4.2 PR summary
+
+| PR | Milestone | Concise scope | Blocking for alpha? | Implementation state | Reference |
+| --- | --- | --- | --- | --- | --- |
+| A1a | A1 | Initial repository, governance, and architecture bootstrap | no | completed | historical / bootstrap work |
+| A2a | A2 | Typed config, schemas, manifests, validation foundations | no | completed | merged as PR #1 |
+| A3a | A3 | CLI, run context, stage skeleton, logging, workdir structure | no | completed | merged as PR #1 |
+| B1a | B1 | Seed-driven NLI acquisition MVP | yes | completed | merged as PR #2 |
+| B1b | B1 | NLI exploratory-seed promotion and CDP-assisted fixture capture | yes | completed | merged as PR #8 |
+| B2a | B2 | Pinkas/BiblIA importer scaffolding over packaged sample records | yes | completed | merged as PR #2 |
+| B2b | B2 | Replace scaffold-grade Pinkas/BiblIA assets with real packaged/open historical sample pages | yes | next | next historical-source realism PR |
+| B3a | B3 | Deterministic synthetic MVP with tracked inputs and metadata | yes | completed | merged as PR #2 |
+| B3b | B3 | Synthetic alpha-quality upgrade: real fonts, curated text, raster output, degradation, better layouts | yes | planned | follows B2b |
+| B4a | B4 | Rights normalization and release eligibility engine | yes | completed | merged as PR #2 |
+| B5a | B5 | Review-ready build and alpha export packaging in `hocrgen` | yes | completed | merged as PR #10 |
+| B5b | B5 | Alpha content freeze and handoff into the separate `HeOCR` repo | yes | planned | after B2b and B3b |
+| C1a | C1 | Normalization, metadata extraction, checksums, previews, QA | yes | completed | merged as PR #3 |
+| C2a | C2 | Exact dedupe, deterministic split assignment, curated build outputs | yes | completed | merged as PR #5 |
+| C3a | C3 | Heuristic classification | yes | completed | merged as PR #6 |
+| C4a | C4 | Metadata-first privacy scanning | yes | completed | merged as PR #6 |
+| C5a | C5 | Review queue export and review-side artifacts | yes | completed | merged as PR #6 |
+| C5b | C5 | Review decision schema merge, operational review loop, and post-review release gating | yes | planned | future review-system PR |
+| C6a | C6 | Release diffs and changelog generation | no | planned | future release-ops PR |
+| D1a | D1 | Scheduled GitHub-first expansion workflows | no | planned | future ops PR |
+| D2a | D2 | Source refresh/reliability maturity and source freeze controls | no | planned | future source-ops PR |
+| D3a | D3 | Benchmark subset v1 and benchmark-facing manifests | no | planned | future benchmark PR |
+| D4a | D4 | Richer synthetic generation for realism and document likeness | no | planned | future synthetic-quality PR |
+| D4b | D4 | Synthetic diversity controls and reporting hardening | no | planned | follow-up to D4a |
+| D5a | D5 | Optional transcription-ready architecture foundations | no | planned | future annotation-architecture PR |
+| E1a | E1 | Community contribution model and contribution safety rails | no | planned | future governance PR |
+| E2a | E2 | Baselines and evaluation utilities | no | planned | future evaluation PR |
+| E3a | E3 | Annotation subset pilots | no | planned | future annotation PR |
+| E4a | E4 | Multi-release governance and maturity controls | no | planned | future governance PR |
+
+## 4.3 Current critical path
+
+The immediate implementation critical path to a defensible public alpha is:
+
+1. **B2b**: replace scaffold-grade Pinkas/BiblIA sample assets with real packaged/open historical sample pages
+2. **B3b**: upgrade synthetic generation to alpha-quality realism
+3. **B5b**: freeze alpha contents and hand the versioned export into the separate `HeOCR` repository
+
+This ordering is intentional. `B5a` already makes the alpha mechanically exportable, but `B2b` and `B3b` are what make the resulting exported contents visually and evidentially credible.
+
+## 4.4 Alpha release readiness gates
+
+An alpha release should not be treated as ready merely because the pipeline can export it. At minimum, the following gates should be met:
+
+- the public export contains only release-ready items and excludes review-required/blocked items from the dataset payload
+- representative real historical samples are present, not scaffold-grade placeholder fixtures
+- synthetic samples use governed fonts, curated text, plausible layouts, raster output, and at least a basic scan/degradation pass
+- the exported release tree has been validated locally and inspected in the target `HeOCR` repository layout
+- release summary, provenance, and dataset-card documents accurately describe source coverage and known limitations
+
+## 4.5 Merged PR traceability
+
+The table below is a compact mapping from roadmap PR notation to already merged implementation PRs.
+Some completed bootstrap work predates PR-based tracking. In particular, `A1a` is intentionally recorded as completed in the PR summary but omitted here because it was not tracked as a merged GitHub PR.
+
+| PR notation | Merged GitHub PR |
+| --- | --- |
+| A2a | #1 |
+| A3a | #1 |
+| B1a | #2 |
+| B2a | #2 |
+| B3a | #2 |
+| B4a | #2 |
+| C1a | #3 |
+| C2a | #5 |
+| C3a | #6 |
+| C4a | #6 |
+| C5a | #6 |
+| B1b | #8 |
+| B5a | #10 |
+
 ---
 
 # Phase A — Foundation
