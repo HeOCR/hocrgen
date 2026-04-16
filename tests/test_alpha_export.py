@@ -121,6 +121,9 @@ def test_export_alpha_only_copies_release_ready_items(tmp_path: Path, capsys) ->
             assert (export_dir / asset["release_asset_path"]).exists()
             assert "source_normalized_asset_path" not in asset
             assert "source_preview_path" not in asset
+    synthetic_item = next(item for item in item_manifest["items"] if item["source_id"] == "project_synthetic")
+    assert {asset["asset_format"] for asset in synthetic_item["exported_assets"]} == {"jpeg"}
+    assert all(asset["release_asset_path"].endswith(".jpg") for asset in synthetic_item["exported_assets"])
 
 
 def test_export_alpha_enforces_real_and_synthetic_caps_deterministically(tmp_path: Path, capsys) -> None:

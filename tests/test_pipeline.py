@@ -60,7 +60,7 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert release_summary["real_items"] == 1
     assert release_summary["synthetic_items"] == 1
     assert sum(release_summary["split_counts"].values()) == 2
-    assert source_stats["asset_formats"] == {"jpeg": 1, "svg": 1}
+    assert source_stats["asset_formats"] == {"jpeg": 2}
     assert source_stats["sources"]["pinkas_open"] == 1
     assert source_stats["sources"]["project_synthetic"] == 1
     assert "biblia_open" not in source_stats["sources"]

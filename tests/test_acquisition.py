@@ -144,6 +144,38 @@ def test_synthetic_generation_is_deterministic(tmp_path: Path) -> None:
     )
 
     assert acquired_once[0].acquired_assets[0].sha256 == acquired_twice[0].acquired_assets[0].sha256
+    assert acquired_once[0].acquired_assets[0].path.endswith(".jpg")
+    assert acquired_once[0].acquired_assets[0].media_type == "image/jpeg"
+    assert acquired_once[0].metadata["synthetic_generator_version"] == "b3b-jpeg-v1"
+    assert acquired_once[0].metadata["synthetic_font_id"] in {
+        "alef-regular",
+        "gveret-levin-regular",
+    }
+    assert acquired_once[0].metadata["synthetic_font_id"] == acquired_twice[0].metadata["synthetic_font_id"]
+
+
+def test_synthetic_generation_uses_packaged_fonts_and_curated_text(tmp_path: Path) -> None:
+    bundle = load_and_validate_bundle()
+    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    documents = generate_documents(
+        count=2,
+        seed=11,
+        template_ids=source.settings.template_ids or ["printed_letter", "handwritten_note"],
+        font_manifest_path=bundle.resolve_path(source.settings.font_manifest or ""),
+        text_corpus_path=bundle.resolve_path(source.settings.text_corpus_path or ""),
+        output_dir=tmp_path / "synthetic",
+    )
+
+    assert {document.path.suffix for document in documents} == {".jpg"}
+    assert {document.generator_version for document in documents} == {"b3b-jpeg-v1"}
+    assert {document.font_id for document in documents} == {
+        "alef-regular",
+        "gveret-levin-regular",
+    }
+    forbidden_fragments = {"Ref.", "Batch", "Office Copy", "אנגלית", "אפשר להוסיף מזהה קצר"}
+    for document in documents:
+        for line in document.body:
+            assert not any(fragment in line for fragment in forbidden_fragments)
 
 
 def test_synthetic_generation_fails_for_empty_inputs(tmp_path: Path) -> None:

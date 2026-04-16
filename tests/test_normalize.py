@@ -3,6 +3,8 @@ from __future__ import annotations
 import base64
 from pathlib import Path
 
+from PIL import Image
+
 from hocrgen.config.loader import load_and_validate_bundle
 from hocrgen.manifests.models import AcquiredAsset, AcquiredItemRecord
 from hocrgen.normalize.images import detect_asset_metadata
@@ -16,6 +18,12 @@ SMALL_PNG_BASE64 = (
 
 def _write_png(path: Path) -> Path:
     path.write_bytes(base64.b64decode(SMALL_PNG_BASE64))
+    return path
+
+
+def _write_jpeg(path: Path, *, size: tuple[int, int] = (600, 900), color: tuple[int, int, int] = (240, 236, 224)) -> Path:
+    image = Image.new("RGB", size, color)
+    image.save(path, format="JPEG", quality=82)
     return path
 
 
@@ -71,6 +79,28 @@ def test_normalize_items_handles_svg_and_generates_preview(tmp_path: Path) -> No
     normalized_item = outputs.normalized_items[0]
     assert normalized_item.qa_status == "passed"
     assert normalized_item.normalized_assets[0].asset_format == "svg"
+    assert normalized_item.normalized_assets[0].preview_generated is True
+    assert Path(normalized_item.normalized_assets[0].normalized_asset_path).exists()
+    assert Path(normalized_item.normalized_assets[0].preview_path or "").exists()
+
+
+def test_normalize_items_handles_synthetic_jpeg_and_generates_preview(tmp_path: Path) -> None:
+    bundle = load_and_validate_bundle()
+    jpeg_path = _write_jpeg(tmp_path / "synthetic.jpg")
+    thresholds = bundle.quality_thresholds.model_copy(update={"minimum_width": 1, "minimum_height": 1})
+
+    outputs = normalize_items(
+        items=[_make_item(jpeg_path, item_id="project_synthetic:item-001", is_synthetic=True)],
+        thresholds=thresholds,
+        assets_dir=tmp_path / "assets",
+        thumbnails_dir=tmp_path / "thumbnails",
+    )
+
+    assert len(outputs.normalized_items) == 1
+    normalized_item = outputs.normalized_items[0]
+    assert normalized_item.qa_status == "passed"
+    assert normalized_item.normalized_assets[0].asset_format == "jpeg"
+    assert normalized_item.normalized_assets[0].media_type == "image/jpeg"
     assert normalized_item.normalized_assets[0].preview_generated is True
     assert Path(normalized_item.normalized_assets[0].normalized_asset_path).exists()
     assert Path(normalized_item.normalized_assets[0].preview_path or "").exists()

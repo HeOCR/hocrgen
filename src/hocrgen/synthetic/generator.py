@@ -4,8 +4,33 @@ import random
 from dataclasses import dataclass
 from pathlib import Path
 
+from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFont
+
 from hocrgen.config.loader import load_yaml_file
 from hocrgen.utils.hashing import sha256_file
+
+
+GENERATOR_VERSION = "b3b-jpeg-v1"
+CANVAS_SIZE = (1200, 1600)
+PAPER_MARGIN = 96
+
+PRINTED_TITLES = [
+    "מכתב מנהלי",
+    "דו\"ח קבלה",
+    "רישום ארכיוני",
+]
+
+HANDWRITTEN_TITLES = [
+    "פנקס הערות",
+    "רישום קצר",
+    "הודעה פנימית",
+]
+
+FOOTER_LABELS = [
+    "סימן",
+    "רישום",
+    "עמוד",
+]
 
 
 @dataclass(frozen=True)
@@ -17,42 +42,141 @@ class SyntheticDocument:
     font_id: str
     path: Path
     sha256: str
-
-
-HEBREW_TITLES = [
-    "דו\"ח קבלה",
-    "רשימת תיעוד",
-    "פנקס משלוחים",
-    "אישור מסירה",
-]
-
-ENGLISH_FRAGMENTS = ["Ref. 104", "Batch A", "Office Copy", "Page 1"]
+    generator_version: str
 
 
 def load_font_manifest(path: Path) -> dict:
-    data = load_yaml_file(path)
-    return data
+    return load_yaml_file(path)
 
 
 def load_text_corpus(path: Path) -> list[str]:
     return [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def _svg_document(title: str, body_lines: list[str], footer: str, font_family: str, background: str) -> str:
-    body = "\n".join(
-        f'<text x="560" y="{170 + index * 46}" text-anchor="end">{line}</text>'
-        for index, line in enumerate(body_lines)
-    )
-    return (
-        '<svg xmlns="http://www.w3.org/2000/svg" width="800" height="1100" viewBox="0 0 800 1100">'
-        f'<rect width="800" height="1100" fill="{background}" />'
-        '<rect x="70" y="70" width="660" height="960" fill="#fffdf7" stroke="#cabfae" stroke-width="2" rx="12" />'
-        f'<g font-family="{font_family}" fill="#231f1a">'
-        f'<text x="560" y="120" text-anchor="end" font-size="34" font-weight="700">{title}</text>'
-        f'<g font-size="28">{body}</g>'
-        f'<text x="560" y="980" text-anchor="end" font-size="20" fill="#6b6156">{footer}</text>'
-        "</g></svg>"
-    )
+def _font_path(manifest_path: Path, font_entry: dict) -> Path:
+    file_name = str(font_entry.get("file", "")).strip()
+    if not file_name:
+        raise ValueError(f"Synthetic font entry is missing a file reference: {font_entry.get('id', '<unknown>')}")
+    path = (manifest_path.parent / file_name).resolve()
+    if not path.exists():
+        raise ValueError(f"Synthetic font file is missing: {path}")
+    return path
+
+
+def _load_font(font_path: Path, size: int) -> ImageFont.FreeTypeFont:
+    return ImageFont.truetype(str(font_path), size)
+
+
+def _wrap_hebrew_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.FreeTypeFont, max_width: int) -> list[str]:
+    words = text.split()
+    if not words:
+        return [""]
+    lines: list[str] = []
+    current = words[0]
+    for word in words[1:]:
+        candidate = f"{current} {word}"
+        width = draw.textbbox((0, 0), candidate, font=font)[2]
+        if width <= max_width:
+            current = candidate
+        else:
+            lines.append(current)
+            current = word
+    lines.append(current)
+    return lines
+
+
+def _paper_background(randomizer: random.Random, size: tuple[int, int], tone: str) -> Image.Image:
+    if tone == "printed":
+        base = (246, 241, 230)
+    else:
+        base = (243, 235, 220)
+    image = Image.new("RGB", size, base)
+    pixels = image.load()
+    for y in range(size[1]):
+        for x in range(size[0]):
+            jitter = randomizer.randint(-5, 5)
+            pixels[x, y] = tuple(max(0, min(255, channel + jitter)) for channel in base)
+    return image
+
+
+def _apply_grain(image: Image.Image, randomizer: random.Random) -> Image.Image:
+    noise = Image.new("L", image.size)
+    noise.putdata([128 + randomizer.randint(-16, 16) for _ in range(image.size[0] * image.size[1])])
+    textured = ImageChops.add_modulo(image.convert("RGB"), Image.merge("RGB", (noise, noise, noise)))
+    return Image.blend(image, textured, alpha=0.08)
+
+
+def _degrade(image: Image.Image, randomizer: random.Random, background: tuple[int, int, int]) -> Image.Image:
+    angle = randomizer.uniform(-0.9, 0.9)
+    degraded = image.rotate(angle, resample=Image.Resampling.BICUBIC, expand=False, fillcolor=background)
+    degraded = degraded.filter(ImageFilter.GaussianBlur(radius=randomizer.uniform(0.2, 0.5)))
+    degraded = _apply_grain(degraded, randomizer)
+    degraded = ImageEnhance.Contrast(degraded).enhance(0.96)
+    degraded = ImageEnhance.Brightness(degraded).enhance(0.99)
+    return degraded
+
+
+def _draw_document(
+    randomizer: random.Random,
+    title: str,
+    body_lines: list[str],
+    footer: str,
+    font_path: Path,
+    template_id: str,
+) -> Image.Image:
+    handwritten = template_id == "handwritten_note"
+    background = (246, 241, 230) if not handwritten else (243, 235, 220)
+    image = _paper_background(randomizer, CANVAS_SIZE, "handwritten" if handwritten else "printed")
+    draw = ImageDraw.Draw(image)
+
+    title_font = _load_font(font_path, 62 if not handwritten else 66)
+    body_font = _load_font(font_path, 42 if not handwritten else 46)
+    footer_font = _load_font(font_path, 28)
+
+    title_x = CANVAS_SIZE[0] - PAPER_MARGIN - randomizer.randint(0, 24)
+    title_y = PAPER_MARGIN + randomizer.randint(4, 24)
+    draw.text((title_x, title_y), title, font=title_font, fill=(34, 29, 24), anchor="ra")
+
+    body_top = title_y + (132 if not handwritten else 118)
+    max_width = CANVAS_SIZE[0] - (2 * PAPER_MARGIN) - 40
+    wrapped_lines: list[str] = []
+    for line in body_lines:
+        wrapped_lines.extend(_wrap_hebrew_text(draw, line, body_font, max_width))
+
+    line_height = 76 if handwritten else 68
+    start_x = CANVAS_SIZE[0] - PAPER_MARGIN - randomizer.randint(0, 20)
+    for index, line in enumerate(wrapped_lines):
+        x = start_x - randomizer.randint(0, 10 if handwritten else 4)
+        y = body_top + index * line_height + randomizer.randint(-3, 3 if handwritten else 1)
+        draw.text((x, y), line, font=body_font, fill=(33, 28, 23), anchor="ra")
+
+    footer_x = CANVAS_SIZE[0] - PAPER_MARGIN - randomizer.randint(12, 48)
+    footer_y = CANVAS_SIZE[1] - PAPER_MARGIN - randomizer.randint(8, 24)
+    draw.text((footer_x, footer_y), footer, font=footer_font, fill=(93, 82, 70), anchor="ra")
+
+    return _degrade(image, randomizer, background)
+
+
+def _select_font(fonts: list[dict], template_id: str) -> dict:
+    target_style = "handwritten_like" if template_id == "handwritten_note" else "printed"
+    for font in fonts:
+        if font.get("style") == target_style:
+            return font
+    raise ValueError(f"No synthetic font registered for style: {target_style}")
+
+
+def _select_title(template_id: str, index: int) -> str:
+    titles = HANDWRITTEN_TITLES if template_id == "handwritten_note" else PRINTED_TITLES
+    return titles[index % len(titles)]
+
+
+def _select_body_lines(randomizer: random.Random, corpus: list[str], template_id: str) -> list[str]:
+    line_count = 3 if template_id == "handwritten_note" else 4
+    return randomizer.sample(corpus, k=min(line_count, len(corpus)))
+
+
+def _footer_text(randomizer: random.Random) -> str:
+    return f"{FOOTER_LABELS[randomizer.randrange(len(FOOTER_LABELS))]} {randomizer.randint(12, 128)}"
 
 
 def generate_documents(
@@ -78,27 +202,31 @@ def generate_documents(
     documents: list[SyntheticDocument] = []
     for index in range(count):
         template_id = template_ids[index % len(template_ids)]
-        font = fonts[index % len(fonts)]
-        background = "#f8f1e3" if template_id == "printed_letter" else "#f3ece1"
-        title = HEBREW_TITLES[index % len(HEBREW_TITLES)]
-        english = ENGLISH_FRAGMENTS[index % len(ENGLISH_FRAGMENTS)]
-        selected = randomizer.sample(corpus, k=min(3, len(corpus)))
-        body_lines = [selected[0], selected[1] if len(selected) > 1 else selected[0], f"{selected[-1]} | {english}"]
-        footer = f"synthetic-seed-{seed}-{index}"
-        path = output_dir / f"synthetic_{seed}_{index}.svg"
-        path.write_text(
-            _svg_document(title=title, body_lines=body_lines, footer=footer, font_family=font["css_family"], background=background),
-            encoding="utf-8",
+        font_entry = _select_font(fonts, template_id)
+        font_path = _font_path(font_manifest_path, font_entry)
+        title = _select_title(template_id, index)
+        body_lines = _select_body_lines(randomizer, corpus, template_id)
+        footer = _footer_text(randomizer)
+        path = output_dir / f"synthetic_{seed}_{index}.jpg"
+        image = _draw_document(
+            randomizer=randomizer,
+            title=title,
+            body_lines=body_lines,
+            footer=footer,
+            font_path=font_path,
+            template_id=template_id,
         )
+        image.save(path, format="JPEG", quality=82, optimize=True)
         documents.append(
             SyntheticDocument(
                 title=title,
                 body="\n".join(body_lines),
                 footer=footer,
                 template_id=template_id,
-                font_id=font["id"],
+                font_id=str(font_entry["id"]),
                 path=path,
                 sha256=sha256_file(path),
+                generator_version=GENERATOR_VERSION,
             )
         )
     return documents

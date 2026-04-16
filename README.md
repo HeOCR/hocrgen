@@ -9,7 +9,7 @@ This repository now implements Milestone 5: a conservative review-readiness pipe
 - validate typed source, profile, and license config
 - ingest a seed-driven NLI source for items explicitly marked `Any Use Permitted`
 - ingest bounded static sample packages for Pinkas and BiblIA
-- generate deterministic synthetic Hebrew sample documents as SVG assets
+- generate deterministic synthetic Hebrew sample documents as degraded JPEG assets
 - normalize rights into controlled license values and policy classifications
 - apply release-profile eligibility rules
 - materialize acquired/generated sample assets into a run workdir
@@ -37,8 +37,8 @@ This repository now implements Milestone 5: a conservative review-readiness pipe
   - static importer over a packaged sample record set
   - current committed sample asset is a packaged real historical page normalized as `PD-IL`
 - `project_synthetic`
-  - deterministic SVG-based synthetic generator
-  - includes tracked font manifest and text corpus inputs
+  - deterministic JPEG-based synthetic generator
+  - includes governed packaged Hebrew fonts and a curated Hebrew text corpus
 
 This is not a broad crawler yet. The NLI support is intentionally narrow and reliable rather than site-wide.
 
@@ -318,11 +318,11 @@ What it does not do yet:
 The synthetic subsystem is modest but real:
 
 - deterministic from seed
-- outputs SVG page assets plus metadata
-- uses tracked inputs from [`src/hocrgen/data/synthetic/fonts/manifest.yaml`](./src/hocrgen/data/synthetic/fonts/manifest.yaml)
-- uses a packaged Hebrew text corpus from [`src/hocrgen/data/synthetic/texts/hebrew_lines.txt`](./src/hocrgen/data/synthetic/texts/hebrew_lines.txt)
+- outputs degraded JPEG page assets plus reproducibility metadata
+- uses tracked governed fonts from [`src/hocrgen/data/synthetic/fonts/manifest.yaml`](./src/hocrgen/data/synthetic/fonts/manifest.yaml)
+- uses a curated packaged Hebrew text corpus from [`src/hocrgen/data/synthetic/texts/hebrew_lines.txt`](./src/hocrgen/data/synthetic/texts/hebrew_lines.txt)
 - supports a printed-style and handwritten-look template family
-- may include short English fragments in otherwise Hebrew pages
+- applies lightweight paper variation, blur/noise, and JPEG compression to avoid pristine mock-document output
 
 ## Fixtures and tests
 
