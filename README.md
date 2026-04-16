@@ -177,6 +177,7 @@ hocrgen privacy-scan --profile profile_open_v1 --dry-run
 hocrgen review-export --profile profile_open_v1 --dry-run
 hocrgen split --profile profile_open_v1 --dry-run
 hocrgen build-release --profile profile_open_v1 --dry-run
+hocrgen export-alpha --profile profile_open_v1 --dry-run
 ```
 
 Useful implemented flags:
@@ -186,6 +187,41 @@ hocrgen build-release --profile profile_open_v1 --dry-run --source nli_any_use_p
 hocrgen build-release --profile profile_open_v1 --dry-run --max-items 1
 hocrgen build-release --profile profile_open_v1 --dry-run --seed 23
 ```
+
+## Alpha export
+
+`export-alpha` builds on the existing `build-release` outputs and writes a versioned release tree that is shaped for the separate `HeOCR` repository.
+
+Default usage:
+
+```bash
+hocrgen export-alpha --profile profile_open_v1 --dry-run
+```
+
+By default the export is written under:
+
+```text
+.work/hocrgen/exports/alpha-v0/
+```
+
+To write directly into a checkout of the separate `HeOCR` repo:
+
+```bash
+hocrgen export-alpha \
+  --profile profile_open_v1 \
+  --dry-run \
+  --output-dir /path/to/HeOCR/releases/alpha-v0
+```
+
+The alpha exporter:
+
+- copies only the public `release_ready` subset into `data/<split>/<item_id>/`
+- keeps `review_required` and `blocked` items as audit manifests only
+- caps synthetic inclusion separately from real inclusion
+- writes repo-ready manifests under `manifests/`
+- writes `DATASET_CARD.md`, `RELEASE_NOTES.md`, and `PROVENANCE.md` under `docs/`
+
+Kaggle and Hugging Face publication remain out of scope for alpha releases.
 
 ## Rights normalization and policy behavior
 
