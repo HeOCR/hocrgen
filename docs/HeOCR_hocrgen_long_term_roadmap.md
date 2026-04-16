@@ -230,10 +230,24 @@ Support bounded historical sources with clear upstream open licenses.
 - source manifests for imported datasets
 - import tests
 
+### Current-state clarification
+Importer readiness and sample realism are separate concerns.
+
+At the current stage, Pinkas and BiblIA are implemented as bounded static importers over packaged sample records, but the committed sample assets are still scaffold-grade fixtures. They are good enough for provenance, licensing, manifest wiring, and pipeline testing, but they should not yet be treated as visually representative archival samples.
+
+### Near-term realism requirement
+Before Pinkas or BiblIA are presented as credible alpha-quality historical examples, the placeholder fixture assets should be replaced with real packaged/open sample pages from the bounded source artifacts. In practical terms, that means:
+
+- keep the importer and provenance model unchanged
+- replace mock SVG-style fixtures with real packaged sample page assets
+- preserve upstream identifiers and license metadata
+- ensure the historical-source visuals no longer resemble synthetic or scaffold-generated placeholders
+
 ### Exit criteria
 - imported records preserve upstream provenance
 - licenses normalize correctly
 - imported data appears as distinct source families in manifests
+- importer readiness is documented separately from source-sample realism
 
 ### Risks / dependencies
 - mixed upstream packaging details
@@ -261,6 +275,25 @@ Add a first useful synthetic generation capability to HeOCR.
 - handwritten-look Hebrew pages
 - mixed Hebrew+English examples
 - synthetic asset manifest validation
+
+### Concrete near-term quality requirements
+The current SVG-first generator is acceptable as an infrastructure milestone, but it is not sufficient as an alpha-quality sample source. Before synthetic items are treated as credible public-release content, the implementation plan should explicitly address the following:
+
+- replace host CSS fallback stacks with tracked, project-approved font assets
+- ensure the handwritten path uses genuinely handwriting-like Hebrew fonts rather than print-like fallbacks
+- replace placeholder or instruction-like text with curated Hebrew document-style lines
+- remove visibly decorative framing that does not resemble real source material
+- move synthetic export from vector-first SVG output toward raster output suitable for OCR/scanned-document evaluation
+- add a lightweight degradation pass so synthetic pages no longer look digitally pristine
+- keep mixed Hebrew+English support, but make it document-like and sparing rather than template-explanatory
+
+### Alpha release constraint
+Synthetic items may appear in alpha exports only under strict caps, but they should not be considered visually acceptable alpha content until the following are true:
+
+- text content is corpus-driven and document-like rather than prompt-like or self-referential
+- handwritten samples use approved handwriting-like fonts
+- layouts resemble plausible Hebrew archival or administrative documents
+- output is rasterized and passes a basic scan-realism bar
 
 ### Exit criteria
 - synthetic items can be generated reproducibly from a seed
@@ -616,11 +649,18 @@ Make the synthetic component more useful and document-like.
 - richer asset manifests
 - improved realism controls
 - synthetic diversity reports
+- raster output mode suitable for release packaging
+- curated handwriting-like and print-like Hebrew font sets with explicit governance
+- document-style Hebrew corpora with no prompt/instruction leakage
+- scan-like degradation presets for blur, noise, contrast loss, skew, and compression artifacts
+- layout families that model plausible placement of headers, bodies, footers, notes, and identifiers
 
 ### Exit criteria
 - synthetic data covers more realistic Hebrew document patterns
 - users can selectively filter synthetic subsets by type
 - synthetic still remains within configured release caps
+- synthetic examples no longer look like clean SVG mockups or generic template cards
+- mixed-language fragments appear as realistic identifiers or annotations rather than template instructions
 
 ### Risks / dependencies
 - realism drift without measurement
