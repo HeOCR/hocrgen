@@ -105,9 +105,10 @@ def test_export_alpha_only_copies_release_ready_items(tmp_path: Path, capsys) ->
         "biblia_open",
         "nli_any_use_permitted",
     }
-    assert "raw_metadata" not in review_required["items"][0]
-    assert "fixture_path" not in review_required["items"][0]
-    assert "normalized_assets" not in review_required["items"][0]
+    for item in review_required["items"]:
+        assert "raw_metadata" not in item
+        assert "fixture_path" not in item
+        assert "normalized_assets" not in item
     assert blocked["items"] == []
     assert "normalized_assets" not in item_manifest["items"][0]
     assert "asset_references" not in item_manifest["items"][0]

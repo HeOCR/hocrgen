@@ -32,10 +32,10 @@ This repository now implements Milestone 5: a conservative review-readiness pipe
   - extracts title, description, rights text, and page-image references
 - `pinkas_open`
   - static importer over a packaged sample record set
-  - current committed sample asset is a packaged real public-domain historical page
+  - current committed sample asset is a packaged real historical page normalized as `PD-IL`
 - `biblia_open`
   - static importer over a packaged sample record set
-  - current committed sample asset is a packaged real public-domain historical page
+  - current committed sample asset is a packaged real historical page normalized as `PD-IL`
 - `project_synthetic`
   - deterministic SVG-based synthetic generator
   - includes tracked font manifest and text corpus inputs
