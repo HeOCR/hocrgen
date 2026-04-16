@@ -24,6 +24,7 @@ from hocrgen.package.alpha import (
     _select_alpha_items,
     _source_priority,
     _split_sort_key,
+    _validate_overwrite_target,
     export_alpha_release,
 )
 
@@ -542,6 +543,18 @@ def test_audit_item_payload_excludes_local_paths_and_raw_metadata(tmp_path: Path
     assert "raw_metadata" not in payload
     assert "fixture_path" not in payload
     assert "normalized_assets" not in payload
+
+
+def test_validate_overwrite_target_rejects_non_directory(tmp_path: Path) -> None:
+    target = tmp_path / "alpha-v0"
+    target.write_text("not a directory", encoding="utf-8")
+    with pytest.raises(StageExecutionError, match="overwrite target is not a directory"):
+        _validate_overwrite_target(target, "alpha-v0")
+
+
+def test_validate_overwrite_target_rejects_shallow_paths() -> None:
+    with pytest.raises(StageExecutionError, match="refusing to overwrite unsafe export target"):
+        _validate_overwrite_target(Path("/tmp"), "tmp")
 
 
 def _make_item(
