@@ -59,6 +59,7 @@ def export_alpha_release(
     if export_dir.exists():
         if not config.overwrite:
             raise StageExecutionError(f"alpha export directory already exists: {export_dir}")
+        _validate_overwrite_target(export_dir, config.version)
         shutil.rmtree(export_dir)
     release_items = _load_models(build_dir / "item_manifest.json", PrivacyScannedItemRecord)
     review_required_items = _load_models(build_dir / "review_required_items.json", PrivacyScannedItemRecord)
@@ -74,6 +75,7 @@ def export_alpha_release(
         raise StageExecutionError("alpha export selection is empty")
 
     selected_ids = {item.item_id for item in selected_items}
+    included_sources = _ordered_sources(profile, {item.source_id for item in selected_items})
     selected_split_manifest = [assignment for assignment in split_manifest if assignment.item_id in selected_ids]
     review_required_ids = {item.item_id for item in review_required_items}
     selected_review_queue = [entry for entry in review_queue if entry.item_id in review_required_ids]
@@ -94,7 +96,6 @@ def export_alpha_release(
     classification_stats = _build_classification_stats(exported_items)
     privacy_stats = _build_privacy_stats(exported_items)
     split_counts = dict(Counter(item.split for item in exported_items if item.split))
-    included_sources = _ordered_sources(profile, {item.source_id for item in exported_items})
     exported_real_items = sum(1 for item in exported_items if not item.is_synthetic)
     exported_synthetic_items = sum(1 for item in exported_items if item.is_synthetic)
     exported_at = datetime.now(UTC).isoformat()
@@ -143,12 +144,15 @@ def export_alpha_release(
     write_json(manifests_dir / "release_summary.json", release_summary)
     write_json(manifests_dir / "duplicate_relations.json", {"items": [item.model_dump(mode="json") for item in selected_duplicate_relations]})
     write_json(manifests_dir / "duplicate_clusters.json", {"items": [item.model_dump(mode="json") for item in selected_duplicate_clusters]})
-    write_json(manifests_dir / "review_required_items.json", {"items": [item.model_dump(mode="json") for item in review_required_items]})
-    write_json(manifests_dir / "blocked_items.json", {"items": [item.model_dump(mode="json") for item in blocked_items]})
+    write_json(manifests_dir / "review_required_items.json", {"items": [_audit_item_payload(item) for item in review_required_items]})
+    write_json(manifests_dir / "blocked_items.json", {"items": [_audit_item_payload(item) for item in blocked_items]})
     write_json(manifests_dir / "review_queue.json", {"items": [item.model_dump(mode="json") for item in selected_review_queue]})
     write_json(manifests_dir / "release_record.json", release_record.model_dump(mode="json"))
 
-    _write_markdown(docs_dir / "DATASET_CARD.md", _dataset_card(config.version, profile, exported_items, review_required_items, blocked_items))
+    _write_markdown(
+        docs_dir / "DATASET_CARD.md",
+        _dataset_card(config.version, profile, exported_items, review_required_items, blocked_items, included_sources),
+    )
     _write_markdown(
         docs_dir / "RELEASE_NOTES.md",
         _release_notes(config.version, release_summary, source_stats, included_sources),
@@ -269,6 +273,32 @@ def _build_source_stats(items: list[AlphaExportedItemRecord], duplicate_relation
     }
 
 
+def _audit_item_payload(item: PrivacyScannedItemRecord) -> dict[str, Any]:
+    return {
+        "item_id": item.item_id,
+        "source_id": item.source_id,
+        "source_item_id": item.source_item_id,
+        "source_url": item.source_url,
+        "title": item.title,
+        "canonical_item_id": item.canonical_item_id,
+        "split_group_id": item.split_group_id,
+        "normalized_license": item.normalized_license,
+        "rights_classification": item.rights_classification.value,
+        "content_class": item.content_class,
+        "content_confidence": item.content_confidence,
+        "period_class": item.period_class,
+        "period_confidence": item.period_confidence,
+        "language_class": item.language_class,
+        "language_confidence": item.language_confidence,
+        "quality_score": item.quality_score,
+        "quality_tier": item.quality_tier,
+        "classification_review_reasons": list(item.classification_review_reasons),
+        "privacy_flag": item.privacy_flag.value,
+        "privacy_reasons": list(item.privacy_reasons),
+        "privacy_decision": item.privacy_decision,
+    }
+
+
 def _public_item_payload(item: AlphaExportedItemRecord) -> dict[str, Any]:
     payload = item.model_dump(
         mode="json",
@@ -312,8 +342,8 @@ def _dataset_card(
     items: list[AlphaExportedItemRecord],
     review_required_items: list[PrivacyScannedItemRecord],
     blocked_items: list[PrivacyScannedItemRecord],
+    included_sources: list[str],
 ) -> str:
-    included_sources = sorted({item.source_id for item in items})
     split_counts = Counter(item.split for item in items if item.split)
     return "\n".join(
         [
@@ -434,16 +464,35 @@ def _split_sort_key(split: str | None) -> int:
 
 
 def _current_commit_sha() -> str:
-    result = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=REPO_ROOT,
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            cwd=REPO_ROOT,
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+    except OSError:
+        return "unknown"
     if result.returncode == 0:
         return result.stdout.strip()
     return "unknown"
+
+
+def _validate_overwrite_target(export_dir: Path, version: str) -> None:
+    if not export_dir.is_dir():
+        raise StageExecutionError(f"alpha export overwrite target is not a directory: {export_dir}")
+    disallowed = {
+        export_dir.anchor,
+        str(Path.home()),
+        str(REPO_ROOT),
+    }
+    if str(export_dir) in disallowed:
+        raise StageExecutionError(f"refusing to overwrite unsafe export target: {export_dir}")
+    if len(export_dir.parts) < 3:
+        raise StageExecutionError(f"refusing to overwrite unsafe export target: {export_dir}")
+    if export_dir.name != version:
+        raise StageExecutionError(f"alpha export overwrite target must end with {version}: {export_dir}")
 
 
 def _load_json(path: Path) -> dict[str, Any]:

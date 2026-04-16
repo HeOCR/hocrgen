@@ -172,7 +172,11 @@ def handle_export_alpha(args: argparse.Namespace) -> int:
         max_items=args.max_items,
         synthetic_seed=args.seed,
     )
-    stage_results = execute_pipeline("build-release", bundle, context, options)
+    try:
+        stage_results = execute_pipeline("build-release", bundle, context, options)
+    except StageExecutionError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
     export_config = AlphaExportConfig(
         version=args.version,
         output_dir=args.output_dir,

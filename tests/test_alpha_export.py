@@ -15,6 +15,8 @@ from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.manifests.models import AlphaExportedItemRecord, NormalizedAssetRecord, PrivacyScannedItemRecord
 from hocrgen.package.alpha import (
     AlphaExportConfig,
+    REPO_ROOT,
+    _audit_item_payload,
     _build_source_stats,
     _copy_export_assets,
     _current_commit_sha,
@@ -98,6 +100,9 @@ def test_export_alpha_only_copies_release_ready_items(tmp_path: Path, capsys) ->
     assert len(split_manifest["items"]) == 3
     assert len(review_required["items"]) == 1
     assert review_required["items"][0]["source_id"] == "nli_any_use_permitted"
+    assert "raw_metadata" not in review_required["items"][0]
+    assert "fixture_path" not in review_required["items"][0]
+    assert "normalized_assets" not in review_required["items"][0]
     assert blocked["items"] == []
     assert "normalized_assets" not in item_manifest["items"][0]
     assert "asset_references" not in item_manifest["items"][0]
@@ -216,6 +221,7 @@ def test_export_alpha_docs_and_release_record_include_metadata(
         assert release_record["hocrgen_commit"] == "unknown"
     assert "# HeOCR alpha-v0" in dataset_card
     assert "Release Notes: alpha-v0" in release_notes
+    assert dataset_card.index("`pinkas_open`") < dataset_card.index("`biblia_open`") < dataset_card.index("`project_synthetic`")
 
 
 def test_export_alpha_fails_when_output_dir_exists_without_overwrite(tmp_path: Path, capsys) -> None:
@@ -269,6 +275,39 @@ def test_export_alpha_overwrites_existing_output_dir_when_requested(tmp_path: Pa
     )
     assert exit_code == 0
     assert not stale_file.exists()
+
+
+@pytest.mark.parametrize(
+    ("target_factory", "expected_error"),
+    [
+        (lambda tmp_path: tmp_path, "alpha export overwrite target must end with alpha-v0"),
+        (lambda tmp_path: REPO_ROOT, "refusing to overwrite unsafe export target"),
+        (lambda tmp_path: tmp_path / "HeOCR" / "releases", "alpha export overwrite target must end with alpha-v0"),
+    ],
+)
+def test_export_alpha_rejects_unsafe_overwrite_targets(tmp_path: Path, capsys, target_factory, expected_error: str) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    output_dir = target_factory(tmp_path)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    exit_code = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--output-dir",
+            str(output_dir),
+            "--overwrite",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 1
+    assert expected_error in payload["error"]
 
 
 def test_export_alpha_handles_cli_error_paths(monkeypatch, tmp_path: Path, capsys) -> None:
@@ -329,6 +368,30 @@ def test_export_alpha_handles_stage_execution_error(monkeypatch, tmp_path: Path,
     payload = json.loads(capsys.readouterr().out)
     assert exit_code == 1
     assert payload["error"] == "empty export"
+
+
+def test_export_alpha_handles_upstream_pipeline_stage_error(monkeypatch, tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+
+    def raise_stage(*args, **kwargs):
+        raise StageExecutionError("build failed")
+
+    monkeypatch.setattr("hocrgen.cli.execute_pipeline", raise_stage)
+    exit_code = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 1
+    assert payload["error"] == "build failed"
 
 
 def test_select_alpha_items_can_return_empty_when_real_cap_is_zero(tmp_path: Path, capsys) -> None:
@@ -435,6 +498,12 @@ def test_alpha_helper_fallbacks(monkeypatch) -> None:
     monkeypatch.setattr("subprocess.run", lambda *args, **kwargs: DummyResult())
     assert _current_commit_sha() == "unknown"
 
+    def raise_oserror(*args, **kwargs):
+        raise FileNotFoundError("git not found")
+
+    monkeypatch.setattr("subprocess.run", raise_oserror)
+    assert _current_commit_sha() == "unknown"
+
 
 def test_public_item_payload_excludes_local_paths(tmp_path: Path) -> None:
     asset_path = tmp_path / "asset.svg"
@@ -462,6 +531,17 @@ def test_public_item_payload_excludes_local_paths(tmp_path: Path) -> None:
         "asset_format": "svg",
         "release_preview_path": None,
     }
+
+
+def test_audit_item_payload_excludes_local_paths_and_raw_metadata(tmp_path: Path) -> None:
+    asset_path = tmp_path / "asset.svg"
+    asset_path.write_text("<svg/>", encoding="utf-8")
+    payload = _audit_item_payload(_make_item("audit:item", None, str(asset_path)))
+    assert payload["item_id"] == "audit:item"
+    assert payload["source_id"] == "test_source"
+    assert "raw_metadata" not in payload
+    assert "fixture_path" not in payload
+    assert "normalized_assets" not in payload
 
 
 def _make_item(
