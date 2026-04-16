@@ -78,6 +78,74 @@ Each milestone includes:
 - exit criteria
 - risks / dependencies
 
+### Implementation state legend
+- `completed`: implemented and merged
+- `partial`: implemented in part, but a planned follow-up PR is still required
+- `next`: the most likely next implementation PR
+- `planned`: not yet started
+
+## 4.1 Milestone summary
+
+| Milestone | Phase | Planned PRs | Concise scope | Implementation state |
+| --- | --- | --- | --- | --- |
+| A1 | Foundation | A1a | Repository/bootstrap and governance baseline | completed |
+| A2 | Foundation | A2a | Config, schema, and manifest foundations | completed |
+| A3 | Foundation | A3a | Core CLI and stage-oriented pipeline skeleton | completed |
+| B1 | First public release capability | B1a, B1b | NLI acquisition MVP, then broader seed promotion and fixture capture | partial |
+| B2 | First public release capability | B2a, B2b | Static open-source importers, then real historical sample replacement | partial |
+| B3 | First public release capability | B3a, B3b | Synthetic MVP plumbing, then alpha-quality synthetic realism | partial |
+| B4 | First public release capability | B4a | Rights normalization and release eligibility | completed |
+| B5 | First public release capability | B5a, B5b | First review-ready pilot release, then alpha content freeze and handoff | partial |
+| C1 | Curation and operational hardening | C1a | Normalization and technical QA | completed |
+| C2 | Curation and operational hardening | C2a | Exact dedupe and split-safe curated build outputs | completed |
+| C3 | Curation and operational hardening | C3a | Basic classification and quality scoring | completed |
+| C4 | Curation and operational hardening | C4a | Privacy and sensitivity screening MVP | completed |
+| C5 | Curation and operational hardening | C5a, C5b | Review queue export, then review decision merge/operational review loop | partial |
+| C6 | Curation and operational hardening | C6a | Release diffs and changelog automation | planned |
+| D1 | Expansion and benchmark formation | D1a | Scheduled GitHub-first expansion workflows | planned |
+| D2 | Expansion and benchmark formation | D2a | Stable source-operations maturity | planned |
+| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | planned |
+| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | planned |
+| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | planned |
+| E1 | Ecosystem maturity | E1a | Community contribution model | planned |
+| E2 | Ecosystem maturity | E2a | Baselines and evaluation utilities | planned |
+| E3 | Ecosystem maturity | E3a | Annotation subset pilots | planned |
+| E4 | Ecosystem maturity | E4a | Multi-release governance maturity | planned |
+
+## 4.2 PR summary
+
+| PR | Milestone | Concise scope | Implementation state | Reference |
+| --- | --- | --- | --- | --- |
+| A1a | A1 | Initial repository, governance, and architecture bootstrap | completed | historical / bootstrap work |
+| A2a | A2 | Typed config, schemas, manifests, validation foundations | completed | merged as PR #1 |
+| A3a | A3 | CLI, run context, stage skeleton, logging, workdir structure | completed | merged as PR #1 |
+| B1a | B1 | Seed-driven NLI acquisition MVP | completed | merged as PR #2 |
+| B1b | B1 | NLI exploratory-seed promotion and CDP-assisted fixture capture | completed | merged as PR #8 |
+| B2a | B2 | Pinkas/BiblIA importer scaffolding over packaged sample records | completed | merged as PR #2 |
+| B2b | B2 | Replace scaffold-grade Pinkas/BiblIA assets with real packaged/open historical sample pages | next | next historical-source realism PR |
+| B3a | B3 | Deterministic synthetic MVP with tracked inputs and metadata | completed | merged as PR #2 |
+| B3b | B3 | Synthetic alpha-quality upgrade: real fonts, curated text, raster output, degradation, better layouts | planned | follows B2b |
+| B4a | B4 | Rights normalization and release eligibility engine | completed | merged as PR #2 |
+| B5a | B5 | Review-ready build and alpha export packaging in `hocrgen` | completed | merged as PR #10 |
+| B5b | B5 | Alpha content freeze and handoff into the separate `HeOCR` repo | planned | after B2b and B3b |
+| C1a | C1 | Normalization, metadata extraction, checksums, previews, QA | completed | merged as PR #3 |
+| C2a | C2 | Exact dedupe, deterministic split assignment, curated build outputs | completed | merged as PR #5 |
+| C3a | C3 | Heuristic classification | completed | merged as PR #6 |
+| C4a | C4 | Metadata-first privacy scanning | completed | merged as PR #6 |
+| C5a | C5 | Review queue export and review-side artifacts | completed | merged as PR #6 |
+| C5b | C5 | Review decision schema merge, operational review loop, and post-review release gating | planned | future review-system PR |
+| C6a | C6 | Release diffs and changelog generation | planned | future release-ops PR |
+| D1a | D1 | Scheduled GitHub-first expansion workflows | planned | future ops PR |
+| D2a | D2 | Source refresh/reliability maturity and source freeze controls | planned | future source-ops PR |
+| D3a | D3 | Benchmark subset v1 and benchmark-facing manifests | planned | future benchmark PR |
+| D4a | D4 | Richer synthetic generation for realism and document likeness | planned | future synthetic-quality PR |
+| D4b | D4 | Synthetic diversity controls and reporting hardening | planned | follow-up to D4a |
+| D5a | D5 | Optional transcription-ready architecture foundations | planned | future annotation-architecture PR |
+| E1a | E1 | Community contribution model and contribution safety rails | planned | future governance PR |
+| E2a | E2 | Baselines and evaluation utilities | planned | future evaluation PR |
+| E3a | E3 | Annotation subset pilots | planned | future annotation PR |
+| E4a | E4 | Multi-release governance and maturity controls | planned | future governance PR |
+
 ---
 
 # Phase A — Foundation
