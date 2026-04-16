@@ -100,7 +100,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | A1 | Foundation | A1a | Repository/bootstrap and governance baseline | completed |
 | A2 | Foundation | A2a | Config, schema, and manifest foundations | completed |
 | A3 | Foundation | A3a | Core CLI and stage-oriented pipeline skeleton | completed |
-| B1 | First public release capability | B1a, B1b | NLI acquisition MVP, then broader seed promotion and fixture capture | partial |
+| B1 | First public release capability | B1a, B1b | NLI acquisition MVP, then broader seed promotion and fixture capture | completed |
 | B2 | First public release capability | B2a, B2b | Static open-source importers, then real historical sample replacement | partial |
 | B3 | First public release capability | B3a, B3b | Synthetic MVP plumbing, then alpha-quality synthetic realism | partial |
 | B4 | First public release capability | B4a | Rights normalization and release eligibility | completed |
@@ -178,6 +178,7 @@ An alpha release should not be treated as ready merely because the pipeline can 
 ## 4.5 Merged PR traceability
 
 The table below is a compact mapping from roadmap PR notation to already merged implementation PRs.
+Some completed bootstrap work predates PR-based tracking. In particular, `A1a` is intentionally recorded as completed in the PR summary but omitted here because it was not tracked as a merged GitHub PR.
 
 | PR notation | Merged GitHub PR |
 | --- | --- |
