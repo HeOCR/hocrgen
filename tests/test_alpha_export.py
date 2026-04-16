@@ -166,8 +166,24 @@ def test_export_alpha_enforces_real_and_synthetic_caps_deterministically(tmp_pat
     assert first_summary["exported_synthetic_items"] == 1
 
 
-def test_export_alpha_docs_and_release_record_include_metadata(tmp_path: Path, capsys) -> None:
+@pytest.mark.parametrize("git_available", [True, False])
+def test_export_alpha_docs_and_release_record_include_metadata(
+    tmp_path: Path, capsys, monkeypatch: pytest.MonkeyPatch, git_available: bool
+) -> None:
     config_root = _fixture_config_root(tmp_path)
+    expected_commit = "deadbeef" * 5
+
+    class FakeCompletedProcess:
+        def __init__(self, returncode: int, stdout: str) -> None:
+            self.returncode = returncode
+            self.stdout = stdout
+
+    def fake_run(*args: object, **kwargs: object) -> FakeCompletedProcess:
+        if git_available:
+            return FakeCompletedProcess(0, f"{expected_commit}\n")
+        return FakeCompletedProcess(1, "")
+
+    monkeypatch.setattr(subprocess, "run", fake_run)
 
     exit_code = main(
         [
@@ -188,13 +204,7 @@ def test_export_alpha_docs_and_release_record_include_metadata(tmp_path: Path, c
     dataset_card = (export_dir / "docs" / "DATASET_CARD.md").read_text(encoding="utf-8")
     release_notes = (export_dir / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
     provenance = (export_dir / "docs" / "PROVENANCE.md").read_text(encoding="utf-8")
-    git_result = subprocess.run(
-        ["git", "rev-parse", "HEAD"],
-        cwd=Path(__file__).resolve().parents[1],
-        capture_output=True,
-        text=True,
-        check=False,
-    )
+    git_result = subprocess.run(["git", "rev-parse", "HEAD"])
 
     assert release_record["profile_id"] == "profile_open_v1"
     assert release_record["included_sources"] == ["pinkas_open", "biblia_open", "project_synthetic"]
