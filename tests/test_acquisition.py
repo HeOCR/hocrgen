@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from PIL import Image, ImageDraw
 
 from hocrgen.config.loader import load_and_validate_bundle
 from hocrgen.core.errors import StageExecutionError
@@ -13,7 +14,7 @@ from hocrgen.fetchers.pinkas import PinkasImporter
 from hocrgen.fetchers.synthetic import SyntheticFetcher
 from hocrgen.manifests.models import ItemRecord
 from hocrgen.parsers.rights import RightsResult, classify_eligibility, normalize_rights
-from hocrgen.synthetic.generator import generate_documents
+from hocrgen.synthetic.generator import _font_path, _load_font, _select_font, _wrap_hebrew_text, generate_documents
 
 
 def test_nli_fetcher_parses_fixture_metadata() -> None:
@@ -197,3 +198,45 @@ def test_synthetic_generation_fails_for_empty_inputs(tmp_path: Path) -> None:
         assert str(exc) == "Synthetic generation requires at least one template_id."
     else:
         raise AssertionError("Expected generate_documents to reject empty template_ids")
+
+
+def test_synthetic_generator_font_path_rejects_missing_file_reference(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "manifest.yaml"
+    manifest_path.write_text("fonts: []\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="missing a file reference"):
+        _font_path(manifest_path, {"id": "broken-font"})
+
+
+def test_synthetic_generator_font_path_rejects_missing_file(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "manifest.yaml"
+    manifest_path.write_text("fonts: []\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Synthetic font file is missing"):
+        _font_path(manifest_path, {"id": "broken-font", "file": "missing.ttf"})
+
+
+def test_wrap_hebrew_text_handles_empty_and_wrapping_branches() -> None:
+    image = Image.new("RGB", (600, 400), (255, 255, 255))
+    draw = ImageDraw.Draw(image)
+    bundle = load_and_validate_bundle()
+    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    manifest_path = bundle.resolve_path(source.settings.font_manifest or "")
+    printed_font_entry = {
+        "id": "alef-regular",
+        "file": "Alef-Regular.ttf",
+        "style": "printed",
+    }
+    font = _load_font(_font_path(manifest_path, printed_font_entry), 42)
+
+    assert _wrap_hebrew_text(draw, "", font, max_width=200) == [""]
+
+    wrapped = _wrap_hebrew_text(draw, "מכתב מנהלי רישום ארכיוני הודעה פנימית", font, max_width=100)
+
+    assert len(wrapped) > 1
+    assert all(line for line in wrapped)
+
+
+def test_select_font_rejects_missing_style() -> None:
+    with pytest.raises(ValueError, match="No synthetic font registered for style: handwritten_like"):
+        _select_font([{"id": "alef-regular", "style": "printed"}], "handwritten_note")
