@@ -92,17 +92,16 @@ def _paper_background(randomizer: random.Random, size: tuple[int, int], tone: st
     else:
         base = (243, 235, 220)
     image = Image.new("RGB", size, base)
-    pixels = image.load()
-    for y in range(size[1]):
-        for x in range(size[0]):
-            jitter = randomizer.randint(-5, 5)
-            pixels[x, y] = tuple(max(0, min(255, channel + jitter)) for channel in base)
-    return image
+    noise = Image.frombytes("L", size, randomizer.randbytes(size[0] * size[1]))
+    noise = noise.point(lambda value: int(128 + ((value - 128) * 0.08)))
+    noise_rgb = Image.merge("RGB", (noise, noise, noise))
+    textured = ImageChops.add(image, noise_rgb, scale=1.0, offset=-128)
+    return Image.blend(image, textured, alpha=0.05)
 
 
 def _apply_grain(image: Image.Image, randomizer: random.Random) -> Image.Image:
-    noise = Image.new("L", image.size)
-    noise.putdata([128 + randomizer.randint(-16, 16) for _ in range(image.size[0] * image.size[1])])
+    noise = Image.frombytes("L", image.size, randomizer.randbytes(image.size[0] * image.size[1]))
+    noise = noise.point(lambda value: int(96 + ((value - 128) * 0.22)))
     textured = ImageChops.add_modulo(image.convert("RGB"), Image.merge("RGB", (noise, noise, noise)))
     return Image.blend(image, textured, alpha=0.08)
 
@@ -190,7 +189,9 @@ def generate_documents(
 ) -> list[SyntheticDocument]:
     randomizer = random.Random(seed)
     font_manifest = load_font_manifest(font_manifest_path)
-    fonts = font_manifest["fonts"]
+    fonts = font_manifest.get("fonts")
+    if not isinstance(fonts, list):
+        raise ValueError(f"Synthetic font manifest is missing a valid 'fonts' list: {font_manifest_path}")
     corpus = load_text_corpus(text_corpus_path)
     if not template_ids:
         raise ValueError("Synthetic generation requires at least one template_id.")

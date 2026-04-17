@@ -200,6 +200,23 @@ def test_synthetic_generation_fails_for_empty_inputs(tmp_path: Path) -> None:
         raise AssertionError("Expected generate_documents to reject empty template_ids")
 
 
+def test_synthetic_generation_rejects_malformed_font_manifest(tmp_path: Path) -> None:
+    font_manifest_path = tmp_path / "fonts.yaml"
+    text_corpus_path = tmp_path / "corpus.txt"
+    font_manifest_path.write_text("not_fonts: []\n", encoding="utf-8")
+    text_corpus_path.write_text("שורה ארכיונית תקינה\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="missing a valid 'fonts' list"):
+        generate_documents(
+            count=1,
+            seed=7,
+            template_ids=["printed_letter"],
+            font_manifest_path=font_manifest_path,
+            text_corpus_path=text_corpus_path,
+            output_dir=tmp_path / "out",
+        )
+
+
 def test_synthetic_generator_font_path_rejects_missing_file_reference(tmp_path: Path) -> None:
     manifest_path = tmp_path / "manifest.yaml"
     manifest_path.write_text("fonts: []\n", encoding="utf-8")
