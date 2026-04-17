@@ -50,6 +50,7 @@ def build_parser() -> argparse.ArgumentParser:
     export_alpha_parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
     export_alpha_parser.add_argument("--version", default="alpha-v0", help="Versioned release folder name")
     export_alpha_parser.add_argument("--output-dir", type=Path, default=None, help="Override the alpha export root directory")
+    export_alpha_parser.add_argument("--heocr-repo", type=Path, default=None, help="Path to a checked-out HeOCR repo; exports to releases/<version> there")
     export_alpha_parser.add_argument("--overwrite", action="store_true", help="Replace an existing alpha export directory")
     export_alpha_parser.add_argument("--max-real-items", type=int, default=10, help="Maximum number of real items to include")
     export_alpha_parser.add_argument("--max-synthetic-items", type=int, default=2, help="Maximum number of synthetic items to include")
@@ -180,6 +181,7 @@ def handle_export_alpha(args: argparse.Namespace) -> int:
     export_config = AlphaExportConfig(
         version=args.version,
         output_dir=args.output_dir,
+        heocr_repo=args.heocr_repo,
         overwrite=args.overwrite,
         max_real_items=args.max_real_items,
         max_synthetic_items=args.max_synthetic_items,
@@ -205,6 +207,7 @@ def handle_export_alpha(args: argparse.Namespace) -> int:
         {
             "dry_run": args.dry_run,
             "export_dir": str(export_result.export_dir),
+            "handoff_repo": str(args.heocr_repo.resolve()) if args.heocr_repo else None,
             "profile_id": args.profile,
             "run_dir": str(context.run_dir),
             "run_id": context.run_id,

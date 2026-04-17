@@ -136,7 +136,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | B3b | B3 | Synthetic alpha-quality upgrade: real fonts, curated text, raster output, degradation, better layouts | yes | completed | merged as PR #14 |
 | B4a | B4 | Rights normalization and release eligibility engine | yes | completed | merged as PR #2 |
 | B5a | B5 | Review-ready build and alpha export packaging in `hocrgen` | yes | completed | merged as PR #10 |
-| B5b | B5 | Alpha content freeze and handoff into the separate `HeOCR` repo | yes | next | after B3b |
+| B5b | B5 | Alpha content freeze and handoff into the separate `HeOCR` repo | yes | partial | export targeting/handoff scaffolding landed; final freeze + handoff PR still pending |
 | C1a | C1 | Normalization, metadata extraction, checksums, previews, QA | yes | completed | merged as PR #3 |
 | C2a | C2 | Exact dedupe, deterministic split assignment, curated build outputs | yes | completed | merged as PR #5 |
 | C3a | C3 | Heuristic classification | yes | completed | merged as PR #6 |
@@ -161,7 +161,7 @@ The immediate implementation critical path to a defensible public alpha is:
 
 1. **B5b**: freeze alpha contents and hand the versioned export into the separate `HeOCR` repository
 
-This prioritization is intentional. `B5a` already makes the alpha mechanically exportable, and `B2b` plus `B3b` now make the historical and synthetic samples materially more credible. The next remaining alpha-critical step is to freeze the validated export and hand it off into the separate `HeOCR` repository.
+This prioritization is intentional. `B5a` already makes the alpha mechanically exportable, and `B2b` plus `B3b` now make the historical and synthetic samples materially more credible. The export path now supports direct targeting of a checked-out `HeOCR` repo and emits a handoff checklist, but the remaining alpha-critical step is still to freeze the validated export and land the actual handoff PR in the separate `HeOCR` repository.
 
 ## 4.4 Alpha release readiness gates
 
