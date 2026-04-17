@@ -104,7 +104,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | B2 | First public release capability | B2a, B2b | Static open-source importers, then real historical sample replacement | completed |
 | B3 | First public release capability | B3a, B3b | Synthetic MVP plumbing, then alpha-quality synthetic realism | completed |
 | B4 | First public release capability | B4a | Rights normalization and release eligibility | completed |
-| B5 | First public release capability | B5a, B5b | First review-ready pilot release, then alpha content freeze and handoff | next |
+| B5 | First public release capability | B5a, B5b | First review-ready pilot release, then alpha content freeze and handoff | partial |
 | C1 | Curation and operational hardening | C1a | Normalization and technical QA | completed |
 | C2 | Curation and operational hardening | C2a | Exact dedupe and split-safe curated build outputs | completed |
 | C3 | Curation and operational hardening | C3a | Basic classification and quality scoring | completed |
@@ -161,7 +161,7 @@ The immediate implementation critical path to a defensible public alpha is:
 
 1. **B5b**: freeze alpha contents and hand the versioned export into the separate `HeOCR` repository
 
-This ordering is intentional. `B5a` already makes the alpha mechanically exportable, and `B2b` plus `B3b` now make the historical and synthetic samples materially more credible. The next remaining alpha-critical step is to freeze the validated export and hand it off into the separate `HeOCR` repository.
+This prioritization is intentional. `B5a` already makes the alpha mechanically exportable, and `B2b` plus `B3b` now make the historical and synthetic samples materially more credible. The next remaining alpha-critical step is to freeze the validated export and hand it off into the separate `HeOCR` repository.
 
 ## 4.4 Alpha release readiness gates
 
