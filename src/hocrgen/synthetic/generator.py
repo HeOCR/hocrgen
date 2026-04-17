@@ -75,7 +75,8 @@ def _wrap_hebrew_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.Free
     current = words[0]
     for word in words[1:]:
         candidate = f"{current} {word}"
-        width = draw.textbbox((0, 0), candidate, font=font)[2]
+        left, _top, right, _bottom = draw.textbbox((0, 0), candidate, font=font)
+        width = right - left
         if width <= max_width:
             current = candidate
         else:

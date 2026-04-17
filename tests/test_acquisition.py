@@ -175,7 +175,7 @@ def test_synthetic_generation_uses_packaged_fonts_and_curated_text(tmp_path: Pat
     }
     forbidden_fragments = {"Ref.", "Batch", "Office Copy", "אנגלית", "אפשר להוסיף מזהה קצר"}
     for document in documents:
-        for line in document.body:
+        for line in document.body.splitlines():
             assert not any(fragment in line for fragment in forbidden_fragments)
 
 
