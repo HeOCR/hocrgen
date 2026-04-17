@@ -574,6 +574,15 @@ def test_alpha_helper_fallbacks(monkeypatch) -> None:
 
 
 def test_validate_heocr_repo_root_requires_git_checkout(tmp_path: Path) -> None:
+    missing_repo = tmp_path / "missing-HeOCR"
+    with pytest.raises(StageExecutionError, match=f"HeOCR repo path does not exist: {missing_repo.resolve()}"):
+        _validate_heocr_repo_root(missing_repo)
+
+    file_path = tmp_path / "HeOCR.txt"
+    file_path.write_text("not a repo", encoding="utf-8")
+    with pytest.raises(StageExecutionError, match=f"HeOCR repo path is not a directory: {file_path.resolve()}"):
+        _validate_heocr_repo_root(file_path)
+
     repo_root = tmp_path / "HeOCR"
     repo_root.mkdir()
 
