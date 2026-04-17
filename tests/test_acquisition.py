@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from PIL import Image, ImageDraw
 
 from hocrgen.config.loader import load_and_validate_bundle
 from hocrgen.core.errors import StageExecutionError
@@ -13,7 +14,7 @@ from hocrgen.fetchers.pinkas import PinkasImporter
 from hocrgen.fetchers.synthetic import SyntheticFetcher
 from hocrgen.manifests.models import ItemRecord
 from hocrgen.parsers.rights import RightsResult, classify_eligibility, normalize_rights
-from hocrgen.synthetic.generator import generate_documents
+from hocrgen.synthetic.generator import _font_path, _load_font, _select_font, _wrap_hebrew_text, generate_documents
 
 
 def test_nli_fetcher_parses_fixture_metadata() -> None:
@@ -144,6 +145,38 @@ def test_synthetic_generation_is_deterministic(tmp_path: Path) -> None:
     )
 
     assert acquired_once[0].acquired_assets[0].sha256 == acquired_twice[0].acquired_assets[0].sha256
+    assert acquired_once[0].acquired_assets[0].path.endswith(".jpg")
+    assert acquired_once[0].acquired_assets[0].media_type == "image/jpeg"
+    assert acquired_once[0].metadata["synthetic_generator_version"] == "b3b-jpeg-v1"
+    assert acquired_once[0].metadata["synthetic_font_id"] in {
+        "alef-regular",
+        "gveret-levin-regular",
+    }
+    assert acquired_once[0].metadata["synthetic_font_id"] == acquired_twice[0].metadata["synthetic_font_id"]
+
+
+def test_synthetic_generation_uses_packaged_fonts_and_curated_text(tmp_path: Path) -> None:
+    bundle = load_and_validate_bundle()
+    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    documents = generate_documents(
+        count=2,
+        seed=11,
+        template_ids=source.settings.template_ids or ["printed_letter", "handwritten_note"],
+        font_manifest_path=bundle.resolve_path(source.settings.font_manifest or ""),
+        text_corpus_path=bundle.resolve_path(source.settings.text_corpus_path or ""),
+        output_dir=tmp_path / "synthetic",
+    )
+
+    assert {document.path.suffix for document in documents} == {".jpg"}
+    assert {document.generator_version for document in documents} == {"b3b-jpeg-v1"}
+    assert {document.font_id for document in documents} == {
+        "alef-regular",
+        "gveret-levin-regular",
+    }
+    forbidden_fragments = {"Ref.", "Batch", "Office Copy", "אנגלית", "אפשר להוסיף מזהה קצר"}
+    for document in documents:
+        for line in document.body.splitlines():
+            assert not any(fragment in line for fragment in forbidden_fragments)
 
 
 def test_synthetic_generation_fails_for_empty_inputs(tmp_path: Path) -> None:
@@ -165,3 +198,62 @@ def test_synthetic_generation_fails_for_empty_inputs(tmp_path: Path) -> None:
         assert str(exc) == "Synthetic generation requires at least one template_id."
     else:
         raise AssertionError("Expected generate_documents to reject empty template_ids")
+
+
+def test_synthetic_generation_rejects_malformed_font_manifest(tmp_path: Path) -> None:
+    font_manifest_path = tmp_path / "fonts.yaml"
+    text_corpus_path = tmp_path / "corpus.txt"
+    font_manifest_path.write_text("not_fonts: []\n", encoding="utf-8")
+    text_corpus_path.write_text("שורה ארכיונית תקינה\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="missing a valid 'fonts' list"):
+        generate_documents(
+            count=1,
+            seed=7,
+            template_ids=["printed_letter"],
+            font_manifest_path=font_manifest_path,
+            text_corpus_path=text_corpus_path,
+            output_dir=tmp_path / "out",
+        )
+
+
+def test_synthetic_generator_font_path_rejects_missing_file_reference(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "manifest.yaml"
+    manifest_path.write_text("fonts: []\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="missing a file reference"):
+        _font_path(manifest_path, {"id": "broken-font"})
+
+
+def test_synthetic_generator_font_path_rejects_missing_file(tmp_path: Path) -> None:
+    manifest_path = tmp_path / "manifest.yaml"
+    manifest_path.write_text("fonts: []\n", encoding="utf-8")
+
+    with pytest.raises(ValueError, match="Synthetic font file is missing"):
+        _font_path(manifest_path, {"id": "broken-font", "file": "missing.ttf"})
+
+
+def test_wrap_hebrew_text_handles_empty_and_wrapping_branches() -> None:
+    image = Image.new("RGB", (600, 400), (255, 255, 255))
+    draw = ImageDraw.Draw(image)
+    bundle = load_and_validate_bundle()
+    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    manifest_path = bundle.resolve_path(source.settings.font_manifest or "")
+    printed_font_entry = {
+        "id": "alef-regular",
+        "file": "Alef-Regular.ttf",
+        "style": "printed",
+    }
+    font = _load_font(_font_path(manifest_path, printed_font_entry), 42)
+
+    assert _wrap_hebrew_text(draw, "", font, max_width=200) == [""]
+
+    wrapped = _wrap_hebrew_text(draw, "מכתב מנהלי רישום ארכיוני הודעה פנימית", font, max_width=100)
+
+    assert len(wrapped) > 1
+    assert all(line for line in wrapped)
+
+
+def test_select_font_rejects_missing_style() -> None:
+    with pytest.raises(ValueError, match="No synthetic font registered for style: handwritten_like"):
+        _select_font([{"id": "alef-regular", "style": "printed"}], "handwritten_note")

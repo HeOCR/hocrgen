@@ -63,12 +63,14 @@ class SyntheticFetcher:
                         "synthetic_template_id": document.template_id,
                         "synthetic_font_id": document.font_id,
                         "synthetic_footer": document.footer,
+                        "synthetic_generator_version": document.generator_version,
                     },
                     acquired_assets=[
                         AcquiredAsset(
                             item_id=item.item_id,
                             path=str(document.path),
                             sha256=document.sha256,
+                            media_type="image/jpeg",
                         )
                     ],
                 )

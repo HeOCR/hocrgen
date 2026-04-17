@@ -1,9 +1,9 @@
 fonts:
-  - id: noto-serif-hebrew
-    css_family: serif
+  - id: alef-regular
+    file: Alef-Regular.ttf
     style: printed
-    notes: Uses the host serif stack for deterministic sample SVG output.
-  - id: cursive-hand
-    css_family: cursive
+    notes: Open Hebrew sans-serif used for printed synthetic documents.
+  - id: gveret-levin-regular
+    file: GveretLevin-Regular.ttf
     style: handwritten_like
-    notes: Uses the host cursive stack for handwritten-look sample SVG output.
+    notes: Open Hebrew handwriting-style font used for note-like synthetic documents.
