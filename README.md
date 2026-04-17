@@ -349,6 +349,16 @@ hocrgen split --profile profile_open_v1 --dry-run
 hocrgen build-release --profile profile_open_v1 --dry-run
 ```
 
+## Planned PR workflow
+
+When implementation work is being driven from the roadmap or another concrete plan, the PR itself should update the current-state and human-facing planning documents in the same branch. In practice, a planned PR should usually include:
+
+- `.agent-plan.md` for the immediate execution state and next-step tracker
+- `README.md` when current capabilities, workflow expectations, or operator guidance changed
+- the relevant planning docs under [`docs/`](./docs/) when milestone state, critical path, or implementation sequencing changed
+
+This keeps the machine-readable state tracker and the human-facing planning documents aligned with the code that just landed, instead of leaving planning updates as a later cleanup task.
+
 ## PR agent context
 
 This repository publishes `pr-agent-context` comments for pull requests and later refresh events.

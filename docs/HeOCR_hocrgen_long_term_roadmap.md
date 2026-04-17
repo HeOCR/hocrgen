@@ -102,9 +102,9 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | A3 | Foundation | A3a | Core CLI and stage-oriented pipeline skeleton | completed |
 | B1 | First public release capability | B1a, B1b | NLI acquisition MVP, then broader seed promotion and fixture capture | completed |
 | B2 | First public release capability | B2a, B2b | Static open-source importers, then real historical sample replacement | completed |
-| B3 | First public release capability | B3a, B3b | Synthetic MVP plumbing, then alpha-quality synthetic realism | partial |
+| B3 | First public release capability | B3a, B3b | Synthetic MVP plumbing, then alpha-quality synthetic realism | completed |
 | B4 | First public release capability | B4a | Rights normalization and release eligibility | completed |
-| B5 | First public release capability | B5a, B5b | First review-ready pilot release, then alpha content freeze and handoff | partial |
+| B5 | First public release capability | B5a, B5b | First review-ready pilot release, then alpha content freeze and handoff | next |
 | C1 | Curation and operational hardening | C1a | Normalization and technical QA | completed |
 | C2 | Curation and operational hardening | C2a | Exact dedupe and split-safe curated build outputs | completed |
 | C3 | Curation and operational hardening | C3a | Basic classification and quality scoring | completed |
@@ -133,10 +133,10 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | B2a | B2 | Pinkas/BiblIA importer scaffolding over packaged sample records | yes | completed | merged as PR #2 |
 | B2b | B2 | Replace scaffold-grade Pinkas/BiblIA assets with real packaged/open historical sample pages | yes | completed | historical-source sample realism work |
 | B3a | B3 | Deterministic synthetic MVP with tracked inputs and metadata | yes | completed | merged as PR #2 |
-| B3b | B3 | Synthetic alpha-quality upgrade: real fonts, curated text, raster output, degradation, better layouts | yes | planned | follows B2b |
+| B3b | B3 | Synthetic alpha-quality upgrade: real fonts, curated text, raster output, degradation, better layouts | yes | completed | merged as PR #14 |
 | B4a | B4 | Rights normalization and release eligibility engine | yes | completed | merged as PR #2 |
 | B5a | B5 | Review-ready build and alpha export packaging in `hocrgen` | yes | completed | merged as PR #10 |
-| B5b | B5 | Alpha content freeze and handoff into the separate `HeOCR` repo | yes | planned | after B2b and B3b |
+| B5b | B5 | Alpha content freeze and handoff into the separate `HeOCR` repo | yes | next | after B3b |
 | C1a | C1 | Normalization, metadata extraction, checksums, previews, QA | yes | completed | merged as PR #3 |
 | C2a | C2 | Exact dedupe, deterministic split assignment, curated build outputs | yes | completed | merged as PR #5 |
 | C3a | C3 | Heuristic classification | yes | completed | merged as PR #6 |
@@ -159,10 +159,9 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 
 The immediate implementation critical path to a defensible public alpha is:
 
-1. **B3b**: upgrade synthetic generation to alpha-quality realism
-2. **B5b**: freeze alpha contents and hand the versioned export into the separate `HeOCR` repository
+1. **B5b**: freeze alpha contents and hand the versioned export into the separate `HeOCR` repository
 
-This ordering is intentional. `B5a` already makes the alpha mechanically exportable, and `B2b` upgrades the historical-source samples to real packaged pages, but `B3b` is still required before the resulting exported contents are visually credible across the whole dataset.
+This ordering is intentional. `B5a` already makes the alpha mechanically exportable, and `B2b` plus `B3b` now make the historical and synthetic samples materially more credible. The next remaining alpha-critical step is to freeze the validated export and hand it off into the separate `HeOCR` repository.
 
 ## 4.4 Alpha release readiness gates
 
@@ -194,6 +193,17 @@ Some completed bootstrap work predates PR-based tracking. In particular, `A1a` i
 | C5a | #6 |
 | B1b | #8 |
 | B5a | #10 |
+| B3b | #14 |
+
+## 4.6 Planned PR documentation rule
+
+When a PR is opened to implement a roadmap-tracked milestone or sub-PR, that implementation branch should update the planning/state documents together with the code. The default expectation is:
+
+- update [`.agent-plan.md`](../.agent-plan.md) with the current execution state and next immediate tasks
+- update [`README.md`](../README.md) when user-visible capabilities, workflow guidance, or operator expectations changed
+- update the relevant planning doc under [`docs/`](./) when milestone state, PR state, critical path, or release-readiness guidance changed
+
+This is a workflow rule, not optional polish. The point is to keep static capabilities, immediate execution state, and human-facing roadmap documents synchronized with the implementation PR that changed them. In practice, a planned PR is not complete until its code changes and its plan/documentation updates land together in the same branch.
 
 ---
 
