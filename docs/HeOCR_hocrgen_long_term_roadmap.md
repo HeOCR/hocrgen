@@ -104,7 +104,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | B2 | First public release capability | B2a, B2b | Static open-source importers, then real historical sample replacement | completed |
 | B3 | First public release capability | B3a, B3b | Synthetic MVP plumbing, then alpha-quality synthetic realism | completed |
 | B4 | First public release capability | B4a | Rights normalization and release eligibility | completed |
-| B5 | First public release capability | B5a, B5b | First review-ready pilot release, then alpha content freeze and handoff | partial |
+| B5 | First public release capability | B5a, B5b1, B5b2, B5b3, B5b4 | First review-ready pilot release, then alpha-freeze unblock, content refresh, and handoff | partial |
 | C1 | Curation and operational hardening | C1a | Normalization and technical QA | completed |
 | C2 | Curation and operational hardening | C2a | Exact dedupe and split-safe curated build outputs | completed |
 | C3 | Curation and operational hardening | C3a | Basic classification and quality scoring | completed |
@@ -136,13 +136,16 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | B3b | B3 | Synthetic alpha-quality upgrade: real fonts, curated text, raster output, degradation, better layouts | yes | completed | merged as PR #14 |
 | B4a | B4 | Rights normalization and release eligibility engine | yes | completed | merged as PR #2 |
 | B5a | B5 | Review-ready build and alpha export packaging in `hocrgen` | yes | completed | merged as PR #10 |
-| B5b | B5 | Alpha content freeze and handoff into the separate `HeOCR` repo | yes | partial | export targeting/handoff scaffolding landed; final freeze + handoff PR still pending |
+| B5b1 | B5 | Alpha export portability cleanup for public manifests and audit artifacts | yes | next | pre-alpha freeze PR 1 |
+| B5b2 | B5 | Real-scan exemplar refresh: higher-resolution NLI export and text-bearing historical sample replacement | yes | planned | pre-alpha freeze PR 2 |
+| B5b3 | B5 | Synthetic alpha unblock: Hebrew ordering fix, `2x real` synthetic cap, and low-risk realism polish | yes | planned | pre-alpha freeze PR 3 |
+| B5b4 | B5 | Final alpha freeze validation and handoff into the separate `HeOCR` repo | yes | planned | pre-alpha freeze PR 4 |
 | C1a | C1 | Normalization, metadata extraction, checksums, previews, QA | yes | completed | merged as PR #3 |
 | C2a | C2 | Exact dedupe, deterministic split assignment, curated build outputs | yes | completed | merged as PR #5 |
 | C3a | C3 | Heuristic classification | yes | completed | merged as PR #6 |
 | C4a | C4 | Metadata-first privacy scanning | yes | completed | merged as PR #6 |
 | C5a | C5 | Review queue export and review-side artifacts | yes | completed | merged as PR #6 |
-| C5b | C5 | Review decision schema merge, operational review loop, and post-review release gating | yes | planned | future review-system PR |
+| C5b | C5 | Review decision schema merge, operational review loop, and post-review release gating | no | planned | future review-system PR |
 | C6a | C6 | Release diffs and changelog generation | no | planned | future release-ops PR |
 | D1a | D1 | Scheduled GitHub-first expansion workflows | no | planned | future ops PR |
 | D2a | D2 | Source refresh/reliability maturity and source freeze controls | no | planned | future source-ops PR |
@@ -159,16 +162,22 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 
 The immediate implementation critical path to a defensible public alpha is:
 
-1. **B5b**: freeze alpha contents and hand the versioned export into the separate `HeOCR` repository
+1. **B5b1**: remove absolute-path leakage from exported manifests and review audit artifacts so the release tree stays portable
+2. **B5b2**: replace weak real-scan exemplars with higher-resolution NLI exports and text-bearing historical pages
+3. **B5b3**: fix synthetic Hebrew ordering, move alpha synthetic inclusion to a `2x real items` policy, and land only low-risk synthetic polish that materially improves alpha credibility
+4. **B5b4**: freeze the validated alpha contents and hand the versioned export into the separate `HeOCR` repository
 
-This prioritization is intentional. `B5a` already makes the alpha mechanically exportable, and `B2b` plus `B3b` now make the historical and synthetic samples materially more credible. The export path now supports direct targeting of a checked-out `HeOCR` repo and emits a handoff checklist, but the remaining alpha-critical step is still to freeze the validated export and land the actual handoff PR in the separate `HeOCR` repository.
+This prioritization is intentional. `B5a` already makes the alpha mechanically exportable, and `B2b` plus `B3b` moved the historical and synthetic samples closer to release-ready. The latest export inspection narrowed the remaining alpha-critical work to portability cleanup, exemplar quality, a synthetic correctness fix, and the final handoff. Handwritten-like generation, heavier synthetic degradation, broader synthetic diversity, and review-decision merge remain important, but they are no longer part of the minimum alpha-freeze bar.
 
 ## 4.4 Alpha release readiness gates
 
 An alpha release should not be treated as ready merely because the pipeline can export it. At minimum, the following gates should be met:
 
 - the public export contains only release-ready items and excludes review-required/blocked items from the dataset payload
-- representative real historical samples are present, not scaffold-grade placeholder fixtures
+- exported public artifacts do not leak absolute local filesystem paths or depend on `.work/`-relative runtime state
+- representative real samples are text-bearing and OCR-relevant, not bindings/covers or scaffold-grade placeholder fixtures
+- NLI-derived public samples are exported at a materially credible resolution for OCR use
+- synthetic public samples preserve correct Hebrew character ordering and remain within the configured `2x real items` alpha cap
 - synthetic samples use governed fonts, curated text, plausible layouts, raster output, and at least a basic scan/degradation pass
 - the exported release tree has been validated locally and inspected in the target `HeOCR` repository layout
 - release summary, provenance, and dataset-card documents accurately describe source coverage and known limitations
@@ -476,6 +485,7 @@ Produce the first small public HeOCR release.
 - generate synthetic pages
 - package train/validation/test
 - publish a pilot release
+- freeze a small alpha subset only after exemplar quality and export portability checks pass
 
 ### Deliverables
 - `HeOCR v0.1.0`
@@ -490,6 +500,7 @@ Produce the first small public HeOCR release.
 - a public release exists and is reproducible/auditable
 - the release contains only allowed/open items
 - the release metadata is coherent
+- alpha exemplars are text-bearing, portable, and not obviously broken to a first-time OCR user
 - publication to both targets succeeds
 
 ### Risks / dependencies
@@ -770,6 +781,8 @@ Make the synthetic component more useful and document-like.
 - stamps/signatures/annotations
 - harder degradation families
 - bilingual fragments
+- true handwritten-like Hebrew rendering families rather than only print-like approximations
+- stronger post-generation distortion and artifact stacks beyond the alpha-minimum release pass
 
 ### Deliverables
 - expanded recipe library
@@ -781,12 +794,15 @@ Make the synthetic component more useful and document-like.
 - document-style Hebrew corpora with no prompt/instruction leakage
 - scan-like degradation presets for blur, noise, contrast loss, skew, and compression artifacts
 - layout families that model plausible placement of headers, bodies, footers, notes, and identifiers
+- handwritten-like generation families that read as handwritten rather than merely typed with a governed font
+- heavier post-processing presets that can emulate more severe scanning, copying, and print-process defects
 
 ### Exit criteria
 - synthetic data covers more realistic Hebrew document patterns
 - users can selectively filter synthetic subsets by type
 - synthetic still remains within configured release caps
 - synthetic examples no longer look like clean SVG mockups or generic template cards
+- handwritten-like synthetic pages are visually distinct from clean print-like pages
 - mixed-language fragments appear as realistic identifiers or annotations rather than template instructions
 
 ### Risks / dependencies
