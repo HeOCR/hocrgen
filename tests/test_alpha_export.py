@@ -24,6 +24,7 @@ from hocrgen.package.alpha import (
     _select_alpha_items,
     _source_priority,
     _split_sort_key,
+    _validate_heocr_repo_root,
     _validate_overwrite_target,
     export_alpha_release,
 )
@@ -70,6 +71,44 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
     assert (output_dir / "docs" / "DATASET_CARD.md").exists()
     assert (output_dir / "docs" / "RELEASE_NOTES.md").exists()
     assert (output_dir / "docs" / "PROVENANCE.md").exists()
+    assert (output_dir / "docs" / "HANDOFF.md").exists()
+    handoff_doc = (output_dir / "docs" / "HANDOFF.md").read_text(encoding="utf-8")
+    assert "- Target repo checkout: `<manual target checkout>`" in handoff_doc
+    assert "- Target release dir: `releases/alpha-v0/`" in handoff_doc
+    assert str(output_dir.resolve()) not in handoff_doc
+
+
+def test_export_alpha_can_target_heocr_repo_checkout(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    heocr_repo = tmp_path / "HeOCR"
+    (heocr_repo / ".git").mkdir(parents=True)
+
+    exit_code = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--heocr-repo",
+            str(heocr_repo),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    expected_export_dir = heocr_repo / "releases" / "alpha-v0"
+    assert exit_code == 0
+    assert payload["export_dir"] == str(expected_export_dir.resolve())
+    assert payload["handoff_repo"] == str(heocr_repo.resolve())
+    assert (expected_export_dir / "docs" / "HANDOFF.md").exists()
+    handoff_doc = (expected_export_dir / "docs" / "HANDOFF.md").read_text(encoding="utf-8")
+    assert "- Target repo checkout: `HeOCR`" in handoff_doc
+    assert "- Target release dir: `releases/alpha-v0/`" in handoff_doc
+    assert str(heocr_repo.resolve()) not in handoff_doc
+    assert str(expected_export_dir.resolve()) not in handoff_doc
 
 
 def test_export_alpha_only_copies_release_ready_items(tmp_path: Path, capsys) -> None:
@@ -287,6 +326,33 @@ def test_export_alpha_overwrites_existing_output_dir_when_requested(tmp_path: Pa
     assert not stale_file.exists()
 
 
+def test_export_alpha_rejects_conflicting_handoff_targets(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    heocr_repo = tmp_path / "HeOCR"
+    (heocr_repo / ".git").mkdir(parents=True)
+    output_dir = heocr_repo / "releases" / "alpha-v0"
+
+    exit_code = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--output-dir",
+            str(output_dir),
+            "--heocr-repo",
+            str(heocr_repo),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert exit_code == 1
+    assert payload["error"] == "--output-dir and --heocr-repo cannot be used together"
+
+
 @pytest.mark.parametrize(
     ("target_factory", "expected_error"),
     [
@@ -332,6 +398,7 @@ def test_export_alpha_handles_cli_error_paths(monkeypatch, tmp_path: Path, capsy
         verbose=False,
         version="alpha-v0",
         output_dir=None,
+        heocr_repo=None,
         overwrite=False,
         max_real_items=10,
         max_synthetic_items=2,
@@ -513,6 +580,26 @@ def test_alpha_helper_fallbacks(monkeypatch) -> None:
 
     monkeypatch.setattr("subprocess.run", raise_oserror)
     assert _current_commit_sha() == "unknown"
+
+
+def test_validate_heocr_repo_root_requires_git_checkout(tmp_path: Path) -> None:
+    missing_repo = tmp_path / "missing-HeOCR"
+    with pytest.raises(StageExecutionError, match=f"HeOCR repo path does not exist: {missing_repo.resolve()}"):
+        _validate_heocr_repo_root(missing_repo)
+
+    file_path = tmp_path / "HeOCR.txt"
+    file_path.write_text("not a repo", encoding="utf-8")
+    with pytest.raises(StageExecutionError, match=f"HeOCR repo path is not a directory: {file_path.resolve()}"):
+        _validate_heocr_repo_root(file_path)
+
+    repo_root = tmp_path / "HeOCR"
+    repo_root.mkdir()
+
+    with pytest.raises(StageExecutionError, match="HeOCR repo path is not a git checkout"):
+        _validate_heocr_repo_root(repo_root)
+
+    (repo_root / ".git").mkdir()
+    assert _validate_heocr_repo_root(repo_root) == repo_root.resolve()
 
 
 def test_public_item_payload_excludes_local_paths(tmp_path: Path) -> None:

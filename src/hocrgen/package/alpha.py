@@ -33,6 +33,7 @@ SPLIT_ORDER = {"train": 0, "validation": 1, "test": 2}
 class AlphaExportConfig:
     version: str
     output_dir: Path | None = None
+    heocr_repo: Path | None = None
     max_real_items: int = 10
     max_synthetic_items: int = 2
     overwrite: bool = False
@@ -55,7 +56,15 @@ def export_alpha_release(
 ) -> AlphaExportResult:
     profile = bundle.profiles[profile_id]
     build_dir = run_dir / "build_release"
-    export_dir = config.output_dir.resolve() if config.output_dir else (run_dir.parent.parent / "exports" / config.version).resolve()
+    handoff_repo_root = None
+    export_dir = (run_dir.parent.parent / "exports" / config.version).resolve()
+    if config.output_dir and config.heocr_repo:
+        raise StageExecutionError("--output-dir and --heocr-repo cannot be used together")
+    if config.heocr_repo:
+        handoff_repo_root = _validate_heocr_repo_root(config.heocr_repo)
+        export_dir = (handoff_repo_root / "releases" / config.version).resolve()
+    elif config.output_dir:
+        export_dir = config.output_dir.resolve()
     if export_dir.exists():
         if not config.overwrite:
             raise StageExecutionError(f"alpha export directory already exists: {export_dir}")
@@ -161,12 +170,25 @@ def export_alpha_release(
         docs_dir / "PROVENANCE.md",
         _provenance_doc(bundle, profile, included_sources, exported_at, commit_sha),
     )
+    _write_markdown(
+        docs_dir / "HANDOFF.md",
+        _handoff_doc(
+            config.version,
+            export_dir,
+            profile,
+            release_summary,
+            included_sources,
+            commit_sha,
+            handoff_repo_root,
+        ),
+    )
 
     summary_path = run_dir / "export_alpha" / "summary.json"
     write_json(
         summary_path,
         {
             "export_dir": str(export_dir),
+            "handoff_repo": str(handoff_repo_root) if handoff_repo_root else None,
             "item_manifest": "manifests/item_manifest.json",
             "release_record": "manifests/release_record.json",
             "release_summary": "manifests/release_summary.json",
@@ -190,6 +212,7 @@ def export_alpha_release(
         docs_dir / "DATASET_CARD.md",
         docs_dir / "RELEASE_NOTES.md",
         docs_dir / "PROVENANCE.md",
+        docs_dir / "HANDOFF.md",
         summary_path,
     ]
     return AlphaExportResult(
@@ -433,6 +456,57 @@ def _provenance_doc(
     )
 
 
+def _handoff_doc(
+    version: str,
+    export_dir: Path,
+    profile: ReleaseProfile,
+    release_summary: dict[str, Any],
+    included_sources: list[str],
+    commit_sha: str,
+    handoff_repo_root: Path | None,
+) -> str:
+    target_label = (
+        f"`{handoff_repo_root.name}`"
+        if handoff_repo_root and handoff_repo_root.name
+        else "`<manual target checkout>`"
+    )
+    release_dir_path = Path("releases") / version
+    if handoff_repo_root:
+        try:
+            release_dir_path = export_dir.relative_to(handoff_repo_root)
+        except ValueError:
+            pass
+    release_dir_label = f"`{release_dir_path.as_posix().rstrip('/')}/`"
+    return "\n".join(
+        [
+            "# Alpha Handoff",
+            "",
+            f"- Version: `{version}`",
+            f"- Target repo checkout: {target_label}",
+            f"- Target release dir: {release_dir_label}",
+            f"- Release profile: `{profile.id}`",
+            f"- hocrgen commit: `{commit_sha}`",
+            "",
+            "## Export Summary",
+            f"- Exported items: {release_summary['exported_item_count']}",
+            f"- Exported real items: {release_summary['exported_real_items']}",
+            f"- Exported synthetic items: {release_summary['exported_synthetic_items']}",
+            f"- Review-required audit items: {release_summary['review_required_count']}",
+            f"- Blocked audit items: {release_summary['blocked_count']}",
+            "",
+            "## Included Sources",
+            *[f"- `{source_id}`" for source_id in included_sources],
+            "",
+            "## PR Checklist",
+            "- Confirm only `release_ready` items are present under `data/`.",
+            "- Confirm review-required and blocked items exist only as audit manifests under `manifests/`.",
+            "- Inspect `docs/DATASET_CARD.md`, `docs/RELEASE_NOTES.md`, and `docs/PROVENANCE.md` in the target tree.",
+            "- Open the HeOCR handoff PR against the target repository with this release tree under `releases/<version>/`.",
+            "",
+        ]
+    )
+
+
 def _source_snapshot_lines(source: SourceConfig) -> list[str]:
     return [
         f"### `{source.id}`",
@@ -477,6 +551,18 @@ def _current_commit_sha() -> str:
     if result.returncode == 0:
         return result.stdout.strip()
     return "unknown"
+
+
+def _validate_heocr_repo_root(repo_root: Path) -> Path:
+    resolved = repo_root.resolve()
+    if not resolved.exists():
+        raise StageExecutionError(f"HeOCR repo path does not exist: {resolved}")
+    if not resolved.is_dir():
+        raise StageExecutionError(f"HeOCR repo path is not a directory: {resolved}")
+    git_dir = resolved / ".git"
+    if not git_dir.exists():
+        raise StageExecutionError(f"HeOCR repo path is not a git checkout: {resolved}")
+    return resolved
 
 
 def _validate_overwrite_target(export_dir: Path, version: str) -> None:

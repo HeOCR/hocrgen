@@ -212,7 +212,7 @@ To write directly into a checkout of the separate `HeOCR` repo:
 hocrgen export-alpha \
   --profile profile_open_v1 \
   --dry-run \
-  --output-dir /path/to/HeOCR/releases/alpha-v0
+  --heocr-repo /path/to/HeOCR
 ```
 
 The alpha exporter:
@@ -221,7 +221,9 @@ The alpha exporter:
 - keeps `review_required` and `blocked` items as audit manifests only
 - caps synthetic inclusion separately from real inclusion
 - writes repo-ready manifests under `manifests/`
-- writes `DATASET_CARD.md`, `RELEASE_NOTES.md`, and `PROVENANCE.md` under `docs/`
+- writes `DATASET_CARD.md`, `RELEASE_NOTES.md`, `PROVENANCE.md`, and `HANDOFF.md` under `docs/`
+
+When `--heocr-repo` is provided, `hocrgen` validates that the target is a git checkout and exports directly to `releases/<version>/` inside that repository.
 
 Kaggle and Hugging Face publication remain out of scope for alpha releases.
 
