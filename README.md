@@ -225,6 +225,8 @@ The alpha exporter:
 
 When `--heocr-repo` is provided, `hocrgen` validates that the target is a git checkout and exports directly to `releases/<version>/` inside that repository.
 
+The current pre-alpha freeze sequencing and blocker list lives in [`docs/pre_alpha_freeze_plan.md`](./docs/pre_alpha_freeze_plan.md).
+
 Kaggle and Hugging Face publication remain out of scope for alpha releases.
 
 ## Rights normalization and policy behavior
@@ -384,4 +386,5 @@ than updating earlier ones.
 
 - Product/design spec: [`docs/hocrgen_design_and_spec.md`](./docs/hocrgen_design_and_spec.md)
 - Long-term roadmap: [`docs/HeOCR_hocrgen_long_term_roadmap.md`](./docs/HeOCR_hocrgen_long_term_roadmap.md)
+- Pre-alpha freeze plan: [`docs/pre_alpha_freeze_plan.md`](./docs/pre_alpha_freeze_plan.md)
 - Normalization and QA notes: [`docs/hocrgen_normalization_and_qa.md`](./docs/hocrgen_normalization_and_qa.md)
