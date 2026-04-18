@@ -136,8 +136,8 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | B3b | B3 | Synthetic alpha-quality upgrade: real fonts, curated text, raster output, degradation, better layouts | yes | completed | merged as PR #14 |
 | B4a | B4 | Rights normalization and release eligibility engine | yes | completed | merged as PR #2 |
 | B5a | B5 | Review-ready build and alpha export packaging in `hocrgen` | yes | completed | merged as PR #10 |
-| B5b1 | B5 | Alpha export portability cleanup for public manifests and audit artifacts | yes | next | pre-alpha freeze PR 1 |
-| B5b2 | B5 | Real-scan exemplar refresh: higher-resolution NLI export and text-bearing historical sample replacement | yes | planned | pre-alpha freeze PR 2 |
+| B5b1 | B5 | Alpha export portability cleanup for public manifests and audit artifacts | yes | completed | pre-alpha freeze PR 1 |
+| B5b2 | B5 | Real-scan exemplar refresh: higher-resolution NLI export and text-bearing historical sample replacement | yes | next | pre-alpha freeze PR 2 |
 | B5b3 | B5 | Synthetic alpha unblock: Hebrew ordering fix, `2x real` synthetic cap, and low-risk realism polish | yes | planned | pre-alpha freeze PR 3 |
 | B5b4 | B5 | Final alpha freeze validation and handoff into the separate `HeOCR` repo | yes | planned | pre-alpha freeze PR 4 |
 | C1a | C1 | Normalization, metadata extraction, checksums, previews, QA | yes | completed | merged as PR #3 |
@@ -162,12 +162,11 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 
 The immediate implementation critical path to a defensible public alpha is:
 
-1. **B5b1**: remove absolute-path leakage from exported manifests and review audit artifacts so the release tree stays portable
-2. **B5b2**: replace weak real-scan exemplars with higher-resolution NLI exports and text-bearing historical pages
-3. **B5b3**: fix synthetic Hebrew ordering, move alpha synthetic inclusion to a `2x real items` policy, and land only low-risk synthetic polish that materially improves alpha credibility
-4. **B5b4**: freeze the validated alpha contents and hand the versioned export into the separate `HeOCR` repository
+1. **B5b2**: replace weak real-scan exemplars with higher-resolution NLI exports and text-bearing historical pages
+2. **B5b3**: fix synthetic Hebrew ordering, move alpha synthetic inclusion to a `2x real items` policy, and land only low-risk synthetic polish that materially improves alpha credibility
+3. **B5b4**: freeze the validated alpha contents and hand the versioned export into the separate `HeOCR` repository
 
-This prioritization is intentional. `B5a` already makes the alpha mechanically exportable, and `B2b` plus `B3b` moved the historical and synthetic samples closer to release-ready. The latest export inspection narrowed the remaining alpha-critical work to portability cleanup, exemplar quality, a synthetic correctness fix, and the final handoff. Handwritten-like generation, heavier synthetic degradation, broader synthetic diversity, and review-decision merge remain important, but they are no longer part of the minimum alpha-freeze bar.
+This prioritization is intentional. `B5a` already makes the alpha mechanically exportable, and `B2b` plus `B3b` moved the historical and synthetic samples closer to release-ready. `B5b1` has now removed exported absolute-path leakage by rewriting review preview references into release-local audit assets, so the remaining alpha-critical work is exemplar quality, a synthetic correctness fix, and the final handoff. Handwritten-like generation, heavier synthetic degradation, broader synthetic diversity, and review-decision merge remain important, but they are no longer part of the minimum alpha-freeze bar.
 
 ## 4.4 Alpha release readiness gates
 

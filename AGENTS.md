@@ -58,6 +58,8 @@
 - Alpha exports are shaped for the separate `HeOCR` repository under `releases/<version>/`.
 
 ## Before merging
+- Treat feature or PR work as incomplete until a non-draft GitHub PR with a detailed description is open.
+- Ensure the PR is labeled appropriately and assigned to a GitHub milestone before handing off.
 - Run `coverage run -m pytest`
 - Run `hocrgen config validate`
 - Run `hocrgen build-release --profile profile_open_v1 --dry-run`

@@ -27,6 +27,7 @@ from hocrgen.manifests.models import (
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SPLIT_ORDER = {"train": 0, "validation": 1, "test": 2}
+_OMIT = object()
 
 
 @dataclass(frozen=True)
@@ -155,7 +156,10 @@ def export_alpha_release(
     write_json(manifests_dir / "duplicate_clusters.json", {"items": [item.model_dump(mode="json") for item in selected_duplicate_clusters]})
     write_json(manifests_dir / "review_required_items.json", {"items": [_audit_item_payload(item) for item in review_required_items]})
     write_json(manifests_dir / "blocked_items.json", {"items": [_audit_item_payload(item) for item in blocked_items]})
-    write_json(manifests_dir / "review_queue.json", {"items": [item.model_dump(mode="json") for item in selected_review_queue]})
+    write_json(
+        manifests_dir / "review_queue.json",
+        {"items": _review_queue_payloads(selected_review_queue, export_dir)},
+    )
     write_json(manifests_dir / "release_record.json", release_record.model_dump(mode="json"))
 
     _write_markdown(
@@ -334,7 +338,62 @@ def _public_item_payload(item: AlphaExportedItemRecord) -> dict[str, Any]:
         },
     )
     payload["exported_assets"] = [asset.model_dump(mode="json") for asset in item.exported_assets]
+    sanitized = _sanitize_portable_value(payload)
+    if not isinstance(sanitized, dict):
+        raise StageExecutionError("public item payload must serialize to an object")
+    return sanitized
+
+
+def _sanitize_portable_value(value: Any) -> Any:
+    if isinstance(value, dict):
+        sanitized_dict: dict[str, Any] = {}
+        for key, item in value.items():
+            sanitized_item = _sanitize_portable_value(item)
+            if sanitized_item is _OMIT:
+                continue
+            sanitized_dict[key] = sanitized_item
+        return sanitized_dict
+    if isinstance(value, list):
+        sanitized_list: list[Any] = []
+        for item in value:
+            sanitized_item = _sanitize_portable_value(item)
+            if sanitized_item is _OMIT:
+                continue
+            sanitized_list.append(sanitized_item)
+        return sanitized_list
+    if isinstance(value, str) and _looks_like_local_path(value):
+        return _OMIT
+    return value
+
+
+def _looks_like_local_path(value: str) -> bool:
+    if value.startswith(("http://", "https://", "package://")):
+        return False
+    return value.startswith("/") or ".work/" in value
+
+
+def _review_queue_payloads(items: list[ReviewQueueRecord], export_dir: Path) -> list[dict[str, Any]]:
+    return [_review_queue_payload(item, export_dir) for item in items]
+
+
+def _review_queue_payload(item: ReviewQueueRecord, export_dir: Path) -> dict[str, Any]:
+    payload = item.model_dump(mode="json", exclude={"preview_paths"})
+    payload["preview_paths"] = _copy_review_previews(item, export_dir)
     return payload
+
+
+def _copy_review_previews(item: ReviewQueueRecord, export_dir: Path) -> list[str]:
+    exported_preview_paths: list[str] = []
+    preview_dir = export_dir / "manifests" / "review_previews" / item.item_id
+    for index, preview_path in enumerate(item.preview_paths, start=1):
+        source = Path(preview_path)
+        if not source.exists():
+            continue
+        target = preview_dir / f"{index:02d}_{source.name}"
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+        exported_preview_paths.append(str(target.relative_to(export_dir)))
+    return exported_preview_paths
 
 
 def _build_classification_stats(items: list[AlphaExportedItemRecord]) -> dict[str, Any]:

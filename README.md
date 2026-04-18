@@ -221,6 +221,7 @@ The alpha exporter:
 - keeps `review_required` and `blocked` items as audit manifests only
 - caps synthetic inclusion separately from real inclusion
 - writes repo-ready manifests under `manifests/`
+- rewrites review preview references into release-local files under `manifests/review_previews/`
 - writes `DATASET_CARD.md`, `RELEASE_NOTES.md`, `PROVENANCE.md`, and `HANDOFF.md` under `docs/`
 
 When `--heocr-repo` is provided, `hocrgen` validates that the target is a git checkout and exports directly to `releases/<version>/` inside that repository.
