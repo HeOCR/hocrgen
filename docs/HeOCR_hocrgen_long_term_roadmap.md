@@ -145,7 +145,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | C3a | C3 | Heuristic classification | yes | completed | merged as PR #6 |
 | C4a | C4 | Metadata-first privacy scanning | yes | completed | merged as PR #6 |
 | C5a | C5 | Review queue export and review-side artifacts | yes | completed | merged as PR #6 |
-| C5b | C5 | Review decision schema merge, operational review loop, and post-review release gating | yes | planned | future review-system PR |
+| C5b | C5 | Review decision schema merge, operational review loop, and post-review release gating | no | planned | future review-system PR |
 | C6a | C6 | Release diffs and changelog generation | no | planned | future release-ops PR |
 | D1a | D1 | Scheduled GitHub-first expansion workflows | no | planned | future ops PR |
 | D2a | D2 | Source refresh/reliability maturity and source freeze controls | no | planned | future source-ops PR |
