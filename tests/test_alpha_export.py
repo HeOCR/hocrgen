@@ -72,6 +72,10 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
     assert (output_dir / "docs" / "RELEASE_NOTES.md").exists()
     assert (output_dir / "docs" / "PROVENANCE.md").exists()
     assert (output_dir / "docs" / "HANDOFF.md").exists()
+    handoff_doc = (output_dir / "docs" / "HANDOFF.md").read_text(encoding="utf-8")
+    assert "- Target repo checkout: `<manual target checkout>`" in handoff_doc
+    assert "- Target release dir: `releases/alpha-v0/`" in handoff_doc
+    assert str(output_dir.resolve()) not in handoff_doc
 
 
 def test_export_alpha_can_target_heocr_repo_checkout(tmp_path: Path, capsys) -> None:
@@ -100,6 +104,11 @@ def test_export_alpha_can_target_heocr_repo_checkout(tmp_path: Path, capsys) -> 
     assert payload["export_dir"] == str(expected_export_dir.resolve())
     assert payload["handoff_repo"] == str(heocr_repo.resolve())
     assert (expected_export_dir / "docs" / "HANDOFF.md").exists()
+    handoff_doc = (expected_export_dir / "docs" / "HANDOFF.md").read_text(encoding="utf-8")
+    assert "- Target repo checkout: `HeOCR`" in handoff_doc
+    assert "- Target release dir: `releases/alpha-v0/`" in handoff_doc
+    assert str(heocr_repo.resolve()) not in handoff_doc
+    assert str(expected_export_dir.resolve()) not in handoff_doc
 
 
 def test_export_alpha_only_copies_release_ready_items(tmp_path: Path, capsys) -> None:

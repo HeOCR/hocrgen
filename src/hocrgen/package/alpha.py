@@ -466,15 +466,24 @@ def _handoff_doc(
     handoff_repo_root: Path | None,
 ) -> str:
     target_label = (
-        f"`{handoff_repo_root}`" if handoff_repo_root else "`<manual target checkout>`"
+        f"`{handoff_repo_root.name}`"
+        if handoff_repo_root and handoff_repo_root.name
+        else "`<manual target checkout>`"
     )
+    release_dir_path = Path("releases") / version
+    if handoff_repo_root:
+        try:
+            release_dir_path = export_dir.relative_to(handoff_repo_root)
+        except ValueError:
+            pass
+    release_dir_label = f"`{release_dir_path.as_posix().rstrip('/')}/`"
     return "\n".join(
         [
             "# Alpha Handoff",
             "",
             f"- Version: `{version}`",
             f"- Target repo checkout: {target_label}",
-            f"- Target release dir: `{export_dir}`",
+            f"- Target release dir: {release_dir_label}",
             f"- Release profile: `{profile.id}`",
             f"- hocrgen commit: `{commit_sha}`",
             "",
