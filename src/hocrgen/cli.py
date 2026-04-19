@@ -53,7 +53,12 @@ def build_parser() -> argparse.ArgumentParser:
     export_alpha_parser.add_argument("--heocr-repo", type=Path, default=None, help="Path to a checked-out HeOCR repo; exports to releases/<version> there")
     export_alpha_parser.add_argument("--overwrite", action="store_true", help="Replace an existing alpha export directory")
     export_alpha_parser.add_argument("--max-real-items", type=int, default=10, help="Maximum number of real items to include")
-    export_alpha_parser.add_argument("--max-synthetic-items", type=int, default=2, help="Maximum number of synthetic items to include")
+    export_alpha_parser.add_argument(
+        "--max-synthetic-items",
+        type=int,
+        default=20,
+        help="Maximum number of synthetic items to include, additionally bounded by 2x exported real items",
+    )
     export_alpha_parser.set_defaults(handler=handle_export_alpha)
 
     for stage in STAGE_COMMANDS:
