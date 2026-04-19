@@ -59,6 +59,8 @@
 
 ## Before merging
 - Treat feature or PR work as incomplete until a non-draft GitHub PR with a detailed description is open.
+- The PR must be ready for review, not draft.
+- The PR must describe what changed, why it changed, the user/developer impact, and the validation performed.
 - Ensure the PR is labeled appropriately and assigned to a GitHub milestone before handing off.
 - Run `coverage run -m pytest`
 - Run `hocrgen config validate`

@@ -224,6 +224,8 @@ The alpha exporter:
 - rewrites review preview references into release-local files under `manifests/review_previews/`
 - writes `DATASET_CARD.md`, `RELEASE_NOTES.md`, `PROVENANCE.md`, and `HANDOFF.md` under `docs/`
 
+The current alpha exemplar path now includes a high-resolution NLI manuscript fixture and a text-bearing Pinkas interior page so the real-scan subset is no longer placeholder-grade.
+
 When `--heocr-repo` is provided, `hocrgen` validates that the target is a git checkout and exports directly to `releases/<version>/` inside that repository.
 
 The current pre-alpha freeze sequencing and blocker list lives in [`docs/pre_alpha_freeze_plan.md`](./docs/pre_alpha_freeze_plan.md).

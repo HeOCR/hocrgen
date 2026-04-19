@@ -7,12 +7,14 @@ import os
 import re
 import sys
 import time
+from io import BytesIO
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from urllib.parse import urljoin, urlparse
 
 import yaml
+from PIL import Image
 
 from hocrgen.core.errors import StageExecutionError
 
@@ -34,7 +36,7 @@ CHALLENGE_MARKERS = (
     "attention required",
     "cdn-cgi/challenge-platform",
 )
-NLI_PROMOTION_IMAGE_WIDTH = 256
+NLI_PROMOTION_IMAGE_WIDTH = 1280
 NLI_PROMOTION_MAX_ASSETS = 5
 CP1252_REVERSE_MAP = {
     "€": 0x80,
@@ -128,6 +130,8 @@ def _asset_signature(data: bytes) -> str | None:
         return "jpeg"
     if data.startswith(b"\x89PNG\r\n\x1a\n"):
         return "png"
+    if data.startswith((b"II*\x00", b"MM\x00*")):
+        return "tiff"
     if b"<svg" in data[:512].lower():
         return "svg"
     return None
@@ -592,6 +596,10 @@ def extract_page_data(page) -> ExtractedSeedPage:  # pragma: no cover - exercise
     ]
     if not asset_urls:
         asset_urls = _manifest_asset_urls(manifest)
+    if not asset_urls:
+        asset_urls = _iframe_asset_urls(page)
+    if not asset_urls:
+        asset_urls = _delivery_manager_asset_urls(page)
     return ExtractedSeedPage(
         title=title or "Untitled NLI item",
         description=description or "",
@@ -607,8 +615,6 @@ def download_assets(
     *,
     browser_context=None,
 ) -> list[tuple[str, str | None, bytes]]:  # pragma: no cover
-    if browser_context is not None:
-        return _download_assets_via_browser_context(browser_context, asset_urls)
     request_context = playwright.request.new_context(storage_state=storage_state)
     try:
         downloads: list[tuple[str, str | None, bytes]] = []
@@ -616,11 +622,15 @@ def download_assets(
             response = request_context.get(asset_url)
             if not response.ok:
                 raise StageExecutionError(f"{FAILURE_DOWNLOAD}: {asset_url}: HTTP {response.status}")
+            content_type, body = _normalize_downloaded_asset(
+                content_type=response.headers.get("content-type"),
+                body=_normalize_downloaded_bytes(response.body()),
+            )
             downloads.append(
                 (
                     asset_url,
-                    response.headers.get("content-type"),
-                    _normalize_downloaded_bytes(response.body()),
+                    content_type,
+                    body,
                 )
             )
         return downloads
@@ -858,22 +868,63 @@ def _manifest_asset_urls(manifest: dict[str, Any] | None) -> list[str]:
     return asset_urls
 
 
-def _download_assets_via_browser_context(browser_context, asset_urls: list[str]) -> list[tuple[str, str | None, bytes]]:
-    page = browser_context.new_page()
-    try:
-        downloads: list[tuple[str, str | None, bytes]] = []
-        for asset_url in asset_urls:
-            response = page.goto(asset_url, wait_until="commit", timeout=60000)
-            if response is None or not response.ok:
-                status = response.status if response is not None else "no_response"
-                raise StageExecutionError(f"{FAILURE_DOWNLOAD}: {asset_url}: HTTP {status}")
-            downloads.append(
-                (
-                    asset_url,
-                    response.headers.get("content-type"),
-                    _normalize_downloaded_bytes(response.body()),
-                )
+def _iframe_asset_urls(page) -> list[str]:
+    asset_urls: list[str] = []
+    for frame in getattr(page, "frames", []):
+        try:
+            frame_asset_urls = frame.evaluate(
+                """() => {
+                  const results = [];
+                  const collect = (value) => {
+                    if (typeof value === 'string' && value.includes('DeliveryManagerServlet')) {
+                      results.push(value);
+                    }
+                  };
+                  for (const img of document.querySelectorAll('img')) {
+                    collect(img.getAttribute('src'));
+                    collect(img.getAttribute('data-src'));
+                  }
+                  const text = document.documentElement ? document.documentElement.innerHTML : '';
+                  const matches = text.match(/https?:\\\\/\\\\/[^"'\\\\s]+DeliveryManagerServlet[^"'\\\\s<]+/g) || [];
+                  for (const match of matches) {
+                    results.push(match);
+                  }
+                  return [...new Set(results)];
+                }"""
             )
-        return downloads
-    finally:
-        page.close()
+        except Exception:
+            continue
+        for value in frame_asset_urls or []:
+            if isinstance(value, str):
+                asset_urls.append(urljoin(frame.url or page.url, value))
+        if asset_urls:
+            break
+    return asset_urls[:NLI_PROMOTION_MAX_ASSETS]
+
+
+def _delivery_manager_asset_urls(page) -> list[str]:
+    urls = [
+        urljoin(page.url, value)
+        for value in page.locator("img[src*='DeliveryManagerServlet']").evaluate_all("els => els.map(el => el.getAttribute('src'))")
+        if value
+    ]
+    normalized_urls: list[str] = []
+    for value in urls:
+        if "dps_func=thumbnail" in value:
+            normalized_urls.append(value.replace("dps_func=thumbnail", "dps_func=stream"))
+        else:
+            normalized_urls.append(value)
+    return normalized_urls[:NLI_PROMOTION_MAX_ASSETS]
+
+
+def _normalize_downloaded_asset(*, content_type: str | None, body: bytes) -> tuple[str | None, bytes]:
+    if _asset_signature(body) != "tiff":
+        return content_type, body
+    image = Image.open(BytesIO(body))
+    if image.mode not in {"RGB", "L"}:
+        image = image.convert("RGB")
+    elif image.mode == "L":
+        image = image.convert("RGB")
+    output = BytesIO()
+    image.save(output, format="JPEG", quality=92)
+    return "image/jpeg", output.getvalue()

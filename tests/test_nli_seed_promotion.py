@@ -3,14 +3,17 @@ from __future__ import annotations
 import json
 import sys
 import types
+from io import BytesIO
 from pathlib import Path
 
 import pytest
+from PIL import Image
 
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.tools.nli_seed_promotion import (
     ExtractedSeedPage,
     PromotionFailure,
+    _normalize_downloaded_asset,
     _normalize_downloaded_bytes,
     _escape_html,
     _extract_failure_reason,
@@ -55,6 +58,22 @@ def test_normalize_downloaded_bytes_repairs_utf8_mojibake_jpeg_bytes() -> None:
     raw = b"\xff\xd8\xff\xe0\x00\x10JFIF\x00\x01"
     mangled = raw.decode("latin1").encode("utf-8")
     assert _normalize_downloaded_bytes(mangled) == raw
+
+
+def test_normalize_downloaded_asset_converts_tiff_to_jpeg() -> None:
+    image = Image.new("RGB", (32, 24), color="white")
+    buffer = BytesIO()
+    image.save(buffer, format="TIFF")
+
+    content_type, normalized = _normalize_downloaded_asset(
+        content_type="image/tiff;charset=UTF-8",
+        body=buffer.getvalue(),
+    )
+
+    assert content_type == "image/jpeg"
+    normalized_image = Image.open(BytesIO(normalized))
+    assert normalized_image.format == "JPEG"
+    assert normalized_image.size == (32, 24)
 
 
 def test_infer_asset_extension_rejects_unsupported_types() -> None:
@@ -942,6 +961,35 @@ def test_extract_page_data_uses_title_description_rights_and_asset_urls() -> Non
     assert extracted.rights == "Any Use Permitted"
     assert extracted.asset_urls == ["https://example.com/a.svg", "https://example.com/b.png"]
     assert PageForExtract().locator("unknown").count() == 0
+
+
+def test_extract_page_data_falls_back_to_delivery_manager_asset_urls() -> None:
+    class PageForExtract(_FakePage):
+        def __init__(self):
+            super().__init__(url="https://example.com/item")
+
+        def locator(self, selector: str):
+            if selector == "meta[property='og:title']":
+                loc = _FakeLocator(count=1, attr="Meta Title")
+                loc.first = loc
+                return loc
+            if selector == ".rights-label":
+                loc = _FakeLocator(count=1, text="Any Use Permitted")
+                loc.first = loc
+                return loc
+            if selector == "img[src*='DeliveryManagerServlet']":
+                class AssetLocator(_FakeLocator):
+                    def evaluate_all(self, _script: str):
+                        return ["/delivery/DeliveryManagerServlet?dps_pid=abc&dps_func=thumbnail"]
+
+                loc = AssetLocator(count=1)
+                loc.first = loc
+                return loc
+            return super().locator(selector)
+
+    extract_page_data = __import__("hocrgen.tools.nli_seed_promotion", fromlist=["extract_page_data"]).extract_page_data
+    extracted = extract_page_data(PageForExtract())
+    assert extracted.asset_urls == ["https://example.com/delivery/DeliveryManagerServlet?dps_pid=abc&dps_func=stream"]
 
 
 def test_capture_seed_via_browser_import_error(monkeypatch: pytest.MonkeyPatch) -> None:

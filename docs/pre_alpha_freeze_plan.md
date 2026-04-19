@@ -49,6 +49,9 @@ The first alpha should not ship with a tiny NLI sample and a historical exemplar
 - all public historical samples are text-bearing and representative
 - the real portion of the alpha set looks intentional rather than placeholder-like
 
+**Status**
+- completed on `main` by promoting a high-resolution `nli-ms-seed-006` fixture and replacing the Pinkas cover exemplar with a text-bearing interior page
+
 ### `B5b3` — Synthetic alpha unblock and sampling policy
 
 **Why now**
