@@ -140,13 +140,11 @@ def test_export_alpha_only_copies_release_ready_items(tmp_path: Path, capsys) ->
     exported_ids = {item["item_id"] for item in item_manifest["items"]}
     assert "nli_any_use_permitted:nli-ms-001" not in exported_ids
     assert "biblia_open:biblia-doc-001" not in exported_ids
-    assert len(item_manifest["items"]) == 2
-    assert len(split_manifest["items"]) == 2
-    assert len(review_required["items"]) == 2
-    assert {item["source_id"] for item in review_required["items"]} == {
-        "biblia_open",
-        "nli_any_use_permitted",
-    }
+    assert "nli_any_use_permitted:nli-ms-seed-006" in exported_ids
+    assert len(item_manifest["items"]) == 3
+    assert len(split_manifest["items"]) == 3
+    assert len(review_required["items"]) == 1
+    assert {item["source_id"] for item in review_required["items"]} == {"biblia_open"}
     for item in review_required["items"]:
         assert "raw_metadata" not in item
         assert "fixture_path" not in item
@@ -267,7 +265,7 @@ def test_export_alpha_docs_and_release_record_include_metadata(
     git_result = subprocess.run(["git", "rev-parse", "HEAD"])
 
     assert release_record["profile_id"] == "profile_open_v1"
-    assert release_record["included_sources"] == ["pinkas_open", "project_synthetic"]
+    assert release_record["included_sources"] == ["nli_any_use_permitted", "pinkas_open", "project_synthetic"]
     if git_result.returncode == 0:
         current_commit = git_result.stdout.strip()
         assert release_record["hocrgen_commit"] == current_commit
@@ -276,6 +274,7 @@ def test_export_alpha_docs_and_release_record_include_metadata(
         assert release_record["hocrgen_commit"] == "unknown"
     assert "# HeOCR alpha-v0" in dataset_card
     assert "Release Notes: alpha-v0" in release_notes
+    assert dataset_card.index("`nli_any_use_permitted`") < dataset_card.index("`pinkas_open`")
     assert dataset_card.index("`pinkas_open`") < dataset_card.index("`project_synthetic`")
     assert "`biblia_open`" not in dataset_card
 
