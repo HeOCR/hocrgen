@@ -22,6 +22,7 @@ from hocrgen.package.alpha import (
     _current_commit_sha,
     _public_item_payload,
     _review_queue_payload,
+    _sanitize_portable_value,
     _select_alpha_items,
     _source_priority,
     _split_sort_key,
@@ -643,6 +644,31 @@ def test_public_item_payload_excludes_local_paths(tmp_path: Path) -> None:
         "asset_format": "svg",
         "release_preview_path": None,
     }
+
+
+def test_public_item_payload_raises_if_sanitizer_does_not_return_object(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    asset_path = tmp_path / "asset.svg"
+    asset_path.write_text("<svg/>", encoding="utf-8")
+    item = AlphaExportedItemRecord.model_validate(
+        _make_item("payload:item", "train", str(asset_path)).model_dump(mode="python")
+        | {"exported_assets": []}
+    )
+    monkeypatch.setattr("hocrgen.package.alpha._sanitize_portable_value", lambda value: "not-a-dict")
+    with pytest.raises(StageExecutionError, match="public item payload must serialize to an object"):
+        _public_item_payload(item)
+
+
+def test_sanitize_portable_value_omits_local_paths_from_lists() -> None:
+    assert _sanitize_portable_value(
+        [
+            "keep me",
+            "/tmp/local-file",
+            r"C:\Users\shay\artifact.json",
+            r"\\server\share\artifact.json",
+            r"relative\.work\cache",
+            "file:///Users/shay/file.txt",
+        ]
+    ) == ["keep me"]
 
 
 def test_audit_item_payload_excludes_local_paths_and_raw_metadata(tmp_path: Path) -> None:

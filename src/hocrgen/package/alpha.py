@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 import shutil
 import subprocess
 from collections import Counter
@@ -369,7 +370,13 @@ def _sanitize_portable_value(value: Any) -> Any:
 def _looks_like_local_path(value: str) -> bool:
     if value.startswith(("http://", "https://", "package://")):
         return False
-    return value.startswith("/") or ".work/" in value
+    return bool(
+        value.startswith("/")
+        or value.startswith(("file://", "\\\\"))
+        or re.match(r"^[A-Za-z]:[\\/]", value)
+        or ".work/" in value
+        or ".work\\" in value
+    )
 
 
 def _review_queue_payloads(items: list[ReviewQueueRecord], export_dir: Path) -> list[dict[str, Any]]:
@@ -392,7 +399,7 @@ def _copy_review_previews(item: ReviewQueueRecord, export_dir: Path) -> list[str
         target = preview_dir / f"{index:02d}_{source.name}"
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
-        exported_preview_paths.append(str(target.relative_to(export_dir)))
+        exported_preview_paths.append(target.relative_to(export_dir).as_posix())
     return exported_preview_paths
 
 
