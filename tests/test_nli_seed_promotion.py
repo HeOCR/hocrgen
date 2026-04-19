@@ -13,6 +13,9 @@ from hocrgen.core.errors import StageExecutionError
 from hocrgen.tools.nli_seed_promotion import (
     ExtractedSeedPage,
     PromotionFailure,
+    _delivery_manager_asset_urls,
+    _iframe_asset_urls,
+    _normalize_delivery_manager_url,
     _normalize_downloaded_asset,
     _normalize_downloaded_bytes,
     _escape_html,
@@ -61,7 +64,7 @@ def test_normalize_downloaded_bytes_repairs_utf8_mojibake_jpeg_bytes() -> None:
 
 
 def test_normalize_downloaded_asset_converts_tiff_to_jpeg() -> None:
-    image = Image.new("RGB", (32, 24), color="white")
+    image = Image.new("L", (32, 24), color=255)
     buffer = BytesIO()
     image.save(buffer, format="TIFF")
 
@@ -74,6 +77,17 @@ def test_normalize_downloaded_asset_converts_tiff_to_jpeg() -> None:
     normalized_image = Image.open(BytesIO(normalized))
     assert normalized_image.format == "JPEG"
     assert normalized_image.size == (32, 24)
+    assert normalized_image.mode == "RGB"
+
+
+def test_normalize_downloaded_asset_leaves_non_tiff_bytes_unchanged() -> None:
+    content_type, normalized = _normalize_downloaded_asset(
+        content_type="image/jpeg",
+        body=b"not-a-tiff",
+    )
+
+    assert content_type == "image/jpeg"
+    assert normalized == b"not-a-tiff"
 
 
 def test_infer_asset_extension_rejects_unsupported_types() -> None:
@@ -655,6 +669,7 @@ class _FakePage:
         self.reload_calls: list[str] = []
         self.brought_to_front = False
         self.closed = False
+        self.frames = []
 
     def locator(self, selector: str):
         marker_state = self._markers[0] if self._markers else False
@@ -990,6 +1005,71 @@ def test_extract_page_data_falls_back_to_delivery_manager_asset_urls() -> None:
     extract_page_data = __import__("hocrgen.tools.nli_seed_promotion", fromlist=["extract_page_data"]).extract_page_data
     extracted = extract_page_data(PageForExtract())
     assert extracted.asset_urls == ["https://example.com/delivery/DeliveryManagerServlet?dps_pid=abc&dps_func=stream"]
+
+
+def test_iframe_asset_urls_skips_broken_frames_and_normalizes_delivery_manager_urls() -> None:
+    class Frame:
+        def __init__(self, *, url: str, values=None, error: Exception | None = None):
+            self.url = url
+            self._values = values
+            self._error = error
+
+        def evaluate(self, _script: str):
+            if self._error is not None:
+                raise self._error
+            return self._values
+
+    page = _FakePage(url="https://example.com/item")
+    page.frames = [
+        Frame(url="https://example.com/broken", error=RuntimeError("boom")),
+        Frame(
+            url="https://example.com/viewer/frame",
+            values=[
+                "/delivery/DeliveryManagerServlet?dps_pid=abc&dps_func=thumbnail",
+                "https://cdn.example.com/DeliveryManagerServlet?dps_pid=def&dps_func=thumbnail",
+                None,
+            ],
+        ),
+        Frame(
+            url="https://example.com/ignored",
+            values=["/delivery/DeliveryManagerServlet?dps_pid=ignored&dps_func=thumbnail"],
+        ),
+    ]
+
+    assert _iframe_asset_urls(page) == [
+        "https://example.com/delivery/DeliveryManagerServlet?dps_pid=abc&dps_func=stream",
+        "https://cdn.example.com/DeliveryManagerServlet?dps_pid=def&dps_func=stream",
+    ]
+
+
+def test_delivery_manager_url_helpers_normalize_thumbnail_urls() -> None:
+    assert _normalize_delivery_manager_url("https://example.com/plain.jpg") == "https://example.com/plain.jpg"
+    assert _normalize_delivery_manager_url(
+        "https://example.com/DeliveryManagerServlet?dps_pid=abc&dps_func=thumbnail"
+    ) == "https://example.com/DeliveryManagerServlet?dps_pid=abc&dps_func=stream"
+
+    class PageWithDeliveryManager(_FakePage):
+        def __init__(self):
+            super().__init__(url="https://example.com/item")
+
+        def locator(self, selector: str):
+            if selector == "img[src*='DeliveryManagerServlet']":
+                class AssetLocator(_FakeLocator):
+                    def evaluate_all(self, _script: str):
+                        return [
+                            "/delivery/DeliveryManagerServlet?dps_pid=abc&dps_func=thumbnail",
+                            "https://cdn.example.com/DeliveryManagerServlet?dps_pid=def&dps_func=stream",
+                        ]
+
+                loc = AssetLocator(count=2)
+                loc.first = loc
+                return loc
+            return super().locator(selector)
+
+    assert _delivery_manager_asset_urls(PageWithDeliveryManager()) == [
+        "https://example.com/delivery/DeliveryManagerServlet?dps_pid=abc&dps_func=stream",
+        "https://cdn.example.com/DeliveryManagerServlet?dps_pid=def&dps_func=stream",
+    ]
 
 
 def test_capture_seed_via_browser_import_error(monkeypatch: pytest.MonkeyPatch) -> None:

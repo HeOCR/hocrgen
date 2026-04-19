@@ -557,7 +557,6 @@ def capture_seed_via_browser(
                 playwright,
                 context.storage_state(),
                 extracted.asset_urls,
-                browser_context=context,
             )
             return extracted, downloads
         except Exception as exc:  # pragma: no cover - browser path is intentionally local/manual
@@ -612,8 +611,6 @@ def download_assets(
     playwright,
     storage_state: dict[str, Any],
     asset_urls: list[str],
-    *,
-    browser_context=None,
 ) -> list[tuple[str, str | None, bytes]]:  # pragma: no cover
     request_context = playwright.request.new_context(storage_state=storage_state)
     try:
@@ -896,34 +893,33 @@ def _iframe_asset_urls(page) -> list[str]:
             continue
         for value in frame_asset_urls or []:
             if isinstance(value, str):
-                asset_urls.append(urljoin(frame.url or page.url, value))
+                asset_urls.append(_normalize_delivery_manager_url(urljoin(frame.url or page.url, value)))
         if asset_urls:
             break
     return asset_urls[:NLI_PROMOTION_MAX_ASSETS]
 
 
 def _delivery_manager_asset_urls(page) -> list[str]:
-    urls = [
-        urljoin(page.url, value)
+    return [
+        _normalize_delivery_manager_url(urljoin(page.url, value))
         for value in page.locator("img[src*='DeliveryManagerServlet']").evaluate_all("els => els.map(el => el.getAttribute('src'))")
         if value
     ]
-    normalized_urls: list[str] = []
-    for value in urls:
-        if "dps_func=thumbnail" in value:
-            normalized_urls.append(value.replace("dps_func=thumbnail", "dps_func=stream"))
-        else:
-            normalized_urls.append(value)
-    return normalized_urls[:NLI_PROMOTION_MAX_ASSETS]
+
+
+def _normalize_delivery_manager_url(url: str) -> str:
+    if "DeliveryManagerServlet" not in url:
+        return url
+    if "dps_func=thumbnail" in url:
+        return url.replace("dps_func=thumbnail", "dps_func=stream")
+    return url
 
 
 def _normalize_downloaded_asset(*, content_type: str | None, body: bytes) -> tuple[str | None, bytes]:
     if _asset_signature(body) != "tiff":
         return content_type, body
     image = Image.open(BytesIO(body))
-    if image.mode not in {"RGB", "L"}:
-        image = image.convert("RGB")
-    elif image.mode == "L":
+    if image.mode != "RGB":
         image = image.convert("RGB")
     output = BytesIO()
     image.save(output, format="JPEG", quality=92)
