@@ -688,23 +688,23 @@ def test_review_queue_payload_rewrites_preview_paths_into_export_tree(tmp_path: 
     payload = _review_queue_payload(
         ReviewQueueRecord.model_validate(
             {
-            "review_item_id": "review:test:item-001",
-            "item_id": "test:item-001",
+            "review_item_id": "review:test:item/001",
+            "item_id": "test:item/001",
             "source_id": "test_source",
-            "canonical_item_id": "test:item-001",
-            "split_group_id_pre_review": "group:test:item-001",
+            "canonical_item_id": "test:item/001",
+            "split_group_id_pre_review": "group:test:item/001",
             "review_reasons": ["privacy:metadata_signal"],
             "suggested_decision": "needs_privacy_review",
             "privacy_flag": "needs_review",
             "classification_summary": {},
             "preview_paths": [str(preview_path)],
-            "source_url": "https://example.org/test:item-001",
-            "title": "test:item-001",
+            "source_url": "https://example.org/test:item/001",
+            "title": "test:item/001",
             }
         ),
         tmp_path / "export",
     )
-    assert payload["preview_paths"] == ["manifests/review_previews/test:item-001/01_preview.svg"]
+    assert payload["preview_paths"] == ["manifests/review_previews/test__item_001/01_preview.svg"]
     assert (tmp_path / "export" / payload["preview_paths"][0]).exists()
 
 

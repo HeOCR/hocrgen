@@ -24,6 +24,7 @@ from hocrgen.manifests.models import (
     ReviewQueueRecord,
     SplitAssignmentRecord,
 )
+from hocrgen.normalize.files import sanitize_item_id
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -391,15 +392,20 @@ def _review_queue_payload(item: ReviewQueueRecord, export_dir: Path) -> dict[str
 
 def _copy_review_previews(item: ReviewQueueRecord, export_dir: Path) -> list[str]:
     exported_preview_paths: list[str] = []
-    preview_dir = export_dir / "manifests" / "review_previews" / item.item_id
+    export_root = export_dir.resolve()
+    preview_dir = export_root / "manifests" / "review_previews" / sanitize_item_id(item.item_id)
     for index, preview_path in enumerate(item.preview_paths, start=1):
         source = Path(preview_path)
         if not source.exists():
             continue
-        target = preview_dir / f"{index:02d}_{source.name}"
+        target = (preview_dir / f"{index:02d}_{source.name}").resolve()
+        try:
+            relative_target = target.relative_to(export_root)
+        except ValueError as exc:
+            raise StageExecutionError(f"review preview target escapes export dir for item {item.item_id}") from exc
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, target)
-        exported_preview_paths.append(target.relative_to(export_dir).as_posix())
+        exported_preview_paths.append(relative_target.as_posix())
     return exported_preview_paths
 
 
