@@ -12,7 +12,7 @@ from hocrgen.cli import handle_export_alpha, main
 from hocrgen.config.loader import default_config_root, load_and_validate_bundle
 from hocrgen.config.models import RightsClassification
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
-from hocrgen.manifests.models import AlphaExportedItemRecord, NormalizedAssetRecord, PrivacyScannedItemRecord
+from hocrgen.manifests.models import AlphaExportedItemRecord, NormalizedAssetRecord, PrivacyScannedItemRecord, ReviewQueueRecord
 from hocrgen.package.alpha import (
     AlphaExportConfig,
     REPO_ROOT,
@@ -21,6 +21,8 @@ from hocrgen.package.alpha import (
     _copy_export_assets,
     _current_commit_sha,
     _public_item_payload,
+    _review_queue_payload,
+    _sanitize_portable_value,
     _select_alpha_items,
     _source_priority,
     _split_sort_key,
@@ -132,6 +134,7 @@ def test_export_alpha_only_copies_release_ready_items(tmp_path: Path, capsys) ->
     item_manifest = json.loads((export_dir / "manifests" / "item_manifest.json").read_text(encoding="utf-8"))
     review_required = json.loads((export_dir / "manifests" / "review_required_items.json").read_text(encoding="utf-8"))
     blocked = json.loads((export_dir / "manifests" / "blocked_items.json").read_text(encoding="utf-8"))
+    review_queue = json.loads((export_dir / "manifests" / "review_queue.json").read_text(encoding="utf-8"))
     split_manifest = json.loads((export_dir / "manifests" / "split_manifest.json").read_text(encoding="utf-8"))
 
     exported_ids = {item["item_id"] for item in item_manifest["items"]}
@@ -148,6 +151,10 @@ def test_export_alpha_only_copies_release_ready_items(tmp_path: Path, capsys) ->
         assert "raw_metadata" not in item
         assert "fixture_path" not in item
         assert "normalized_assets" not in item
+    for item in review_queue["items"]:
+        for preview_path in item["preview_paths"]:
+            assert not Path(preview_path).is_absolute()
+            assert (export_dir / preview_path).exists()
     assert blocked["items"] == []
     assert "normalized_assets" not in item_manifest["items"][0]
     assert "asset_references" not in item_manifest["items"][0]
@@ -606,7 +613,15 @@ def test_public_item_payload_excludes_local_paths(tmp_path: Path) -> None:
     asset_path = tmp_path / "asset.svg"
     asset_path.write_text("<svg/>", encoding="utf-8")
     item = AlphaExportedItemRecord.model_validate(
-        _make_item("payload:item", "train", str(asset_path)).model_dump(mode="python")
+        (
+            _make_item("payload:item", "train", str(asset_path)).model_dump(mode="python")
+            | {
+                "metadata": {
+                    "display_label": "keep me",
+                    "seed_manifest": "/Users/example/project/src/hocrgen/data/nli/seeds.yaml",
+                }
+            }
+        )
         | {
             "exported_assets": [
                 {
@@ -622,12 +637,38 @@ def test_public_item_payload_excludes_local_paths(tmp_path: Path) -> None:
     assert "normalized_assets" not in payload
     assert "asset_references" not in payload
     assert "acquired_assets" not in payload
+    assert payload["metadata"] == {"display_label": "keep me"}
     assert payload["exported_assets"][0] == {
         "release_asset_path": "data/train/payload:item/asset.svg",
         "media_type": "image/svg+xml",
         "asset_format": "svg",
         "release_preview_path": None,
     }
+
+
+def test_public_item_payload_raises_if_sanitizer_does_not_return_object(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    asset_path = tmp_path / "asset.svg"
+    asset_path.write_text("<svg/>", encoding="utf-8")
+    item = AlphaExportedItemRecord.model_validate(
+        _make_item("payload:item", "train", str(asset_path)).model_dump(mode="python")
+        | {"exported_assets": []}
+    )
+    monkeypatch.setattr("hocrgen.package.alpha._sanitize_portable_value", lambda value: "not-a-dict")
+    with pytest.raises(StageExecutionError, match="public item payload must serialize to an object"):
+        _public_item_payload(item)
+
+
+def test_sanitize_portable_value_omits_local_paths_from_lists() -> None:
+    assert _sanitize_portable_value(
+        [
+            "keep me",
+            "/tmp/local-file",
+            r"C:\Users\shay\artifact.json",
+            r"\\server\share\artifact.json",
+            r"relative\.work\cache",
+            "file:///Users/shay/file.txt",
+        ]
+    ) == ["keep me"]
 
 
 def test_audit_item_payload_excludes_local_paths_and_raw_metadata(tmp_path: Path) -> None:
@@ -639,6 +680,55 @@ def test_audit_item_payload_excludes_local_paths_and_raw_metadata(tmp_path: Path
     assert "raw_metadata" not in payload
     assert "fixture_path" not in payload
     assert "normalized_assets" not in payload
+
+
+def test_review_queue_payload_rewrites_preview_paths_into_export_tree(tmp_path: Path) -> None:
+    preview_path = tmp_path / "preview.svg"
+    preview_path.write_text("<svg/>", encoding="utf-8")
+    payload = _review_queue_payload(
+        ReviewQueueRecord.model_validate(
+            {
+            "review_item_id": "review:test:item/001",
+            "item_id": "test:item/001",
+            "source_id": "test_source",
+            "canonical_item_id": "test:item/001",
+            "split_group_id_pre_review": "group:test:item/001",
+            "review_reasons": ["privacy:metadata_signal"],
+            "suggested_decision": "needs_privacy_review",
+            "privacy_flag": "needs_review",
+            "classification_summary": {},
+            "preview_paths": [str(preview_path)],
+            "source_url": "https://example.org/test:item/001",
+            "title": "test:item/001",
+            }
+        ),
+        tmp_path / "export",
+    )
+    assert payload["preview_paths"] == ["manifests/review_previews/test__item_001/01_preview.svg"]
+    assert (tmp_path / "export" / payload["preview_paths"][0]).exists()
+
+
+def test_review_queue_payload_skips_missing_preview_paths(tmp_path: Path) -> None:
+    payload = _review_queue_payload(
+        ReviewQueueRecord.model_validate(
+            {
+            "review_item_id": "review:test:item-002",
+            "item_id": "test:item-002",
+            "source_id": "test_source",
+            "canonical_item_id": "test:item-002",
+            "split_group_id_pre_review": "group:test:item-002",
+            "review_reasons": ["policy:review_only_source"],
+            "suggested_decision": "needs_policy_review",
+            "privacy_flag": "clear",
+            "classification_summary": {},
+            "preview_paths": [str(tmp_path / "missing.svg")],
+            "source_url": "https://example.org/test:item-002",
+            "title": "test:item-002",
+            }
+        ),
+        tmp_path / "export",
+    )
+    assert payload["preview_paths"] == []
 
 
 def test_validate_overwrite_target_rejects_non_directory(tmp_path: Path) -> None:
