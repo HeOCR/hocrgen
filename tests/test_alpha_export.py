@@ -257,12 +257,48 @@ def test_select_alpha_items_rejects_negative_caps(tmp_path: Path) -> None:
     asset_path.write_text("<svg/>", encoding="utf-8")
     items = [_make_item("real:item-0", "train", str(asset_path))]
 
+    with pytest.raises(StageExecutionError, match="max_real_items must be non-negative"):
+        _select_alpha_items(
+            items,
+            bundle.profiles["profile_open_v1"],
+            AlphaExportConfig(version="alpha-v0", max_real_items=-1, max_synthetic_items=1),
+        )
+
     with pytest.raises(StageExecutionError, match="max_synthetic_items must be non-negative"):
         _select_alpha_items(
             items,
             bundle.profiles["profile_open_v1"],
             AlphaExportConfig(version="alpha-v0", max_real_items=1, max_synthetic_items=-1),
         )
+
+
+def test_export_alpha_summary_marks_when_synthetic_cap_is_bound_by_real_items(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+
+    exit_code = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--max-real-items",
+            "1",
+            "--max-synthetic-items",
+            "10",
+        ]
+    )
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    export_dir = Path(payload["export_dir"])
+    release_summary = json.loads((export_dir / "manifests" / "release_summary.json").read_text(encoding="utf-8"))
+
+    assert release_summary["exported_real_items"] == 1
+    assert release_summary["exported_synthetic_items"] == 1
+    assert release_summary["synthetic_clamped_to_real"] is True
 
 
 @pytest.mark.parametrize("git_available", [True, False])
@@ -482,6 +518,25 @@ def test_export_alpha_rejects_negative_caps(capsys, tmp_path: Path) -> None:
 
     assert exit_code == 1
     assert payload["error"] == "max_synthetic_items must be non-negative"
+
+    exit_code = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work2"),
+            "--max-real-items",
+            "-1",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload["error"] == "max_real_items must be non-negative"
 
 
 def test_export_alpha_handles_unknown_profile(capsys, tmp_path: Path) -> None:

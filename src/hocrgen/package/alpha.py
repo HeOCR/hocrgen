@@ -144,7 +144,7 @@ def export_alpha_release(
         "review_required_count": len(review_required_items),
         "split_counts": split_counts,
         "synthetic_items": exported_synthetic_items,
-        "synthetic_clamped_to_real": exported_synthetic_items < min(synthetic_limit, available_synthetic),
+        "synthetic_clamped_to_real": synthetic_limit < config.max_synthetic_items,
         "version": config.version,
     }
 
