@@ -329,7 +329,7 @@ The synthetic subsystem is modest but real:
 - uses tracked governed fonts from [`src/hocrgen/data/synthetic/fonts/manifest.yaml`](./src/hocrgen/data/synthetic/fonts/manifest.yaml)
 - uses a curated packaged Hebrew text corpus from [`src/hocrgen/data/synthetic/texts/hebrew_lines.txt`](./src/hocrgen/data/synthetic/texts/hebrew_lines.txt)
 - supports a printed-style and handwritten-look template family
-- reorders logical Hebrew into display order before Pillow rendering so exported JPEGs read correctly without optional RTL layout libraries
+- applies a conservative Hebrew RTL display-order heuristic before Pillow rendering for environments without optional RTL layout libraries; this is not full bidi-aware layout and may be inaccurate for mixed-direction text
 - applies lightweight paper variation, blur/noise, and JPEG compression to avoid pristine mock-document output
 
 ## Fixtures and tests

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from hocrgen.config.loader import load_yaml_file
 from hocrgen.utils.hashing import sha256_file
 
 
-GENERATOR_VERSION = "b5b3-jpeg-v1"
+GENERATOR_VERSION = "b5b3-jpeg-v2"
 CANVAS_SIZE = (1200, 1600)
 PAPER_MARGIN = 96
 
@@ -87,7 +88,17 @@ def _wrap_hebrew_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.Free
 
 
 def _rtl_display_text(text: str) -> str:
-    return text[::-1]
+    parts = re.split(r"(\s+)", text)
+    reordered: list[str] = []
+    for part in reversed(parts):
+        if not part or part.isspace():
+            reordered.append(part)
+            continue
+        if re.search(r"[\u0590-\u05FF]", part) and not re.search(r"[A-Za-z0-9]", part):
+            reordered.append(part[::-1])
+            continue
+        reordered.append(part)
+    return "".join(reordered)
 
 
 def _paper_background(randomizer: random.Random, size: tuple[int, int], tone: str) -> Image.Image:

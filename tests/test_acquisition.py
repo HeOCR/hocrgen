@@ -147,7 +147,7 @@ def test_synthetic_generation_is_deterministic(tmp_path: Path) -> None:
     assert acquired_once[0].acquired_assets[0].sha256 == acquired_twice[0].acquired_assets[0].sha256
     assert acquired_once[0].acquired_assets[0].path.endswith(".jpg")
     assert acquired_once[0].acquired_assets[0].media_type == "image/jpeg"
-    assert acquired_once[0].metadata["synthetic_generator_version"] == "b5b3-jpeg-v1"
+    assert acquired_once[0].metadata["synthetic_generator_version"] == "b5b3-jpeg-v2"
     assert acquired_once[0].metadata["synthetic_font_id"] in {
         "alef-regular",
         "gveret-levin-regular",
@@ -168,7 +168,7 @@ def test_synthetic_generation_uses_packaged_fonts_and_curated_text(tmp_path: Pat
     )
 
     assert {document.path.suffix for document in documents} == {".jpg"}
-    assert {document.generator_version for document in documents} == {"b5b3-jpeg-v1"}
+    assert {document.generator_version for document in documents} == {"b5b3-jpeg-v2"}
     assert {document.font_id for document in documents} == {
         "alef-regular",
         "gveret-levin-regular",
@@ -256,7 +256,8 @@ def test_wrap_hebrew_text_handles_empty_and_wrapping_branches() -> None:
 
 def test_rtl_display_text_reverses_logical_hebrew_for_pillow_rendering() -> None:
     assert _rtl_display_text("מכתב מנהלי") == "ילהנמ בתכמ"
-    assert _rtl_display_text("סימן 12") == "21 ןמיס"
+    assert _rtl_display_text("סימן 12") == "12 ןמיס"
+    assert _rtl_display_text("עמוד ABC") == "ABC דומע"
 
 
 def test_select_font_rejects_missing_style() -> None:

@@ -57,6 +57,7 @@ def export_alpha_release(
     profile_id: str,
     config: AlphaExportConfig,
 ) -> AlphaExportResult:
+    _validate_alpha_export_config(config)
     profile = bundle.profiles[profile_id]
     build_dir = run_dir / "build_release"
     handoff_repo_root = None
@@ -236,6 +237,7 @@ def _select_alpha_items(
     profile: ReleaseProfile,
     config: AlphaExportConfig,
 ) -> list[PrivacyScannedItemRecord]:
+    _validate_alpha_export_config(config)
     ordered = sorted(items, key=lambda item: (_split_sort_key(item.split), _source_priority(profile, item.source_id), item.item_id))
     real_items = [item for item in ordered if not item.is_synthetic]
     synthetic_items = [item for item in ordered if item.is_synthetic]
@@ -249,7 +251,14 @@ def _select_alpha_items(
 
 
 def _synthetic_item_limit(real_item_count: int, config: AlphaExportConfig) -> int:
-    return min(config.max_synthetic_items, real_item_count * 2)
+    return max(0, min(config.max_synthetic_items, real_item_count * 2))
+
+
+def _validate_alpha_export_config(config: AlphaExportConfig) -> None:
+    if config.max_real_items < 0:
+        raise StageExecutionError("max_real_items must be non-negative")
+    if config.max_synthetic_items < 0:
+        raise StageExecutionError("max_synthetic_items must be non-negative")
 
 
 def _copy_export_assets(items: list[PrivacyScannedItemRecord], data_dir: Path) -> list[AlphaExportedItemRecord]:
