@@ -138,8 +138,8 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | B5a | B5 | Review-ready build and alpha export packaging in `hocrgen` | yes | completed | merged as PR #10 |
 | B5b1 | B5 | Alpha export portability cleanup for public manifests and audit artifacts | yes | completed | pre-alpha freeze PR 1 |
 | B5b2 | B5 | Real-scan exemplar refresh: higher-resolution NLI export and text-bearing historical sample replacement | yes | completed | pre-alpha freeze PR 2 |
-| B5b3 | B5 | Synthetic alpha unblock: Hebrew ordering fix, `2x real` synthetic cap, and low-risk realism polish | yes | planned | pre-alpha freeze PR 3 |
-| B5b4 | B5 | Final alpha freeze validation and handoff into the separate `HeOCR` repo | yes | planned | pre-alpha freeze PR 4 |
+| B5b3 | B5 | Synthetic alpha unblock: Hebrew ordering fix, `2x real` synthetic cap, and low-risk realism polish | yes | completed | pre-alpha freeze PR 3 |
+| B5b4 | B5 | Final alpha freeze validation and handoff into the separate `HeOCR` repo | yes | next | pre-alpha freeze PR 4 |
 | C1a | C1 | Normalization, metadata extraction, checksums, previews, QA | yes | completed | merged as PR #3 |
 | C2a | C2 | Exact dedupe, deterministic split assignment, curated build outputs | yes | completed | merged as PR #5 |
 | C3a | C3 | Heuristic classification | yes | completed | merged as PR #6 |
@@ -162,10 +162,9 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 
 The immediate implementation critical path to a defensible public alpha is:
 
-1. **B5b3**: fix synthetic Hebrew ordering, move alpha synthetic inclusion to a `2x real items` policy, and land only low-risk synthetic polish that materially improves alpha credibility
-2. **B5b4**: freeze the validated alpha contents and hand the versioned export into the separate `HeOCR` repository
+1. **B5b4**: freeze the validated alpha contents and hand the versioned export into the separate `HeOCR` repository
 
-This prioritization is intentional. `B5a` already makes the alpha mechanically exportable, and `B2b` plus `B3b` moved the historical and synthetic samples closer to release-ready. `B5b1` removed exported absolute-path leakage by rewriting review preview references into release-local audit assets, and `B5b2` refreshed the real exemplars by promoting a high-resolution NLI page and replacing the Pinkas cover sample with a text-bearing interior page. The remaining alpha-critical work is synthetic correctness and the final handoff. Handwritten-like generation, heavier synthetic degradation, broader synthetic diversity, and review-decision merge remain important, but they are no longer part of the minimum alpha-freeze bar.
+This prioritization is intentional. `B5a` already makes the alpha mechanically exportable, and `B2b` plus `B3b` moved the historical and synthetic samples closer to release-ready. `B5b1` removed exported absolute-path leakage by rewriting review preview references into release-local audit assets, `B5b2` refreshed the real exemplars by promoting a high-resolution NLI page and replacing the Pinkas cover sample with a text-bearing interior page, and `B5b3` fixed synthetic Hebrew display ordering while moving alpha synthetic selection to a `2x real items` policy. The remaining alpha-critical work is the final freeze and handoff. Handwritten-like generation, heavier synthetic degradation, broader synthetic diversity, and review-decision merge remain important, but they are no longer part of the minimum alpha-freeze bar.
 
 ## 4.4 Alpha release readiness gates
 

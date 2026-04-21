@@ -38,7 +38,7 @@ class AlphaExportConfig:
     output_dir: Path | None = None
     heocr_repo: Path | None = None
     max_real_items: int = 10
-    max_synthetic_items: int = 2
+    max_synthetic_items: int = 20
     overwrite: bool = False
 
 
@@ -57,6 +57,7 @@ def export_alpha_release(
     profile_id: str,
     config: AlphaExportConfig,
 ) -> AlphaExportResult:
+    _validate_alpha_export_config(config)
     profile = bundle.profiles[profile_id]
     build_dir = run_dir / "build_release"
     handoff_repo_root = None
@@ -124,7 +125,7 @@ def export_alpha_release(
         hocrgen_commit=commit_sha,
         exported_at=exported_at,
     )
-    available_synthetic = sum(1 for item in release_items if item.is_synthetic)
+    synthetic_limit = _synthetic_item_limit(exported_real_items, config)
     release_summary = {
         "accepted_count": build_release_summary["accepted_count"],
         "blocked_count": len(blocked_items),
@@ -142,7 +143,7 @@ def export_alpha_release(
         "review_required_count": len(review_required_items),
         "split_counts": split_counts,
         "synthetic_items": exported_synthetic_items,
-        "synthetic_clamped_to_real": exported_synthetic_items < min(config.max_synthetic_items, available_synthetic),
+        "synthetic_clamped_to_real": synthetic_limit < config.max_synthetic_items,
         "version": config.version,
     }
 
@@ -235,16 +236,28 @@ def _select_alpha_items(
     profile: ReleaseProfile,
     config: AlphaExportConfig,
 ) -> list[PrivacyScannedItemRecord]:
+    _validate_alpha_export_config(config)
     ordered = sorted(items, key=lambda item: (_split_sort_key(item.split), _source_priority(profile, item.source_id), item.item_id))
     real_items = [item for item in ordered if not item.is_synthetic]
     synthetic_items = [item for item in ordered if item.is_synthetic]
     selected_real = real_items[: config.max_real_items]
-    synthetic_limit = min(config.max_synthetic_items, len(selected_real))
+    synthetic_limit = _synthetic_item_limit(len(selected_real), config)
     selected_synthetic = synthetic_items[:synthetic_limit]
     return sorted(
         selected_real + selected_synthetic,
         key=lambda item: (_split_sort_key(item.split), _source_priority(profile, item.source_id), item.item_id),
     )
+
+
+def _synthetic_item_limit(real_item_count: int, config: AlphaExportConfig) -> int:
+    return max(0, min(config.max_synthetic_items, real_item_count * 2))
+
+
+def _validate_alpha_export_config(config: AlphaExportConfig) -> None:
+    if config.max_real_items < 0:
+        raise StageExecutionError("max_real_items must be non-negative")
+    if config.max_synthetic_items < 0:
+        raise StageExecutionError("max_synthetic_items must be non-negative")
 
 
 def _copy_export_assets(items: list[PrivacyScannedItemRecord], data_dir: Path) -> list[AlphaExportedItemRecord]:
@@ -493,7 +506,7 @@ def _release_notes(version: str, release_summary: dict[str, Any], source_stats: 
             "",
             "## Notes",
             f"- `max-real-items`: {release_summary['max_real_items']}",
-            f"- `max-synthetic-items`: {release_summary['max_synthetic_items']}",
+            f"- `max-synthetic-items`: {release_summary['max_synthetic_items']} (effective export cap also bounded by `2x` exported real items)",
             "- Export is shaped for manual handoff into the separate `HeOCR` repository under `releases/<version>/`.",
             "",
         ]

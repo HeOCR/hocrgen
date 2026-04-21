@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import random
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -10,7 +11,7 @@ from hocrgen.config.loader import load_yaml_file
 from hocrgen.utils.hashing import sha256_file
 
 
-GENERATOR_VERSION = "b3b-jpeg-v1"
+GENERATOR_VERSION = "b5b3-jpeg-v2"
 CANVAS_SIZE = (1200, 1600)
 PAPER_MARGIN = 96
 
@@ -86,6 +87,20 @@ def _wrap_hebrew_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.Free
     return lines
 
 
+def _rtl_display_text(text: str) -> str:
+    parts = re.split(r"(\s+)", text)
+    reordered: list[str] = []
+    for part in reversed(parts):
+        if not part or part.isspace():
+            reordered.append(part)
+            continue
+        if re.search(r"[\u0590-\u05FF]", part) and not re.search(r"[A-Za-z0-9]", part):
+            reordered.append(part[::-1])
+            continue
+        reordered.append(part)
+    return "".join(reordered)
+
+
 def _paper_background(randomizer: random.Random, size: tuple[int, int], tone: str) -> Image.Image:
     if tone == "printed":
         base = (246, 241, 230)
@@ -135,7 +150,7 @@ def _draw_document(
 
     title_x = CANVAS_SIZE[0] - PAPER_MARGIN - randomizer.randint(0, 24)
     title_y = PAPER_MARGIN + randomizer.randint(4, 24)
-    draw.text((title_x, title_y), title, font=title_font, fill=(34, 29, 24), anchor="ra")
+    draw.text((title_x, title_y), _rtl_display_text(title), font=title_font, fill=(34, 29, 24), anchor="ra")
 
     body_top = title_y + (132 if not handwritten else 118)
     max_width = CANVAS_SIZE[0] - (2 * PAPER_MARGIN) - 40
@@ -148,11 +163,11 @@ def _draw_document(
     for index, line in enumerate(wrapped_lines):
         x = start_x - randomizer.randint(0, 10 if handwritten else 4)
         y = body_top + index * line_height + randomizer.randint(-3, 3 if handwritten else 1)
-        draw.text((x, y), line, font=body_font, fill=(33, 28, 23), anchor="ra")
+        draw.text((x, y), _rtl_display_text(line), font=body_font, fill=(33, 28, 23), anchor="ra")
 
     footer_x = CANVAS_SIZE[0] - PAPER_MARGIN - randomizer.randint(12, 48)
     footer_y = CANVAS_SIZE[1] - PAPER_MARGIN - randomizer.randint(8, 24)
-    draw.text((footer_x, footer_y), footer, font=footer_font, fill=(93, 82, 70), anchor="ra")
+    draw.text((footer_x, footer_y), _rtl_display_text(footer), font=footer_font, fill=(93, 82, 70), anchor="ra")
 
     return _degrade(image, randomizer, background)
 

@@ -219,7 +219,7 @@ The alpha exporter:
 
 - copies only the public `release_ready` subset into `data/<split>/<item_id>/`
 - keeps `review_required` and `blocked` items as audit manifests only
-- caps synthetic inclusion separately from real inclusion
+- caps synthetic inclusion at `2x` the exported real-item count, still bounded by `--max-synthetic-items`
 - writes repo-ready manifests under `manifests/`
 - rewrites review preview references into release-local files under `manifests/review_previews/`
 - writes `DATASET_CARD.md`, `RELEASE_NOTES.md`, `PROVENANCE.md`, and `HANDOFF.md` under `docs/`
@@ -329,6 +329,7 @@ The synthetic subsystem is modest but real:
 - uses tracked governed fonts from [`src/hocrgen/data/synthetic/fonts/manifest.yaml`](./src/hocrgen/data/synthetic/fonts/manifest.yaml)
 - uses a curated packaged Hebrew text corpus from [`src/hocrgen/data/synthetic/texts/hebrew_lines.txt`](./src/hocrgen/data/synthetic/texts/hebrew_lines.txt)
 - supports a printed-style and handwritten-look template family
+- applies a conservative Hebrew RTL display-order heuristic before Pillow rendering for environments without optional RTL layout libraries; this is not full bidi-aware layout and may be inaccurate for mixed-direction text
 - applies lightweight paper variation, blur/noise, and JPEG compression to avoid pristine mock-document output
 
 ## Fixtures and tests

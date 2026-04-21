@@ -73,6 +73,9 @@ Synthetic maturity beyond alpha can wait, but visibly broken Hebrew ordering can
 - alpha exports can include synthetic items up to twice the number of exported real items
 - synthetic alpha pages are no longer blocked on a correctness bug
 
+**Status**
+- completed on `codex/b5b3-synthetic-alpha-unblock` by adding RTL display-order rendering for Pillow-based synthetic pages and changing alpha selection to a `2x real items` cap bounded by `--max-synthetic-items`
+
 ### `B5b4` — Final alpha freeze and `HeOCR` handoff
 
 **Why now**
