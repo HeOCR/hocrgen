@@ -77,12 +77,9 @@ def merge_review_decisions(
     *,
     release_ready_items: list[PrivacyScannedItemRecord],
     review_required_items: list[PrivacyScannedItemRecord],
-    blocked_items: list[PrivacyScannedItemRecord],
     review_queue: list[ReviewQueueRecord],
     review_data: ReviewData,
 ) -> ReviewMergeOutputs:
-    del blocked_items
-
     _validate_review_data(review_data)
 
     queue_by_item_id = {item.item_id: item for item in review_queue}
@@ -261,12 +258,14 @@ def _queue_entry_for_override(
         if queue_item is None:
             if queue_from_review_id is not None and queue_from_review_id.item_id != entry.item_id:
                 raise StageExecutionError(
-                    f"override review/item mismatch for {entry.item_id}: expected {queue_from_review_id.item_id}, got {entry.review_item_id}"
+                    f"override review/item mismatch for item_id {entry.item_id}: "
+                    f"review_item_id {entry.review_item_id} resolves to item_id {queue_from_review_id.item_id}"
                 )
             return queue_from_review_id
         if queue_from_review_id is not None and queue_from_review_id.item_id != queue_item.item_id:
             raise StageExecutionError(
-                f"override review/item mismatch for {entry.item_id}: expected {queue_item.review_item_id}, got {entry.review_item_id}"
+                f"override review/item mismatch for review_item_id {entry.review_item_id}: "
+                f"expected item_id {queue_item.item_id}, got item_id {queue_from_review_id.item_id}"
             )
     return queue_item
 

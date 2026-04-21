@@ -437,7 +437,6 @@ def test_review_merge_applies_manual_and_override_decisions(tmp_path: Path) -> N
     merged = merge_review_decisions(
         release_ready_items=outputs.release_ready_items,
         review_required_items=outputs.review_required_items,
-        blocked_items=outputs.blocked_items,
         review_queue=outputs.review_queue,
         review_data=review_data,
     )
@@ -469,7 +468,6 @@ def test_review_merge_emits_default_unresolved_audit_record() -> None:
     merged = merge_review_decisions(
         release_ready_items=outputs.release_ready_items,
         review_required_items=outputs.review_required_items,
-        blocked_items=outputs.blocked_items,
         review_queue=outputs.review_queue,
         review_data=load_review_data(default_config_root()),
     )
@@ -647,7 +645,6 @@ def test_review_merge_rejects_stale_or_mismatched_decisions(tmp_path: Path) -> N
         merge_review_decisions(
             release_ready_items=outputs.release_ready_items,
             review_required_items=outputs.review_required_items,
-            blocked_items=outputs.blocked_items,
             review_queue=outputs.review_queue,
             review_data=review_data,
         )
@@ -679,7 +676,6 @@ def test_review_merge_rejects_manual_decision_review_item_mismatch() -> None:
         merge_review_decisions(
             release_ready_items=outputs.release_ready_items,
             review_required_items=outputs.review_required_items,
-            blocked_items=outputs.blocked_items,
             review_queue=outputs.review_queue,
             review_data=review_data,
         )
@@ -704,7 +700,6 @@ def test_review_merge_rejects_unknown_manual_decision_item() -> None:
         merge_review_decisions(
             release_ready_items=[],
             review_required_items=[],
-            blocked_items=[],
             review_queue=[],
             review_data=review_data,
         )
@@ -742,7 +737,6 @@ def test_review_merge_rejects_manual_decision_same_queue_different_item() -> Non
         merge_review_decisions(
             release_ready_items=outputs.release_ready_items,
             review_required_items=outputs.review_required_items,
-            blocked_items=outputs.blocked_items,
             review_queue=outputs.review_queue,
             review_data=review_data,
         )
@@ -765,7 +759,6 @@ def test_review_merge_rejects_allowlist_for_non_queued_item() -> None:
         merge_review_decisions(
             release_ready_items=[],
             review_required_items=[],
-            blocked_items=[],
             review_queue=[],
             review_data=review_data,
         )
@@ -796,7 +789,6 @@ def test_review_merge_rejects_allowlist_review_item_mismatch() -> None:
         merge_review_decisions(
             release_ready_items=outputs.release_ready_items,
             review_required_items=outputs.review_required_items,
-            blocked_items=outputs.blocked_items,
             review_queue=outputs.review_queue,
             review_data=review_data,
         )
@@ -819,7 +811,6 @@ def test_review_merge_rejects_blocklist_for_unknown_item() -> None:
         merge_review_decisions(
             release_ready_items=[],
             review_required_items=[],
-            blocked_items=[],
             review_queue=[],
             review_data=review_data,
         )
@@ -844,7 +835,6 @@ def test_review_merge_rejects_blocklist_review_id_without_queued_item() -> None:
         merge_review_decisions(
             release_ready_items=[release_ready],
             review_required_items=[],
-            blocked_items=[],
             review_queue=[],
             review_data=review_data,
         )
@@ -875,7 +865,6 @@ def test_review_merge_rejects_blocklist_review_item_mismatch() -> None:
         merge_review_decisions(
             release_ready_items=outputs.release_ready_items,
             review_required_items=outputs.review_required_items,
-            blocked_items=outputs.blocked_items,
             review_queue=outputs.review_queue,
             review_data=review_data,
         )
@@ -922,7 +911,6 @@ def test_review_merge_records_manual_reject_and_review_blocklist() -> None:
     merged = merge_review_decisions(
         release_ready_items=outputs.release_ready_items,
         review_required_items=outputs.review_required_items,
-        blocked_items=outputs.blocked_items,
         review_queue=outputs.review_queue,
         review_data=review_data,
     )
@@ -964,11 +952,13 @@ def test_review_merge_rejects_override_queue_mismatch() -> None:
         ],
     )
 
-    with pytest.raises(StageExecutionError, match="override review/item mismatch"):
+    with pytest.raises(
+        StageExecutionError,
+        match=r"override review/item mismatch for review_item_id review:biblia_open:queued-b: expected item_id biblia_open:queued-a, got item_id biblia_open:queued-b",
+    ):
         merge_review_decisions(
             release_ready_items=outputs.release_ready_items,
             review_required_items=outputs.review_required_items,
-            blocked_items=outputs.blocked_items,
             review_queue=outputs.review_queue,
             review_data=review_data,
         )
@@ -995,11 +985,13 @@ def test_review_merge_rejects_override_review_id_for_different_item_without_item
         ],
     )
 
-    with pytest.raises(StageExecutionError, match="override review/item mismatch"):
+    with pytest.raises(
+        StageExecutionError,
+        match=r"override review/item mismatch for item_id biblia_open:queued-a: review_item_id review:biblia_open:queued-b resolves to item_id biblia_open:queued-b",
+    ):
         merge_review_decisions(
             release_ready_items=outputs.release_ready_items,
             review_required_items=outputs.review_required_items,
-            blocked_items=outputs.blocked_items,
             review_queue=outputs.review_queue,
             review_data=review_data,
         )

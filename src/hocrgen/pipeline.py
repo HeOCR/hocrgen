@@ -451,7 +451,6 @@ def _run_review_merge(bundle: ConfigBundle, context: RunContext, options: StageO
     outputs = merge_review_decisions(
         release_ready_items=state.release_ready_items,
         review_required_items=state.review_required_items,
-        blocked_items=state.blocked_items,
         review_queue=state.review_queue,
         review_data=review_data,
     )
