@@ -34,14 +34,27 @@ class ReviewMergeOutputs:
     summary: dict[str, object]
 
 
-def resolve_review_data_root(config_root: Path, explicit_config_root: Path | None = None) -> Path:
+def _review_data_root_candidates(config_root: Path) -> list[Path]:
     config_root = config_root.resolve()
-    if explicit_config_root is not None:
-        return explicit_config_root.resolve().parent / "review_data"
+    candidates: list[Path] = []
 
-    if config_root == default_config_root().resolve():
-        return config_root.parents[2] / "review_data"
-    return config_root.parent / "review_data"
+    for parent in (config_root, *config_root.parents):
+        candidate = parent / "review_data"
+        if candidate not in candidates:
+            candidates.append(candidate)
+    return candidates
+
+
+def resolve_review_data_root(config_root: Path, explicit_config_root: Path | None = None) -> Path:
+    resolved_config_root = explicit_config_root.resolve() if explicit_config_root is not None else config_root.resolve()
+
+    for candidate in _review_data_root_candidates(resolved_config_root):
+        if candidate.exists():
+            return candidate
+
+    if resolved_config_root == default_config_root().resolve():
+        return resolved_config_root.parents[2] / "review_data"
+    return resolved_config_root.parent / "review_data"
 
 
 def load_review_data(config_root: Path, explicit_config_root: Path | None = None) -> ReviewData:
@@ -162,6 +175,14 @@ def merge_review_decisions(
             decision_audit.append(_audit_from_override(item, block_entry, "blocklist", "rejected"))
             continue
         unresolved_items[item.item_id] = item
+        decision_audit.append(
+            ReviewDecisionAuditRecord(
+                item_id=item.item_id,
+                review_item_id=queue_item.review_item_id,
+                decision_source="default_unresolved",
+                outcome="unresolved",
+            )
+        )
 
     return ReviewMergeOutputs(
         release_ready_items=sorted(final_release_ready.values(), key=lambda record: record.item_id),
@@ -238,6 +259,10 @@ def _queue_entry_for_override(
     if entry.review_item_id is not None:
         queue_from_review_id = queue_by_review_item_id.get(entry.review_item_id)
         if queue_item is None:
+            if queue_from_review_id is not None and queue_from_review_id.item_id != entry.item_id:
+                raise StageExecutionError(
+                    f"override review/item mismatch for {entry.item_id}: expected {queue_from_review_id.item_id}, got {entry.review_item_id}"
+                )
             return queue_from_review_id
         if queue_from_review_id is not None and queue_from_review_id.item_id != queue_item.item_id:
             raise StageExecutionError(

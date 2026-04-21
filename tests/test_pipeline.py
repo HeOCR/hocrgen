@@ -76,8 +76,11 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert len(review_queue["items"]) == 1
     assert {item["review_item_id"] for item in review_queue["items"]} == {"review:biblia_open:biblia-doc-001"}
     decision_audit = json.loads((run_dir / "build_release" / "decision_audit.json").read_text(encoding="utf-8"))
-    assert len(decision_audit["items"]) == 3
-    assert {item["decision_source"] for item in decision_audit["items"]} == {"automatic_release_ready"}
+    assert len(decision_audit["items"]) == 4
+    assert {item["decision_source"] for item in decision_audit["items"]} == {
+        "automatic_release_ready",
+        "default_unresolved",
+    }
     assert classification_stats["period_class"]["modern"] == 2
     by_source = {item["source_id"]: item for item in item_manifest["items"]}
     assert by_source["nli_any_use_permitted"]["quality_tier"] == "high"

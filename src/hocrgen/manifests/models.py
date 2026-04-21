@@ -165,7 +165,7 @@ class ReviewOverrideRecord(ManifestModel):
 class ReviewDecisionAuditRecord(ManifestModel):
     item_id: str
     review_item_id: str | None = None
-    decision_source: Literal["manual_decision", "allowlist", "blocklist", "automatic_release_ready"]
+    decision_source: Literal["manual_decision", "allowlist", "blocklist", "automatic_release_ready", "default_unresolved"]
     outcome: Literal["release_ready", "rejected", "unresolved"]
     decision: str | None = None
     reviewer: str | None = None
