@@ -125,7 +125,6 @@ def export_alpha_release(
         hocrgen_commit=commit_sha,
         exported_at=exported_at,
     )
-    available_synthetic = sum(1 for item in release_items if item.is_synthetic)
     synthetic_limit = _synthetic_item_limit(exported_real_items, config)
     release_summary = {
         "accepted_count": build_release_summary["accepted_count"],
