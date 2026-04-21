@@ -153,6 +153,27 @@ class ReviewDecisionRecord(ManifestModel):
     notes: str | None = None
 
 
+class ReviewOverrideRecord(ManifestModel):
+    item_id: str
+    review_item_id: str | None = None
+    reviewer: str
+    timestamp: str
+    rationale: str
+    notes: str | None = None
+
+
+class ReviewDecisionAuditRecord(ManifestModel):
+    item_id: str
+    review_item_id: str | None = None
+    decision_source: Literal["manual_decision", "allowlist", "blocklist", "automatic_release_ready"]
+    outcome: Literal["release_ready", "rejected", "unresolved"]
+    decision: str | None = None
+    reviewer: str | None = None
+    timestamp: str | None = None
+    rationale: str | None = None
+    notes: str | None = None
+
+
 class ExportedAssetRecord(ManifestModel):
     release_asset_path: str
     media_type: str

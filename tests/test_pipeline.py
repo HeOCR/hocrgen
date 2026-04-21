@@ -55,7 +55,10 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert release_summary["duplicate_removed_count"] == 0
     assert release_summary["qa_failed_count"] == 0
     assert release_summary["release_ready_count"] == 3
+    assert release_summary["review_approved_count"] == 0
+    assert release_summary["review_rejected_count"] == 0
     assert release_summary["review_required_count"] == 1
+    assert release_summary["review_unresolved_count"] == 1
     assert release_summary["blocked_count"] == 0
     assert release_summary["real_items"] == 2
     assert release_summary["synthetic_items"] == 1
@@ -72,6 +75,9 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert {item["source_id"] for item in review_required_items["items"]} == {"biblia_open"}
     assert len(review_queue["items"]) == 1
     assert {item["review_item_id"] for item in review_queue["items"]} == {"review:biblia_open:biblia-doc-001"}
+    decision_audit = json.loads((run_dir / "build_release" / "decision_audit.json").read_text(encoding="utf-8"))
+    assert len(decision_audit["items"]) == 3
+    assert {item["decision_source"] for item in decision_audit["items"]} == {"automatic_release_ready"}
     assert classification_stats["period_class"]["modern"] == 2
     by_source = {item["source_id"]: item for item in item_manifest["items"]}
     assert by_source["nli_any_use_permitted"]["quality_tier"] == "high"
@@ -212,7 +218,9 @@ def test_build_release_removes_exact_duplicates(tmp_path: Path, capsys) -> None:
     assert release_summary["retained_count"] == 3
     assert release_summary["duplicate_removed_count"] == 1
     assert release_summary["release_ready_count"] == 3
+    assert release_summary["review_approved_count"] == 0
     assert release_summary["review_required_count"] == 0
+    assert release_summary["review_unresolved_count"] == 0
     assert len(duplicate_relations["items"]) == 1
     assert duplicate_relations["items"][0]["reason"] == "exact_asset_sequence_match"
     assert len(duplicate_clusters["items"]) == 1

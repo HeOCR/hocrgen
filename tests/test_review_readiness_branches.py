@@ -11,9 +11,10 @@ from hocrgen.classify.heuristics import _content_class
 from hocrgen.classify.heuristics import _language_class, _period_class, _quality, _source_allowed_types, classify_items
 from hocrgen.config.loader import default_config_root, load_and_validate_bundle
 from hocrgen.config.models import RightsClassification
-from hocrgen.core.errors import ConfigValidationError
+from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.manifests.models import AcquiredAsset, CuratedItemRecord, NormalizedAssetRecord, PrivacyScannedItemRecord
 from hocrgen.privacy.rules import _field_text, apply_privacy_rules
+from hocrgen.review.merge import load_review_data, merge_review_decisions
 from hocrgen.review.queue import _split_group_id_pre_review, _suggested_decision, export_review_queue
 
 
@@ -341,3 +342,184 @@ def test_review_queue_policy_and_cluster_paths() -> None:
     assert {item.suggested_decision for item in outputs.review_queue} == {"needs_policy_review"}
     assert any("policy:review_only_source" in item.review_reasons for item in outputs.review_queue)
     assert any("policy:restricted_rights" in item.review_reasons for item in outputs.review_queue)
+
+
+def test_review_merge_applies_manual_and_override_decisions(tmp_path: Path) -> None:
+    auto_release = _privacy_scanned_item(item_id="pinkas_open:auto-release")
+    manual_review = _privacy_scanned_item(
+        item_id="biblia_open:manual-approve",
+        privacy_flag="needs_review",
+        privacy_reasons=["metadata_signal"],
+        privacy_decision="review_required",
+    )
+    allow_review = _privacy_scanned_item(
+        item_id="biblia_open:allow-approve",
+        privacy_flag="needs_review",
+        privacy_reasons=["metadata_signal"],
+        privacy_decision="review_required",
+    )
+    deferred_review = _privacy_scanned_item(
+        item_id="biblia_open:manual-defer",
+        privacy_flag="needs_review",
+        privacy_reasons=["metadata_signal"],
+        privacy_decision="review_required",
+    )
+    outputs = export_review_queue([auto_release, manual_review, allow_review, deferred_review])
+
+    config_root = tmp_path / "config"
+    config_root.mkdir()
+    review_root = tmp_path / "review_data"
+    (review_root / "manual_decisions").mkdir(parents=True)
+    (review_root / "allowlists").mkdir(parents=True)
+    (review_root / "blocklists").mkdir(parents=True)
+    (review_root / "manual_decisions" / "approve.json").write_text(
+        json.dumps(
+            {
+                "decision": "approve",
+                "item_id": "biblia_open:manual-approve",
+                "rationale": "Reviewed and approved",
+                "review_item_id": "review:biblia_open:manual-approve",
+                "reviewer": "qa-1",
+                "timestamp": "2026-04-21T10:00:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (review_root / "manual_decisions" / "defer.json").write_text(
+        json.dumps(
+            {
+                "decision": "defer",
+                "item_id": "biblia_open:manual-defer",
+                "rationale": "Need later pass",
+                "review_item_id": "review:biblia_open:manual-defer",
+                "reviewer": "qa-2",
+                "timestamp": "2026-04-21T10:05:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (review_root / "allowlists" / "allow.json").write_text(
+        json.dumps(
+            {
+                "item_id": "biblia_open:allow-approve",
+                "rationale": "Known-safe exemplar",
+                "review_item_id": "review:biblia_open:allow-approve",
+                "reviewer": "qa-3",
+                "timestamp": "2026-04-21T10:10:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (review_root / "blocklists" / "block.json").write_text(
+        json.dumps(
+            {
+                "item_id": "pinkas_open:auto-release",
+                "rationale": "Exclude from this release",
+                "reviewer": "qa-4",
+                "timestamp": "2026-04-21T10:15:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    review_data = load_review_data(default_config_root(), config_root)
+    merged = merge_review_decisions(
+        release_ready_items=outputs.release_ready_items,
+        review_required_items=outputs.review_required_items,
+        blocked_items=outputs.blocked_items,
+        review_queue=outputs.review_queue,
+        review_data=review_data,
+    )
+
+    assert {item.item_id for item in merged.release_ready_items} == {
+        "biblia_open:allow-approve",
+        "biblia_open:manual-approve",
+    }
+    assert {item.item_id for item in merged.rejected_items} == {"pinkas_open:auto-release"}
+    assert {item.item_id for item in merged.unresolved_items} == {"biblia_open:manual-defer"}
+    assert merged.summary["review_approved_count"] == 2
+    assert merged.summary["review_rejected_count"] == 1
+    assert merged.summary["review_unresolved_count"] == 1
+    audit_by_item = {item.item_id: item for item in merged.decision_audit}
+    assert audit_by_item["biblia_open:manual-approve"].decision_source == "manual_decision"
+    assert audit_by_item["biblia_open:allow-approve"].decision_source == "allowlist"
+    assert audit_by_item["pinkas_open:auto-release"].decision_source == "blocklist"
+    assert audit_by_item["biblia_open:manual-defer"].outcome == "unresolved"
+
+
+def test_review_data_validation_rejects_static_conflicts(tmp_path: Path) -> None:
+    config_root = tmp_path / "config"
+    config_root.mkdir()
+    review_root = tmp_path / "review_data"
+    (review_root / "manual_decisions").mkdir(parents=True)
+    (review_root / "allowlists").mkdir(parents=True)
+    (review_root / "blocklists").mkdir(parents=True)
+    (review_root / "manual_decisions" / "one.json").write_text(
+        json.dumps(
+            {
+                "decision": "approve",
+                "item_id": "biblia_open:item-1",
+                "rationale": "first",
+                "review_item_id": "review:biblia_open:item-1",
+                "reviewer": "qa-1",
+                "timestamp": "2026-04-21T10:00:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (review_root / "manual_decisions" / "two.json").write_text(
+        json.dumps(
+            {
+                "decision": "reject",
+                "item_id": "biblia_open:item-1",
+                "rationale": "second",
+                "review_item_id": "review:biblia_open:item-1",
+                "reviewer": "qa-2",
+                "timestamp": "2026-04-21T10:05:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(ConfigValidationError, match="duplicate manual review decisions"):
+        load_review_data(default_config_root(), config_root)
+
+
+def test_review_merge_rejects_stale_or_mismatched_decisions(tmp_path: Path) -> None:
+    review_required = _privacy_scanned_item(
+        item_id="biblia_open:queued-item",
+        privacy_flag="needs_review",
+        privacy_reasons=["metadata_signal"],
+        privacy_decision="review_required",
+    )
+    outputs = export_review_queue([review_required])
+
+    config_root = tmp_path / "config"
+    config_root.mkdir()
+    review_root = tmp_path / "review_data"
+    (review_root / "manual_decisions").mkdir(parents=True)
+    (review_root / "allowlists").mkdir(parents=True)
+    (review_root / "blocklists").mkdir(parents=True)
+    (review_root / "manual_decisions" / "bad.json").write_text(
+        json.dumps(
+            {
+                "decision": "approve",
+                "item_id": "biblia_open:queued-item",
+                "rationale": "bad review id",
+                "review_item_id": "review:biblia_open:other-item",
+                "reviewer": "qa-1",
+                "timestamp": "2026-04-21T10:00:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    review_data = load_review_data(default_config_root(), config_root)
+    with pytest.raises(StageExecutionError, match="unknown review queue id"):
+        merge_review_decisions(
+            release_ready_items=outputs.release_ready_items,
+            review_required_items=outputs.review_required_items,
+            blocked_items=outputs.blocked_items,
+            review_queue=outputs.review_queue,
+            review_data=review_data,
+        )

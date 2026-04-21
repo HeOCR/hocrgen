@@ -15,6 +15,7 @@ def test_config_validate_command_succeeds(capsys) -> None:
     assert payload["profile_count"] == 2
     assert payload["privacy_rules_version"] == 1
     assert payload["quality_thresholds_version"] == 1
+    assert payload["review_data_counts"] == {"allowlist": 0, "blocklist": 0, "manual_decisions": 0}
     assert payload["source_count"] == 4
 
 
@@ -33,6 +34,7 @@ def test_build_release_command_creates_real_manifests(tmp_path: Path, capsys) ->
     assert (run_dir / "classify" / "classified_items.json").exists()
     assert (run_dir / "privacy_scan" / "privacy_scanned_items.json").exists()
     assert (run_dir / "review" / "queue.json").exists()
+    assert (run_dir / "review_merge" / "decision_audit.json").exists()
     assert (run_dir / "split" / "split_manifest.json").exists()
     assert (run_dir / "build_release" / "release_summary.json").exists()
 
@@ -101,6 +103,18 @@ def test_review_export_command_creates_review_artifacts(tmp_path: Path, capsys) 
     assert (run_dir / "review" / "release_ready_items.json").exists()
     assert (run_dir / "review" / "review_required_items.json").exists()
     assert (run_dir / "review" / "blocked_items.json").exists()
+
+
+def test_review_merge_command_creates_review_merge_artifacts(tmp_path: Path, capsys) -> None:
+    exit_code = main(["review-merge", "--profile", "profile_open_v1", "--dry-run", "--workdir", str(tmp_path)])
+    payload = json.loads(capsys.readouterr().out)
+    run_dir = Path(payload["run_dir"])
+
+    assert exit_code == 0
+    assert (run_dir / "review_merge" / "release_ready_items.json").exists()
+    assert (run_dir / "review_merge" / "unresolved_items.json").exists()
+    assert (run_dir / "review_merge" / "rejected_items.json").exists()
+    assert (run_dir / "review_merge" / "decision_audit.json").exists()
 
 
 def test_unknown_profile_fails(capsys) -> None:
