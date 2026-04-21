@@ -227,8 +227,21 @@ The alpha exporter:
 - keeps `review_required` and `blocked` items as audit manifests only
 - caps synthetic inclusion at `2x` the exported real-item count, still bounded by `--max-synthetic-items`
 - writes repo-ready manifests under `manifests/`
+- writes `release_diff.json` with added/removed/changed item reporting against the prior exported release when one is available
 - rewrites review preview references into release-local files under `manifests/review_previews/`
-- writes `DATASET_CARD.md`, `RELEASE_NOTES.md`, `PROVENANCE.md`, and `HANDOFF.md` under `docs/`
+- writes `CHANGELOG.md`, `DATASET_CARD.md`, `RELEASE_NOTES.md`, `PROVENANCE.md`, and `HANDOFF.md` under `docs/`
+
+By default `export-alpha` auto-discovers the previous sibling release under the same export root and compares against it. To override that baseline explicitly:
+
+```bash
+hocrgen export-alpha \
+  --profile profile_open_v1 \
+  --dry-run \
+  --version alpha-v1 \
+  --compare-to /path/to/HeOCR/releases/alpha-v0
+```
+
+If no previous release is found, `export-alpha` still emits `release_diff.json` and `CHANGELOG.md` as an initial-release summary with all current exported items listed as additions.
 
 The current alpha exemplar path now includes a high-resolution NLI manuscript fixture and a text-bearing Pinkas interior page so the real-scan subset is no longer placeholder-grade.
 

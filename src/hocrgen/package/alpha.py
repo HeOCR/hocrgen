@@ -21,6 +21,9 @@ from hocrgen.manifests.models import (
     DuplicateRelationRecord,
     ExportedAssetRecord,
     PrivacyScannedItemRecord,
+    ReleaseChangedItemRecord,
+    ReleaseDiffRecord,
+    ReleaseRemovalRecord,
     ReviewQueueRecord,
     SplitAssignmentRecord,
 )
@@ -37,6 +40,7 @@ class AlphaExportConfig:
     version: str
     output_dir: Path | None = None
     heocr_repo: Path | None = None
+    compare_to: Path | None = None
     max_real_items: int = 10
     max_synthetic_items: int = 20
     overwrite: bool = False
@@ -80,6 +84,7 @@ def export_alpha_release(
     split_manifest = _load_models(build_dir / "split_manifest.json", SplitAssignmentRecord)
     duplicate_relations = _load_models(build_dir / "duplicate_relations.json", DuplicateRelationRecord)
     duplicate_clusters = _load_models(build_dir / "duplicate_clusters.json", DuplicateClusterRecord)
+    removed_duplicate_items = _load_models(build_dir / "removed_duplicate_items.json", PrivacyScannedItemRecord)
     review_queue = _load_models(build_dir / "review_queue.json", ReviewQueueRecord)
     build_release_summary = _load_json(build_dir / "release_summary.json")
 
@@ -146,6 +151,17 @@ def export_alpha_release(
         "synthetic_clamped_to_real": synthetic_limit < config.max_synthetic_items,
         "version": config.version,
     }
+    baseline_dir = _resolve_comparison_release(export_dir, config)
+    release_diff = _build_release_diff(
+        version=config.version,
+        generated_at=exported_at,
+        current_items=exported_items,
+        baseline_dir=baseline_dir,
+        review_required_items=review_required_items,
+        blocked_items=blocked_items,
+        removed_duplicate_items=removed_duplicate_items,
+        build_release_items=release_items,
+    )
 
     manifests_dir = export_dir / "manifests"
     docs_dir = export_dir / "docs"
@@ -164,6 +180,7 @@ def export_alpha_release(
         {"items": _review_queue_payloads(selected_review_queue, export_dir)},
     )
     write_json(manifests_dir / "release_record.json", release_record.model_dump(mode="json"))
+    write_json(manifests_dir / "release_diff.json", release_diff.model_dump(mode="json"))
 
     _write_markdown(
         docs_dir / "DATASET_CARD.md",
@@ -171,7 +188,11 @@ def export_alpha_release(
     )
     _write_markdown(
         docs_dir / "RELEASE_NOTES.md",
-        _release_notes(config.version, release_summary, source_stats, included_sources),
+        _release_notes(config.version, release_summary, source_stats, included_sources, release_diff),
+    )
+    _write_markdown(
+        docs_dir / "CHANGELOG.md",
+        _changelog_doc(config.version, release_diff),
     )
     _write_markdown(
         docs_dir / "PROVENANCE.md",
@@ -197,6 +218,7 @@ def export_alpha_release(
             "export_dir": str(export_dir),
             "handoff_repo": str(handoff_repo_root) if handoff_repo_root else None,
             "item_manifest": "manifests/item_manifest.json",
+            "release_diff": "manifests/release_diff.json",
             "release_record": "manifests/release_record.json",
             "release_summary": "manifests/release_summary.json",
             "stage": "export-alpha",
@@ -216,7 +238,9 @@ def export_alpha_release(
         manifests_dir / "blocked_items.json",
         manifests_dir / "review_queue.json",
         manifests_dir / "release_record.json",
+        manifests_dir / "release_diff.json",
         docs_dir / "DATASET_CARD.md",
+        docs_dir / "CHANGELOG.md",
         docs_dir / "RELEASE_NOTES.md",
         docs_dir / "PROVENANCE.md",
         docs_dir / "HANDOFF.md",
@@ -315,6 +339,66 @@ def _build_source_stats(items: list[AlphaExportedItemRecord], duplicate_relation
     }
 
 
+def _resolve_comparison_release(export_dir: Path, config: AlphaExportConfig) -> Path | None:
+    if config.compare_to is not None:
+        candidate = config.compare_to.resolve()
+        if export_dir.resolve() == candidate:
+            raise StageExecutionError("--compare-to cannot point to the current export directory")
+        _validate_release_diff_baseline(candidate)
+        return candidate
+
+    sibling_root = export_dir.resolve().parent
+    if not sibling_root.exists():
+        return None
+
+    candidates: list[tuple[datetime | None, str, Path]] = []
+    for child in sibling_root.iterdir():
+        if not child.is_dir():
+            continue
+        if child.resolve() == export_dir.resolve():
+            continue
+        if child.name == config.version:
+            continue
+        if not _is_release_diff_baseline(child):
+            continue
+        release_record = _load_json(child / "manifests" / "release_record.json")
+        exported_at = _parse_exported_at(release_record.get("exported_at"))
+        candidates.append((exported_at, child.name, child))
+
+    if not candidates:
+        return None
+
+    candidates.sort(key=lambda item: (item[0] is not None, item[0] or datetime.min.replace(tzinfo=UTC), _natural_sort_key(item[1])))
+    return candidates[-1][2]
+
+
+def _is_release_diff_baseline(path: Path) -> bool:
+    manifests_dir = path / "manifests"
+    return (manifests_dir / "release_record.json").exists() and (manifests_dir / "item_manifest.json").exists()
+
+
+def _validate_release_diff_baseline(path: Path) -> None:
+    if not path.exists():
+        raise StageExecutionError(f"compare-to release path does not exist: {path}")
+    if not path.is_dir():
+        raise StageExecutionError(f"compare-to release path is not a directory: {path}")
+    if not _is_release_diff_baseline(path):
+        raise StageExecutionError(f"compare-to release path is missing required manifests: {path}")
+
+
+def _parse_exported_at(value: Any) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+
+
+def _natural_sort_key(value: str) -> list[int | str]:
+    return [int(part) if part.isdigit() else part.lower() for part in re.split(r"(\d+)", value)]
+
+
 def _audit_item_payload(item: PrivacyScannedItemRecord) -> dict[str, Any]:
     return {
         "item_id": item.item_id,
@@ -357,6 +441,124 @@ def _public_item_payload(item: AlphaExportedItemRecord) -> dict[str, Any]:
     if not isinstance(sanitized, dict):
         raise StageExecutionError("public item payload must serialize to an object")
     return sanitized
+
+
+def _build_release_diff(
+    *,
+    version: str,
+    generated_at: str,
+    current_items: list[AlphaExportedItemRecord],
+    baseline_dir: Path | None,
+    review_required_items: list[PrivacyScannedItemRecord],
+    blocked_items: list[PrivacyScannedItemRecord],
+    removed_duplicate_items: list[PrivacyScannedItemRecord],
+    build_release_items: list[PrivacyScannedItemRecord],
+) -> ReleaseDiffRecord:
+    current_payloads = [_public_item_payload(item) for item in current_items]
+    current_by_id = {item["item_id"]: item for item in current_payloads}
+    baseline_by_id: dict[str, dict[str, Any]] = {}
+    previous_version: str | None = None
+    if baseline_dir is not None:
+        baseline_record = _load_json(baseline_dir / "manifests" / "release_record.json")
+        previous_version = baseline_record.get("version") or baseline_dir.name
+        baseline_manifest = _load_json(baseline_dir / "manifests" / "item_manifest.json")
+        baseline_by_id = {item["item_id"]: item for item in baseline_manifest["items"]}
+
+    added_ids = sorted(set(current_by_id) - set(baseline_by_id))
+    removed_ids = sorted(set(baseline_by_id) - set(current_by_id))
+    shared_ids = sorted(set(current_by_id) & set(baseline_by_id))
+    changed_items = [
+        ReleaseChangedItemRecord(
+            item_id=item_id,
+            source_id=str(current_by_id[item_id]["source_id"]),
+            split=current_by_id[item_id].get("split"),
+            change_types=_item_change_types(baseline_by_id[item_id], current_by_id[item_id]),
+        )
+        for item_id in shared_ids
+        if _item_change_types(baseline_by_id[item_id], current_by_id[item_id])
+    ]
+
+    review_required_ids = {item.item_id for item in review_required_items}
+    blocked_ids = {item.item_id for item in blocked_items}
+    duplicate_removed_ids = {item.item_id for item in removed_duplicate_items}
+    build_release_ids = {item.item_id for item in build_release_items}
+    removed_items = [
+        ReleaseRemovalRecord(
+            item_id=item_id,
+            source_id=str(baseline_by_id[item_id]["source_id"]),
+            previous_split=baseline_by_id[item_id].get("split"),
+            reason=_removal_reason(item_id, review_required_ids, blocked_ids, duplicate_removed_ids, build_release_ids),
+        )
+        for item_id in removed_ids
+    ]
+    source_deltas = _count_deltas(current_by_id.values(), baseline_by_id.values(), "source_id")
+    split_deltas = _count_deltas(current_by_id.values(), baseline_by_id.values(), "split")
+    unchanged_count = len(shared_ids) - len(changed_items)
+    return ReleaseDiffRecord(
+        version=version,
+        previous_version=previous_version,
+        generated_at=generated_at,
+        counts={
+            "added": len(added_ids),
+            "removed": len(removed_items),
+            "changed": len(changed_items),
+            "unchanged": unchanged_count,
+        },
+        added_items=[current_by_id[item_id] for item_id in added_ids],
+        removed_items=removed_items,
+        changed_items=changed_items,
+        source_deltas=source_deltas,
+        split_deltas=split_deltas,
+    )
+
+
+def _item_change_types(previous: dict[str, Any], current: dict[str, Any]) -> list[str]:
+    change_types: list[str] = []
+    if previous.get("split") != current.get("split"):
+        change_types.append("split")
+    if previous.get("exported_assets") != current.get("exported_assets"):
+        change_types.append("assets")
+    previous_metadata = {key: value for key, value in previous.items() if key not in {"exported_assets", "split"}}
+    current_metadata = {key: value for key, value in current.items() if key not in {"exported_assets", "split"}}
+    if previous_metadata != current_metadata:
+        change_types.append("metadata")
+    return change_types
+
+
+def _removal_reason(
+    item_id: str,
+    review_required_ids: set[str],
+    blocked_ids: set[str],
+    duplicate_removed_ids: set[str],
+    build_release_ids: set[str],
+) -> str:
+    if item_id in review_required_ids:
+        return "review_required"
+    if item_id in blocked_ids:
+        return "blocked"
+    if item_id in duplicate_removed_ids:
+        return "duplicate_removed"
+    if item_id in build_release_ids:
+        return "selection_limit_excluded"
+    return "missing_from_current_run"
+
+
+def _count_deltas(
+    current_items: Any,
+    baseline_items: Any,
+    field_name: str,
+) -> dict[str, dict[str, int]]:
+    current_counts = Counter(str(item.get(field_name)) for item in current_items if item.get(field_name) is not None)
+    baseline_counts = Counter(str(item.get(field_name)) for item in baseline_items if item.get(field_name) is not None)
+    keys = sorted(set(current_counts) | set(baseline_counts))
+    return {
+        key: {
+            "current": current_counts.get(key, 0),
+            "previous": baseline_counts.get(key, 0),
+            "delta": current_counts.get(key, 0) - baseline_counts.get(key, 0),
+        }
+        for key in keys
+    }
 
 
 def _sanitize_portable_value(value: Any) -> Any:
@@ -484,8 +686,21 @@ def _dataset_card(
     )
 
 
-def _release_notes(version: str, release_summary: dict[str, Any], source_stats: dict[str, Any], included_sources: list[str]) -> str:
+def _release_notes(
+    version: str,
+    release_summary: dict[str, Any],
+    source_stats: dict[str, Any],
+    included_sources: list[str],
+    release_diff: ReleaseDiffRecord,
+) -> str:
     split_counts = release_summary["split_counts"]
+    comparison_summary = (
+        f"Compared to `{release_diff.previous_version}`: +{release_diff.counts['added']} / "
+        f"-{release_diff.counts['removed']} / ~{release_diff.counts['changed']}. "
+        "See `CHANGELOG.md` for item-level details."
+        if release_diff.previous_version
+        else "No prior release baseline was found. See `CHANGELOG.md` for the initial-release addition summary."
+    )
     return "\n".join(
         [
             f"# Release Notes: {version}",
@@ -504,6 +719,9 @@ def _release_notes(version: str, release_summary: dict[str, Any], source_stats: 
             "## Included Sources",
             *[f"- `{source_id}`: {source_stats['sources'][source_id]} items" for source_id in included_sources],
             "",
+            "## Compared To Previous Release",
+            f"- {comparison_summary}",
+            "",
             "## Notes",
             f"- `max-real-items`: {release_summary['max_real_items']}",
             f"- `max-synthetic-items`: {release_summary['max_synthetic_items']} (effective export cap also bounded by `2x` exported real items)",
@@ -511,6 +729,65 @@ def _release_notes(version: str, release_summary: dict[str, Any], source_stats: 
             "",
         ]
     )
+
+
+def _changelog_doc(version: str, release_diff: ReleaseDiffRecord) -> str:
+    lines = [
+        f"# Changelog: {version}",
+        "",
+        f"- Previous version: `{release_diff.previous_version}`" if release_diff.previous_version else "- Previous version: none",
+        f"- Added: {release_diff.counts['added']}",
+        f"- Removed: {release_diff.counts['removed']}",
+        f"- Changed: {release_diff.counts['changed']}",
+        f"- Unchanged: {release_diff.counts['unchanged']}",
+        "",
+        "## Source Deltas",
+    ]
+    if release_diff.source_deltas:
+        lines.extend(
+            f"- `{source_id}`: {delta['previous']} -> {delta['current']} ({delta['delta']:+d})"
+            for source_id, delta in sorted(release_diff.source_deltas.items())
+        )
+    else:
+        lines.append("- None")
+    lines.extend(["", "## Split Deltas"])
+    if release_diff.split_deltas:
+        lines.extend(
+            f"- `{split}`: {delta['previous']} -> {delta['current']} ({delta['delta']:+d})"
+            for split, delta in sorted(release_diff.split_deltas.items(), key=lambda item: _split_sort_key(item[0]))
+        )
+    else:
+        lines.append("- None")
+
+    lines.extend(["", "## Added Items"])
+    if release_diff.added_items:
+        lines.extend(f"- `{item['item_id']}` ({item['source_id']}, `{item.get('split', 'unknown')}`)" for item in release_diff.added_items)
+    else:
+        lines.append("- None")
+
+    lines.extend(["", "## Removed Items"])
+    if release_diff.removed_items:
+        lines.extend(
+            f"- `{item.item_id}` ({item.source_id}, `{item.previous_split or 'unknown'}`) - `{item.reason}`"
+            for item in release_diff.removed_items
+        )
+    else:
+        lines.append("- None")
+
+    lines.extend(["", "## Changed Items"])
+    if release_diff.changed_items:
+        for change_type in ("metadata", "assets", "split"):
+            matching = [item for item in release_diff.changed_items if change_type in item.change_types]
+            if not matching:
+                continue
+            lines.append(f"### {change_type.title()} Changes")
+            lines.extend(f"- `{item.item_id}` ({item.source_id})" for item in matching)
+            lines.append("")
+        if lines[-1] == "":
+            lines.pop()
+    else:
+        lines.append("- None")
+    return "\n".join(lines + [""])
 
 
 def _provenance_doc(
