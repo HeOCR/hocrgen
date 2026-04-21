@@ -398,7 +398,9 @@ This repository publishes `pr-agent-context` comments for pull requests and late
   suite, exports a combined `coverage.xml`, uploads it as the `coverage-xml` artifact, and invokes
   `pr-agent-context` on pull requests.
 - [`.github/workflows/pr-agent-context-refresh.yml`](./.github/workflows/pr-agent-context-refresh.yml)
-  handles later review/check signals and re-runs `pr-agent-context` in refresh mode.
+  handles later review/check signals, re-runs `pr-agent-context` in refresh mode, and includes a
+  repo-owned `schedule` to `workflow_dispatch` fallback for same-repo PRs when approval-gated bot
+  events would otherwise leave refresh waiting.
 
 Both workflows use XML-based patch coverage inputs:
 
@@ -408,6 +410,16 @@ Both workflows use XML-based patch coverage inputs:
 
 Both workflows also use `publish_mode: append`, so refresh runs append new managed comments rather
 than updating earlier ones.
+
+The refresh workflow now follows the hardened `pr-agent-context` pattern from `v4.0.19`:
+
+- normal review and external-check-triggered refresh behavior stays enabled
+- scheduled fanout dispatches explicit refresh runs only for same-repo PRs
+- dispatch inputs carry explicit PR number plus base/head SHA overrides into the reusable workflow
+- scheduled dispatches dedupe on both current managed refresh comments and recent/in-flight
+  SHA-specific `workflow_dispatch` runs
+- refresh runs continue to reuse the `Validate` workflow's `coverage-xml` artifact via
+  `coverage_xml_artifact` plus cross-run coverage lookup
 
 ## Repository reference
 
