@@ -213,3 +213,86 @@ def test_blocked_items_are_excluded_from_split_and_release_outputs(tmp_path: Pat
     assert all(not item["item_id"].startswith("pinkas_open:") for item in split_manifest)
     assert all(item["source_id"] != "pinkas_open" for item in item_manifest)
     assert release_summary["blocked_count"] == 1
+
+
+def test_build_release_applies_review_decisions_and_overrides(tmp_path: Path, capsys) -> None:
+    config_root = tmp_path / "config"
+    shutil.copytree(default_config_root(), config_root)
+    fixture_seed = (Path(__file__).parent / "fixtures" / "nli" / "seeds_default.yaml").resolve()
+    sources_path = config_root / "sources.yaml"
+    sources_path.write_text(
+        sources_path.read_text(encoding="utf-8").replace(
+            "package://data/nli/seeds.yaml", str(fixture_seed)
+        ),
+        encoding="utf-8",
+    )
+    review_root = tmp_path / "review_data"
+    (review_root / "manual_decisions").mkdir(parents=True)
+    (review_root / "allowlists").mkdir(parents=True)
+    (review_root / "blocklists").mkdir(parents=True)
+    (review_root / "manual_decisions" / "approve_biblia.json").write_text(
+        json.dumps(
+            {
+                "decision": "approve",
+                "item_id": "biblia_open:biblia-doc-001",
+                "rationale": "Approved for public alpha",
+                "review_item_id": "review:biblia_open:biblia-doc-001",
+                "reviewer": "qa-1",
+                "timestamp": "2026-04-21T10:00:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+    (review_root / "blocklists" / "block_nli.json").write_text(
+        json.dumps(
+            {
+                "item_id": "nli_any_use_permitted:nli-ms-seed-006",
+                "rationale": "Exclude this exemplar from the release",
+                "reviewer": "qa-2",
+                "timestamp": "2026-04-21T10:05:00Z",
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "build-release",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--workdir",
+            str(tmp_path / "work"),
+            "--config-root",
+            str(config_root),
+        ]
+    )
+    assert exit_code == 0
+    run_dir = Path(json.loads(capsys.readouterr().out)["run_dir"])
+    item_manifest = json.loads((run_dir / "build_release" / "item_manifest.json").read_text(encoding="utf-8"))["items"]
+    review_required_items = json.loads((run_dir / "build_release" / "review_required_items.json").read_text(encoding="utf-8"))["items"]
+    decision_audit = json.loads((run_dir / "build_release" / "decision_audit.json").read_text(encoding="utf-8"))["items"]
+    release_summary = json.loads((run_dir / "build_release" / "release_summary.json").read_text(encoding="utf-8"))
+
+    assert {item["item_id"] for item in item_manifest} == {
+        "biblia_open:biblia-doc-001",
+        "pinkas_open:pinkas-ledger-001",
+        "project_synthetic:synthetic-0",
+    }
+    assert review_required_items == []
+    assert release_summary["review_approved_count"] == 1
+    assert release_summary["review_rejected_count"] == 1
+    assert release_summary["review_unresolved_count"] == 0
+    assert release_summary["review_required_count"] == 0
+    assert any(
+        item["item_id"] == "biblia_open:biblia-doc-001"
+        and item["decision_source"] == "manual_decision"
+        and item["outcome"] == "release_ready"
+        for item in decision_audit
+    )
+    assert any(
+        item["item_id"] == "nli_any_use_permitted:nli-ms-seed-006"
+        and item["decision_source"] == "blocklist"
+        and item["outcome"] == "rejected"
+        for item in decision_audit
+    )

@@ -28,9 +28,13 @@ from hocrgen.manifests.models import (
     ItemRecord,
     NormalizedItemRecord,
     PrivacyScannedItemRecord,
+    ReviewDecisionAuditRecord,
     ReviewQueueRecord,
+    ReviewOverrideRecord,
+    ReviewDecisionRecord,
     SplitAssignmentRecord,
 )
+from hocrgen.review.merge import load_review_data, merge_review_decisions
 from hocrgen.normalize.metadata import normalize_items
 from hocrgen.parsers.rights import classify_eligibility, normalize_rights
 from hocrgen.privacy.rules import apply_privacy_rules
@@ -48,6 +52,7 @@ STAGE_ORDER = (
     "classify",
     "privacy-scan",
     "review-export",
+    "review-merge",
     "split",
     "build-release",
 )
@@ -87,6 +92,11 @@ class PipelineState:
     review_required_items: list[PrivacyScannedItemRecord] = field(default_factory=list)
     blocked_items: list[PrivacyScannedItemRecord] = field(default_factory=list)
     review_queue: list[ReviewQueueRecord] = field(default_factory=list)
+    rejected_review_items: list[PrivacyScannedItemRecord] = field(default_factory=list)
+    decision_audit: list[ReviewDecisionAuditRecord] = field(default_factory=list)
+    review_data_manual_decisions: list[ReviewDecisionRecord] = field(default_factory=list)
+    review_data_allowlist: list[ReviewOverrideRecord] = field(default_factory=list)
+    review_data_blocklist: list[ReviewOverrideRecord] = field(default_factory=list)
     split_assignments: list[SplitAssignmentRecord] = field(default_factory=list)
     leakage_report: dict[str, Any] = field(default_factory=dict)
 
@@ -433,6 +443,44 @@ def _run_review_export(bundle: ConfigBundle, context: RunContext, options: Stage
     )
 
 
+def _run_review_merge(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
+    del options
+    stage_dir = context.stage_dir("review-merge")
+    stage_dir.mkdir(parents=True, exist_ok=True)
+    review_data = load_review_data(bundle.config_root)
+    outputs = merge_review_decisions(
+        release_ready_items=state.release_ready_items,
+        review_required_items=state.review_required_items,
+        review_queue=state.review_queue,
+        review_data=review_data,
+    )
+
+    release_ready_path = stage_dir / "release_ready_items.json"
+    unresolved_path = stage_dir / "unresolved_items.json"
+    rejected_path = stage_dir / "rejected_items.json"
+    decision_audit_path = stage_dir / "decision_audit.json"
+    summary_path = stage_dir / "summary.json"
+
+    write_json(release_ready_path, {"items": _dump_models(outputs.release_ready_items)})
+    write_json(unresolved_path, {"items": _dump_models(outputs.unresolved_items)})
+    write_json(rejected_path, {"items": _dump_models(outputs.rejected_items)})
+    write_json(decision_audit_path, {"items": _dump_models(outputs.decision_audit)})
+    write_json(summary_path, outputs.summary)
+
+    state.release_ready_items = outputs.release_ready_items
+    state.review_required_items = outputs.unresolved_items
+    state.rejected_review_items = outputs.rejected_items
+    state.decision_audit = outputs.decision_audit
+    state.review_data_manual_decisions = review_data.manual_decisions
+    state.review_data_allowlist = review_data.allowlist
+    state.review_data_blocklist = review_data.blocklist
+    return StageResult(
+        stage="review-merge",
+        summary_path=summary_path,
+        extra_artifacts=[release_ready_path, unresolved_path, rejected_path, decision_audit_path],
+    )
+
+
 def _run_split(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
     del options
     stage_dir = context.stage_dir("split")
@@ -475,6 +523,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     review_queue_path = stage_dir / "review_queue.json"
     review_required_items_path = stage_dir / "review_required_items.json"
     blocked_items_path = stage_dir / "blocked_items.json"
+    decision_audit_path = stage_dir / "decision_audit.json"
     split_manifest_path = stage_dir / "split_manifest.json"
     leakage_report_path = stage_dir / "leakage_report.json"
     release_summary_path = stage_dir / "release_summary.json"
@@ -515,6 +564,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     write_json(review_queue_path, {"items": _dump_models(state.review_queue)})
     write_json(review_required_items_path, {"items": _dump_models(state.review_required_items)})
     write_json(blocked_items_path, {"items": _dump_models(state.blocked_items)})
+    write_json(decision_audit_path, {"items": _dump_models(state.decision_audit)})
     write_json(split_manifest_path, {"items": _dump_models(state.split_assignments)})
     write_json(leakage_report_path, state.leakage_report)
     write_json(classification_stats_path, classification_stats)
@@ -546,7 +596,14 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             "real_items": sum(1 for item in state.release_ready_items if not item.is_synthetic),
             "release_ready_count": len(state.release_ready_items),
             "retained_count": len(state.retained_items),
+            "review_approved_count": sum(
+                1
+                for record in state.decision_audit
+                if record.outcome == "release_ready" and record.decision_source in {"manual_decision", "allowlist"}
+            ),
+            "review_rejected_count": len(state.rejected_review_items),
             "review_required_count": len(state.review_required_items),
+            "review_unresolved_count": len(state.review_required_items),
             "split_counts": split_counts,
             "synthetic_items": sum(1 for item in state.release_ready_items if item.is_synthetic),
         },
@@ -556,6 +613,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         {
             "blocked_items": str(blocked_items_path.relative_to(context.run_dir)),
             "classification_stats": str(classification_stats_path.relative_to(context.run_dir)),
+            "decision_audit": str(decision_audit_path.relative_to(context.run_dir)),
             "duplicate_clusters": str(duplicate_clusters_path.relative_to(context.run_dir)),
             "duplicate_relations": str(duplicate_relations_path.relative_to(context.run_dir)),
             "item_manifest": str(item_manifest_path.relative_to(context.run_dir)),
@@ -581,6 +639,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             review_queue_path,
             review_required_items_path,
             blocked_items_path,
+            decision_audit_path,
             split_manifest_path,
             leakage_report_path,
             release_summary_path,
@@ -610,6 +669,11 @@ def execute_pipeline(target_stage: str, bundle: ConfigBundle, context: RunContex
         review_required_items=[],
         blocked_items=[],
         review_queue=[],
+        rejected_review_items=[],
+        decision_audit=[],
+        review_data_manual_decisions=[],
+        review_data_allowlist=[],
+        review_data_blocklist=[],
         split_assignments=[],
         leakage_report={},
     )
@@ -635,6 +699,8 @@ def execute_pipeline(target_stage: str, bundle: ConfigBundle, context: RunContex
             results.append(_run_privacy_scan(bundle, context, options, state))
         elif stage == "review-export":
             results.append(_run_review_export(bundle, context, options, state))
+        elif stage == "review-merge":
+            results.append(_run_review_merge(bundle, context, options, state))
         elif stage == "split":
             results.append(_run_split(bundle, context, options, state))
         elif stage == "build-release":

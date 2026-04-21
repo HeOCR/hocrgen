@@ -109,7 +109,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | C2 | Curation and operational hardening | C2a | Exact dedupe and split-safe curated build outputs | completed |
 | C3 | Curation and operational hardening | C3a | Basic classification and quality scoring | completed |
 | C4 | Curation and operational hardening | C4a | Privacy and sensitivity screening MVP | completed |
-| C5 | Curation and operational hardening | C5a, C5b | Review queue export, then review decision merge/operational review loop | partial |
+| C5 | Curation and operational hardening | C5a, C5b | Review queue export, then review decision merge/operational review loop | completed |
 | C6 | Curation and operational hardening | C6a | Release diffs and changelog automation | planned |
 | D1 | Expansion and benchmark formation | D1a | Scheduled GitHub-first expansion workflows | planned |
 | D2 | Expansion and benchmark formation | D2a | Stable source-operations maturity | planned |
@@ -145,7 +145,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | C3a | C3 | Heuristic classification | yes | completed | merged as PR #6 |
 | C4a | C4 | Metadata-first privacy scanning | yes | completed | merged as PR #6 |
 | C5a | C5 | Review queue export and review-side artifacts | yes | completed | merged as PR #6 |
-| C5b | C5 | Review decision schema merge, operational review loop, and post-review release gating | no | planned | future review-system PR |
+| C5b | C5 | Review decision schema merge, operational review loop, and post-review release gating | no | completed | current implementation PR |
 | C6a | C6 | Release diffs and changelog generation | no | planned | future release-ops PR |
 | D1a | D1 | Scheduled GitHub-first expansion workflows | no | planned | future ops PR |
 | D2a | D2 | Source refresh/reliability maturity and source freeze controls | no | planned | future source-ops PR |
@@ -160,11 +160,11 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 
 ## 4.3 Current critical path
 
-The immediate implementation critical path after the first public alpha handoff is:
+The immediate implementation critical path after `C5b` is:
 
-1. **C5b**: merge structured review decisions back into the pipeline and harden the operational review loop
+1. **C6a**: add release diffs and changelog automation so every release becomes explainable over time
 
-This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. That moves the project out of alpha-freeze mode. The next operational bottleneck is no longer export readiness; it is the still-missing review-decision merge path and review-loop hardening in `C5b`.
+This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. The next operational bottleneck is now explaining release-to-release change coherently in `C6a`.
 
 ## 4.4 Alpha release readiness gates
 

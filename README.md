@@ -21,6 +21,7 @@ This repository now implements Milestone 5: a conservative review-readiness pipe
 - classify retained items with heuristic content/period/language/quality labels
 - apply conservative metadata-based privacy rules before release assembly
 - export review-ready, blocked, and release-ready subsets as machine-readable manifests
+- merge repo-tracked review decisions and allow/block overrides back into release gating
 - assign deterministic `train` / `validation` / `test` splits over the release-ready deduped set
 - emit curated release manifests with duplicate-cluster, review-queue, split, and leakage-report artifacts
 
@@ -79,7 +80,6 @@ python scripts/promote_nli_seeds.py \
 
 - broad live-source crawling
 - near-duplicate / perceptual deduplication
-- review-decision merge and human-in-the-loop approval
 - OCR-aware privacy screening
 - advanced classification and benchmark subset logic
 - final publication to Hugging Face or the GitHub dataset repo
@@ -146,6 +146,10 @@ This now runs a real sample-backed pipeline and emits populated artifacts such a
       review/release_ready_items.json
       review/review_required_items.json
       review/blocked_items.json
+      review_merge/release_ready_items.json
+      review_merge/unresolved_items.json
+      review_merge/rejected_items.json
+      review_merge/decision_audit.json
       split/split_manifest.json
       split/leakage_report.json
       build_release/item_manifest.json
@@ -155,6 +159,7 @@ This now runs a real sample-backed pipeline and emits populated artifacts such a
       build_release/review_queue.json
       build_release/review_required_items.json
       build_release/blocked_items.json
+      build_release/decision_audit.json
       build_release/split_manifest.json
       build_release/leakage_report.json
       build_release/release_summary.json
@@ -177,6 +182,7 @@ hocrgen dedupe --profile profile_open_v1 --dry-run
 hocrgen classify --profile profile_open_v1 --dry-run
 hocrgen privacy-scan --profile profile_open_v1 --dry-run
 hocrgen review-export --profile profile_open_v1 --dry-run
+hocrgen review-merge --profile profile_open_v1 --dry-run
 hocrgen split --profile profile_open_v1 --dry-run
 hocrgen build-release --profile profile_open_v1 --dry-run
 hocrgen export-alpha --profile profile_open_v1 --dry-run
@@ -275,7 +281,7 @@ Current QA thresholds are configured in [`src/hocrgen/config/quality_thresholds.
 
 See [`docs/hocrgen_normalization_and_qa.md`](./docs/hocrgen_normalization_and_qa.md) for the artifact layout and QA report shape.
 
-## Classification, privacy, and review export
+## Classification, privacy, review export, and review merge
 
 Milestone 5 adds a conservative review-readiness layer after exact dedupe.
 
@@ -287,6 +293,7 @@ What it does today:
 - applies metadata-first privacy rules from [`src/hocrgen/config/privacy_rules.yaml`](./src/hocrgen/config/privacy_rules.yaml)
 - routes items into `release_ready`, `review_required`, or `blocked` outcomes
 - exports a stable review queue with preview paths and suggested decision types
+- auto-applies repo-tracked manual review decisions plus allow/block overrides during `review-merge` and `build-release`
 
 The default public profile is conservative:
 
@@ -294,9 +301,18 @@ The default public profile is conservative:
 - `possible_personal_data` and `needs_review` items are routed to the review queue
 - `blocked_sensitive` items are excluded from both the review queue and the release-ready split set
 
+The review workflow is now:
+
+1. run `hocrgen review-export --profile profile_open_v1 --dry-run`
+2. add one-record-per-file JSON inputs under [`review_data/`](./review_data):
+   `manual_decisions/`, `allowlists/`, and `blocklists/`
+3. run `hocrgen review-merge --profile profile_open_v1 --dry-run` or `hocrgen build-release --profile profile_open_v1 --dry-run`
+4. inspect `review_merge/unresolved_items.json` until the remaining set is acceptable for the target release
+
+`hocrgen config validate` now also validates the committed `review_data/` tree and reports its item counts.
+
 What it still does not do:
 
-- merge human review decisions back into the pipeline
 - inspect image text via OCR
 - perform scholarly/semantic classification
 
@@ -382,7 +398,9 @@ This repository publishes `pr-agent-context` comments for pull requests and late
   suite, exports a combined `coverage.xml`, uploads it as the `coverage-xml` artifact, and invokes
   `pr-agent-context` on pull requests.
 - [`.github/workflows/pr-agent-context-refresh.yml`](./.github/workflows/pr-agent-context-refresh.yml)
-  handles later review/check signals and re-runs `pr-agent-context` in refresh mode.
+  handles later review/check signals, re-runs `pr-agent-context` in refresh mode, and includes a
+  repo-owned `schedule` to `workflow_dispatch` fallback for same-repo PRs when approval-gated bot
+  events would otherwise leave refresh waiting.
 
 Both workflows use XML-based patch coverage inputs:
 
@@ -392,6 +410,16 @@ Both workflows use XML-based patch coverage inputs:
 
 Both workflows also use `publish_mode: append`, so refresh runs append new managed comments rather
 than updating earlier ones.
+
+The refresh workflow now follows the hardened `pr-agent-context` pattern from `v4.0.19`:
+
+- normal review and external-check-triggered refresh behavior stays enabled
+- scheduled fanout dispatches explicit refresh runs only for same-repo PRs
+- dispatch inputs carry explicit PR number plus base/head SHA overrides into the reusable workflow
+- scheduled dispatches dedupe on both current managed refresh comments and recent/in-flight
+  SHA-specific `workflow_dispatch` runs
+- refresh runs continue to reuse the `Validate` workflow's `coverage-xml` artifact via
+  `coverage_xml_artifact` plus cross-run coverage lookup
 
 ## Repository reference
 

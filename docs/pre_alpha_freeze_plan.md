@@ -14,7 +14,7 @@ The pre-alpha blocker sequence is now complete:
 3. the Pinkas exemplar is a text-bearing historical page
 4. synthetic alpha output preserves Hebrew ordering and uses the `2x real items` cap
 
-The remaining work after this document is no longer alpha freeze. The next planned milestone is `C5b`, which hardens review-decision merge and the operational review loop.
+The remaining work after this document is no longer alpha freeze. `C5b` has now landed to harden review-decision merge and the operational review loop. The next planned milestone is `C6a`, which adds release diffs and changelog automation.
 
 ## Pre-Alpha PR Sequence
 
@@ -111,6 +111,8 @@ These items remain important, but they should not block the first alpha unless a
 - structured review decision merge back into the pipeline
 - review-side CLI workflow hardening
 - auditable operational loop for borderline items
+
+This milestone is now implemented in `hocrgen` via the dedicated `review-merge` stage plus repo-tracked `review_data/` inputs.
 
 ### `C6a` and later milestones
 

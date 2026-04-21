@@ -12,6 +12,7 @@ from hocrgen.core.logging import configure_logging
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.package.alpha import AlphaExportConfig, export_alpha_release
 from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_summary
+from hocrgen.review.merge import validate_review_data
 
 
 STAGE_COMMANDS = (
@@ -24,6 +25,7 @@ STAGE_COMMANDS = (
     "classify",
     "privacy-scan",
     "review-export",
+    "review-merge",
     "split",
     "build-release",
 )
@@ -87,6 +89,7 @@ def _load_bundle(config_root: Path | None) -> ConfigBundle:
 def handle_config_validate(args: argparse.Namespace) -> int:
     try:
         bundle = _load_bundle(args.config_root)
+        review_data = validate_review_data(bundle.config_root, args.config_root.resolve() if args.config_root else None)
     except ConfigValidationError as exc:
         _print_json({"status": "error", "error": str(exc)})
         return 1
@@ -98,6 +101,12 @@ def handle_config_validate(args: argparse.Namespace) -> int:
             "profiles": sorted(bundle.profiles),
             "privacy_rules_version": bundle.privacy_rules.version,
             "quality_thresholds_version": bundle.quality_thresholds.version,
+            "review_data_root": str(review_data.root),
+            "review_data_counts": {
+                "allowlist": len(review_data.allowlist),
+                "blocklist": len(review_data.blocklist),
+                "manual_decisions": len(review_data.manual_decisions),
+            },
             "source_count": len(bundle.source_registry.sources),
             "status": "ok",
         }

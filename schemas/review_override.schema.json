@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://heocr.github.io/hocrgen/schemas/review_override.schema.json",
+  "title": "hocrgen review override",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["item_id", "reviewer", "timestamp", "rationale"],
+  "properties": {
+    "item_id": { "type": "string" },
+    "review_item_id": { "type": ["string", "null"] },
+    "reviewer": { "type": "string" },
+    "timestamp": { "type": "string" },
+    "rationale": { "type": "string" },
+    "notes": { "type": ["string", "null"] }
+  }
+}
