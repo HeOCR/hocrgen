@@ -5,16 +5,16 @@
 This document turns the remaining `B5` alpha-freeze work into a small execution sequence of concrete PRs.
 The goal is not to finish the broader roadmap. The goal is to freeze a narrow, defensible first alpha for the separate `HeOCR` repository.
 
-## Current Alpha-Blocker Findings
+## Current Alpha Freeze Status
 
-The latest `export-alpha` inspection on `main` narrowed the remaining release blockers to four concrete issues:
+The pre-alpha blocker sequence is now complete:
 
-1. exported public manifests still leak absolute local paths and `.work/` runtime references
-2. the current NLI public sample is valid but too small to feel OCR-credible
-3. the current Pinkas public sample is a binding/cover image rather than a text-bearing historical page
-4. the current synthetic public sample still has broken Hebrew ordering, and the alpha synthetic cap should move to `2x real items`
+1. exported public manifests and review artifacts are release-portable
+2. the public NLI exemplar is OCR-credible in resolution
+3. the Pinkas exemplar is a text-bearing historical page
+4. synthetic alpha output preserves Hebrew ordering and uses the `2x real items` cap
 
-These are alpha blockers because they make the release either non-portable or visibly weak to a first external user.
+The remaining work after this document is no longer alpha freeze. The next planned milestone is `C5b`, which hardens review-decision merge and the operational review loop.
 
 ## Pre-Alpha PR Sequence
 
@@ -92,7 +92,10 @@ After the blockers above are closed, the remaining step is to freeze the actual 
 - the separate `HeOCR` repo contains the release tree under `releases/<version>/`
 - the alpha handoff PR is open with accurate notes on included sources and limitations
 
-## Postpone Until After Alpha Freeze
+**Status**
+- completed on `codex/b5b4-alpha-freeze-handoff` by re-exporting `alpha-v0` into the sibling `HeOCR` checkout, reviewing the resulting tree, and opening coordinated ready-for-review PRs in both repositories
+
+## Post-Alpha Follow-Ups
 
 These items remain important, but they should not block the first alpha unless a low-risk subset naturally lands during the blocker work above.
 
@@ -122,3 +125,4 @@ These items remain important, but they should not block the first alpha unless a
 - keep the alpha bar narrow: portability, exemplar quality, correctness, and final handoff
 - do not broaden scope just because the roadmap already contains larger synthetic ambitions
 - when a pre-alpha PR changes operator expectations or release criteria, update `.agent-plan.md`, `README.md`, and the roadmap doc in the same branch
+- when a planned PR has notation such as `B5b4`, use that notation in both the PR title and a top-level `## Planning notation` section in the PR description

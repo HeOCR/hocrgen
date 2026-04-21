@@ -104,7 +104,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | B2 | First public release capability | B2a, B2b | Static open-source importers, then real historical sample replacement | completed |
 | B3 | First public release capability | B3a, B3b | Synthetic MVP plumbing, then alpha-quality synthetic realism | completed |
 | B4 | First public release capability | B4a | Rights normalization and release eligibility | completed |
-| B5 | First public release capability | B5a, B5b1, B5b2, B5b3, B5b4 | First review-ready pilot release, then alpha-freeze unblock, content refresh, and handoff | partial |
+| B5 | First public release capability | B5a, B5b1, B5b2, B5b3, B5b4 | First review-ready pilot release, then alpha-freeze unblock, content refresh, and handoff | completed |
 | C1 | Curation and operational hardening | C1a | Normalization and technical QA | completed |
 | C2 | Curation and operational hardening | C2a | Exact dedupe and split-safe curated build outputs | completed |
 | C3 | Curation and operational hardening | C3a | Basic classification and quality scoring | completed |
@@ -139,7 +139,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | B5b1 | B5 | Alpha export portability cleanup for public manifests and audit artifacts | yes | completed | pre-alpha freeze PR 1 |
 | B5b2 | B5 | Real-scan exemplar refresh: higher-resolution NLI export and text-bearing historical sample replacement | yes | completed | pre-alpha freeze PR 2 |
 | B5b3 | B5 | Synthetic alpha unblock: Hebrew ordering fix, `2x real` synthetic cap, and low-risk realism polish | yes | completed | pre-alpha freeze PR 3 |
-| B5b4 | B5 | Final alpha freeze validation and handoff into the separate `HeOCR` repo | yes | next | pre-alpha freeze PR 4 |
+| B5b4 | B5 | Final alpha freeze validation and handoff into the separate `HeOCR` repo | yes | completed | pre-alpha freeze PR 4 |
 | C1a | C1 | Normalization, metadata extraction, checksums, previews, QA | yes | completed | merged as PR #3 |
 | C2a | C2 | Exact dedupe, deterministic split assignment, curated build outputs | yes | completed | merged as PR #5 |
 | C3a | C3 | Heuristic classification | yes | completed | merged as PR #6 |
@@ -160,11 +160,11 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 
 ## 4.3 Current critical path
 
-The immediate implementation critical path to a defensible public alpha is:
+The immediate implementation critical path after the first public alpha handoff is:
 
-1. **B5b4**: freeze the validated alpha contents and hand the versioned export into the separate `HeOCR` repository
+1. **C5b**: merge structured review decisions back into the pipeline and harden the operational review loop
 
-This prioritization is intentional. `B5a` already makes the alpha mechanically exportable, and `B2b` plus `B3b` moved the historical and synthetic samples closer to release-ready. `B5b1` removed exported absolute-path leakage by rewriting review preview references into release-local audit assets, `B5b2` refreshed the real exemplars by promoting a high-resolution NLI page and replacing the Pinkas cover sample with a text-bearing interior page, and `B5b3` fixed synthetic Hebrew display ordering while moving alpha synthetic selection to a `2x real items` policy. The remaining alpha-critical work is the final freeze and handoff. Handwritten-like generation, heavier synthetic degradation, broader synthetic diversity, and review-decision merge remain important, but they are no longer part of the minimum alpha-freeze bar.
+This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. That moves the project out of alpha-freeze mode. The next operational bottleneck is no longer export readiness; it is the still-missing review-decision merge path and review-loop hardening in `C5b`.
 
 ## 4.4 Alpha release readiness gates
 
@@ -208,8 +208,10 @@ When a PR is opened to implement a roadmap-tracked milestone or sub-PR, that imp
 - update [`.agent-plan.md`](../.agent-plan.md) with the current execution state and next immediate tasks
 - update [`README.md`](../README.md) when user-visible capabilities, workflow guidance, or operator expectations changed
 - update the relevant planning doc under [`docs/`](./) when milestone state, PR state, critical path, or release-readiness guidance changed
+- use the roadmap or plan notation in the PR title as `<notation>: <sentence-case summary>`
+- include a top-level `## Planning notation` section in the PR body that names the notation, parent milestone, and plan source
 
-This is a workflow rule, not optional polish. The point is to keep static capabilities, immediate execution state, and human-facing roadmap documents synchronized with the implementation PR that changed them. In practice, a planned PR is not complete until its code changes and its plan/documentation updates land together in the same branch.
+This is a workflow rule, not optional polish. The point is to keep static capabilities, immediate execution state, and human-facing roadmap documents synchronized with the implementation PR that changed them. In practice, a planned PR is not complete until its code changes and its plan/documentation updates land together in the same branch, with the notation reflected consistently in the PR metadata.
 
 ---
 

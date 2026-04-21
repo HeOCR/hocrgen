@@ -60,6 +60,10 @@
 ## Before merging
 - Treat feature or PR work as incomplete until a non-draft GitHub PR with a detailed description is open.
 - The PR must be ready for review, not draft.
+- If the PR implements a roadmap-tracked item or any other planned milestone item with notation such as `B5b4`, the PR title must use `<notation>: <sentence-case summary>`.
+- Planned PR descriptions must include a top-level `## Planning notation` section that names the notation, the parent milestone, and the plan source document.
+- If work belongs to a planned milestone but no notation exists yet, define that notation in the planning docs before opening the PR.
+- Planned PR notation applies to PR metadata, not branch names. Keep branch naming on the existing `codex/<topic>` rule.
 - The PR must describe what changed, why it changed, the user/developer impact, and the validation performed.
 - Ensure the PR is labeled appropriately and assigned to a GitHub milestone before handing off.
 - Run `coverage run -m pytest`
