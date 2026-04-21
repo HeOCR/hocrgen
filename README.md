@@ -365,6 +365,13 @@ When implementation work is being driven from the roadmap or another concrete pl
 - `README.md` when current capabilities, workflow expectations, or operator guidance changed
 - the relevant planning docs under [`docs/`](./docs/) when milestone state, critical path, or implementation sequencing changed
 
+Planned PR metadata should also follow a stable notation rule:
+
+- PR title: `<notation>: <sentence-case summary>` such as `B5b4: finalize alpha freeze handoff and planned PR naming`
+- PR body: include a top-level `## Planning notation` section with the notation, parent milestone, and plan source
+- If a PR belongs to a planned milestone but no notation exists yet, define the notation in the planning docs before opening the PR
+- Retire generic `[codex] ...` titles for planned work; use a plain summary title for unplanned/ad hoc PRs unless another repo-specific rule overrides it
+
 This keeps the machine-readable state tracker and the human-facing planning documents aligned with the code that just landed, instead of leaving planning updates as a later cleanup task.
 
 ## PR agent context

@@ -43,10 +43,15 @@ Critical packaged data
 
 Operational docs
 
+- `AGENTS.md` — static repo constraints, merge gate, and planned-PR notation rule
 - `README.md` — current capabilities and command examples
 - `docs/HeOCR_hocrgen_long_term_roadmap.md` — milestone/PR roadmap and critical path
 - `docs/hocrgen_design_and_spec.md` — system design and architectural boundaries
 - `docs/hocrgen_normalization_and_qa.md` — normalization and QA artifact behavior
+
+PR workflow note
+
+- planned PRs should use `<notation>: <sentence-case summary>` titles and a top-level `## Planning notation` section in the PR body; see `AGENTS.md` and the planned PR workflow section in `README.md`
 
 Tests
 
