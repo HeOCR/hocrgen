@@ -110,7 +110,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | C3 | Curation and operational hardening | C3a | Basic classification and quality scoring | completed |
 | C4 | Curation and operational hardening | C4a | Privacy and sensitivity screening MVP | completed |
 | C5 | Curation and operational hardening | C5a, C5b | Review queue export, then review decision merge/operational review loop | completed |
-| C6 | Curation and operational hardening | C6a | Release diffs and changelog automation | planned |
+| C6 | Curation and operational hardening | C6a | Release diffs and changelog automation | partial |
 | D1 | Expansion and benchmark formation | D1a | Scheduled GitHub-first expansion workflows | planned |
 | D2 | Expansion and benchmark formation | D2a | Stable source-operations maturity | planned |
 | D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | planned |
@@ -146,7 +146,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | C4a | C4 | Metadata-first privacy scanning | yes | completed | merged as PR #6 |
 | C5a | C5 | Review queue export and review-side artifacts | yes | completed | merged as PR #6 |
 | C5b | C5 | Review decision schema merge, operational review loop, and post-review release gating | no | completed | current implementation PR |
-| C6a | C6 | Release diffs and changelog generation | no | planned | future release-ops PR |
+| C6a | C6 | Release diffs and changelog generation | no | partial | current implementation PR |
 | D1a | D1 | Scheduled GitHub-first expansion workflows | no | planned | future ops PR |
 | D2a | D2 | Source refresh/reliability maturity and source freeze controls | no | planned | future source-ops PR |
 | D3a | D3 | Benchmark subset v1 and benchmark-facing manifests | no | planned | future benchmark PR |
@@ -162,9 +162,9 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 
 The immediate implementation critical path after `C5b` is:
 
-1. **C6a**: add release diffs and changelog automation so every release becomes explainable over time
+1. **C6a**: finish release diffs and changelog automation so every release becomes explainable over time
 
-This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. The next operational bottleneck is now explaining release-to-release change coherently in `C6a`.
+This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` is now underway to make those exported release trees explainable over time through baseline-aware diffs and changelog generation.
 
 ## 4.4 Alpha release readiness gates
 

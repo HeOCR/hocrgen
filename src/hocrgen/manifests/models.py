@@ -197,3 +197,30 @@ class AlphaReleaseRecord(ManifestModel):
     hocrgen_commit: str
     exported_at: str
     schema_version: Literal[1] = 1
+
+
+class ReleaseRemovalRecord(ManifestModel):
+    item_id: str
+    source_id: str
+    previous_split: Literal["train", "validation", "test"] | None = None
+    reason: Literal["review_required", "blocked", "duplicate_removed", "selection_limit_excluded", "missing_from_current_run"]
+
+
+class ReleaseChangedItemRecord(ManifestModel):
+    item_id: str
+    source_id: str
+    split: Literal["train", "validation", "test"] | None = None
+    change_types: list[Literal["metadata", "assets", "split"]] = Field(default_factory=list)
+
+
+class ReleaseDiffRecord(ManifestModel):
+    version: str
+    previous_version: str | None = None
+    generated_at: str
+    counts: dict[str, int] = Field(default_factory=dict)
+    added_items: list[dict[str, Any]] = Field(default_factory=list)
+    removed_items: list[ReleaseRemovalRecord] = Field(default_factory=list)
+    changed_items: list[ReleaseChangedItemRecord] = Field(default_factory=list)
+    source_deltas: dict[str, dict[str, int]] = Field(default_factory=dict)
+    split_deltas: dict[str, dict[str, int]] = Field(default_factory=dict)
+    schema_version: Literal[1] = 1

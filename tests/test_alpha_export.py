@@ -4,6 +4,8 @@ import json
 import shutil
 import subprocess
 from argparse import Namespace
+from collections import Counter
+from datetime import UTC
 from pathlib import Path
 
 import pytest
@@ -16,12 +18,19 @@ from hocrgen.manifests.models import AlphaExportedItemRecord, NormalizedAssetRec
 from hocrgen.package.alpha import (
     AlphaExportConfig,
     REPO_ROOT,
+    _build_release_diff,
+    _changelog_doc,
     _audit_item_payload,
     _build_source_stats,
     _copy_export_assets,
     _current_commit_sha,
+    _load_baseline_item_manifest,
     _public_item_payload,
+    _parse_exported_at,
+    _resolve_comparison_release,
     _review_queue_payload,
+    _copy_review_previews,
+    _handoff_doc,
     _sanitize_portable_value,
     _select_alpha_items,
     _source_priority,
@@ -70,6 +79,8 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
     assert payload["export_dir"] == str(output_dir)
     assert (output_dir / "data").exists()
     assert (output_dir / "manifests" / "item_manifest.json").exists()
+    assert (output_dir / "manifests" / "release_diff.json").exists()
+    assert (output_dir / "docs" / "CHANGELOG.md").exists()
     assert (output_dir / "docs" / "DATASET_CARD.md").exists()
     assert (output_dir / "docs" / "RELEASE_NOTES.md").exists()
     assert (output_dir / "docs" / "PROVENANCE.md").exists()
@@ -78,6 +89,15 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
     assert "- Target repo checkout: `<manual target checkout>`" in handoff_doc
     assert "- Target release dir: `releases/alpha-v0/`" in handoff_doc
     assert str(output_dir.resolve()) not in handoff_doc
+
+    release_diff = json.loads((output_dir / "manifests" / "release_diff.json").read_text(encoding="utf-8"))
+    changelog = (output_dir / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
+    release_notes = (output_dir / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
+    assert release_diff["previous_version"] is None
+    assert release_diff["counts"] == {"added": 3, "removed": 0, "changed": 0, "unchanged": 0}
+    assert changelog.startswith("# Changelog: alpha-v0")
+    assert "Previous version: none" in changelog
+    assert "initial-release addition summary" in release_notes
 
 
 def test_export_alpha_can_target_heocr_repo_checkout(tmp_path: Path, capsys) -> None:
@@ -337,6 +357,7 @@ def test_export_alpha_docs_and_release_record_include_metadata(
     export_dir = Path(payload["export_dir"])
     release_record = json.loads((export_dir / "manifests" / "release_record.json").read_text(encoding="utf-8"))
     dataset_card = (export_dir / "docs" / "DATASET_CARD.md").read_text(encoding="utf-8")
+    changelog = (export_dir / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
     release_notes = (export_dir / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
     provenance = (export_dir / "docs" / "PROVENANCE.md").read_text(encoding="utf-8")
     git_result = subprocess.run(["git", "rev-parse", "HEAD"])
@@ -350,10 +371,247 @@ def test_export_alpha_docs_and_release_record_include_metadata(
     else:
         assert release_record["hocrgen_commit"] == "unknown"
     assert "# HeOCR alpha-v0" in dataset_card
+    assert "# Changelog: alpha-v0" in changelog
     assert "Release Notes: alpha-v0" in release_notes
     assert dataset_card.index("`nli_any_use_permitted`") < dataset_card.index("`pinkas_open`")
     assert dataset_card.index("`pinkas_open`") < dataset_card.index("`project_synthetic`")
     assert "`biblia_open`" not in dataset_card
+
+
+def test_export_alpha_auto_discovers_previous_sibling_release(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    releases_root = tmp_path / "HeOCR" / "releases"
+    baseline_dir = releases_root / "alpha-v0"
+    invalid_dir = releases_root / "notes"
+    invalid_dir.mkdir(parents=True)
+
+    first_exit = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work1"),
+            "--output-dir",
+            str(baseline_dir),
+        ]
+    )
+    assert first_exit == 0
+    _ = capsys.readouterr().out
+
+    second_exit = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work2"),
+            "--version",
+            "alpha-v1",
+            "--output-dir",
+            str(releases_root / "alpha-v1"),
+        ]
+    )
+    assert second_exit == 0
+    payload = json.loads(capsys.readouterr().out)
+    export_dir = Path(payload["export_dir"])
+    release_diff = json.loads((export_dir / "manifests" / "release_diff.json").read_text(encoding="utf-8"))
+    release_notes = (export_dir / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
+
+    assert release_diff["previous_version"] == "alpha-v0"
+    assert release_diff["counts"]["unchanged"] == 3
+    assert "Compared to `alpha-v0`" in release_notes
+
+
+def test_export_alpha_compare_to_override_reports_selection_limit_removed(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    releases_root = tmp_path / "HeOCR" / "releases"
+    baseline_dir = releases_root / "alpha-v0"
+
+    first_exit = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work1"),
+            "--output-dir",
+            str(baseline_dir),
+        ]
+    )
+    assert first_exit == 0
+    _ = capsys.readouterr().out
+
+    second_exit = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work2"),
+            "--version",
+            "alpha-v1",
+            "--output-dir",
+            str(releases_root / "alpha-v1"),
+            "--compare-to",
+            str(baseline_dir),
+            "--max-real-items",
+            "1",
+            "--max-synthetic-items",
+            "1",
+        ]
+    )
+    assert second_exit == 0
+    payload = json.loads(capsys.readouterr().out)
+    export_dir = Path(payload["export_dir"])
+    release_diff = json.loads((export_dir / "manifests" / "release_diff.json").read_text(encoding="utf-8"))
+    changelog = (export_dir / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
+
+    assert release_diff["previous_version"] == "alpha-v0"
+    assert release_diff["counts"]["removed"] == 1
+    assert release_diff["counts"]["unchanged"] == 2
+    assert release_diff["removed_items"] == [
+        {
+            "item_id": "pinkas_open:pinkas-ledger-001",
+            "previous_split": "train",
+            "reason": "selection_limit_excluded",
+            "source_id": "pinkas_open",
+        }
+    ]
+    assert "`selection_limit_excluded`" in changelog
+
+
+def test_resolve_comparison_release_rejects_current_export_dir_compare_to(tmp_path: Path) -> None:
+    export_dir = tmp_path / "exports" / "alpha-v1"
+    export_dir.mkdir(parents=True)
+
+    with pytest.raises(StageExecutionError, match="--compare-to cannot point to the current export directory"):
+        _resolve_comparison_release(
+            export_dir,
+            AlphaExportConfig(version="alpha-v1", output_dir=export_dir, compare_to=export_dir),
+        )
+
+
+def test_resolve_comparison_release_returns_none_when_sibling_root_missing(tmp_path: Path) -> None:
+    export_dir = tmp_path / "missing-root" / "alpha-v1"
+    result = _resolve_comparison_release(export_dir, AlphaExportConfig(version="alpha-v1", output_dir=export_dir))
+    assert result is None
+
+
+def test_resolve_comparison_release_ignores_non_directories_and_same_version(tmp_path: Path) -> None:
+    sibling_root = tmp_path / "exports"
+    export_dir = sibling_root / "alpha-v2"
+    export_dir.mkdir(parents=True)
+    (sibling_root / "random.txt").write_text("ignore", encoding="utf-8")
+    same_version_dir = sibling_root / "alpha-v2-copy"
+    same_version_dir.mkdir()
+    _write_baseline_release(same_version_dir, "alpha-v1", [])
+
+    selected = _resolve_comparison_release(export_dir, AlphaExportConfig(version="alpha-v2-copy", output_dir=export_dir))
+    assert selected is None
+
+
+def test_resolve_comparison_release_skips_candidates_with_matching_release_record_version(tmp_path: Path) -> None:
+    sibling_root = tmp_path / "exports"
+    export_dir = sibling_root / "alpha-v1"
+    export_dir.mkdir(parents=True)
+    same_version_dir = sibling_root / "renamed-baseline"
+    _write_baseline_release(same_version_dir, "alpha-v1", [])
+
+    selected = _resolve_comparison_release(export_dir, AlphaExportConfig(version="alpha-v1", output_dir=export_dir))
+    assert selected is None
+
+
+def test_validate_release_diff_baseline_rejects_non_file_manifests(tmp_path: Path) -> None:
+    baseline_dir = tmp_path / "baseline"
+    manifests_dir = baseline_dir / "manifests"
+    (manifests_dir / "release_record.json").mkdir(parents=True)
+    (manifests_dir / "item_manifest.json").write_text("{}", encoding="utf-8")
+
+    with pytest.raises(StageExecutionError, match="missing required manifests"):
+        _resolve_comparison_release(
+            tmp_path / "exports" / "alpha-v1",
+            AlphaExportConfig(version="alpha-v1", compare_to=baseline_dir),
+        )
+
+
+def test_validate_release_diff_baseline_rejects_missing_compare_to_path(tmp_path: Path) -> None:
+    missing = tmp_path / "missing-baseline"
+    with pytest.raises(StageExecutionError, match="does not exist"):
+        _resolve_comparison_release(
+            tmp_path / "exports" / "alpha-v1",
+            AlphaExportConfig(version="alpha-v1", compare_to=missing),
+        )
+
+
+def test_validate_release_diff_baseline_rejects_non_directory_compare_to_path(tmp_path: Path) -> None:
+    baseline_file = tmp_path / "baseline-file"
+    baseline_file.write_text("not a directory", encoding="utf-8")
+
+    with pytest.raises(StageExecutionError, match="is not a directory"):
+        _resolve_comparison_release(
+            tmp_path / "exports" / "alpha-v1",
+            AlphaExportConfig(version="alpha-v1", compare_to=baseline_file),
+        )
+
+
+def test_validate_release_diff_baseline_rejects_invalid_json_manifest(tmp_path: Path) -> None:
+    baseline_dir = tmp_path / "baseline"
+    manifests_dir = baseline_dir / "manifests"
+    manifests_dir.mkdir(parents=True)
+    (manifests_dir / "release_record.json").write_text("{not-json", encoding="utf-8")
+    (manifests_dir / "item_manifest.json").write_text("{\"items\": []}", encoding="utf-8")
+
+    with pytest.raises(StageExecutionError, match="has invalid JSON"):
+        _resolve_comparison_release(
+            tmp_path / "exports" / "alpha-v1",
+            AlphaExportConfig(version="alpha-v1", compare_to=baseline_dir),
+        )
+
+
+def test_parse_exported_at_normalizes_naive_and_zulu_timestamps() -> None:
+    naive = _parse_exported_at("2026-04-21T10:00:00")
+    zulu = _parse_exported_at("2026-04-21T10:00:00Z")
+
+    assert naive is not None
+    assert naive.tzinfo == UTC
+    assert naive.isoformat() == "2026-04-21T10:00:00+00:00"
+    assert zulu is not None
+    assert zulu.tzinfo == UTC
+
+
+def test_parse_exported_at_returns_none_for_non_string_and_invalid_values() -> None:
+    assert _parse_exported_at(None) is None
+    assert _parse_exported_at("not-a-timestamp") is None
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected_error"),
+    [
+        (["not-an-object"], "must be a JSON object with a list 'items'"),
+        ({"items": "not-a-list"}, "must contain a list 'items'"),
+        ({"items": ["not-an-object"]}, "must contain only object entries with 'item_id'"),
+        ({"items": [{}]}, "must contain only object entries with 'item_id'"),
+    ],
+)
+def test_load_baseline_item_manifest_validates_manifest_shape(tmp_path: Path, payload: object, expected_error: str) -> None:
+    manifest_path = tmp_path / "item_manifest.json"
+    manifest_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(StageExecutionError, match=expected_error):
+        _load_baseline_item_manifest(manifest_path)
 
 
 def test_export_alpha_fails_when_output_dir_exists_without_overwrite(tmp_path: Path, capsys) -> None:
@@ -407,6 +665,95 @@ def test_export_alpha_overwrites_existing_output_dir_when_requested(tmp_path: Pa
     )
     assert exit_code == 0
     assert not stale_file.exists()
+
+
+def test_export_alpha_succeeds_when_removed_duplicate_items_are_curated_records(tmp_path: Path, capsys) -> None:
+    config_root = tmp_path / "config"
+    shutil.copytree(default_config_root(), config_root)
+    fixture_seed = (Path(__file__).parent / "fixtures" / "nli" / "seeds_default.yaml").resolve()
+    duplicate_records_path = tmp_path / "duplicate_biblia_records.json"
+    duplicate_records_path.write_text(
+        json.dumps(
+            {
+                "records": [
+                    {
+                        "id": "biblia-duplicate-001",
+                        "title": "BiblIA duplicate fixture",
+                        "source_url": "https://example.org/biblia/duplicate-1",
+                        "upstream_identifier": "duplicate-1",
+                        "collection": "BiblIA Open Packaged Subset",
+                        "period": "historical",
+                        "raw_rights": "PD-IL",
+                        "asset_path": "package://data/pinkas/assets/pinkas_001.jpg",
+                    }
+                ]
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    sources_path = config_root / "sources.yaml"
+    sources_path.write_text(
+        sources_path.read_text(encoding="utf-8").replace(
+            "package://data/biblia/records.json", str(duplicate_records_path)
+        ).replace(
+            "package://data/nli/seeds.yaml", str(fixture_seed)
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--output-dir",
+            str(tmp_path / "HeOCR" / "releases" / "alpha-v0"),
+        ]
+    )
+
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert (Path(payload["export_dir"]) / "manifests" / "release_diff.json").exists()
+
+
+def test_export_alpha_skips_auto_discovered_siblings_with_invalid_release_record_json(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    releases_root = tmp_path / "HeOCR" / "releases"
+    invalid_baseline = releases_root / "broken-release"
+    invalid_manifests = invalid_baseline / "manifests"
+    invalid_manifests.mkdir(parents=True)
+    (invalid_manifests / "release_record.json").write_text("{not-json", encoding="utf-8")
+    (invalid_manifests / "item_manifest.json").write_text("{\"items\": []}", encoding="utf-8")
+
+    exit_code = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--version",
+            "alpha-v1",
+            "--output-dir",
+            str(releases_root / "alpha-v1"),
+        ]
+    )
+
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    release_diff = json.loads((Path(payload["export_dir"]) / "manifests" / "release_diff.json").read_text(encoding="utf-8"))
+    assert release_diff["previous_version"] is None
 
 
 def test_export_alpha_rejects_conflicting_handoff_targets(tmp_path: Path, capsys) -> None:
@@ -849,6 +1196,41 @@ def test_review_queue_payload_skips_missing_preview_paths(tmp_path: Path) -> Non
     assert payload["preview_paths"] == []
 
 
+def test_copy_review_previews_rejects_targets_outside_export_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    preview_path_ok = tmp_path / "preview_ok.svg"
+    preview_path_ok.write_text("<svg/>", encoding="utf-8")
+    preview_path_escape = tmp_path / "preview.svg"
+    preview_path_escape.write_text("<svg/>", encoding="utf-8")
+    review_item = ReviewQueueRecord.model_validate(
+        {
+            "review_item_id": "review:test:item-003",
+            "item_id": "test:item-003",
+            "source_id": "test_source",
+            "canonical_item_id": "test:item-003",
+            "split_group_id_pre_review": "group:test:item-003",
+            "review_reasons": ["privacy:metadata_signal"],
+            "suggested_decision": "needs_privacy_review",
+            "privacy_flag": "needs_review",
+            "classification_summary": {},
+            "preview_paths": [str(preview_path_ok), str(preview_path_escape)],
+            "source_url": "https://example.org/test:item-003",
+            "title": "test:item-003",
+        }
+    )
+
+    original_relative_to = Path.relative_to
+
+    def fake_relative_to(self: Path, *other: Path) -> Path:
+        if self.name == "02_preview.svg":
+            raise ValueError("escape")
+        return original_relative_to(self, *other)
+
+    monkeypatch.setattr(Path, "relative_to", fake_relative_to)
+
+    with pytest.raises(StageExecutionError, match="review preview target escapes export dir"):
+        _copy_review_previews(review_item, tmp_path / "export")
+
+
 def test_validate_overwrite_target_rejects_non_directory(tmp_path: Path) -> None:
     target = tmp_path / "alpha-v0"
     target.write_text("not a directory", encoding="utf-8")
@@ -859,6 +1241,264 @@ def test_validate_overwrite_target_rejects_non_directory(tmp_path: Path) -> None
 def test_validate_overwrite_target_rejects_shallow_paths() -> None:
     with pytest.raises(StageExecutionError, match="refusing to overwrite unsafe export target"):
         _validate_overwrite_target(Path("/tmp"), "tmp")
+
+
+def test_build_release_diff_classifies_changed_items_and_removed_reasons(tmp_path: Path) -> None:
+    baseline_dir = tmp_path / "baseline"
+    item_dir = tmp_path / "assets"
+    item_dir.mkdir()
+
+    unchanged = _make_exported_item("same:item", "train", item_dir / "same.svg", source_id="same_source")
+    metadata_before = _make_exported_item("meta:item", "train", item_dir / "meta.svg", source_id="meta_source", title="before")
+    metadata_after = metadata_before.model_copy(update={"title": "after"})
+    asset_before = _make_exported_item("asset:item", "train", item_dir / "asset_before.svg", source_id="asset_source")
+    asset_after = AlphaExportedItemRecord.model_validate(
+        asset_before.model_dump(mode="python")
+        | {
+            "exported_assets": [
+                {
+                    "release_asset_path": "data/train/asset:item/asset_after.svg",
+                    "media_type": "image/svg+xml",
+                    "asset_format": "svg",
+                    "release_preview_path": None,
+                }
+            ]
+        }
+    )
+    split_before = _make_exported_item("split:item", "train", item_dir / "split.svg", source_id="split_source")
+    split_after = split_before.model_copy(update={"split": "validation"})
+    removed_review = _make_exported_item("removed:review", "train", item_dir / "removed_review.svg", source_id="review_source")
+    removed_blocked = _make_exported_item("removed:blocked", "train", item_dir / "removed_blocked.svg", source_id="blocked_source")
+    removed_duplicate = _make_exported_item("removed:duplicate", "train", item_dir / "removed_duplicate.svg", source_id="duplicate_source")
+    removed_missing = _make_exported_item("removed:missing", "train", item_dir / "removed_missing.svg", source_id="missing_source")
+
+    _write_baseline_release(
+        baseline_dir,
+        "alpha-v0",
+        [
+            unchanged,
+            metadata_before,
+            asset_before,
+            split_before,
+            removed_review,
+            removed_blocked,
+            removed_duplicate,
+            removed_missing,
+        ],
+    )
+
+    release_ready_selection = _make_item("removed:selection", "train", str(item_dir / "selection.svg")).model_copy(
+        update={"source_id": "selection_source"}
+    )
+    diff = _build_release_diff(
+        version="alpha-v1",
+        generated_at="2026-04-21T10:00:00+00:00",
+        current_items=[unchanged, metadata_after, asset_after, split_after],
+        baseline_dir=baseline_dir,
+        review_required_items=[_make_item("removed:review", "train", str(item_dir / "removed_review.svg")).model_copy(update={"source_id": "review_source"})],
+        blocked_items=[_make_item("removed:blocked", "train", str(item_dir / "removed_blocked.svg")).model_copy(update={"source_id": "blocked_source"})],
+        removed_duplicate_items=[_make_item("removed:duplicate", "train", str(item_dir / "removed_duplicate.svg")).model_copy(update={"source_id": "duplicate_source"})],
+        build_release_items=[metadata_after, asset_after, split_after, unchanged, release_ready_selection],
+    )
+
+    assert diff.previous_version == "alpha-v0"
+    assert diff.counts == {"added": 0, "removed": 4, "changed": 3, "unchanged": 1}
+    assert {item.item_id: item.change_types for item in diff.changed_items} == {
+        "asset:item": ["assets"],
+        "meta:item": ["metadata"],
+        "split:item": ["split"],
+    }
+    assert {item.item_id: item.reason for item in diff.removed_items} == {
+        "removed:blocked": "blocked",
+        "removed:duplicate": "duplicate_removed",
+        "removed:missing": "missing_from_current_run",
+        "removed:review": "review_required",
+    }
+
+
+def test_changelog_groups_changed_items_and_renders_removal_reasons(tmp_path: Path) -> None:
+    baseline_dir = tmp_path / "baseline"
+    item_dir = tmp_path / "assets"
+    item_dir.mkdir()
+    before = _make_exported_item("doc:item", "train", item_dir / "before.svg", source_id="test_source", title="before")
+    after = AlphaExportedItemRecord.model_validate(
+        before.model_dump(mode="python")
+        | {
+            "title": "after",
+            "split": "validation",
+            "exported_assets": [
+                {
+                    "release_asset_path": "data/validation/doc:item/after.svg",
+                    "media_type": "image/svg+xml",
+                    "asset_format": "svg",
+                    "release_preview_path": None,
+                }
+            ],
+        }
+    )
+    removed = _make_exported_item("gone:item", "test", item_dir / "gone.svg", source_id="test_source")
+    _write_baseline_release(baseline_dir, "alpha-v0", [before, removed])
+
+    diff = _build_release_diff(
+        version="alpha-v1",
+        generated_at="2026-04-21T10:00:00+00:00",
+        current_items=[after],
+        baseline_dir=baseline_dir,
+        review_required_items=[],
+        blocked_items=[],
+        removed_duplicate_items=[],
+        build_release_items=[after],
+    )
+    changelog = _changelog_doc("alpha-v1", diff)
+
+    assert "### Metadata Changes" in changelog
+    assert "### Asset Changes" in changelog
+    assert "### Split Assignment Changes" in changelog
+    assert "`missing_from_current_run`" in changelog
+
+
+def test_changelog_renders_none_for_empty_sections_and_skips_unmatched_change_types() -> None:
+    diff = _build_release_diff(
+        version="alpha-v1",
+        generated_at="2026-04-21T10:00:00+00:00",
+        current_items=[],
+        baseline_dir=None,
+        review_required_items=[],
+        blocked_items=[],
+        removed_duplicate_items=[],
+        build_release_items=[],
+    )
+
+    changelog = _changelog_doc("alpha-v1", diff)
+
+    assert "## Source Deltas\n- None" in changelog
+    assert "## Split Deltas\n- None" in changelog
+    assert "## Added Items\n- None" in changelog
+    assert "## Removed Items\n- None" in changelog
+    assert "## Changed Items\n- None" in changelog
+    assert "### Metadata Changes" not in changelog
+
+
+def test_changelog_renders_unknown_for_null_added_item_split(tmp_path: Path) -> None:
+    diff = _build_release_diff(
+        version="alpha-v1",
+        generated_at="2026-04-21T10:00:00+00:00",
+        current_items=[_make_exported_item("doc:item", "train", tmp_path / "alpha_doc.svg").model_copy(update={"split": None})],
+        baseline_dir=None,
+        review_required_items=[],
+        blocked_items=[],
+        removed_duplicate_items=[],
+        build_release_items=[],
+    )
+
+    changelog = _changelog_doc("alpha-v1", diff)
+
+    assert "`unknown`" in changelog
+
+
+def test_changelog_skips_unmatched_change_type_sections(tmp_path: Path) -> None:
+    baseline_dir = tmp_path / "baseline"
+    item_dir = tmp_path / "assets"
+    item_dir.mkdir()
+    before = _make_exported_item("doc:item", "train", item_dir / "before.svg", source_id="test_source", title="before")
+    after = before.model_copy(update={"title": "after"})
+    _write_baseline_release(baseline_dir, "alpha-v0", [before])
+
+    diff = _build_release_diff(
+        version="alpha-v1",
+        generated_at="2026-04-21T10:00:00+00:00",
+        current_items=[after],
+        baseline_dir=baseline_dir,
+        review_required_items=[],
+        blocked_items=[],
+        removed_duplicate_items=[],
+        build_release_items=[after],
+    )
+    changelog = _changelog_doc("alpha-v1", diff)
+
+    assert "### Metadata Changes" in changelog
+    assert "### Asset Changes" not in changelog
+    assert "### Split Assignment Changes" not in changelog
+
+
+def test_handoff_doc_falls_back_to_default_release_dir_when_export_not_under_repo(tmp_path: Path) -> None:
+    bundle = load_and_validate_bundle(_fixture_config_root(tmp_path))
+    handoff = _handoff_doc(
+        "alpha-v1",
+        tmp_path / "external" / "alpha-v1",
+        bundle.profiles["profile_open_v1"],
+        {
+            "exported_item_count": 1,
+            "exported_real_items": 1,
+            "exported_synthetic_items": 0,
+            "review_required_count": 0,
+            "blocked_count": 0,
+        },
+        ["nli_any_use_permitted"],
+        "deadbeef",
+        tmp_path / "HeOCR",
+    )
+
+    assert "- Target release dir: `releases/alpha-v1/`" in handoff
+
+
+def _make_exported_item(
+    item_id: str,
+    split: str,
+    normalized_asset_path: Path,
+    *,
+    source_id: str = "test_source",
+    title: str | None = None,
+) -> AlphaExportedItemRecord:
+    normalized_asset_path.write_text("<svg/>", encoding="utf-8")
+    item = _make_item(item_id, split, str(normalized_asset_path)).model_copy(
+        update={"source_id": source_id, "title": title or item_id}
+    )
+    return AlphaExportedItemRecord.model_validate(
+        item.model_dump(mode="python")
+        | {
+            "exported_assets": [
+                {
+                    "release_asset_path": f"data/{split}/{item_id}/{normalized_asset_path.name}",
+                    "media_type": "image/svg+xml",
+                    "asset_format": "svg",
+                    "release_preview_path": None,
+                }
+            ]
+        }
+    )
+
+
+def _write_baseline_release(path: Path, version: str, items: list[AlphaExportedItemRecord]) -> None:
+    manifests_dir = path / "manifests"
+    manifests_dir.mkdir(parents=True, exist_ok=True)
+    (path / "docs").mkdir(parents=True, exist_ok=True)
+    (path / "docs" / "CHANGELOG.md").write_text("# Previous\n", encoding="utf-8")
+    (manifests_dir / "item_manifest.json").write_text(
+        json.dumps({"items": [_public_item_payload(item) for item in items]}, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    (manifests_dir / "release_record.json").write_text(
+        json.dumps(
+            {
+                "version": version,
+                "profile_id": "profile_open_v1",
+                "included_sources": sorted({item.source_id for item in items}),
+                "split_counts": dict(sorted((Counter(item.split for item in items if item.split)).items())),
+                "real_items": len(items),
+                "synthetic_items": 0,
+                "review_required_count": 0,
+                "blocked_count": 0,
+                "hocrgen_commit": "deadbeef",
+                "exported_at": "2026-04-20T10:00:00+00:00",
+                "schema_version": 1,
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
 
 
 def _make_item(
