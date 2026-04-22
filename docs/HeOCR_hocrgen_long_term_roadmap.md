@@ -110,7 +110,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | C3 | Curation and operational hardening | C3a | Basic classification and quality scoring | completed |
 | C4 | Curation and operational hardening | C4a | Privacy and sensitivity screening MVP | completed |
 | C5 | Curation and operational hardening | C5a, C5b | Review queue export, then review decision merge/operational review loop | completed |
-| C6 | Curation and operational hardening | C6a | Release diffs and changelog automation | partial |
+| C6 | Curation and operational hardening | C6a | Release diffs and changelog automation | completed |
 | D1 | Expansion and benchmark formation | D1a | Scheduled GitHub-first expansion workflows | planned |
 | D2 | Expansion and benchmark formation | D2a | Stable source-operations maturity | planned |
 | D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | planned |
@@ -145,8 +145,8 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | C3a | C3 | Heuristic classification | yes | completed | merged as PR #6 |
 | C4a | C4 | Metadata-first privacy scanning | yes | completed | merged as PR #6 |
 | C5a | C5 | Review queue export and review-side artifacts | yes | completed | merged as PR #6 |
-| C5b | C5 | Review decision schema merge, operational review loop, and post-review release gating | no | completed | current implementation PR |
-| C6a | C6 | Release diffs and changelog generation | no | partial | current implementation PR |
+| C5b | C5 | Review decision schema merge, operational review loop, and post-review release gating | no | completed | merged as PR #22 |
+| C6a | C6 | Release diffs and changelog generation | no | completed | merged as PR #23 |
 | D1a | D1 | Scheduled GitHub-first expansion workflows | no | planned | future ops PR |
 | D2a | D2 | Source refresh/reliability maturity and source freeze controls | no | planned | future source-ops PR |
 | D3a | D3 | Benchmark subset v1 and benchmark-facing manifests | no | planned | future benchmark PR |
@@ -160,11 +160,11 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 
 ## 4.3 Current critical path
 
-The immediate implementation critical path after `C5b` is:
+The immediate implementation critical path after `C6a` is:
 
-1. **C6a**: finish release diffs and changelog automation so every release becomes explainable over time
+1. **D1a**: add scheduled GitHub-first expansion workflows so recurring maintenance no longer depends on one-off manual runs
 
-This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` is now underway to make those exported release trees explainable over time through baseline-aware diffs and changelog generation.
+This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` is now merged and makes exported release trees explainable over time through baseline-aware diffs and changelog generation. The next operational bottleneck is scheduled, GitHub-first refresh and dry-run maintenance in `D1a`.
 
 ## 4.4 Alpha release readiness gates
 
@@ -200,6 +200,8 @@ Some completed bootstrap work predates PR-based tracking. In particular, `A1a` i
 | B1b | #8 |
 | B5a | #10 |
 | B3b | #14 |
+| C5b | #22 |
+| C6a | #23 |
 
 ## 4.6 Planned PR documentation rule
 
@@ -212,6 +214,8 @@ When a PR is opened to implement a roadmap-tracked milestone or sub-PR, that imp
 - include a top-level `## Planning notation` section in the PR body that names the notation, parent milestone, and plan source
 
 This is a workflow rule, not optional polish. The point is to keep static capabilities, immediate execution state, and human-facing roadmap documents synchronized with the implementation PR that changed them. In practice, a planned PR is not complete until its code changes and its plan/documentation updates land together in the same branch, with the notation reflected consistently in the PR metadata.
+
+For status reconciliation, treat merged `main` and merged GitHub PR history as authoritative over branch-local execution notes. If a roadmap table, `.agent-plan.md`, or another planning surface disagrees with merged `main`, update the planning docs before treating the notation as still open.
 
 ---
 
