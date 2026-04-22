@@ -17,6 +17,7 @@ from hocrgen.manifests.io import write_json
 from hocrgen.manifests.models import (
     AlphaExportedItemRecord,
     AlphaReleaseRecord,
+    CuratedItemRecord,
     DuplicateClusterRecord,
     DuplicateRelationRecord,
     ExportedAssetRecord,
@@ -84,7 +85,7 @@ def export_alpha_release(
     split_manifest = _load_models(build_dir / "split_manifest.json", SplitAssignmentRecord)
     duplicate_relations = _load_models(build_dir / "duplicate_relations.json", DuplicateRelationRecord)
     duplicate_clusters = _load_models(build_dir / "duplicate_clusters.json", DuplicateClusterRecord)
-    removed_duplicate_items = _load_models(build_dir / "removed_duplicate_items.json", PrivacyScannedItemRecord)
+    removed_duplicate_items = _load_models(build_dir / "removed_duplicate_items.json", CuratedItemRecord)
     review_queue = _load_models(build_dir / "review_queue.json", ReviewQueueRecord)
     build_release_summary = _load_json(build_dir / "release_summary.json")
 
@@ -362,6 +363,8 @@ def _resolve_comparison_release(export_dir: Path, config: AlphaExportConfig) -> 
         if not _is_release_diff_baseline(child):
             continue
         release_record = _load_json(child / "manifests" / "release_record.json")
+        if release_record.get("version") == config.version:
+            continue
         exported_at = _parse_exported_at(release_record.get("exported_at"))
         candidates.append((exported_at, child.name, child))
 
@@ -466,8 +469,7 @@ def _build_release_diff(
     if baseline_dir is not None:
         baseline_record = _load_json(baseline_dir / "manifests" / "release_record.json")
         previous_version = baseline_record.get("version") or baseline_dir.name
-        baseline_manifest = _load_json(baseline_dir / "manifests" / "item_manifest.json")
-        baseline_by_id = {item["item_id"]: item for item in baseline_manifest["items"]}
+        baseline_by_id = _load_baseline_item_manifest(baseline_dir / "manifests" / "item_manifest.json")
 
     added_ids = sorted(set(current_by_id) - set(baseline_by_id))
     removed_ids = sorted(set(baseline_by_id) - set(current_by_id))
@@ -769,7 +771,7 @@ def _changelog_doc(version: str, release_diff: ReleaseDiffRecord) -> str:
 
     lines.extend(["", "## Added Items"])
     if release_diff.added_items:
-        lines.extend(f"- `{item['item_id']}` ({item['source_id']}, `{item.get('split', 'unknown')}`)" for item in release_diff.added_items)
+        lines.extend(f"- `{item['item_id']}` ({item['source_id']}, `{item.get('split') or 'unknown'}`)" for item in release_diff.added_items)
     else:
         lines.append("- None")
 
@@ -958,6 +960,28 @@ def _validate_overwrite_target(export_dir: Path, version: str) -> None:
 
 def _load_json(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _load_baseline_item_manifest(path: Path) -> dict[str, dict[str, Any]]:
+    baseline_manifest = _load_json(path)
+    if not isinstance(baseline_manifest, dict):
+        raise StageExecutionError(f"baseline item manifest at {path} must be a JSON object with a list 'items'")
+    baseline_items = baseline_manifest.get("items")
+    if not isinstance(baseline_items, list):
+        raise StageExecutionError(f"baseline item manifest at {path} must contain a list 'items'")
+    invalid_item = next(
+        (
+            item
+            for item in baseline_items
+            if not isinstance(item, dict) or "item_id" not in item
+        ),
+        None,
+    )
+    if invalid_item is not None:
+        raise StageExecutionError(
+            f"baseline item manifest at {path} must contain only object entries with 'item_id'"
+        )
+    return {str(item["item_id"]): item for item in baseline_items}
 
 
 def _load_models(path: Path, model_type: type[Any]) -> list[Any]:

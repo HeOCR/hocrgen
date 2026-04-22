@@ -24,6 +24,7 @@ from hocrgen.package.alpha import (
     _build_source_stats,
     _copy_export_assets,
     _current_commit_sha,
+    _load_baseline_item_manifest,
     _public_item_payload,
     _parse_exported_at,
     _resolve_comparison_release,
@@ -522,6 +523,17 @@ def test_resolve_comparison_release_ignores_non_directories_and_same_version(tmp
     assert selected is None
 
 
+def test_resolve_comparison_release_skips_candidates_with_matching_release_record_version(tmp_path: Path) -> None:
+    sibling_root = tmp_path / "exports"
+    export_dir = sibling_root / "alpha-v1"
+    export_dir.mkdir(parents=True)
+    same_version_dir = sibling_root / "renamed-baseline"
+    _write_baseline_release(same_version_dir, "alpha-v1", [])
+
+    selected = _resolve_comparison_release(export_dir, AlphaExportConfig(version="alpha-v1", output_dir=export_dir))
+    assert selected is None
+
+
 def test_validate_release_diff_baseline_rejects_non_file_manifests(tmp_path: Path) -> None:
     baseline_dir = tmp_path / "baseline"
     manifests_dir = baseline_dir / "manifests"
@@ -569,6 +581,23 @@ def test_parse_exported_at_normalizes_naive_and_zulu_timestamps() -> None:
 def test_parse_exported_at_returns_none_for_non_string_and_invalid_values() -> None:
     assert _parse_exported_at(None) is None
     assert _parse_exported_at("not-a-timestamp") is None
+
+
+@pytest.mark.parametrize(
+    ("payload", "expected_error"),
+    [
+        (["not-an-object"], "must be a JSON object with a list 'items'"),
+        ({"items": "not-a-list"}, "must contain a list 'items'"),
+        ({"items": ["not-an-object"]}, "must contain only object entries with 'item_id'"),
+        ({"items": [{}]}, "must contain only object entries with 'item_id'"),
+    ],
+)
+def test_load_baseline_item_manifest_validates_manifest_shape(tmp_path: Path, payload: object, expected_error: str) -> None:
+    manifest_path = tmp_path / "item_manifest.json"
+    manifest_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(StageExecutionError, match=expected_error):
+        _load_baseline_item_manifest(manifest_path)
 
 
 def test_export_alpha_fails_when_output_dir_exists_without_overwrite(tmp_path: Path, capsys) -> None:
@@ -622,6 +651,63 @@ def test_export_alpha_overwrites_existing_output_dir_when_requested(tmp_path: Pa
     )
     assert exit_code == 0
     assert not stale_file.exists()
+
+
+def test_export_alpha_succeeds_when_removed_duplicate_items_are_curated_records(tmp_path: Path, capsys) -> None:
+    config_root = tmp_path / "config"
+    shutil.copytree(default_config_root(), config_root)
+    fixture_seed = (Path(__file__).parent / "fixtures" / "nli" / "seeds_default.yaml").resolve()
+    duplicate_records_path = tmp_path / "duplicate_biblia_records.json"
+    duplicate_records_path.write_text(
+        json.dumps(
+            {
+                "records": [
+                    {
+                        "id": "biblia-duplicate-001",
+                        "title": "BiblIA duplicate fixture",
+                        "source_url": "https://example.org/biblia/duplicate-1",
+                        "upstream_identifier": "duplicate-1",
+                        "collection": "BiblIA Open Packaged Subset",
+                        "period": "historical",
+                        "raw_rights": "PD-IL",
+                        "asset_path": "package://data/pinkas/assets/pinkas_001.jpg",
+                    }
+                ]
+            },
+            indent=2,
+            sort_keys=True,
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    sources_path = config_root / "sources.yaml"
+    sources_path.write_text(
+        sources_path.read_text(encoding="utf-8").replace(
+            "package://data/biblia/records.json", str(duplicate_records_path)
+        ).replace(
+            "package://data/nli/seeds.yaml", str(fixture_seed)
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--output-dir",
+            str(tmp_path / "HeOCR" / "releases" / "alpha-v0"),
+        ]
+    )
+
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    assert (Path(payload["export_dir"]) / "manifests" / "release_diff.json").exists()
 
 
 def test_export_alpha_rejects_conflicting_handoff_targets(tmp_path: Path, capsys) -> None:
@@ -1065,8 +1151,10 @@ def test_review_queue_payload_skips_missing_preview_paths(tmp_path: Path) -> Non
 
 
 def test_copy_review_previews_rejects_targets_outside_export_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    preview_path = tmp_path / "preview.svg"
-    preview_path.write_text("<svg/>", encoding="utf-8")
+    preview_path_ok = tmp_path / "preview_ok.svg"
+    preview_path_ok.write_text("<svg/>", encoding="utf-8")
+    preview_path_escape = tmp_path / "preview.svg"
+    preview_path_escape.write_text("<svg/>", encoding="utf-8")
     review_item = ReviewQueueRecord.model_validate(
         {
             "review_item_id": "review:test:item-003",
@@ -1078,7 +1166,7 @@ def test_copy_review_previews_rejects_targets_outside_export_dir(tmp_path: Path,
             "suggested_decision": "needs_privacy_review",
             "privacy_flag": "needs_review",
             "classification_summary": {},
-            "preview_paths": [str(preview_path)],
+            "preview_paths": [str(preview_path_ok), str(preview_path_escape)],
             "source_url": "https://example.org/test:item-003",
             "title": "test:item-003",
         }
@@ -1087,7 +1175,7 @@ def test_copy_review_previews_rejects_targets_outside_export_dir(tmp_path: Path,
     original_relative_to = Path.relative_to
 
     def fake_relative_to(self: Path, *other: Path) -> Path:
-        if self.name == "01_preview.svg":
+        if self.name == "02_preview.svg":
             raise ValueError("escape")
         return original_relative_to(self, *other)
 
@@ -1243,6 +1331,23 @@ def test_changelog_renders_none_for_empty_sections_and_skips_unmatched_change_ty
     assert "## Removed Items\n- None" in changelog
     assert "## Changed Items\n- None" in changelog
     assert "### Metadata Changes" not in changelog
+
+
+def test_changelog_renders_unknown_for_null_added_item_split(tmp_path: Path) -> None:
+    diff = _build_release_diff(
+        version="alpha-v1",
+        generated_at="2026-04-21T10:00:00+00:00",
+        current_items=[_make_exported_item("doc:item", "train", tmp_path / "alpha_doc.svg").model_copy(update={"split": None})],
+        baseline_dir=None,
+        review_required_items=[],
+        blocked_items=[],
+        removed_duplicate_items=[],
+        build_release_items=[],
+    )
+
+    changelog = _changelog_doc("alpha-v1", diff)
+
+    assert "`unknown`" in changelog
 
 
 def test_changelog_skips_unmatched_change_type_sections(tmp_path: Path) -> None:
