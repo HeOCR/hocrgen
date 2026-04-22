@@ -5,6 +5,7 @@ import shutil
 import subprocess
 from argparse import Namespace
 from collections import Counter
+from datetime import UTC
 from pathlib import Path
 
 import pytest
@@ -24,7 +25,11 @@ from hocrgen.package.alpha import (
     _copy_export_assets,
     _current_commit_sha,
     _public_item_payload,
+    _parse_exported_at,
+    _resolve_comparison_release,
     _review_queue_payload,
+    _copy_review_previews,
+    _handoff_doc,
     _sanitize_portable_value,
     _select_alpha_items,
     _source_priority,
@@ -485,6 +490,85 @@ def test_export_alpha_compare_to_override_reports_selection_limit_removed(tmp_pa
         }
     ]
     assert "`selection_limit_excluded`" in changelog
+
+
+def test_resolve_comparison_release_rejects_current_export_dir_compare_to(tmp_path: Path) -> None:
+    export_dir = tmp_path / "exports" / "alpha-v1"
+    export_dir.mkdir(parents=True)
+
+    with pytest.raises(StageExecutionError, match="--compare-to cannot point to the current export directory"):
+        _resolve_comparison_release(
+            export_dir,
+            AlphaExportConfig(version="alpha-v1", output_dir=export_dir, compare_to=export_dir),
+        )
+
+
+def test_resolve_comparison_release_returns_none_when_sibling_root_missing(tmp_path: Path) -> None:
+    export_dir = tmp_path / "missing-root" / "alpha-v1"
+    result = _resolve_comparison_release(export_dir, AlphaExportConfig(version="alpha-v1", output_dir=export_dir))
+    assert result is None
+
+
+def test_resolve_comparison_release_ignores_non_directories_and_same_version(tmp_path: Path) -> None:
+    sibling_root = tmp_path / "exports"
+    export_dir = sibling_root / "alpha-v2"
+    export_dir.mkdir(parents=True)
+    (sibling_root / "random.txt").write_text("ignore", encoding="utf-8")
+    same_version_dir = sibling_root / "alpha-v2-copy"
+    same_version_dir.mkdir()
+    _write_baseline_release(same_version_dir, "alpha-v1", [])
+
+    selected = _resolve_comparison_release(export_dir, AlphaExportConfig(version="alpha-v2-copy", output_dir=export_dir))
+    assert selected is None
+
+
+def test_validate_release_diff_baseline_rejects_non_file_manifests(tmp_path: Path) -> None:
+    baseline_dir = tmp_path / "baseline"
+    manifests_dir = baseline_dir / "manifests"
+    (manifests_dir / "release_record.json").mkdir(parents=True)
+    (manifests_dir / "item_manifest.json").write_text("{}", encoding="utf-8")
+
+    with pytest.raises(StageExecutionError, match="missing required manifests"):
+        _resolve_comparison_release(
+            tmp_path / "exports" / "alpha-v1",
+            AlphaExportConfig(version="alpha-v1", compare_to=baseline_dir),
+        )
+
+
+def test_validate_release_diff_baseline_rejects_missing_compare_to_path(tmp_path: Path) -> None:
+    missing = tmp_path / "missing-baseline"
+    with pytest.raises(StageExecutionError, match="does not exist"):
+        _resolve_comparison_release(
+            tmp_path / "exports" / "alpha-v1",
+            AlphaExportConfig(version="alpha-v1", compare_to=missing),
+        )
+
+
+def test_validate_release_diff_baseline_rejects_non_directory_compare_to_path(tmp_path: Path) -> None:
+    baseline_file = tmp_path / "baseline-file"
+    baseline_file.write_text("not a directory", encoding="utf-8")
+
+    with pytest.raises(StageExecutionError, match="is not a directory"):
+        _resolve_comparison_release(
+            tmp_path / "exports" / "alpha-v1",
+            AlphaExportConfig(version="alpha-v1", compare_to=baseline_file),
+        )
+
+
+def test_parse_exported_at_normalizes_naive_and_zulu_timestamps() -> None:
+    naive = _parse_exported_at("2026-04-21T10:00:00")
+    zulu = _parse_exported_at("2026-04-21T10:00:00Z")
+
+    assert naive is not None
+    assert naive.tzinfo == UTC
+    assert naive.isoformat() == "2026-04-21T10:00:00+00:00"
+    assert zulu is not None
+    assert zulu.tzinfo == UTC
+
+
+def test_parse_exported_at_returns_none_for_non_string_and_invalid_values() -> None:
+    assert _parse_exported_at(None) is None
+    assert _parse_exported_at("not-a-timestamp") is None
 
 
 def test_export_alpha_fails_when_output_dir_exists_without_overwrite(tmp_path: Path, capsys) -> None:
@@ -980,6 +1064,39 @@ def test_review_queue_payload_skips_missing_preview_paths(tmp_path: Path) -> Non
     assert payload["preview_paths"] == []
 
 
+def test_copy_review_previews_rejects_targets_outside_export_dir(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    preview_path = tmp_path / "preview.svg"
+    preview_path.write_text("<svg/>", encoding="utf-8")
+    review_item = ReviewQueueRecord.model_validate(
+        {
+            "review_item_id": "review:test:item-003",
+            "item_id": "test:item-003",
+            "source_id": "test_source",
+            "canonical_item_id": "test:item-003",
+            "split_group_id_pre_review": "group:test:item-003",
+            "review_reasons": ["privacy:metadata_signal"],
+            "suggested_decision": "needs_privacy_review",
+            "privacy_flag": "needs_review",
+            "classification_summary": {},
+            "preview_paths": [str(preview_path)],
+            "source_url": "https://example.org/test:item-003",
+            "title": "test:item-003",
+        }
+    )
+
+    original_relative_to = Path.relative_to
+
+    def fake_relative_to(self: Path, *other: Path) -> Path:
+        if self.name == "01_preview.svg":
+            raise ValueError("escape")
+        return original_relative_to(self, *other)
+
+    monkeypatch.setattr(Path, "relative_to", fake_relative_to)
+
+    with pytest.raises(StageExecutionError, match="review preview target escapes export dir"):
+        _copy_review_previews(review_item, tmp_path / "export")
+
+
 def test_validate_overwrite_target_rejects_non_directory(tmp_path: Path) -> None:
     target = tmp_path / "alpha-v0"
     target.write_text("not a directory", encoding="utf-8")
@@ -1101,9 +1218,77 @@ def test_changelog_groups_changed_items_and_renders_removal_reasons(tmp_path: Pa
     changelog = _changelog_doc("alpha-v1", diff)
 
     assert "### Metadata Changes" in changelog
-    assert "### Assets Changes" in changelog
-    assert "### Split Changes" in changelog
+    assert "### Asset Changes" in changelog
+    assert "### Split Assignment Changes" in changelog
     assert "`missing_from_current_run`" in changelog
+
+
+def test_changelog_renders_none_for_empty_sections_and_skips_unmatched_change_types() -> None:
+    diff = _build_release_diff(
+        version="alpha-v1",
+        generated_at="2026-04-21T10:00:00+00:00",
+        current_items=[],
+        baseline_dir=None,
+        review_required_items=[],
+        blocked_items=[],
+        removed_duplicate_items=[],
+        build_release_items=[],
+    )
+
+    changelog = _changelog_doc("alpha-v1", diff)
+
+    assert "## Source Deltas\n- None" in changelog
+    assert "## Split Deltas\n- None" in changelog
+    assert "## Added Items\n- None" in changelog
+    assert "## Removed Items\n- None" in changelog
+    assert "## Changed Items\n- None" in changelog
+    assert "### Metadata Changes" not in changelog
+
+
+def test_changelog_skips_unmatched_change_type_sections(tmp_path: Path) -> None:
+    baseline_dir = tmp_path / "baseline"
+    item_dir = tmp_path / "assets"
+    item_dir.mkdir()
+    before = _make_exported_item("doc:item", "train", item_dir / "before.svg", source_id="test_source", title="before")
+    after = before.model_copy(update={"title": "after"})
+    _write_baseline_release(baseline_dir, "alpha-v0", [before])
+
+    diff = _build_release_diff(
+        version="alpha-v1",
+        generated_at="2026-04-21T10:00:00+00:00",
+        current_items=[after],
+        baseline_dir=baseline_dir,
+        review_required_items=[],
+        blocked_items=[],
+        removed_duplicate_items=[],
+        build_release_items=[after],
+    )
+    changelog = _changelog_doc("alpha-v1", diff)
+
+    assert "### Metadata Changes" in changelog
+    assert "### Asset Changes" not in changelog
+    assert "### Split Assignment Changes" not in changelog
+
+
+def test_handoff_doc_falls_back_to_default_release_dir_when_export_not_under_repo(tmp_path: Path) -> None:
+    bundle = load_and_validate_bundle(_fixture_config_root(tmp_path))
+    handoff = _handoff_doc(
+        "alpha-v1",
+        tmp_path / "external" / "alpha-v1",
+        bundle.profiles["profile_open_v1"],
+        {
+            "exported_item_count": 1,
+            "exported_real_items": 1,
+            "exported_synthetic_items": 0,
+            "review_required_count": 0,
+            "blocked_count": 0,
+        },
+        ["nli_any_use_permitted"],
+        "deadbeef",
+        tmp_path / "HeOCR",
+    )
+
+    assert "- Target release dir: `releases/alpha-v1/`" in handoff
 
 
 def _make_exported_item(

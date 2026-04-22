@@ -374,7 +374,9 @@ def _resolve_comparison_release(export_dir: Path, config: AlphaExportConfig) -> 
 
 def _is_release_diff_baseline(path: Path) -> bool:
     manifests_dir = path / "manifests"
-    return (manifests_dir / "release_record.json").exists() and (manifests_dir / "item_manifest.json").exists()
+    release_record_path = manifests_dir / "release_record.json"
+    item_manifest_path = manifests_dir / "item_manifest.json"
+    return release_record_path.is_file() and item_manifest_path.is_file()
 
 
 def _validate_release_diff_baseline(path: Path) -> None:
@@ -390,9 +392,12 @@ def _parse_exported_at(value: Any) -> datetime | None:
     if not isinstance(value, str):
         return None
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        parsed = datetime.fromisoformat(value.replace("Z", "+00:00"))
     except ValueError:
         return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed.astimezone(UTC)
 
 
 def _natural_sort_key(value: str) -> list[int | str]:
@@ -467,16 +472,19 @@ def _build_release_diff(
     added_ids = sorted(set(current_by_id) - set(baseline_by_id))
     removed_ids = sorted(set(baseline_by_id) - set(current_by_id))
     shared_ids = sorted(set(current_by_id) & set(baseline_by_id))
-    changed_items = [
-        ReleaseChangedItemRecord(
-            item_id=item_id,
-            source_id=str(current_by_id[item_id]["source_id"]),
-            split=current_by_id[item_id].get("split"),
-            change_types=_item_change_types(baseline_by_id[item_id], current_by_id[item_id]),
+    changed_items: list[ReleaseChangedItemRecord] = []
+    for item_id in shared_ids:
+        change_types = _item_change_types(baseline_by_id[item_id], current_by_id[item_id])
+        if not change_types:
+            continue
+        changed_items.append(
+            ReleaseChangedItemRecord(
+                item_id=item_id,
+                source_id=str(current_by_id[item_id]["source_id"]),
+                split=current_by_id[item_id].get("split"),
+                change_types=change_types,
+            )
         )
-        for item_id in shared_ids
-        if _item_change_types(baseline_by_id[item_id], current_by_id[item_id])
-    ]
 
     review_required_ids = {item.item_id for item in review_required_items}
     blocked_ids = {item.item_id for item in blocked_items}
@@ -776,11 +784,16 @@ def _changelog_doc(version: str, release_diff: ReleaseDiffRecord) -> str:
 
     lines.extend(["", "## Changed Items"])
     if release_diff.changed_items:
+        change_headings = {
+            "metadata": "Metadata Changes",
+            "assets": "Asset Changes",
+            "split": "Split Assignment Changes",
+        }
         for change_type in ("metadata", "assets", "split"):
             matching = [item for item in release_diff.changed_items if change_type in item.change_types]
             if not matching:
                 continue
-            lines.append(f"### {change_type.title()} Changes")
+            lines.append(f"### {change_headings[change_type]}")
             lines.extend(f"- `{item.item_id}` ({item.source_id})" for item in matching)
             lines.append("")
         if lines[-1] == "":
