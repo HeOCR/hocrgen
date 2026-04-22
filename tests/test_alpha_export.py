@@ -567,6 +567,20 @@ def test_validate_release_diff_baseline_rejects_non_directory_compare_to_path(tm
         )
 
 
+def test_validate_release_diff_baseline_rejects_invalid_json_manifest(tmp_path: Path) -> None:
+    baseline_dir = tmp_path / "baseline"
+    manifests_dir = baseline_dir / "manifests"
+    manifests_dir.mkdir(parents=True)
+    (manifests_dir / "release_record.json").write_text("{not-json", encoding="utf-8")
+    (manifests_dir / "item_manifest.json").write_text("{\"items\": []}", encoding="utf-8")
+
+    with pytest.raises(StageExecutionError, match="has invalid JSON"):
+        _resolve_comparison_release(
+            tmp_path / "exports" / "alpha-v1",
+            AlphaExportConfig(version="alpha-v1", compare_to=baseline_dir),
+        )
+
+
 def test_parse_exported_at_normalizes_naive_and_zulu_timestamps() -> None:
     naive = _parse_exported_at("2026-04-21T10:00:00")
     zulu = _parse_exported_at("2026-04-21T10:00:00Z")
@@ -708,6 +722,38 @@ def test_export_alpha_succeeds_when_removed_duplicate_items_are_curated_records(
     assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)
     assert (Path(payload["export_dir"]) / "manifests" / "release_diff.json").exists()
+
+
+def test_export_alpha_skips_auto_discovered_siblings_with_invalid_release_record_json(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    releases_root = tmp_path / "HeOCR" / "releases"
+    invalid_baseline = releases_root / "broken-release"
+    invalid_manifests = invalid_baseline / "manifests"
+    invalid_manifests.mkdir(parents=True)
+    (invalid_manifests / "release_record.json").write_text("{not-json", encoding="utf-8")
+    (invalid_manifests / "item_manifest.json").write_text("{\"items\": []}", encoding="utf-8")
+
+    exit_code = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--version",
+            "alpha-v1",
+            "--output-dir",
+            str(releases_root / "alpha-v1"),
+        ]
+    )
+
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    release_diff = json.loads((Path(payload["export_dir"]) / "manifests" / "release_diff.json").read_text(encoding="utf-8"))
+    assert release_diff["previous_version"] is None
 
 
 def test_export_alpha_rejects_conflicting_handoff_targets(tmp_path: Path, capsys) -> None:

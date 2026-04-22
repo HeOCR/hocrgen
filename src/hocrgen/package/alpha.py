@@ -5,6 +5,7 @@ import re
 import shutil
 import subprocess
 from collections import Counter
+from json import JSONDecodeError
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
@@ -362,7 +363,10 @@ def _resolve_comparison_release(export_dir: Path, config: AlphaExportConfig) -> 
             continue
         if not _is_release_diff_baseline(child):
             continue
-        release_record = _load_json(child / "manifests" / "release_record.json")
+        try:
+            release_record = _load_json(child / "manifests" / "release_record.json")
+        except StageExecutionError:
+            continue
         if release_record.get("version") == config.version:
             continue
         exported_at = _parse_exported_at(release_record.get("exported_at"))
@@ -389,6 +393,12 @@ def _validate_release_diff_baseline(path: Path) -> None:
         raise StageExecutionError(f"compare-to release path is not a directory: {path}")
     if not _is_release_diff_baseline(path):
         raise StageExecutionError(f"compare-to release path is missing required manifests: {path}")
+    for manifest_name in ("release_record.json", "item_manifest.json"):
+        manifest_path = path / "manifests" / manifest_name
+        try:
+            _load_json(manifest_path)
+        except StageExecutionError as exc:
+            raise StageExecutionError(f"compare-to release path has invalid JSON in {manifest_path}: {exc}") from exc
 
 
 def _parse_exported_at(value: Any) -> datetime | None:
@@ -459,7 +469,7 @@ def _build_release_diff(
     baseline_dir: Path | None,
     review_required_items: list[PrivacyScannedItemRecord],
     blocked_items: list[PrivacyScannedItemRecord],
-    removed_duplicate_items: list[PrivacyScannedItemRecord],
+    removed_duplicate_items: list[CuratedItemRecord],
     build_release_items: list[PrivacyScannedItemRecord],
 ) -> ReleaseDiffRecord:
     current_payloads = [_public_item_payload(item) for item in current_items]
@@ -959,7 +969,10 @@ def _validate_overwrite_target(export_dir: Path, version: str) -> None:
 
 
 def _load_json(path: Path) -> dict[str, Any]:
-    return json.loads(path.read_text(encoding="utf-8"))
+    try:
+        return json.loads(path.read_text(encoding="utf-8"))
+    except JSONDecodeError as exc:
+        raise StageExecutionError(f"invalid JSON at {path}: {exc.msg}") from exc
 
 
 def _load_baseline_item_manifest(path: Path) -> dict[str, dict[str, Any]]:
