@@ -20,6 +20,13 @@
   - `git pull --ff-only origin main`
   - `git checkout -b codex/<topic>`
 
+## Planning source of truth
+- Treat merged code on `main` plus merged GitHub PR history as the canonical source of truth for roadmap status.
+- Treat `.agent-plan.md` as the repo-tracked current-state summary for merged `main`, not as branch-local scratch notes.
+- Before starting a roadmap item, verify whether it is already merged on `main` and reflected in recent PR history.
+- If planning docs disagree with merged `main`, update the planning docs before starting the next roadmap item.
+- Do not treat a branch-local "active branch", "current blocker", or "current implementation PR" note as authoritative unless it matches merged `main`.
+
 ## Repository structure
 - Core CLI entrypoints live in `src/hocrgen/cli.py` and `src/hocrgen/pipeline.py`.
 - Typed config models live in `src/hocrgen/config/models.py`.
@@ -66,6 +73,7 @@
 - Planned PR notation applies to PR metadata, not branch names. Keep branch naming on the existing `codex/<topic>` rule.
 - The PR must describe what changed, why it changed, the user/developer impact, and the validation performed.
 - Ensure the PR is labeled appropriately and assigned to a GitHub milestone before handing off.
+- A roadmap item is not fully complete until `main` reflects the merged code, the merged PR metadata is correct, and the planning docs on `main` reflect the new status and next critical path.
 - Run `coverage run -m pytest`
 - Run `hocrgen config validate`
 - Run `hocrgen build-release --profile profile_open_v1 --dry-run`

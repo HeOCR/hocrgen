@@ -403,6 +403,15 @@ Planned PR metadata should also follow a stable notation rule:
 
 This keeps the machine-readable state tracker and the human-facing planning documents aligned with the code that just landed, instead of leaving planning updates as a later cleanup task.
 
+When checking "what is next" or whether a roadmap item is still open, use this order of precedence:
+
+1. merged code on `main`
+2. merged GitHub PR history for the notation
+3. roadmap and planning tables under [`docs/`](./docs/)
+4. [`.agent-plan.md`](./.agent-plan.md) as the current merged-main summary
+
+If these disagree, treat `main` plus merged PR history as authoritative and reconcile the planning docs before starting the next roadmap item.
+
 ## PR agent context
 
 This repository publishes `pr-agent-context` comments for pull requests and later refresh events.
