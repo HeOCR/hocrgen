@@ -4,10 +4,13 @@ import json
 import shutil
 from pathlib import Path
 
+import pytest
+
 from hocrgen.cli import main
 from hocrgen.config.loader import load_and_validate_bundle
 from hocrgen.config.loader import default_config_root
 from hocrgen.core.context import create_run_context
+from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_summary
 from hocrgen.runs import load_resumed_pipeline_state
@@ -289,12 +292,8 @@ def test_load_resumed_pipeline_state_rejects_profile_mismatch(tmp_path: Path) ->
         [run_metadata, *(artifact for result in results for artifact in [result.summary_path, *result.extra_artifacts])],
     )
 
-    try:
+    with pytest.raises(StageExecutionError, match="profile mismatch"):
         load_resumed_pipeline_state(context.run_dir, "profile_review_v1", "build-release")
-    except Exception as exc:
-        assert "profile mismatch" in str(exc)
-    else:
-        raise AssertionError("Expected profile mismatch error")
 
 
 def test_load_resumed_pipeline_state_rejects_missing_required_manifests(tmp_path: Path) -> None:
@@ -311,12 +310,8 @@ def test_load_resumed_pipeline_state_rejects_missing_required_manifests(tmp_path
     )
     (context.stage_dir("policy-filter") / "accepted_items.json").unlink()
 
-    try:
+    with pytest.raises(StageExecutionError, match="missing required"):
         load_resumed_pipeline_state(context.run_dir, "profile_open_v1", "build-release")
-    except Exception as exc:
-        assert "missing required" in str(exc)
-    else:
-        raise AssertionError("Expected missing-manifest error")
 
 
 def test_load_resumed_pipeline_state_rejects_target_stage_already_completed(tmp_path: Path) -> None:
@@ -332,9 +327,5 @@ def test_load_resumed_pipeline_state_rejects_target_stage_already_completed(tmp_
         [run_metadata, *(artifact for result in results for artifact in [result.summary_path, *result.extra_artifacts])],
     )
 
-    try:
+    with pytest.raises(StageExecutionError, match="already reached or passed target stage"):
         load_resumed_pipeline_state(context.run_dir, "profile_open_v1", "build-release")
-    except Exception as exc:
-        assert "already reached or passed target stage" in str(exc)
-    else:
-        raise AssertionError("Expected already-completed error")
