@@ -1,0 +1,115 @@
+name: hocrgen-dry-run
+
+on:
+  workflow_call:
+    inputs:
+      artifact_name:
+        description: Artifact name for the persisted run directory.
+        required: true
+        type: string
+      max_items:
+        description: Optional max-items override.
+        required: false
+        default: ""
+        type: string
+      profile:
+        description: Release profile id.
+        required: true
+        type: string
+      resume_artifact_name:
+        description: Optional upstream run artifact to download before executing.
+        required: false
+        default: ""
+        type: string
+      resume_artifact_path:
+        description: Workspace-relative directory where the resume artifact should be downloaded.
+        required: false
+        default: ".work/resume-run"
+        type: string
+      source:
+        description: Optional single source id filter.
+        required: false
+        default: ""
+        type: string
+      stage:
+        description: hocrgen stage command to execute.
+        required: true
+        type: string
+      synthetic_seed:
+        description: Optional synthetic seed override.
+        required: false
+        default: ""
+        type: string
+
+jobs:
+  run_dry_run:
+    name: ${{ inputs.stage }} (${{ inputs.profile }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install package and test dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e '.[dev]'
+
+      - name: Download resume run artifact
+        if: ${{ inputs.resume_artifact_name != '' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.resume_artifact_name }}
+          path: ${{ github.workspace }}/${{ inputs.resume_artifact_path }}
+
+      - name: Run hocrgen dry-run
+        id: run_hocrgen
+        env:
+          HOCRGEN_ARTIFACT_NAME: ${{ inputs.artifact_name }}
+          HOCRGEN_MAX_ITEMS: ${{ inputs.max_items }}
+          HOCRGEN_PROFILE: ${{ inputs.profile }}
+          HOCRGEN_RESUME_ARTIFACT_NAME: ${{ inputs.resume_artifact_name }}
+          HOCRGEN_RESUME_ARTIFACT_PATH: ${{ inputs.resume_artifact_path }}
+          HOCRGEN_SOURCE: ${{ inputs.source }}
+          HOCRGEN_STAGE: ${{ inputs.stage }}
+          HOCRGEN_SYNTHETIC_SEED: ${{ inputs.synthetic_seed }}
+        run: |
+          set -euo pipefail
+          run_output_json="$RUNNER_TEMP/hocrgen-run-output.json"
+          cmd=(hocrgen "$HOCRGEN_STAGE" --profile "$HOCRGEN_PROFILE" --dry-run)
+          if [[ -n "$HOCRGEN_SOURCE" ]]; then
+            cmd+=(--source "$HOCRGEN_SOURCE")
+          fi
+          if [[ -n "$HOCRGEN_MAX_ITEMS" ]]; then
+            cmd+=(--max-items "$HOCRGEN_MAX_ITEMS")
+          fi
+          if [[ -n "$HOCRGEN_SYNTHETIC_SEED" ]]; then
+            cmd+=(--seed "$HOCRGEN_SYNTHETIC_SEED")
+          fi
+          if [[ -n "$HOCRGEN_RESUME_ARTIFACT_NAME" ]]; then
+            cmd+=(--resume-run-dir "$GITHUB_WORKSPACE/$HOCRGEN_RESUME_ARTIFACT_PATH")
+          fi
+
+          "${cmd[@]}" | tee "$run_output_json"
+
+          run_dir="$(
+            python -c 'import json, sys; print(json.load(open(sys.argv[1], encoding="utf-8"))["run_dir"])' "$run_output_json"
+          )"
+          echo "run_dir=$run_dir" >> "$GITHUB_OUTPUT"
+
+      - name: Upload run artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ inputs.artifact_name }}
+          path: ${{ steps.run_hocrgen.outputs.run_dir }}
+          if-no-files-found: error
+
+      - name: Append run summary
+        run: |
+          hocrgen summarize-run --run-dir "${{ steps.run_hocrgen.outputs.run_dir }}" --format markdown >> "$GITHUB_STEP_SUMMARY"

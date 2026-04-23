@@ -443,6 +443,36 @@ The refresh workflow now follows the hardened `pr-agent-context` pattern from `v
 - refresh runs continue to reuse the `Validate` workflow's `coverage-xml` artifact via
   `coverage_xml_artifact` plus cross-run coverage lookup
 
+## Scheduled Dry-Run Automation
+
+`D1a` adds a GitHub-first dry-run maintenance backbone without enabling automatic publishing,
+auto-generated PRs, or workflow-driven commits.
+
+- [`.github/workflows/hocrgen-dry-run.yml`](./.github/workflows/hocrgen-dry-run.yml) is a reusable
+  workflow that installs the repo, runs one dry-run stage command, uploads the resulting run
+  directory as an artifact, and appends a Markdown summary to the Actions job summary via
+  `hocrgen summarize-run --format markdown`.
+- [`.github/workflows/expansion-maintenance.yml`](./.github/workflows/expansion-maintenance.yml)
+  orchestrates recurring review-profile discovery, resumable review builds, synthetic-only dry-run
+  builds, and open-profile dry-run builds on a weekly schedule or manual dispatch.
+
+The orchestrator accepts these manual-dispatch inputs:
+
+- `run_scope`: `all`, `discovery`, `synthetic`, `review_build`, or `open_build`
+- `max_items`: optional override for discovery/import limits
+- `synthetic_seed`: optional override for synthetic dry-run reproducibility
+
+The CLI now exposes two D1a-oriented operator surfaces:
+
+- `hocrgen build-release --profile profile_review_v1 --dry-run --resume-run-dir <prior-run-dir>`
+  continues from a previously completed run directory when the stored profile matches and the target
+  stage has not already completed.
+- `hocrgen summarize-run --run-dir <run-dir> --format markdown`
+  renders a concise operator report from the persisted run metadata and stage summaries.
+
+Publication remains intentionally manual. `D1a` only automates dry-run maintenance, reporting, and
+artifact handoff between GitHub Actions jobs.
+
 ## Repository reference
 
 - Product/design spec: [`docs/hocrgen_design_and_spec.md`](./docs/hocrgen_design_and_spec.md)
