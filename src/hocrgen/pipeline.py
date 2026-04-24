@@ -10,7 +10,6 @@ from hocrgen.classify.heuristics import classify_items
 from hocrgen.config.loader import ConfigBundle
 from hocrgen.config.models import LicenseEntry, SourceConfig
 from hocrgen.core.context import RunContext
-from hocrgen.core.errors import StageExecutionError
 from hocrgen.dedupe.exact import deduplicate_items
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.biblia import BibliaImporter
@@ -43,7 +42,7 @@ from hocrgen.review.queue import export_review_queue
 from hocrgen.split.assign import assign_splits
 
 
-PIPELINE_STAGES = (
+STAGE_ORDER = (
     "discover",
     "fetch-metadata",
     "policy-filter",
@@ -100,35 +99,6 @@ class PipelineState:
     review_data_blocklist: list[ReviewOverrideRecord] = field(default_factory=list)
     split_assignments: list[SplitAssignmentRecord] = field(default_factory=list)
     leakage_report: dict[str, Any] = field(default_factory=dict)
-
-
-def empty_pipeline_state() -> PipelineState:
-    return PipelineState(
-        candidates=[],
-        enriched_candidates=[],
-        accepted_items=[],
-        rejected_items=[],
-        acquired_items=[],
-        normalized_items=[],
-        failed_normalized_items=[],
-        retained_items=[],
-        duplicate_items=[],
-        duplicate_relations=[],
-        duplicate_clusters=[],
-        classified_items=[],
-        privacy_scanned_items=[],
-        release_ready_items=[],
-        review_required_items=[],
-        blocked_items=[],
-        review_queue=[],
-        rejected_review_items=[],
-        decision_audit=[],
-        review_data_manual_decisions=[],
-        review_data_allowlist=[],
-        review_data_blocklist=[],
-        split_assignments=[],
-        leakage_report={},
-    )
 
 
 def write_run_metadata(context: RunContext) -> Path:
@@ -680,23 +650,35 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     )
 
 
-def execute_pipeline(
-    target_stage: str,
-    bundle: ConfigBundle,
-    context: RunContext,
-    options: StageOptions,
-    *,
-    initial_state: PipelineState | None = None,
-    start_stage: str | None = None,
-) -> list[StageResult]:
-    state = initial_state or empty_pipeline_state()
+def execute_pipeline(target_stage: str, bundle: ConfigBundle, context: RunContext, options: StageOptions) -> list[StageResult]:
+    state = PipelineState(
+        candidates=[],
+        enriched_candidates=[],
+        accepted_items=[],
+        rejected_items=[],
+        acquired_items=[],
+        normalized_items=[],
+        failed_normalized_items=[],
+        retained_items=[],
+        duplicate_items=[],
+        duplicate_relations=[],
+        duplicate_clusters=[],
+        classified_items=[],
+        privacy_scanned_items=[],
+        release_ready_items=[],
+        review_required_items=[],
+        blocked_items=[],
+        review_queue=[],
+        rejected_review_items=[],
+        decision_audit=[],
+        review_data_manual_decisions=[],
+        review_data_allowlist=[],
+        review_data_blocklist=[],
+        split_assignments=[],
+        leakage_report={},
+    )
     results: list[StageResult] = []
-    start_index = 0
-    if start_stage is not None:
-        if start_stage not in PIPELINE_STAGES:
-            raise StageExecutionError(f"unknown start stage: {start_stage}")
-        start_index = PIPELINE_STAGES.index(start_stage)
-    for stage in PIPELINE_STAGES[start_index:]:
+    for stage in STAGE_ORDER:
         if stage == "discover":
             results.append(_run_discover(bundle, context, options))
             candidates_path = context.stage_dir("discover") / "candidates.json"
