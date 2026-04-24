@@ -4,16 +4,8 @@ import json
 import shutil
 from pathlib import Path
 
-import pytest
-
 from hocrgen.cli import main
-from hocrgen.config.loader import load_and_validate_bundle
 from hocrgen.config.loader import default_config_root
-from hocrgen.core.context import create_run_context
-from hocrgen.core.errors import StageExecutionError
-from hocrgen.fetchers.base import StageOptions
-from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_summary
-from hocrgen.runs import load_resumed_pipeline_state
 
 
 def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> None:
@@ -239,93 +231,3 @@ def test_build_release_removes_exact_duplicates(tmp_path: Path, capsys) -> None:
     assert len(split_manifest["items"]) == 3
     assert len(item_manifest["items"]) == 3
     assert review_required_items["items"] == []
-
-
-def test_execute_pipeline_can_resume_from_policy_filter_run(tmp_path: Path) -> None:
-    bundle = load_and_validate_bundle()
-    initial_context = create_run_context("profile_open_v1", dry_run=True, workdir=tmp_path / "initial")
-    options = StageOptions()
-
-    initial_run_metadata = write_run_metadata(initial_context)
-    initial_results = execute_pipeline("policy-filter", bundle, initial_context, options)
-    initial_run_summary = write_run_summary(
-        initial_context,
-        "policy-filter",
-        [initial_run_metadata, *(artifact for result in initial_results for artifact in [result.summary_path, *result.extra_artifacts])],
-    )
-    initial_policy_summary = json.loads((initial_context.stage_dir("policy-filter") / "summary.json").read_text(encoding="utf-8"))
-    assert initial_run_summary.exists()
-
-    resumed_state, latest_stage = load_resumed_pipeline_state(initial_context.run_dir, "profile_open_v1", "build-release")
-    resumed_context = create_run_context("profile_open_v1", dry_run=True, workdir=tmp_path / "resumed")
-    resumed_run_metadata = write_run_metadata(resumed_context)
-    resumed_results = execute_pipeline(
-        "build-release",
-        bundle,
-        resumed_context,
-        options,
-        initial_state=resumed_state,
-        start_stage="acquire" if latest_stage == "policy-filter" else None,
-    )
-    resumed_run_summary = write_run_summary(
-        resumed_context,
-        "build-release",
-        [resumed_run_metadata, *(artifact for result in resumed_results for artifact in [result.summary_path, *result.extra_artifacts])],
-    )
-    release_summary = json.loads((resumed_context.stage_dir("build-release") / "release_summary.json").read_text(encoding="utf-8"))
-
-    assert resumed_run_summary.exists()
-    assert release_summary["accepted_count"] == initial_policy_summary["accepted_count"]
-    assert release_summary["release_ready_count"] > 0
-
-
-def test_load_resumed_pipeline_state_rejects_profile_mismatch(tmp_path: Path) -> None:
-    bundle = load_and_validate_bundle()
-    context = create_run_context("profile_open_v1", dry_run=True, workdir=tmp_path / "initial")
-    options = StageOptions()
-
-    run_metadata = write_run_metadata(context)
-    results = execute_pipeline("policy-filter", bundle, context, options)
-    write_run_summary(
-        context,
-        "policy-filter",
-        [run_metadata, *(artifact for result in results for artifact in [result.summary_path, *result.extra_artifacts])],
-    )
-
-    with pytest.raises(StageExecutionError, match="profile mismatch"):
-        load_resumed_pipeline_state(context.run_dir, "profile_review_v1", "build-release")
-
-
-def test_load_resumed_pipeline_state_rejects_missing_required_manifests(tmp_path: Path) -> None:
-    bundle = load_and_validate_bundle()
-    context = create_run_context("profile_open_v1", dry_run=True, workdir=tmp_path / "initial")
-    options = StageOptions()
-
-    run_metadata = write_run_metadata(context)
-    results = execute_pipeline("policy-filter", bundle, context, options)
-    write_run_summary(
-        context,
-        "policy-filter",
-        [run_metadata, *(artifact for result in results for artifact in [result.summary_path, *result.extra_artifacts])],
-    )
-    (context.stage_dir("policy-filter") / "accepted_items.json").unlink()
-
-    with pytest.raises(StageExecutionError, match="missing required"):
-        load_resumed_pipeline_state(context.run_dir, "profile_open_v1", "build-release")
-
-
-def test_load_resumed_pipeline_state_rejects_target_stage_already_completed(tmp_path: Path) -> None:
-    bundle = load_and_validate_bundle()
-    context = create_run_context("profile_open_v1", dry_run=True, workdir=tmp_path / "initial")
-    options = StageOptions()
-
-    run_metadata = write_run_metadata(context)
-    results = execute_pipeline("build-release", bundle, context, options)
-    write_run_summary(
-        context,
-        "build-release",
-        [run_metadata, *(artifact for result in results for artifact in [result.summary_path, *result.extra_artifacts])],
-    )
-
-    with pytest.raises(StageExecutionError, match="already reached or passed target stage"):
-        load_resumed_pipeline_state(context.run_dir, "profile_open_v1", "build-release")

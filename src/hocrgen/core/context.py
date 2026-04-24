@@ -12,11 +12,6 @@ STAGE_DIR_ALIASES = {
 }
 
 
-def normalize_stage_dir_name(stage_name: str) -> str:
-    normalized = stage_name.replace("-", "_")
-    return STAGE_DIR_ALIASES.get(stage_name, STAGE_DIR_ALIASES.get(normalized, normalized))
-
-
 @dataclass(frozen=True)
 class RunContext:
     run_id: str
@@ -28,7 +23,8 @@ class RunContext:
     created_at: str
 
     def stage_dir(self, stage_name: str) -> Path:
-        return self.run_dir / normalize_stage_dir_name(stage_name)
+        normalized = stage_name.replace("-", "_")
+        return self.run_dir / STAGE_DIR_ALIASES.get(stage_name, STAGE_DIR_ALIASES.get(normalized, normalized))
 
 
 def make_run_id(now: datetime | None = None) -> str:
