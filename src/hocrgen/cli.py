@@ -13,6 +13,7 @@ from hocrgen.fetchers.base import StageOptions
 from hocrgen.package.alpha import AlphaExportConfig, export_alpha_release
 from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_summary
 from hocrgen.review.merge import validate_review_data
+from hocrgen.runs import load_resumed_pipeline_state, render_run_summary_markdown, summarize_run
 
 
 STAGE_COMMANDS = (
@@ -40,6 +41,16 @@ def build_parser() -> argparse.ArgumentParser:
     validate_parser = config_subparsers.add_parser("validate", help="Validate committed configuration")
     validate_parser.add_argument("--config-root", type=Path, default=None, help="Override config root directory")
     validate_parser.set_defaults(handler=handle_config_validate)
+
+    summarize_run_parser = subparsers.add_parser("summarize-run", help="Summarize a persisted run directory")
+    summarize_run_parser.add_argument("--run-dir", type=Path, required=True, help="Path to the run directory to summarize")
+    summarize_run_parser.add_argument(
+        "--format",
+        choices=("json", "markdown"),
+        default="json",
+        help="Output format for the run summary",
+    )
+    summarize_run_parser.set_defaults(handler=handle_summarize_run)
 
     export_alpha_parser = subparsers.add_parser("export-alpha", help="Export a narrow alpha release tree for the HeOCR repo")
     export_alpha_parser.add_argument("--profile", required=True, help="Release profile id")
@@ -78,6 +89,7 @@ def build_parser() -> argparse.ArgumentParser:
         stage_parser.add_argument("--source", action="append", default=None, help="Limit execution to one or more source ids")
         stage_parser.add_argument("--max-items", type=int, default=None, help="Limit items per source during discovery/import")
         stage_parser.add_argument("--seed", type=int, default=None, help="Override the synthetic generator seed")
+        stage_parser.add_argument("--resume-run-dir", type=Path, default=None, help="Resume from a previous run directory")
         stage_parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
         stage_parser.set_defaults(handler=handle_stage, stage_name=stage)
 
@@ -144,7 +156,39 @@ def handle_stage(args: argparse.Namespace) -> int:
         max_items=args.max_items,
         synthetic_seed=args.seed,
     )
-    stage_results = execute_pipeline(args.stage_name, bundle, context, options)
+    initial_state = None
+    start_stage = None
+    if args.resume_run_dir is not None:
+        try:
+            initial_state, latest_stage = load_resumed_pipeline_state(args.resume_run_dir, args.profile, args.stage_name)
+        except StageExecutionError as exc:
+            _print_json({"status": "error", "error": str(exc)})
+            return 1
+        if latest_stage != args.stage_name:
+            start_stage = {
+                stage: STAGE_COMMANDS[index + 1]
+                for index, stage in enumerate(STAGE_COMMANDS[:-1])
+            }.get(latest_stage)
+            if start_stage is None:
+                _print_json(
+                    {
+                        "status": "error",
+                        "error": f"resume run cannot determine the next stage after {latest_stage}",
+                    }
+                )
+                return 1
+    try:
+        stage_results = execute_pipeline(
+            args.stage_name,
+            bundle,
+            context,
+            options,
+            initial_state=initial_state,
+            start_stage=start_stage,
+        )
+    except StageExecutionError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
     artifacts = [run_path]
     for result in stage_results:
         artifacts.append(result.summary_path)
@@ -166,6 +210,21 @@ def handle_stage(args: argparse.Namespace) -> int:
             "summary_path": str(run_summary_path),
         }
     )
+    return 0
+
+
+def handle_summarize_run(args: argparse.Namespace) -> int:
+    try:
+        summary = summarize_run(args.run_dir)
+    except StageExecutionError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+
+    if args.format == "markdown":
+        print(render_run_summary_markdown(summary), end="")
+        return 0
+
+    _print_json(summary)
     return 0
 
 
