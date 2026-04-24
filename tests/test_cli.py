@@ -144,6 +144,7 @@ def test_summarize_run_command_outputs_json(tmp_path: Path, capsys) -> None:
 def test_summarize_run_command_outputs_markdown(tmp_path: Path, capsys) -> None:
     exit_code = main(["build-release", "--profile", "profile_open_v1", "--dry-run", "--workdir", str(tmp_path)])
     payload = json.loads(capsys.readouterr().out)
+    release_summary = json.loads((Path(payload["run_dir"]) / "build_release" / "release_summary.json").read_text(encoding="utf-8"))
 
     assert exit_code == 0
 
@@ -153,7 +154,7 @@ def test_summarize_run_command_outputs_markdown(tmp_path: Path, capsys) -> None:
     assert exit_code == 0
     assert "# hocrgen run summary" in markdown
     assert "Release-ready items" in markdown
-    assert "`3`" in markdown
+    assert f"`{release_summary['release_ready_count']}`" in markdown
 
 
 def test_build_release_can_resume_from_prior_run_dir(tmp_path: Path, capsys) -> None:

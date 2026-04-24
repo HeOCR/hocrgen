@@ -3,8 +3,9 @@ from __future__ import annotations
 import json
 from collections import Counter
 from pathlib import Path
-from typing import Any
+from typing import Any, TypeVar
 
+from pydantic import BaseModel
 from hocrgen.core.context import normalize_stage_dir_name
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.manifests.models import (
@@ -28,6 +29,7 @@ from hocrgen.pipeline import PIPELINE_STAGES, PipelineState, empty_pipeline_stat
 EXTRA_RUN_STAGES = ("export-alpha",)
 RUN_STAGE_ORDER = PIPELINE_STAGES + EXTRA_RUN_STAGES
 RUN_STAGE_INDEX = {stage: index for index, stage in enumerate(RUN_STAGE_ORDER)}
+RunRecordModel = TypeVar("RunRecordModel", bound=BaseModel)
 
 
 def summarize_run(run_dir: Path) -> dict[str, Any]:
@@ -163,7 +165,7 @@ def _collect_run_counts(run_dir: Path, stage_summaries: dict[str, dict[str, Any]
     if "retained_count" in dedupe:
         counts["retained_count"] = dedupe["retained_count"]
         counts["duplicate_item_count"] = dedupe.get("duplicate_item_count", 0)
-    if "review_required_count" in review_export:
+    if "review_required_count" in review_export and not build_release:
         counts["review_required_count"] = review_export.get("review_required_count", 0)
         counts["blocked_count"] = review_export.get("blocked_count", 0)
     release_summary = _load_release_summary(run_dir, build_release)
@@ -272,7 +274,7 @@ def _load_stage_state(stage: str, run_dir: Path, state: PipelineState) -> None:
     raise StageExecutionError(f"resume loading for stage {stage} is not supported")
 
 
-def _load_items(path: Path, model_type):
+def _load_items(path: Path, model_type: type[RunRecordModel]) -> list[RunRecordModel]:
     data = _load_json_object(path, str(path.relative_to(path.parents[1])))
     items = data.get("items")
     if not isinstance(items, list):
