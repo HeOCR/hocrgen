@@ -164,12 +164,19 @@ def handle_stage(args: argparse.Namespace) -> int:
         except StageExecutionError as exc:
             _print_json({"status": "error", "error": str(exc)})
             return 1
-        start_stage = None
         if latest_stage != args.stage_name:
             start_stage = {
                 stage: STAGE_COMMANDS[index + 1]
                 for index, stage in enumerate(STAGE_COMMANDS[:-1])
-            }[latest_stage]
+            }.get(latest_stage)
+            if start_stage is None:
+                _print_json(
+                    {
+                        "status": "error",
+                        "error": f"resume run cannot determine the next stage after {latest_stage}",
+                    }
+                )
+                return 1
     try:
         stage_results = execute_pipeline(
             args.stage_name,

@@ -111,5 +111,7 @@ jobs:
           if-no-files-found: error
 
       - name: Append run summary
+        env:
+          RUN_DIR: ${{ steps.run_hocrgen.outputs.run_dir }}
         run: |
-          hocrgen summarize-run --run-dir "${{ steps.run_hocrgen.outputs.run_dir }}" --format markdown >> "$GITHUB_STEP_SUMMARY"
+          hocrgen summarize-run --run-dir "$RUN_DIR" --format markdown >> "$GITHUB_STEP_SUMMARY"
