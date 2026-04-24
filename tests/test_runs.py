@@ -8,11 +8,11 @@ import pytest
 
 from hocrgen.cli import handle_stage, handle_summarize_run
 from hocrgen.config.loader import load_and_validate_bundle
-from hocrgen.core.context import create_run_context
+from hocrgen.core.context import create_run_context, normalize_stage_dir_name
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.pipeline import PIPELINE_STAGES, execute_pipeline, write_run_metadata, write_run_summary
-from hocrgen.runs import load_resumed_pipeline_state, render_run_summary_markdown, summarize_run
+from hocrgen.runs import _format_counter, load_resumed_pipeline_state, render_run_summary_markdown, summarize_run
 
 
 def _materialize_run(tmp_path: Path, latest_stage: str, profile_id: str = "profile_open_v1") -> Path:
@@ -54,7 +54,7 @@ def _write_run_files(
         encoding="utf-8",
     )
     for stage, summary in (stage_summaries or {}).items():
-        stage_dir = run_dir / stage.replace("-", "_")
+        stage_dir = run_dir / normalize_stage_dir_name(stage)
         stage_dir.mkdir(parents=True, exist_ok=True)
         (stage_dir / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
     return run_dir
@@ -169,6 +169,21 @@ def test_summarize_run_collects_review_warning_lines(tmp_path: Path) -> None:
     assert any("require review" in warning for warning in summary["warnings"])
 
 
+def test_summarize_run_uses_review_export_counts_when_build_release_is_absent(tmp_path: Path) -> None:
+    run_dir = _write_run_files(
+        tmp_path / "run",
+        latest_stage="review-export",
+        stage_summaries={
+            "review-export": {"review_required_count": 9, "blocked_count": 7},
+        },
+    )
+
+    summary = summarize_run(run_dir)
+
+    assert summary["counts"]["review_required_count"] == 9
+    assert summary["counts"]["blocked_count"] == 7
+
+
 def test_summarize_run_collects_blocked_and_qa_failure_reason_warnings(tmp_path: Path) -> None:
     run_dir = _write_run_files(
         tmp_path / "run",
@@ -205,6 +220,24 @@ def test_summarize_run_collects_blocked_and_qa_failure_reason_warnings(tmp_path:
 
     assert any("blocked from release" in warning for warning in summary["warnings"])
     assert any("QA failure reasons:" in warning for warning in summary["warnings"])
+
+
+def test_summarize_run_collects_policy_rejection_warning_line(tmp_path: Path) -> None:
+    run_dir = _write_run_files(
+        tmp_path / "run",
+        latest_stage="policy-filter",
+        stage_summaries={
+            "policy-filter": {
+                "accepted_count": 1,
+                "rejected_count": 2,
+                "rejection_reasons": {"unknown_rights": 2},
+            }
+        },
+    )
+
+    summary = summarize_run(run_dir)
+
+    assert any("Policy rejections:" in warning for warning in summary["warnings"])
 
 
 def test_summarize_run_prefers_build_release_counts_over_review_export_counts(tmp_path: Path) -> None:
@@ -270,15 +303,31 @@ def test_load_resumed_pipeline_state_rejects_missing_stage_dir(tmp_path: Path) -
         load_resumed_pipeline_state(run_dir, "profile_open_v1", "fetch-metadata")
 
 
-def test_load_resumed_pipeline_state_rejects_unknown_resume_stage(tmp_path: Path) -> None:
-    run_dir = _write_run_files(tmp_path / "run", latest_stage="discover")
-    discover_dir = run_dir / "discover"
-    discover_dir.mkdir(exist_ok=True)
-    (discover_dir / "candidates.json").write_text(json.dumps({"items": []}), encoding="utf-8")
-    (run_dir / "summary.json").write_text(json.dumps({"latest_stage": "unknown", "artifacts": []}), encoding="utf-8")
+def test_load_resumed_pipeline_state_can_restore_build_release_state_when_stage_list_is_extended(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_dir = _materialize_run(tmp_path, "build-release")
+    monkeypatch.setattr("hocrgen.runs.PIPELINE_STAGES", PIPELINE_STAGES + ("publish-release",))
 
-    with pytest.raises(StageExecutionError, match="unknown latest_stage"):
-        load_resumed_pipeline_state(run_dir, "profile_open_v1", "fetch-metadata")
+    state, resumed_stage = load_resumed_pipeline_state(run_dir, "profile_open_v1", "publish-release")
+
+    assert resumed_stage == "build-release"
+    assert len(state.release_ready_items) > 0
+    assert len(state.review_queue) > 0
+    assert len(state.split_assignments) > 0
+
+
+def test_load_resumed_pipeline_state_rejects_unknown_resume_stage_when_stage_list_is_extended(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    run_dir = _write_run_files(tmp_path / "run", latest_stage="unknown")
+    unknown_dir = run_dir / "unknown"
+    unknown_dir.mkdir(exist_ok=True)
+    (unknown_dir / "summary.json").write_text(json.dumps({"stage": "unknown"}), encoding="utf-8")
+    monkeypatch.setattr("hocrgen.runs.PIPELINE_STAGES", ("unknown", "publish-release"))
+
+    with pytest.raises(StageExecutionError, match="resume loading for stage unknown is not supported"):
+        load_resumed_pipeline_state(run_dir, "profile_open_v1", "publish-release")
 
 
 def test_load_resumed_pipeline_state_rejects_missing_items_list(tmp_path: Path) -> None:
@@ -319,3 +368,7 @@ def test_summarize_run_handles_missing_release_summary_path_by_omitting_counts(t
     summary = summarize_run(run_dir)
 
     assert "blocked_count" not in summary["counts"]
+
+
+def test_format_counter_returns_none_for_empty_mapping() -> None:
+    assert _format_counter({}) == "none"
