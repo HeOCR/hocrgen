@@ -111,7 +111,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | C4 | Curation and operational hardening | C4a | Privacy and sensitivity screening MVP | completed |
 | C5 | Curation and operational hardening | C5a, C5b | Review queue export, then review decision merge/operational review loop | completed |
 | C6 | Curation and operational hardening | C6a | Release diffs and changelog automation | completed |
-| D1 | Expansion and benchmark formation | D1a | Scheduled GitHub-first expansion workflows | planned |
+| D1 | Expansion and benchmark formation | D1a | Scheduled GitHub-first dry-run maintenance and reporting workflows | next |
 | D2 | Expansion and benchmark formation | D2a | Stable source-operations maturity | planned |
 | D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | planned |
 | D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | planned |
@@ -147,7 +147,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | C5a | C5 | Review queue export and review-side artifacts | yes | completed | merged as PR #6 |
 | C5b | C5 | Review decision schema merge, operational review loop, and post-review release gating | no | completed | merged as PR #22 |
 | C6a | C6 | Release diffs and changelog generation | no | completed | merged as PR #23 |
-| D1a | D1 | Scheduled GitHub-first expansion workflows | no | planned | future ops PR |
+| D1a | D1 | Scheduled GitHub-first dry-run maintenance and reporting workflows | no | next | current planned PR |
 | D2a | D2 | Source refresh/reliability maturity and source freeze controls | no | planned | future source-ops PR |
 | D3a | D3 | Benchmark subset v1 and benchmark-facing manifests | no | planned | future benchmark PR |
 | D4a | D4 | Richer synthetic generation for realism and document likeness | no | planned | future synthetic-quality PR |
@@ -162,9 +162,9 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 
 The immediate implementation critical path after `C6a` is:
 
-1. **D1a**: add scheduled GitHub-first expansion workflows so recurring maintenance no longer depends on one-off manual runs
+1. **D1a**: add scheduled GitHub-first dry-run maintenance and reporting workflows so recurring maintenance no longer depends on one-off manual runs
 
-This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` is now merged and makes exported release trees explainable over time through baseline-aware diffs and changelog generation. The next operational bottleneck is scheduled, GitHub-first refresh and dry-run maintenance in `D1a`.
+This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` is now merged and makes exported release trees explainable over time through baseline-aware diffs and changelog generation. The next operational bottleneck is scheduled, GitHub-first dry-run maintenance with persisted artifacts and operator-facing summaries in `D1a`.
 
 ## 4.4 Alpha release readiness gates
 
@@ -693,22 +693,23 @@ Make every new dataset release explainable.
 Move from one-off releases to sustainable scheduled maintenance.
 
 ### Scope
-- scheduled candidate discovery
-- scheduled synthetic generation
-- scheduled dry-run builds
-- artifact handoff between workflows
-- publish on manual approval/tag
+- scheduled review-profile candidate discovery through policy filtering
+- scheduled synthetic-only dry-run builds
+- scheduled review/open dry-run builds
+- artifact handoff between workflows through persisted run directories
+- machine-readable and Markdown run summaries for GitHub Actions operators
+- keep publication gated and manual for now
 
 ### Deliverables
-- GitHub Actions workflows for recurring runs
+- GitHub Actions workflows for recurring dry-run/reporting runs
 - resumable artifact-based flow
-- scheduled reports
-- manual-dispatch publication workflow
+- scheduled reports in uploaded artifacts and Actions job summaries
+- CLI support for resuming runs and summarizing persisted run directories
 
 ### Exit criteria
 - most routine maintenance runs can occur on GitHub Actions
 - dry-run builds happen without local intervention
-- publication remains gated and deliberate
+- publication remains gated and deliberate outside `D1a`
 
 ### Risks / dependencies
 - GitHub storage/runtime limits
