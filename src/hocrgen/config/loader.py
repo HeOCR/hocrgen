@@ -161,6 +161,9 @@ def validate_bundle_references(bundle: ConfigBundle) -> None:
                 f"privacy rule {rule.id} references unknown source ids",
                 details=[{"privacy_rule_id": rule.id, "unknown_source_ids": sorted(unknown_rule_sources)}],
             )
+    from hocrgen.source_ops import validate_source_operations
+
+    validate_source_operations(bundle)
 
 
 def load_and_validate_bundle(config_root: Path | None = None) -> ConfigBundle:

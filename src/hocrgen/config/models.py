@@ -16,6 +16,12 @@ class SourceStatus(str, Enum):
     blocked = "blocked"
 
 
+class SourceOperationalStatus(str, Enum):
+    active = "active"
+    frozen = "frozen"
+    degraded = "degraded"
+
+
 class RightsClassification(str, Enum):
     open = "open"
     open_with_attribution = "open_with_attribution"
@@ -68,6 +74,23 @@ class SourceSettings(ConfigBaseModel):
     extra: dict[str, Any] = Field(default_factory=dict)
 
 
+class SourceHealthExpectations(ConfigBaseModel):
+    min_candidates: int | None = Field(default=None, ge=0)
+    min_assets: int | None = Field(default=None, ge=0)
+
+
+class SourceOperationsConfig(ConfigBaseModel):
+    operational_status: SourceOperationalStatus = SourceOperationalStatus.active
+    operational_reason: str = ""
+    health_expectations: SourceHealthExpectations = Field(default_factory=SourceHealthExpectations)
+
+    @model_validator(mode="after")
+    def validate_operational_reason(self) -> "SourceOperationsConfig":
+        if self.operational_status != SourceOperationalStatus.active and not self.operational_reason:
+            raise ValueError("operational_reason is required when operational_status is frozen or degraded")
+        return self
+
+
 class SourceConfig(ConfigBaseModel):
     id: str = Field(pattern=r"^[a-z0-9_]+$")
     name: str
@@ -80,6 +103,7 @@ class SourceConfig(ConfigBaseModel):
     rights_classification: RightsClassification
     requires_manual_review: bool
     settings: SourceSettings = Field(default_factory=SourceSettings)
+    source_operations: SourceOperationsConfig = Field(default_factory=SourceOperationsConfig)
 
 
 class SourceRegistry(ConfigBaseModel):

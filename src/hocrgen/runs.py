@@ -154,6 +154,7 @@ def _collect_run_counts(run_dir: Path, stage_summaries: dict[str, dict[str, Any]
     if "candidate_count" in discover:
         counts["candidate_count"] = discover["candidate_count"]
         counts["included_sources"] = discover.get("included_sources", [])
+        counts["source_health"] = discover.get("source_health", {})
     if "accepted_count" in policy_filter:
         counts["accepted_count"] = policy_filter["accepted_count"]
         counts["rejected_count"] = policy_filter.get("rejected_count", 0)
@@ -191,6 +192,21 @@ def _collect_run_warnings(run_dir: Path, stage_summaries: dict[str, dict[str, An
         source_stats = _load_json_object(run_dir / build_release["source_stats"], "source stats")
         if source_stats.get("qa_fail_reasons"):
             warnings.append(f"QA failure reasons: {_format_counter(source_stats['qa_fail_reasons'])}.")
+        for skipped_source in source_stats.get("source_health", {}).get("skipped_sources", []):
+            reason = skipped_source.get("operational_reason") or "no operational reason recorded"
+            warnings.append(
+                "Source "
+                f"{skipped_source['source_id']} skipped: {skipped_source['skip_reason']} "
+                f"({skipped_source['operational_status']}: {reason})."
+            )
+    elif counts.get("source_health"):
+        for skipped_source in counts["source_health"].get("skipped_sources", []):
+            reason = skipped_source.get("operational_reason") or "no operational reason recorded"
+            warnings.append(
+                "Source "
+                f"{skipped_source['source_id']} skipped: {skipped_source['skip_reason']} "
+                f"({skipped_source['operational_status']}: {reason})."
+            )
     return warnings
 
 
@@ -216,6 +232,10 @@ def _load_stage_state(stage: str, run_dir: Path, state: PipelineState) -> None:
 
     if stage == "discover":
         state.candidates = _load_items(stage_dir / "candidates.json", CandidateRecord)
+        source_health_path = stage_dir / "source_health.json"
+        if source_health_path.exists():
+            source_health = _load_json_object(source_health_path, "source health")
+            state.source_health = list(source_health.get("sources", []))
         return
     if stage == "fetch-metadata":
         state.enriched_candidates = _load_items(stage_dir / "enriched_candidates.json", EnrichedCandidateRecord)

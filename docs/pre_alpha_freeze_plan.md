@@ -14,7 +14,7 @@ The pre-alpha blocker sequence is now complete:
 3. the Pinkas exemplar is a text-bearing historical page
 4. synthetic alpha output preserves Hebrew ordering and uses the `2x real items` cap
 
-The remaining work after this document is no longer alpha freeze. `C5b` and `C6a` have now landed to harden review-decision merge and make release-to-release changes explainable. The next planned milestone is `D1a`, which adds scheduled GitHub-first expansion workflows.
+The remaining work after this document is no longer alpha freeze. `C5b`, `C6a`, `D1a`, and `D2a` are now represented in the current-ref roadmap state: review decisions can merge back into the pipeline, release-to-release changes are explainable, scheduled dry-run maintenance exists, and source-operations health/freeze reporting is available. The next planned milestone is `D3a`, which defines the first benchmark subset.
 
 ## Pre-Alpha PR Sequence
 
@@ -114,7 +114,7 @@ These items remain important, but they should not block the first alpha unless a
 
 This milestone is now implemented in `hocrgen` via the dedicated `review-merge` stage plus repo-tracked `review_data/` inputs.
 
-### `C6a`, `D1a`, and later milestones
+### `C6a`, `D1a`, `D2a`, and later milestones
 
 - release diffs and changelog automation
 - scheduled source-refresh workflows
@@ -122,7 +122,7 @@ This milestone is now implemented in `hocrgen` via the dedicated `review-merge` 
 - evaluation utilities
 - community contribution maturity
 
-`C6a` is now complete on `main`. The next planned milestone after this document is `D1a`.
+`C6a`, `D1a`, and `D2a` are complete on the current ref. The next planned milestone after this document is `D3a`.
 
 ## Working Rules For The Pre-Alpha Sequence
 

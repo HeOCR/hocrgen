@@ -40,6 +40,7 @@ from hocrgen.normalize.metadata import normalize_items
 from hocrgen.parsers.rights import classify_eligibility, normalize_rights
 from hocrgen.privacy.rules import apply_privacy_rules
 from hocrgen.review.queue import export_review_queue
+from hocrgen.source_ops import evaluate_source_health, source_health_summary
 from hocrgen.split.assign import assign_splits
 
 
@@ -100,6 +101,7 @@ class PipelineState:
     review_data_blocklist: list[ReviewOverrideRecord] = field(default_factory=list)
     split_assignments: list[SplitAssignmentRecord] = field(default_factory=list)
     leakage_report: dict[str, Any] = field(default_factory=dict)
+    source_health: list[dict[str, Any]] = field(default_factory=list)
 
 
 def empty_pipeline_state() -> PipelineState:
@@ -128,6 +130,7 @@ def empty_pipeline_state() -> PipelineState:
         review_data_blocklist=[],
         split_assignments=[],
         leakage_report={},
+        source_health=[],
     )
 
 
@@ -161,10 +164,18 @@ def write_run_summary(context: RunContext, stage: str, artifacts: list[Path]) ->
     return path
 
 
-def _selected_sources(bundle: ConfigBundle, profile_id: str, options: StageOptions) -> list[SourceConfig]:
+def _selected_sources(
+    bundle: ConfigBundle,
+    profile_id: str,
+    options: StageOptions,
+    source_health: list[dict[str, Any]] | None = None,
+) -> list[SourceConfig]:
     profile = bundle.profiles[profile_id]
     exclude_ids = set(profile.exclude_sources)
     sources_by_id = {source.id: source for source in bundle.source_registry.sources}
+    if source_health is not None:
+        selected_ids = {record["source_id"] for record in source_health if record.get("selected")}
+        return [sources_by_id[source_id] for source_id in profile.include_sources if source_id in selected_ids]
     sources = [
         sources_by_id[source_id]
         for source_id in profile.include_sources
@@ -232,32 +243,37 @@ def _item_from_enriched(record: EnrichedCandidateRecord, source: SourceConfig, b
     )
 
 
-def _run_discover(bundle: ConfigBundle, context: RunContext, options: StageOptions) -> StageResult:
+def _run_discover(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
     stage_dir = context.stage_dir("discover")
     stage_dir.mkdir(parents=True, exist_ok=True)
-    selected_sources = _selected_sources(bundle, context.profile_id, options)
+    source_health = [result.model_dump() for result in evaluate_source_health(bundle, context.profile_id, options)]
+    state.source_health = source_health
+    selected_sources = _selected_sources(bundle, context.profile_id, options, source_health)
     candidates: list[CandidateRecord] = []
     for source in selected_sources:
         candidates.extend(FETCHERS[source.fetcher].discover_candidates(source, bundle, options))
 
     manifest_path = stage_dir / "candidates.json"
+    source_health_path = stage_dir / "source_health.json"
     summary_path = stage_dir / "summary.json"
     write_json(manifest_path, {"items": _dump_models(candidates)})
+    write_json(source_health_path, {"sources": source_health, "summary": source_health_summary(source_health)})
     write_json(
         summary_path,
         {
             "candidate_count": len(candidates),
             "included_sources": [source.id for source in selected_sources],
+            "source_health": source_health_summary(source_health),
             "stage": "discover",
         },
     )
-    return StageResult(stage="discover", summary_path=summary_path, extra_artifacts=[manifest_path])
+    return StageResult(stage="discover", summary_path=summary_path, extra_artifacts=[manifest_path, source_health_path])
 
 
 def _run_fetch_metadata(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
     stage_dir = context.stage_dir("fetch_metadata")
     stage_dir.mkdir(parents=True, exist_ok=True)
-    selected_sources = _selected_sources(bundle, context.profile_id, options)
+    selected_sources = _selected_sources(bundle, context.profile_id, options, state.source_health or None)
     candidates_by_source = {
         source.id: [candidate for candidate in state.candidates if candidate.source_id == source.id]
         for source in selected_sources
@@ -284,7 +300,7 @@ def _run_fetch_metadata(bundle: ConfigBundle, context: RunContext, options: Stag
 def _run_policy_filter(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
     stage_dir = context.stage_dir("policy_filter")
     stage_dir.mkdir(parents=True, exist_ok=True)
-    selected_sources = {source.id: source for source in _selected_sources(bundle, context.profile_id, options)}
+    selected_sources = {source.id: source for source in _selected_sources(bundle, context.profile_id, options, state.source_health or None)}
     accepted: list[ItemRecord] = []
     rejected: list[ItemRecord] = []
     for record in state.enriched_candidates:
@@ -323,7 +339,7 @@ def _run_acquire(bundle: ConfigBundle, context: RunContext, options: StageOption
     stage_dir = context.stage_dir("acquire")
     assets_dir = stage_dir / "assets"
     stage_dir.mkdir(parents=True, exist_ok=True)
-    selected_sources = {source.id: source for source in _selected_sources(bundle, context.profile_id, options)}
+    selected_sources = {source.id: source for source in _selected_sources(bundle, context.profile_id, options, state.source_health or None)}
     acquired: list[AcquiredItemRecord] = []
     for source_id, source in selected_sources.items():
         source_items = [item for item in state.accepted_items if item.source_id == source_id]
@@ -606,6 +622,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             "duplicate_sources": duplicate_source_counts,
             "qa_fail_reasons": qa_fail_reasons,
             "rights_classifications": rights_counts,
+            "source_health": source_health_summary(state.source_health),
             "sources": retained_source_counts,
             "sources_by_split": source_split_counts,
             "splits": split_counts,
@@ -698,7 +715,7 @@ def execute_pipeline(
         start_index = PIPELINE_STAGES.index(start_stage)
     for stage in PIPELINE_STAGES[start_index:]:
         if stage == "discover":
-            results.append(_run_discover(bundle, context, options))
+            results.append(_run_discover(bundle, context, options, state))
             candidates_path = context.stage_dir("discover") / "candidates.json"
             state.candidates = [CandidateRecord.model_validate(item) for item in load_json(candidates_path)["items"]]
         elif stage == "fetch-metadata":
