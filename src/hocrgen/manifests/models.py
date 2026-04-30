@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from hocrgen.config.models import PrivacyFlag, RightsClassification
 
@@ -224,3 +224,58 @@ class ReleaseDiffRecord(ManifestModel):
     source_deltas: dict[str, dict[str, int]] = Field(default_factory=dict)
     split_deltas: dict[str, dict[str, int]] = Field(default_factory=dict)
     schema_version: Literal[1] = 1
+
+
+class BenchmarkApprovedItemRecord(ManifestModel):
+    item_id: str
+    benchmark_split: Literal["train", "validation", "test"]
+    rationale: str = Field(min_length=1)
+
+
+class BenchmarkConfigRecord(ManifestModel):
+    benchmark_id: str
+    version: Literal[1] = 1
+    description: str = Field(min_length=1)
+    selection_policy: str = Field(min_length=1)
+    review_bar: str = Field(min_length=1)
+    stability_policy: dict[str, str] = Field(default_factory=dict)
+    approved_items: list[BenchmarkApprovedItemRecord] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_approved_item_ids(self) -> "BenchmarkConfigRecord":
+        seen: set[str] = set()
+        duplicates: set[str] = set()
+        for item in self.approved_items:
+            if item.item_id in seen:
+                duplicates.add(item.item_id)
+            seen.add(item.item_id)
+        if duplicates:
+            joined = ", ".join(sorted(duplicates))
+            raise ValueError(f"duplicate benchmark approved item ids: {joined}")
+        return self
+
+
+class BenchmarkItemRecord(ManifestModel):
+    benchmark_id: str
+    item_id: str
+    source_id: str
+    source_item_id: str
+    source_url: str
+    title: str | None = None
+    benchmark_split: Literal["train", "validation", "test"]
+    release_split: Literal["train", "validation", "test"]
+    split_group_id: str
+    is_synthetic: bool
+    content_class: Literal["handwritten", "printed", "mixed"]
+    quality_tier: Literal["low", "medium", "high"]
+    normalized_license: str
+    rights_classification: RightsClassification
+    rationale: str
+
+
+class BenchmarkSelectionAuditRecord(ManifestModel):
+    benchmark_id: str
+    item_id: str
+    outcome: Literal["selected"]
+    reason: str
+    review_bar: str

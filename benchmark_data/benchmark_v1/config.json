@@ -1,0 +1,29 @@
+{
+  "approved_items": [
+    {
+      "benchmark_split": "train",
+      "item_id": "nli_any_use_permitted:nli-ms-seed-006",
+      "rationale": "High-resolution real NLI manuscript exemplar for the initial handwritten benchmark slice."
+    },
+    {
+      "benchmark_split": "train",
+      "item_id": "pinkas_open:pinkas-ledger-001",
+      "rationale": "Text-bearing historical Pinkas page that anchors the first real ledger-style benchmark slice."
+    },
+    {
+      "benchmark_split": "train",
+      "item_id": "project_synthetic:synthetic-0",
+      "rationale": "Governed synthetic printed control item for deterministic smoke evaluation alongside real pages."
+    }
+  ],
+  "benchmark_id": "benchmark_v1",
+  "description": "Initial fixture-backed HeOCR benchmark subset with two real release-ready exemplars and one synthetic control item.",
+  "review_bar": "Every benchmark item requires explicit repo-tracked approval before inclusion, even when the item is automatically release-ready.",
+  "selection_policy": "Representative mixed v1 subset: select only release-ready, explicitly approved items, covering current high-confidence real exemplars plus one governed synthetic control item.",
+  "stability_policy": {
+    "churn": "Avoid changing approved item membership or benchmark split commitments within benchmark_v1 unless an item becomes legally, operationally, or technically unsafe.",
+    "splits": "Benchmark split assignments are committed per item in benchmark approval data and must match release split output.",
+    "versioning": "Material membership or policy changes should create a new benchmark version rather than silently reshaping benchmark_v1."
+  },
+  "version": 1
+}

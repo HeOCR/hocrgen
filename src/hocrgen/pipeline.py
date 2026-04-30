@@ -6,11 +6,12 @@ from math import floor
 from pathlib import Path
 from typing import Any
 
+from hocrgen.benchmark import load_benchmark_config, select_benchmark_items
 from hocrgen.classify.heuristics import classify_items
 from hocrgen.config.loader import ConfigBundle
 from hocrgen.config.models import LicenseEntry, SourceConfig
 from hocrgen.core.context import RunContext
-from hocrgen.core.errors import StageExecutionError
+from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.dedupe.exact import deduplicate_items
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.biblia import BibliaImporter
@@ -20,6 +21,8 @@ from hocrgen.fetchers.synthetic import SyntheticFetcher
 from hocrgen.manifests.io import write_json
 from hocrgen.manifests.models import (
     AcquiredItemRecord,
+    BenchmarkItemRecord,
+    BenchmarkSelectionAuditRecord,
     CandidateRecord,
     ClassifiedItemRecord,
     CuratedItemRecord,
@@ -102,6 +105,10 @@ class PipelineState:
     split_assignments: list[SplitAssignmentRecord] = field(default_factory=list)
     leakage_report: dict[str, Any] = field(default_factory=dict)
     source_health: list[dict[str, Any]] = field(default_factory=list)
+    benchmark_items: list[BenchmarkItemRecord] = field(default_factory=list)
+    benchmark_selection_audit: list[BenchmarkSelectionAuditRecord] = field(default_factory=list)
+    benchmark_stability_policy: dict[str, Any] = field(default_factory=dict)
+    benchmark_card_markdown: str = ""
 
 
 def empty_pipeline_state() -> PipelineState:
@@ -131,6 +138,10 @@ def empty_pipeline_state() -> PipelineState:
         split_assignments=[],
         leakage_report={},
         source_health=[],
+        benchmark_items=[],
+        benchmark_selection_audit=[],
+        benchmark_stability_policy={},
+        benchmark_card_markdown="",
     )
 
 
@@ -576,6 +587,10 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     source_stats_path = stage_dir / "source_stats.json"
     classification_stats_path = stage_dir / "classification_stats.json"
     privacy_stats_path = stage_dir / "privacy_stats.json"
+    benchmark_manifest_path = stage_dir / "benchmark_manifest.json"
+    benchmark_selection_audit_path = stage_dir / "benchmark_selection_audit.json"
+    benchmark_stability_policy_path = stage_dir / "benchmark_stability_policy.json"
+    benchmark_card_path = stage_dir / "BENCHMARK_CARD.md"
     summary_path = stage_dir / "summary.json"
 
     retained_source_counts = dict(Counter(item.source_id for item in state.release_ready_items))
@@ -602,6 +617,21 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         "privacy_reason": dict(Counter(reason for item in state.privacy_scanned_items for reason in item.privacy_reasons)),
         "source_id": dict(Counter(item.source_id for item in state.privacy_scanned_items)),
     }
+    try:
+        benchmark_config = load_benchmark_config(bundle.config_root)
+    except ConfigValidationError as exc:
+        raise StageExecutionError(f"benchmark config validation failed: {exc}") from exc
+    benchmark_outputs = select_benchmark_items(
+        config=benchmark_config,
+        release_ready_items=state.release_ready_items,
+        review_required_items=state.review_required_items,
+        blocked_items=state.blocked_items,
+        removed_duplicate_items=state.duplicate_items,
+    )
+    state.benchmark_items = benchmark_outputs.items
+    state.benchmark_selection_audit = benchmark_outputs.audit
+    state.benchmark_stability_policy = benchmark_outputs.stability_policy
+    state.benchmark_card_markdown = benchmark_outputs.card_markdown
 
     write_json(item_manifest_path, {"items": _dump_models(state.release_ready_items)})
     write_json(removed_duplicate_items_path, {"items": _dump_models(state.duplicate_items)})
@@ -615,6 +645,10 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     write_json(leakage_report_path, state.leakage_report)
     write_json(classification_stats_path, classification_stats)
     write_json(privacy_stats_path, privacy_stats)
+    write_json(benchmark_manifest_path, {"items": _dump_models(state.benchmark_items)})
+    write_json(benchmark_selection_audit_path, {"items": _dump_models(state.benchmark_selection_audit)})
+    write_json(benchmark_stability_policy_path, state.benchmark_stability_policy)
+    benchmark_card_path.write_text(state.benchmark_card_markdown, encoding="utf-8")
     write_json(
         source_stats_path,
         {
@@ -653,12 +687,18 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             "review_unresolved_count": len(state.review_required_items),
             "split_counts": split_counts,
             "synthetic_items": sum(1 for item in state.release_ready_items if item.is_synthetic),
+            "benchmark_id": benchmark_outputs.config.benchmark_id,
+            "benchmark_item_count": len(state.benchmark_items),
         },
     )
     write_json(
         summary_path,
         {
             "blocked_items": str(blocked_items_path.relative_to(context.run_dir)),
+            "benchmark_card": str(benchmark_card_path.relative_to(context.run_dir)),
+            "benchmark_manifest": str(benchmark_manifest_path.relative_to(context.run_dir)),
+            "benchmark_selection_audit": str(benchmark_selection_audit_path.relative_to(context.run_dir)),
+            "benchmark_stability_policy": str(benchmark_stability_policy_path.relative_to(context.run_dir)),
             "classification_stats": str(classification_stats_path.relative_to(context.run_dir)),
             "decision_audit": str(decision_audit_path.relative_to(context.run_dir)),
             "duplicate_clusters": str(duplicate_clusters_path.relative_to(context.run_dir)),
@@ -693,6 +733,10 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             source_stats_path,
             classification_stats_path,
             privacy_stats_path,
+            benchmark_manifest_path,
+            benchmark_selection_audit_path,
+            benchmark_stability_policy_path,
+            benchmark_card_path,
         ],
     )
 

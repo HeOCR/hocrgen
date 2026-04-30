@@ -17,7 +17,9 @@ from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.manifests.models import AlphaExportedItemRecord, NormalizedAssetRecord, PrivacyScannedItemRecord, ReviewQueueRecord
 from hocrgen.package.alpha import (
     AlphaExportConfig,
+    BenchmarkExportInputs,
     REPO_ROOT,
+    _benchmark_card_for_export,
     _build_release_diff,
     _changelog_doc,
     _audit_item_payload,
@@ -79,7 +81,11 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
     assert payload["export_dir"] == str(output_dir)
     assert (output_dir / "data").exists()
     assert (output_dir / "manifests" / "item_manifest.json").exists()
+    assert (output_dir / "manifests" / "benchmark_manifest.json").exists()
+    assert (output_dir / "manifests" / "benchmark_selection_audit.json").exists()
+    assert (output_dir / "manifests" / "benchmark_stability_policy.json").exists()
     assert (output_dir / "manifests" / "release_diff.json").exists()
+    assert (output_dir / "docs" / "BENCHMARK_CARD.md").exists()
     assert (output_dir / "docs" / "CHANGELOG.md").exists()
     assert (output_dir / "docs" / "DATASET_CARD.md").exists()
     assert (output_dir / "docs" / "RELEASE_NOTES.md").exists()
@@ -91,10 +97,21 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
     assert str(output_dir.resolve()) not in handoff_doc
 
     release_diff = json.loads((output_dir / "manifests" / "release_diff.json").read_text(encoding="utf-8"))
+    benchmark_manifest = json.loads((output_dir / "manifests" / "benchmark_manifest.json").read_text(encoding="utf-8"))
+    benchmark_card = (output_dir / "docs" / "BENCHMARK_CARD.md").read_text(encoding="utf-8")
     changelog = (output_dir / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
     release_notes = (output_dir / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
     assert release_diff["previous_version"] is None
     assert release_diff["counts"] == {"added": 3, "removed": 0, "changed": 0, "unchanged": 0}
+    assert {item["item_id"] for item in benchmark_manifest["items"]} == {
+        "nli_any_use_permitted:nli-ms-seed-006",
+        "pinkas_open:pinkas-ledger-001",
+        "project_synthetic:synthetic-0",
+    }
+    assert str(output_dir.resolve()) not in json.dumps(benchmark_manifest)
+    assert "Selection Policy" in benchmark_card
+    assert "Review Bar" in benchmark_card
+    assert "Stability Policy" in benchmark_card
     assert changelog.startswith("# Changelog: alpha-v0")
     assert "Previous version: none" in changelog
     assert "initial-release addition summary" in release_notes
@@ -214,6 +231,10 @@ def test_export_alpha_enforces_real_and_synthetic_caps_deterministically(tmp_pat
     first_export_dir = Path(first_payload["export_dir"])
     first_manifest = json.loads((first_export_dir / "manifests" / "item_manifest.json").read_text(encoding="utf-8"))
     first_summary = json.loads((first_export_dir / "manifests" / "release_summary.json").read_text(encoding="utf-8"))
+    first_benchmark_manifest = json.loads(
+        (first_export_dir / "manifests" / "benchmark_manifest.json").read_text(encoding="utf-8")
+    )
+    first_benchmark_card = (first_export_dir / "docs" / "BENCHMARK_CARD.md").read_text(encoding="utf-8")
 
     second_exit = main(
         [
@@ -242,6 +263,15 @@ def test_export_alpha_enforces_real_and_synthetic_caps_deterministically(tmp_pat
     assert len(first_ids) == 2
     assert first_summary["exported_real_items"] == 1
     assert first_summary["exported_synthetic_items"] == 1
+    first_benchmark_ids = [item["item_id"] for item in first_benchmark_manifest["items"]]
+    omitted_benchmark_ids = {
+        "nli_any_use_permitted:nli-ms-seed-006",
+        "pinkas_open:pinkas-ledger-001",
+        "project_synthetic:synthetic-0",
+    } - set(first_benchmark_ids)
+    assert set(first_benchmark_ids) == set(first_ids)
+    assert f"- Items: {len(first_benchmark_ids)}" in first_benchmark_card
+    assert all(item_id not in first_benchmark_card for item_id in omitted_benchmark_ids)
 
 
 def test_select_alpha_items_caps_synthetic_to_twice_the_selected_real_items(tmp_path: Path) -> None:
@@ -992,6 +1022,76 @@ def test_export_alpha_release_raises_on_empty_selection(monkeypatch, tmp_path: P
     monkeypatch.setattr("hocrgen.package.alpha._select_alpha_items", lambda *args, **kwargs: [])
     with pytest.raises(StageExecutionError, match="alpha export selection is empty"):
         export_alpha_release(bundle, run_dir, "profile_open_v1", AlphaExportConfig(version="alpha-v0"))
+
+
+def test_export_alpha_release_requires_benchmark_artifacts(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    exit_code = main(
+        [
+            "build-release",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+        ]
+    )
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    run_dir = Path(payload["run_dir"])
+    (run_dir / "build_release" / "benchmark_manifest.json").unlink()
+    bundle = load_and_validate_bundle(config_root)
+
+    with pytest.raises(StageExecutionError, match="requires build-release benchmark artifacts"):
+        export_alpha_release(bundle, run_dir, "profile_open_v1", AlphaExportConfig(version="alpha-v0"))
+
+
+def test_export_alpha_release_validates_benchmark_artifacts_before_overwrite(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    exit_code = main(
+        [
+            "build-release",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+        ]
+    )
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    run_dir = Path(payload["run_dir"])
+    (run_dir / "build_release" / "benchmark_manifest.json").unlink()
+    output_dir = tmp_path / "HeOCR" / "releases" / "alpha-v0"
+    stale_file = output_dir / "stale.txt"
+    stale_file.parent.mkdir(parents=True, exist_ok=True)
+    stale_file.write_text("stale", encoding="utf-8")
+    bundle = load_and_validate_bundle(config_root)
+
+    with pytest.raises(StageExecutionError, match="requires build-release benchmark artifacts"):
+        export_alpha_release(
+            bundle,
+            run_dir,
+            "profile_open_v1",
+            AlphaExportConfig(version="alpha-v0", output_dir=output_dir, overwrite=True),
+        )
+    assert stale_file.read_text(encoding="utf-8") == "stale"
+
+
+def test_benchmark_card_for_export_rejects_invalid_policy() -> None:
+    inputs = BenchmarkExportInputs(
+        items=[],
+        selection_audit=[],
+        stability_policy={"benchmark_id": "benchmark_v1"},
+        card_markdown="",
+    )
+
+    with pytest.raises(StageExecutionError, match="benchmark policy is invalid"):
+        _benchmark_card_for_export(inputs, [])
 
 
 def test_copy_export_assets_requires_split_and_copies_preview(tmp_path: Path) -> None:

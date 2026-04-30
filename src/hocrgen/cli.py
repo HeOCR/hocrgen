@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Sequence
 
+from hocrgen.benchmark import load_benchmark_config
 from hocrgen.config.loader import ConfigBundle, load_and_validate_bundle
 from hocrgen.core.context import create_run_context
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
@@ -107,6 +108,7 @@ def _load_bundle(config_root: Path | None) -> ConfigBundle:
 def handle_config_validate(args: argparse.Namespace) -> int:
     try:
         bundle = _load_bundle(args.config_root)
+        benchmark_config = load_benchmark_config(bundle.config_root)
         review_data = validate_review_data(bundle.config_root, args.config_root.resolve() if args.config_root else None)
     except ConfigValidationError as exc:
         _print_json({"status": "error", "error": str(exc)})
@@ -117,6 +119,11 @@ def handle_config_validate(args: argparse.Namespace) -> int:
             "config_root": str(bundle.config_root),
             "profile_count": len(bundle.profiles),
             "profiles": sorted(bundle.profiles),
+            "benchmark": {
+                "approved_item_count": len(benchmark_config.approved_items),
+                "benchmark_id": benchmark_config.benchmark_id,
+                "version": benchmark_config.version,
+            },
             "privacy_rules_version": bundle.privacy_rules.version,
             "quality_thresholds_version": bundle.quality_thresholds.version,
             "review_data_root": str(review_data.root),

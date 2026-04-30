@@ -11,6 +11,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
 from hocrgen.config.loader import ConfigBundle
 from hocrgen.config.models import ReleaseProfile, SourceConfig
 from hocrgen.core.errors import StageExecutionError
@@ -18,6 +20,8 @@ from hocrgen.manifests.io import write_json
 from hocrgen.manifests.models import (
     AlphaExportedItemRecord,
     AlphaReleaseRecord,
+    BenchmarkItemRecord,
+    BenchmarkSelectionAuditRecord,
     CuratedItemRecord,
     DuplicateClusterRecord,
     DuplicateRelationRecord,
@@ -57,6 +61,14 @@ class AlphaExportResult:
     artifact_paths: list[Path]
 
 
+@dataclass(frozen=True)
+class BenchmarkExportInputs:
+    items: list[BenchmarkItemRecord]
+    selection_audit: list[BenchmarkSelectionAuditRecord]
+    stability_policy: dict[str, Any]
+    card_markdown: str
+
+
 def export_alpha_release(
     bundle: ConfigBundle,
     run_dir: Path,
@@ -79,7 +91,6 @@ def export_alpha_release(
         if not config.overwrite:
             raise StageExecutionError(f"alpha export directory already exists: {export_dir}")
         _validate_overwrite_target(export_dir, config.version)
-        shutil.rmtree(export_dir)
     release_items = _load_models(build_dir / "item_manifest.json", PrivacyScannedItemRecord)
     review_required_items = _load_models(build_dir / "review_required_items.json", PrivacyScannedItemRecord)
     blocked_items = _load_models(build_dir / "blocked_items.json", PrivacyScannedItemRecord)
@@ -88,6 +99,7 @@ def export_alpha_release(
     duplicate_clusters = _load_models(build_dir / "duplicate_clusters.json", DuplicateClusterRecord)
     removed_duplicate_items = _load_models(build_dir / "removed_duplicate_items.json", CuratedItemRecord)
     review_queue = _load_models(build_dir / "review_queue.json", ReviewQueueRecord)
+    benchmark_inputs = _load_benchmark_export_inputs(build_dir)
     build_release_summary = _load_json(build_dir / "release_summary.json")
 
     selected_items = _select_alpha_items(release_items, profile, config)
@@ -95,6 +107,12 @@ def export_alpha_release(
         raise StageExecutionError("alpha export selection is empty")
 
     selected_ids = {item.item_id for item in selected_items}
+    selected_benchmark_items = [item for item in benchmark_inputs.items if item.item_id in selected_ids]
+    selected_benchmark_ids = {item.item_id for item in selected_benchmark_items}
+    selected_benchmark_audit = [
+        item for item in benchmark_inputs.selection_audit if item.item_id in selected_benchmark_ids
+    ]
+    benchmark_card = _benchmark_card_for_export(benchmark_inputs, selected_benchmark_items)
     included_sources = _ordered_sources(profile, {item.source_id for item in selected_items})
     selected_split_manifest = [assignment for assignment in split_manifest if assignment.item_id in selected_ids]
     review_required_ids = {item.item_id for item in review_required_items}
@@ -111,6 +129,8 @@ def export_alpha_release(
         if cluster.cluster_id in selected_duplicate_cluster_ids
     ]
 
+    if export_dir.exists():
+        shutil.rmtree(export_dir)
     exported_items = _copy_export_assets(selected_items, export_dir / "data")
     source_stats = _build_source_stats(exported_items, selected_duplicate_relations)
     classification_stats = _build_classification_stats(exported_items)
@@ -183,6 +203,12 @@ def export_alpha_release(
     )
     write_json(manifests_dir / "release_record.json", release_record.model_dump(mode="json"))
     write_json(manifests_dir / "release_diff.json", release_diff.model_dump(mode="json"))
+    write_json(manifests_dir / "benchmark_manifest.json", {"items": [item.model_dump(mode="json") for item in selected_benchmark_items]})
+    write_json(
+        manifests_dir / "benchmark_selection_audit.json",
+        {"items": [item.model_dump(mode="json") for item in selected_benchmark_audit]},
+    )
+    write_json(manifests_dir / "benchmark_stability_policy.json", benchmark_inputs.stability_policy)
 
     _write_markdown(
         docs_dir / "DATASET_CARD.md",
@@ -212,6 +238,7 @@ def export_alpha_release(
             handoff_repo_root,
         ),
     )
+    _write_markdown(docs_dir / "BENCHMARK_CARD.md", benchmark_card)
 
     summary_path = run_dir / "export_alpha" / "summary.json"
     write_json(
@@ -241,11 +268,15 @@ def export_alpha_release(
         manifests_dir / "review_queue.json",
         manifests_dir / "release_record.json",
         manifests_dir / "release_diff.json",
+        manifests_dir / "benchmark_manifest.json",
+        manifests_dir / "benchmark_selection_audit.json",
+        manifests_dir / "benchmark_stability_policy.json",
         docs_dir / "DATASET_CARD.md",
         docs_dir / "CHANGELOG.md",
         docs_dir / "RELEASE_NOTES.md",
         docs_dir / "PROVENANCE.md",
         docs_dir / "HANDOFF.md",
+        docs_dir / "BENCHMARK_CARD.md",
         summary_path,
     ]
     return AlphaExportResult(
@@ -1000,6 +1031,73 @@ def _load_baseline_item_manifest(path: Path) -> dict[str, dict[str, Any]]:
 def _load_models(path: Path, model_type: type[Any]) -> list[Any]:
     payload = _load_json(path)
     return [model_type.model_validate(item) for item in payload["items"]]
+
+
+def _load_benchmark_export_inputs(build_dir: Path) -> BenchmarkExportInputs:
+    try:
+        return BenchmarkExportInputs(
+            items=_load_models(build_dir / "benchmark_manifest.json", BenchmarkItemRecord),
+            selection_audit=_load_models(
+                build_dir / "benchmark_selection_audit.json",
+                BenchmarkSelectionAuditRecord,
+            ),
+            stability_policy=_load_json(build_dir / "benchmark_stability_policy.json"),
+            card_markdown=(build_dir / "BENCHMARK_CARD.md").read_text(encoding="utf-8"),
+        )
+    except (FileNotFoundError, KeyError, StageExecutionError, ValidationError) as exc:
+        raise StageExecutionError(
+            "alpha export requires build-release benchmark artifacts; "
+            "rerun build-release with benchmark outputs before export-alpha"
+        ) from exc
+
+
+def _benchmark_card_for_export(inputs: BenchmarkExportInputs, items: list[BenchmarkItemRecord]) -> str:
+    try:
+        benchmark_id = str(inputs.stability_policy["benchmark_id"])
+        description = str(inputs.stability_policy.get("description", "Exported benchmark subset."))
+        selection_policy = str(inputs.stability_policy["selection_policy"])
+        review_bar = str(inputs.stability_policy["review_bar"])
+        stability_policy = dict(inputs.stability_policy["stability_policy"])
+    except (KeyError, TypeError, ValueError, ValidationError) as exc:
+        raise StageExecutionError("alpha export benchmark policy is invalid for card rendering") from exc
+    real_count = sum(1 for item in items if not item.is_synthetic)
+    synthetic_count = sum(1 for item in items if item.is_synthetic)
+    split_counts: dict[str, int] = {}
+    for item in items:
+        split_counts[item.benchmark_split] = split_counts.get(item.benchmark_split, 0) + 1
+    lines = [
+        f"# Benchmark Card: {benchmark_id}",
+        "",
+        "## Summary",
+        description,
+        "",
+        "## Selection Policy",
+        selection_policy,
+        "",
+        "## Review Bar",
+        review_bar,
+        "",
+        "## Stability Policy",
+    ]
+    lines.extend(f"- {key}: {value}" for key, value in sorted(stability_policy.items()))
+    lines.extend(
+        [
+            "",
+            "## Composition",
+            f"- Items: {len(items)}",
+            f"- Real items: {real_count}",
+            f"- Synthetic control items: {synthetic_count}",
+            "",
+            "## Benchmark Splits",
+        ]
+    )
+    lines.extend(f"- `{split}`: {count}" for split, count in sorted(split_counts.items()))
+    lines.extend(["", "## Items"])
+    lines.extend(
+        f"- `{item.item_id}` ({item.source_id}, `{item.benchmark_split}`): {item.rationale}"
+        for item in items
+    )
+    return "\n".join(lines + [""])
 
 
 def _write_markdown(path: Path, content: str) -> None:

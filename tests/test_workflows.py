@@ -33,3 +33,16 @@ def test_hocrgen_dry_run_workflow_uploads_artifacts_and_writes_summary() -> None
     assert "run_dry_run" in workflow["jobs"]
     assert "actions/upload-artifact@v4" in rendered
     assert "$GITHUB_STEP_SUMMARY" in rendered
+
+
+def test_pr_agent_context_workflows_use_floating_v4_reference() -> None:
+    validate = _load_workflow(Path(".github/workflows/validate.yml"))
+    refresh = _load_workflow(Path(".github/workflows/pr-agent-context-refresh.yml"))
+
+    validate_job = validate["jobs"]["pr-agent-context"]
+    refresh_job = refresh["jobs"]["pr-agent-context-refresh"]
+
+    assert validate_job["uses"] == "shaypal5/pr-agent-context/.github/workflows/pr-agent-context.yml@v4"
+    assert validate_job["with"]["tool_ref"] == "v4"
+    assert refresh_job["uses"] == "shaypal5/pr-agent-context/.github/workflows/pr-agent-context.yml@v4"
+    assert refresh_job["with"]["tool_ref"] == "v4"

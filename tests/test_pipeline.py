@@ -53,6 +53,10 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     review_queue = json.loads((run_dir / "build_release" / "review_queue.json").read_text(encoding="utf-8"))
     classification_stats = json.loads((run_dir / "build_release" / "classification_stats.json").read_text(encoding="utf-8"))
     privacy_stats = json.loads((run_dir / "build_release" / "privacy_stats.json").read_text(encoding="utf-8"))
+    benchmark_manifest = json.loads((run_dir / "build_release" / "benchmark_manifest.json").read_text(encoding="utf-8"))
+    benchmark_audit = json.loads((run_dir / "build_release" / "benchmark_selection_audit.json").read_text(encoding="utf-8"))
+    benchmark_policy = json.loads((run_dir / "build_release" / "benchmark_stability_policy.json").read_text(encoding="utf-8"))
+    benchmark_card = (run_dir / "build_release" / "BENCHMARK_CARD.md").read_text(encoding="utf-8")
 
     assert len(normalized_items["items"]) == 4
     assert qa_report["failed_count"] == 0
@@ -68,6 +72,8 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert release_summary["review_required_count"] == 1
     assert release_summary["review_unresolved_count"] == 1
     assert release_summary["blocked_count"] == 0
+    assert release_summary["benchmark_id"] == "benchmark_v1"
+    assert release_summary["benchmark_item_count"] == 3
     assert release_summary["real_items"] == 2
     assert release_summary["synthetic_items"] == 1
     assert sum(release_summary["split_counts"].values()) == 3
@@ -93,6 +99,18 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     by_source = {item["source_id"]: item for item in item_manifest["items"]}
     assert by_source["nli_any_use_permitted"]["quality_tier"] == "high"
     assert privacy_stats["privacy_flag"] == {"clear": 4}
+    benchmark_ids = {item["item_id"] for item in benchmark_manifest["items"]}
+    assert benchmark_ids == {
+        "nli_any_use_permitted:nli-ms-seed-006",
+        "pinkas_open:pinkas-ledger-001",
+        "project_synthetic:synthetic-0",
+    }
+    assert {item["item_id"] for item in benchmark_manifest["items"] if item["is_synthetic"]} == {"project_synthetic:synthetic-0"}
+    assert {item["benchmark_split"] for item in benchmark_manifest["items"]} == {"train"}
+    assert {item["outcome"] for item in benchmark_audit["items"]} == {"selected"}
+    assert benchmark_policy["benchmark_id"] == "benchmark_v1"
+    assert "Review Bar" in benchmark_card
+    assert "Stability Policy" in benchmark_card
 
 
 def test_unknown_rights_are_rejected_in_pipeline(tmp_path: Path, capsys) -> None:
@@ -131,7 +149,26 @@ def test_unknown_rights_are_rejected_in_pipeline(tmp_path: Path, capsys) -> None
     assert rejected["items"][0]["eligibility_reason"] == "unknown_rights"
 
 
-def test_excluded_sources_are_not_selected(tmp_path: Path, capsys) -> None:
+def test_build_release_fails_when_benchmark_approved_item_is_missing(tmp_path: Path, capsys) -> None:
+    exit_code = main(
+        [
+            "build-release",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--workdir",
+            str(tmp_path / "work"),
+            "--source",
+            "nli_any_use_permitted",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert "benchmark benchmark_v1 approved item pinkas_open:pinkas-ledger-001 is not release-ready" in payload["error"]
+
+
+def test_build_release_fails_when_profile_excludes_benchmark_approved_source(tmp_path: Path, capsys) -> None:
     config_root = tmp_path / "config"
     shutil.copytree(default_config_root(), config_root)
     profile_path = config_root / "profiles" / "profile_open_v1.yaml"
@@ -155,13 +192,54 @@ def test_excluded_sources_are_not_selected(tmp_path: Path, capsys) -> None:
         ]
     )
     payload = json.loads(capsys.readouterr().out)
-    run_dir = Path(payload["run_dir"])
-    release_summary = json.loads((run_dir / "build_release" / "release_summary.json").read_text(encoding="utf-8"))
-    source_stats = json.loads((run_dir / "build_release" / "source_stats.json").read_text(encoding="utf-8"))
 
-    assert exit_code == 0
-    assert release_summary["synthetic_items"] == 0
-    assert "project_synthetic" not in source_stats["sources"]
+    assert exit_code == 1
+    assert "benchmark benchmark_v1 approved item project_synthetic:synthetic-0 is not release-ready" in payload["error"]
+
+
+def test_build_release_reports_benchmark_config_validation_as_stage_error(tmp_path: Path, capsys) -> None:
+    config_root = tmp_path / "config"
+    shutil.copytree(default_config_root(), config_root)
+    benchmark_root = tmp_path / "benchmark_data" / "benchmark_v1"
+    benchmark_root.mkdir(parents=True)
+    (benchmark_root / "config.json").write_text(
+        json.dumps(
+            {
+                "approved_items": [
+                    {
+                        "benchmark_split": "train",
+                        "item_id": "nli_any_use_permitted:nli-ms-seed-006",
+                        "rationale": "real exemplar",
+                    }
+                ],
+                "benchmark_id": "other_benchmark",
+                "description": "fixture benchmark",
+                "review_bar": "explicit approval required",
+                "selection_policy": "representative mixed",
+                "stability_policy": {"splits": "stable"},
+                "version": 1,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "build-release",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--workdir",
+            str(tmp_path / "work"),
+            "--config-root",
+            str(config_root),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload["status"] == "error"
+    assert "benchmark config validation failed" in payload["error"]
 
 
 def test_build_release_removes_exact_duplicates(tmp_path: Path, capsys) -> None:
