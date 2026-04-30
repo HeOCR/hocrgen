@@ -6,6 +6,9 @@ from hocrgen.manifests.models import AnnotationManifestItemRecord, AnnotationMan
 
 
 def _annotation_status_for_item(item: Any) -> str:
+    annotation_status = getattr(item, "annotation_status", None)
+    if annotation_status is not None:
+        return str(annotation_status)
     if item.transcription is not None or item.layout_labels:
         return "available"
     return "not_available"

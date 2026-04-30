@@ -482,8 +482,11 @@ def test_annotation_references_reject_nonportable_paths() -> None:
         "/tmp/transcription.json",
         "file:///tmp/transcription.json",
         "annotations/../../private.json",
+        "../annotations/item-001/transcription.json",
+        "../layouts/item-001/layout.json",
         "C:/Users/me/transcription.json",
         r"C:\Users\me\transcription.json",
+        r"annotations\item-001\transcription.json",
         ".work/run/layout.json",
     ]
     for path in rejected_paths:
@@ -520,13 +523,65 @@ def test_annotation_manifest_items_reject_status_reference_contradictions() -> N
     assert item.annotation_status == "available"
 
 
-def test_annotation_manifest_builder_derives_status_from_references() -> None:
+def test_annotation_manifest_builder_preserves_validated_status() -> None:
+    transcription = TranscriptionReference(path="annotations/item-001/transcription.json")
+    item = PrivacyScannedItemRecord.model_validate(
+        {
+            "annotation_status": "partial",
+            "transcription": transcription.model_dump(mode="python"),
+            "layout_labels": [],
+            "item_id": "item-001",
+            "candidate_id": "fixture_source:source-item-001",
+            "source_id": "fixture_source",
+            "source_item_id": "source-item-001",
+            "source_url": "https://example.test/item-001",
+            "discovery_method": "fixture",
+            "raw_metadata": {},
+            "asset_references": [],
+            "metadata": {},
+            "normalized_license": "PD-IL",
+            "rights_classification": "open",
+            "eligibility": "accepted",
+            "eligibility_reason": "allowed_by_profile",
+            "is_synthetic": False,
+            "provenance": {},
+            "acquired_assets": [],
+            "normalized_assets": [],
+            "qa_status": "passed",
+            "qa_fail_reasons": [],
+            "content_fingerprint": "fingerprint",
+            "dedupe_status": "retained",
+            "canonical_item_id": "item-001",
+            "split": "train",
+            "split_group_id": "group-001",
+            "content_class": "printed",
+            "content_confidence": 1.0,
+            "period_class": "modern",
+            "period_confidence": 1.0,
+            "language_class": "hebrew_only",
+            "language_confidence": 1.0,
+            "quality_score": 1.0,
+            "quality_tier": "high",
+            "classification_review_reasons": [],
+            "privacy_flag": "clear",
+            "privacy_reasons": [],
+            "privacy_decision": "release_ready",
+        }
+    )
+
+    manifest = build_annotation_manifest([item], subset_id="fixture_subset")
+
+    assert manifest.items[0].annotation_status == "partial"
+    assert manifest.annotated_item_count == 1
+    assert manifest.transcription_item_count == 1
+
+
+def test_annotation_manifest_builder_derives_status_when_missing() -> None:
     transcription = TranscriptionReference(path="annotations/item-001/transcription.json")
     item = Namespace(
         item_id="item-001",
         source_id="fixture_source",
         split="train",
-        annotation_status="not_available",
         transcription=transcription,
         layout_labels=[],
     )
