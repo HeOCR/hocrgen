@@ -155,13 +155,10 @@ def test_synthetic_generation_is_deterministic(tmp_path: Path) -> None:
     assert acquired_once[0].acquired_assets[0].sha256 == acquired_twice[0].acquired_assets[0].sha256
     assert acquired_once[0].acquired_assets[0].path.endswith(".jpg")
     assert acquired_once[0].acquired_assets[0].media_type == "image/jpeg"
-    assert acquired_once[0].metadata["synthetic_generator_version"] == "d4a-realism-v1"
+    assert acquired_once[0].metadata["synthetic_generator_version"] == "d4a-realism-v2"
     assert acquired_once[0].metadata["synthetic_recipe_id"] == "printed_letter_form_v1"
     assert acquired_once[0].metadata["synthetic_degradation_preset"] == "office_scan_soft"
-    assert acquired_once[0].metadata["synthetic_font_id"] in {
-        "alef-regular",
-        "gveret-levin-regular",
-    }
+    assert acquired_once[0].metadata["synthetic_font_id"] == "gveret-levin-regular"
     assert acquired_once[0].metadata["synthetic_font_id"] == acquired_twice[0].metadata["synthetic_font_id"]
 
 
@@ -178,11 +175,8 @@ def test_synthetic_generation_uses_packaged_fonts_and_curated_text(tmp_path: Pat
     )
 
     assert {document.path.suffix for document in documents} == {".jpg"}
-    assert {document.generator_version for document in documents} == {"d4a-realism-v1"}
-    assert {document.font_id for document in documents} == {
-        "alef-regular",
-        "gveret-levin-regular",
-    }
+    assert {document.generator_version for document in documents} == {"d4a-realism-v2"}
+    assert {document.font_id for document in documents} == {"gveret-levin-regular"}
     assert {document.recipe_id for document in documents} == {
         "printed_letter_form_v1",
         "handwritten_note_marginalia_v1",
@@ -498,12 +492,12 @@ def test_wrap_hebrew_text_handles_empty_and_wrapping_branches() -> None:
     assert all(line for line in wrapped)
 
 
-def test_rtl_display_text_reverses_logical_hebrew_for_pillow_rendering() -> None:
-    assert _rtl_display_text("מכתב מנהלי") == "ילהנמ בתכמ"
-    assert _rtl_display_text("סימן 12") == "12 ןמיס"
-    assert _rtl_display_text("עמוד ABC") == "ABC דומע"
+def test_rtl_display_text_preserves_logical_hebrew_for_raqm_rendering() -> None:
+    assert _rtl_display_text("מכתב מנהלי") == "מכתב מנהלי"
+    assert _rtl_display_text("סימן 12") == "סימן 12"
+    assert _rtl_display_text("עמוד ABC") == "עמוד ABC"
 
 
 def test_select_font_rejects_missing_style() -> None:
     with pytest.raises(ValueError, match="No synthetic font registered for style: handwritten_like"):
-        _select_font([{"id": "alef-regular", "style": "printed"}], "handwritten_note")
+        _select_font([{"id": "alef-regular", "style": "printed"}], "printed_letter")

@@ -54,6 +54,16 @@ The NLI seed data is split on purpose:
 - runnable fixture-backed seeds live in [`src/hocrgen/data/nli/seeds.yaml`](./src/hocrgen/data/nli/seeds.yaml)
 - broader exploratory/manual candidate URLs live in [`src/hocrgen/data/nli/seed_catalog.yaml`](./src/hocrgen/data/nli/seed_catalog.yaml)
 
+Near-term release-scale acquisition should preserve that seed boundary while removing one-by-one manual promotion as the bottleneck. The intended path is:
+
+1. Add a live-but-cached NLI seed acquisition mode that accepts vetted seed URLs from the catalog or a seed manifest.
+2. Fetch and parse item metadata/assets into the same local fixture shape used by the current deterministic pipeline.
+3. Persist a promotion/acquisition report with rights text, asset paths, failures, and skipped items.
+4. Keep CI and release builds fixture-backed and network-free after the live acquisition step.
+5. Run the normal rights, privacy, review, dedupe, split, benchmark, and export-portability gates before any larger public release.
+
+This is the preferred short-term path for growing from the current small alpha exemplar set toward larger releases such as `80` real samples plus bounded synthetic controls. It is not a site-wide crawler and should not bypass source policy, rights checks, review decisions, benchmark stability, or public export portability.
+
 To promote exploratory entries into runnable local fixtures, use the local operator script:
 
 ```bash

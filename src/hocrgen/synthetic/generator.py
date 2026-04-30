@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import random
-import re
 from dataclasses import dataclass
 from functools import lru_cache
 from pathlib import Path
@@ -12,7 +11,7 @@ from hocrgen.config.loader import load_yaml_file
 from hocrgen.utils.hashing import sha256_file
 
 
-GENERATOR_VERSION = "d4a-realism-v1"
+GENERATOR_VERSION = "d4a-realism-v2"
 CANVAS_SIZE = (1200, 1600)
 PAPER_MARGIN = 96
 
@@ -39,6 +38,7 @@ FOOTER_LABELS = [
 class SyntheticRecipe:
     template_id: str
     recipe_id: str
+    layout_style: str
     font_style: str
     degradation_preset: str
     paper_tone: str
@@ -91,7 +91,7 @@ def _wrap_hebrew_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.Free
     current = words[0]
     for word in words[1:]:
         candidate = f"{current} {word}"
-        left, _top, right, _bottom = draw.textbbox((0, 0), candidate, font=font)
+        left, _top, right, _bottom = draw.textbbox((0, 0), candidate, font=font, direction="rtl")
         width = right - left
         if width <= max_width:
             current = candidate
@@ -103,17 +103,19 @@ def _wrap_hebrew_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.Free
 
 
 def _rtl_display_text(text: str) -> str:
-    parts = re.split(r"(\s+)", text)
-    reordered: list[str] = []
-    for part in reversed(parts):
-        if not part or part.isspace():
-            reordered.append(part)
-            continue
-        if re.search(r"[\u0590-\u05FF]", part) and not re.search(r"[A-Za-z0-9]", part):
-            reordered.append(part[::-1])
-            continue
-        reordered.append(part)
-    return "".join(reordered)
+    return text
+
+
+def _draw_rtl_text(
+    draw: ImageDraw.ImageDraw,
+    xy: tuple[int, int],
+    text: str,
+    *,
+    font: ImageFont.FreeTypeFont,
+    fill: tuple[int, int, int] | tuple[int, int, int, int],
+    anchor: str = "ra",
+) -> None:
+    draw.text(xy, _rtl_display_text(text), font=font, fill=fill, anchor=anchor, direction="rtl")
 
 
 def _paper_background(randomizer: random.Random, size: tuple[int, int], tone: str) -> Image.Image:
@@ -165,7 +167,8 @@ def _recipe_for_template(template_id: str) -> SyntheticRecipe:
         return SyntheticRecipe(
             template_id=template_id,
             recipe_id="printed_letter_form_v1",
-            font_style="printed",
+            layout_style="printed_form",
+            font_style="handwritten_like",
             degradation_preset="office_scan_soft",
             paper_tone="printed",
             line_count=4,
@@ -175,6 +178,7 @@ def _recipe_for_template(template_id: str) -> SyntheticRecipe:
         return SyntheticRecipe(
             template_id=template_id,
             recipe_id="handwritten_note_marginalia_v1",
+            layout_style="handwritten_note",
             font_style="handwritten_like",
             degradation_preset="notebook_scan_worn",
             paper_tone="handwritten",
@@ -256,7 +260,7 @@ def _draw_stamp(draw: ImageDraw.ImageDraw, randomizer: random.Random, font: Imag
         outline=color,
         width=4,
     )
-    draw.text((center_x + 62, center_y - 13), _rtl_display_text("נבדק"), font=font, fill=color, anchor="ra")
+    _draw_rtl_text(draw, (center_x + 62, center_y - 13), "נבדק", font=font, fill=color)
 
 
 def _draw_handwritten_guides(draw: ImageDraw.ImageDraw, randomizer: random.Random) -> None:
@@ -275,7 +279,7 @@ def _draw_marginalia(
     x = PAPER_MARGIN + randomizer.randint(60, 150)
     y = PAPER_MARGIN + randomizer.randint(430, 680)
     note = notes[randomizer.randrange(len(notes))]
-    draw.text((x + 115, y), _rtl_display_text(note), font=font, fill=(88, 68, 48), anchor="ra")
+    _draw_rtl_text(draw, (x + 115, y), note, font=font, fill=(88, 68, 48))
     draw.line((x, y + 44, x + 120, y + 32), fill=(88, 68, 48), width=2)
     for _ in range(2):
         sx = x + randomizer.randint(5, 95)
@@ -306,52 +310,53 @@ def _draw_document(
     template_id: str,
 ) -> Image.Image:
     recipe = _recipe_for_template(template_id)
-    handwritten = recipe.font_style == "handwritten_like"
-    background = (246, 241, 230) if not handwritten else (243, 235, 220)
+    form_layout = recipe.layout_style == "printed_form"
+    handwritten_text = recipe.font_style == "handwritten_like"
+    background = (246, 241, 230) if form_layout else (243, 235, 220)
     image = _paper_background(randomizer, CANVAS_SIZE, recipe.paper_tone).convert("RGBA")
     draw = ImageDraw.Draw(image)
 
-    title_font = _load_font(font_path, 62 if not handwritten else 66)
-    body_font = _load_font(font_path, 42 if not handwritten else 46)
+    title_font = _load_font(font_path, 62 if not handwritten_text else 66)
+    body_font = _load_font(font_path, 42 if not handwritten_text else 46)
     footer_font = _load_font(font_path, 28)
-    annotation_font = _load_font(font_path, 30 if handwritten else 26)
+    annotation_font = _load_font(font_path, 30 if handwritten_text else 26)
 
-    _draw_paper_frame(draw, randomizer, handwritten)
-    _draw_creased_paper(draw, randomizer, handwritten)
-    if handwritten:
-        _draw_handwritten_guides(draw, randomizer)
-        _draw_marginalia(draw, randomizer, annotation_font)
-    else:
+    _draw_paper_frame(draw, randomizer, handwritten=not form_layout)
+    _draw_creased_paper(draw, randomizer, handwritten=not form_layout)
+    if form_layout:
         _draw_printed_form_guides(draw, randomizer)
         _draw_stamp(draw, randomizer, annotation_font)
-    _draw_stains(image, randomizer, handwritten)
+    else:
+        _draw_handwritten_guides(draw, randomizer)
+        _draw_marginalia(draw, randomizer, annotation_font)
+    _draw_stains(image, randomizer, handwritten=not form_layout)
 
     title_x = CANVAS_SIZE[0] - PAPER_MARGIN - randomizer.randint(0, 24)
     title_y = PAPER_MARGIN + randomizer.randint(4, 24)
-    draw.text((title_x, title_y), _rtl_display_text(title), font=title_font, fill=(34, 29, 24, 255), anchor="ra")
+    _draw_rtl_text(draw, (title_x, title_y), title, font=title_font, fill=(34, 29, 24, 255))
 
-    body_top = title_y + (132 if not handwritten else 118)
+    body_top = title_y + (132 if form_layout else 118)
     max_width = CANVAS_SIZE[0] - (2 * PAPER_MARGIN) - 40
     wrapped_lines: list[str] = []
     for line in body_lines:
         wrapped_lines.extend(_wrap_hebrew_text(draw, line, body_font, max_width))
 
-    line_height = 76 if handwritten else 68
+    line_height = 76 if handwritten_text else 68
     start_x = CANVAS_SIZE[0] - PAPER_MARGIN - randomizer.randint(0, 20)
     for index, line in enumerate(wrapped_lines):
-        x = start_x - randomizer.randint(0, 28 if handwritten else 6)
-        y = body_top + index * line_height + randomizer.randint(-10 if handwritten else -2, 8 if handwritten else 2)
+        x = start_x - randomizer.randint(0, 28 if handwritten_text else 6)
+        y = body_top + index * line_height + randomizer.randint(-10 if handwritten_text else -2, 8 if handwritten_text else 2)
         ink = randomizer.randint(-8, 7)
         fill = (max(18, 33 + ink), max(16, 28 + ink), max(12, 23 + ink), 255)
-        draw.text((x, y), _rtl_display_text(line), font=body_font, fill=fill, anchor="ra")
-        if handwritten and index in {0, len(wrapped_lines) - 1}:
+        _draw_rtl_text(draw, (x, y), line, font=body_font, fill=fill)
+        if not form_layout and index in {0, len(wrapped_lines) - 1}:
             _draw_handwritten_underline(draw, randomizer, x - 5, y + 52, min(360, max_width // 2))
 
     footer_x = CANVAS_SIZE[0] - PAPER_MARGIN - randomizer.randint(12, 48)
     footer_y = CANVAS_SIZE[1] - PAPER_MARGIN - randomizer.randint(8, 24)
-    draw.text((footer_x, footer_y), _rtl_display_text(footer), font=footer_font, fill=(93, 82, 70, 255), anchor="ra")
+    _draw_rtl_text(draw, (footer_x, footer_y), footer, font=footer_font, fill=(93, 82, 70, 255))
 
-    if handwritten:
+    if not form_layout:
         for _ in range(3):
             x = randomizer.randint(PAPER_MARGIN + 120, CANVAS_SIZE[0] - PAPER_MARGIN - 180)
             y = randomizer.randint(CANVAS_SIZE[1] - PAPER_MARGIN - 220, CANVAS_SIZE[1] - PAPER_MARGIN - 120)
@@ -362,7 +367,7 @@ def _draw_document(
             x = CANVAS_SIZE[0] - PAPER_MARGIN - 180 - (column * 220)
             y = CANVAS_SIZE[1] - PAPER_MARGIN - 160
             draw.line((x - 120, y, x, y), fill=(132, 121, 102, 255), width=2)
-            draw.text((x, y + 12), _rtl_display_text("אישור"), font=annotation_font, fill=(104, 92, 76, 255), anchor="ra")
+            _draw_rtl_text(draw, (x, y + 12), "אישור", font=annotation_font, fill=(104, 92, 76, 255))
 
     return _degrade(image.convert("RGB"), randomizer, background, recipe.degradation_preset)
 
