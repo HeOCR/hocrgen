@@ -1009,6 +1009,30 @@ def test_export_alpha_release_raises_on_empty_selection(monkeypatch, tmp_path: P
         export_alpha_release(bundle, run_dir, "profile_open_v1", AlphaExportConfig(version="alpha-v0"))
 
 
+def test_export_alpha_release_requires_benchmark_artifacts(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    exit_code = main(
+        [
+            "build-release",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+        ]
+    )
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    run_dir = Path(payload["run_dir"])
+    (run_dir / "build_release" / "benchmark_manifest.json").unlink()
+    bundle = load_and_validate_bundle(config_root)
+
+    with pytest.raises(StageExecutionError, match="requires build-release benchmark artifacts"):
+        export_alpha_release(bundle, run_dir, "profile_open_v1", AlphaExportConfig(version="alpha-v0"))
+
+
 def test_copy_export_assets_requires_split_and_copies_preview(tmp_path: Path) -> None:
     asset_path = tmp_path / "asset.svg"
     asset_path.write_text("<svg/>", encoding="utf-8")

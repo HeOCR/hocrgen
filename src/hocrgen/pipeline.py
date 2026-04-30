@@ -11,7 +11,7 @@ from hocrgen.classify.heuristics import classify_items
 from hocrgen.config.loader import ConfigBundle
 from hocrgen.config.models import LicenseEntry, SourceConfig
 from hocrgen.core.context import RunContext
-from hocrgen.core.errors import StageExecutionError
+from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.dedupe.exact import deduplicate_items
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.biblia import BibliaImporter
@@ -617,8 +617,12 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         "privacy_reason": dict(Counter(reason for item in state.privacy_scanned_items for reason in item.privacy_reasons)),
         "source_id": dict(Counter(item.source_id for item in state.privacy_scanned_items)),
     }
+    try:
+        benchmark_config = load_benchmark_config(bundle.config_root)
+    except ConfigValidationError as exc:
+        raise StageExecutionError(f"benchmark config validation failed: {exc}") from exc
     benchmark_outputs = select_benchmark_items(
-        config=load_benchmark_config(bundle.config_root),
+        config=benchmark_config,
         release_ready_items=state.release_ready_items,
         review_required_items=state.review_required_items,
         blocked_items=state.blocked_items,

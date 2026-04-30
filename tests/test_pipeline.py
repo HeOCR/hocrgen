@@ -197,6 +197,51 @@ def test_build_release_fails_when_profile_excludes_benchmark_approved_source(tmp
     assert "benchmark benchmark_v1 approved item project_synthetic:synthetic-0 is not release-ready" in payload["error"]
 
 
+def test_build_release_reports_benchmark_config_validation_as_stage_error(tmp_path: Path, capsys) -> None:
+    config_root = tmp_path / "config"
+    shutil.copytree(default_config_root(), config_root)
+    benchmark_root = tmp_path / "benchmark_data" / "benchmark_v1"
+    benchmark_root.mkdir(parents=True)
+    (benchmark_root / "config.json").write_text(
+        json.dumps(
+            {
+                "approved_items": [
+                    {
+                        "benchmark_split": "train",
+                        "item_id": "nli_any_use_permitted:nli-ms-seed-006",
+                        "rationale": "real exemplar",
+                    }
+                ],
+                "benchmark_id": "other_benchmark",
+                "description": "fixture benchmark",
+                "review_bar": "explicit approval required",
+                "selection_policy": "representative mixed",
+                "stability_policy": {"splits": "stable"},
+                "version": 1,
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "build-release",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--workdir",
+            str(tmp_path / "work"),
+            "--config-root",
+            str(config_root),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload["status"] == "error"
+    assert "benchmark config validation failed" in payload["error"]
+
+
 def test_build_release_removes_exact_duplicates(tmp_path: Path, capsys) -> None:
     config_root = tmp_path / "config"
     shutil.copytree(default_config_root(), config_root)

@@ -31,7 +31,16 @@ class BenchmarkSelectionOutputs:
 def _benchmark_data_root_candidates(config_root: Path) -> list[Path]:
     config_root = config_root.resolve()
     candidates: list[Path] = []
-    for parent in (config_root, *config_root.parents):
+    project_root = _project_root_for(config_root)
+    if project_root is None:
+        search_roots = (config_root, config_root.parent)
+    else:
+        search_roots = [config_root]
+        for parent in config_root.parents:
+            search_roots.append(parent)
+            if parent == project_root:
+                break
+    for parent in search_roots:
         candidate = parent / "benchmark_data"
         if candidate not in candidates:
             candidates.append(candidate)
@@ -39,6 +48,13 @@ def _benchmark_data_root_candidates(config_root: Path) -> list[Path]:
     if default_candidate not in candidates:
         candidates.append(default_candidate)
     return candidates
+
+
+def _project_root_for(path: Path) -> Path | None:
+    for parent in (path, *path.parents):
+        if (parent / "pyproject.toml").exists() or (parent / ".git").exists():
+            return parent
+    return None
 
 
 def resolve_benchmark_data_root(config_root: Path) -> Path:
