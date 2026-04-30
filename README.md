@@ -477,7 +477,8 @@ Both workflows use XML-based patch coverage inputs:
 Both workflows also use `publish_mode: append`, so refresh runs append new managed comments rather
 than updating earlier ones.
 
-The refresh workflow now follows the hardened `pr-agent-context` pattern from `v4.0.19`:
+The refresh workflow follows the hardened `pr-agent-context` v4 pattern and intentionally uses the
+floating `v4` major reference for both the reusable workflow ref and `tool_ref`:
 
 - normal review and external-check-triggered refresh behavior stays enabled
 - scheduled fanout dispatches explicit refresh runs only for same-repo PRs
