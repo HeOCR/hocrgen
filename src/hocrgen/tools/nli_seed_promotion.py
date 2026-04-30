@@ -26,7 +26,9 @@ FAILURE_RIGHTS_MISSING = "rights_missing"
 FAILURE_RIGHTS_NOT_ALLOWED = "rights_not_allowed"
 FAILURE_ASSETS_MISSING = "assets_missing"
 FAILURE_DOWNLOAD = "download_failed"
+FAILURE_FIXTURE_MISSING = "fixture_missing"
 FAILURE_SEED_ALREADY_RUNNABLE = "seed_already_runnable"
+FAILURE_SEED_OUTSIDE_BATCH_LIMIT = "seed_outside_batch_limit"
 FAILURE_CHALLENGE_NOT_RESOLVED = "challenge_not_resolved"
 CHALLENGE_MARKERS = (
     "just a moment",
@@ -323,6 +325,8 @@ def build_cached_promotion(
 ) -> PromotionSuccess:
     from hocrgen.fetchers.nli import _NLIHTMLParser
 
+    if not fixture_path.exists():
+        raise StageExecutionError(f"{FAILURE_FIXTURE_MISSING}: cached fixture missing: {fixture_path}")
     parser = _NLIHTMLParser()
     parser.feed(fixture_path.read_text(encoding="utf-8"))
     downloaded_assets: list[tuple[str, str | None, bytes]] = []
@@ -437,12 +441,12 @@ def select_seed_items(
     seed_source: str,
 ) -> tuple[list[dict[str, Any]], list[PromotionSkipped]]:
     source_items: list[dict[str, Any]] = []
-    if seed_source in {"catalog", "all"}:
-        source_items.extend(catalog_manifest["items"])
     if seed_source in {"runnable", "all"}:
         source_items.extend(runnable_manifest["items"])
+    if seed_source in {"catalog", "all"}:
+        source_items.extend(catalog_manifest["items"])
 
-    selected: list[dict[str, Any]] = []
+    candidates: list[dict[str, Any]] = []
     seen: set[str] = set()
     wanted = set(seed_ids or [])
     for item in source_items:
@@ -451,14 +455,26 @@ def select_seed_items(
             continue
         if wanted and seed_id not in wanted:
             continue
-        selected.append(item)
+        candidates.append(item)
         seen.add(seed_id)
 
     skipped: list[PromotionSkipped] = []
+    selected = candidates
+    if max_items is not None:
+        selected = candidates[:max_items]
+        for item in candidates[max_items:]:
+            seed_id = str(item["id"])
+            skipped.append(
+                PromotionSkipped(
+                    seed_id=seed_id,
+                    reason=FAILURE_SEED_OUTSIDE_BATCH_LIMIT,
+                    message=f"Seed {seed_id} matched selection but was outside the --max-items batch limit.",
+                )
+            )
     if seed_ids:
-        selected_ids = {str(item.get("id", "")) for item in selected}
+        candidate_ids = {str(item.get("id", "")) for item in candidates}
         for seed_id in seed_ids:
-            if seed_id not in selected_ids:
+            if seed_id not in candidate_ids:
                 skipped.append(
                     PromotionSkipped(
                         seed_id=seed_id,
@@ -466,9 +482,6 @@ def select_seed_items(
                         message=f"Seed {seed_id} was not found in {seed_source} seeds.",
                     )
                 )
-
-    if max_items is not None:
-        selected = selected[:max_items]
     return selected, skipped
 
 
@@ -588,6 +601,15 @@ def main(argv: list[str] | None = None) -> int:
                     resolve_fixture_path(str(fixture_reference), manifest_path=args.runnable_seeds)
                     if fixture_reference
                     else None
+                )
+                if fixture_path is None:
+                    raise StageExecutionError(f"{FAILURE_FIXTURE_MISSING}: runnable seed {seed['id']} has no fixture_html")
+                build_cached_promotion(
+                    seed=seed,
+                    fixture_path=fixture_path,
+                    require_rights=args.require_rights,
+                    output_dir=args.output_dir,
+                    runnable_seeds_path=args.runnable_seeds,
                 )
                 skipped.append(
                     build_cached_skip(
@@ -820,7 +842,9 @@ def _extract_failure_reason(message: str) -> str:
             FAILURE_RIGHTS_NOT_ALLOWED,
             FAILURE_ASSETS_MISSING,
             FAILURE_DOWNLOAD,
+            FAILURE_FIXTURE_MISSING,
             FAILURE_SEED_ALREADY_RUNNABLE,
+            FAILURE_SEED_OUTSIDE_BATCH_LIMIT,
         }:
             return prefix
     if message in {
