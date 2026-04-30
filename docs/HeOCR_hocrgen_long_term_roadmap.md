@@ -122,7 +122,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |
 | D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |
 | D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |
-| E1 | Ecosystem maturity | E1a | Community contribution model | planned |
+| E1 | Ecosystem maturity | E1a | Community contribution model | completed |
 | E2 | Ecosystem maturity | E2a | Baselines and evaluation utilities | planned |
 | E3 | Ecosystem maturity | E3a | Annotation subset pilots | planned |
 | E4 | Ecosystem maturity | E4a | Multi-release governance maturity | planned |
@@ -159,18 +159,18 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | D4a | D4 | Richer synthetic generation for realism and document likeness | no | completed | merged as PR #32 |
 | D4b | D4 | Synthetic diversity controls and reporting hardening | no | completed | merged as PR #33 |
 | D5a | D5 | Optional transcription-ready architecture foundations | no | completed | current ref annotation-architecture PR |
-| E1a | E1 | Community contribution model and contribution safety rails | no | next | future governance PR |
-| E2a | E2 | Baselines and evaluation utilities | no | planned | future evaluation PR |
+| E1a | E1 | Community contribution model and contribution safety rails | no | completed | current ref contribution-governance PR |
+| E2a | E2 | Baselines and evaluation utilities | no | next | future evaluation PR |
 | E3a | E3 | Annotation subset pilots | no | planned | future annotation PR |
 | E4a | E4 | Multi-release governance and maturity controls | no | planned | future governance PR |
 
 ## 4.3 Current critical path
 
-The immediate implementation critical path after `D5a` is:
+The immediate implementation critical path after `E1a` is:
 
-1. **E1a**: define the community contribution model and contribution safety rails
+1. **E2a**: add baselines and evaluation utilities
 
-This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` made exported release trees explainable over time through baseline-aware diffs and changelog generation. `D1a` moved routine dry-run maintenance into GitHub Actions with persisted run summaries. `D2a` adds source health, fixture-backed adapter regression coverage, and freeze/degrade reporting so source instability is visible before benchmark work depends on it. `D3a` defines the first explicitly approved `benchmark_v1` subset with benchmark manifests, selection audit, a stability policy, and usage guidance. `D4a` upgrades the synthetic generator's visual realism without new external assets by adding recipe-backed printed and handwritten-look rendering, richer document-like marks, deterministic degradation presets, and public metadata. `D4b` adds synthetic controls over that metadata and reports synthetic composition in build and alpha export outputs. `D5a` adds optional, portable annotation-reference slots and annotation manifests so future transcription work can attach to release items without making transcriptions mandatory for current alpha/public outputs.
+This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` made exported release trees explainable over time through baseline-aware diffs and changelog generation. `D1a` moved routine dry-run maintenance into GitHub Actions with persisted run summaries. `D2a` adds source health, fixture-backed adapter regression coverage, and freeze/degrade reporting so source instability is visible before benchmark work depends on it. `D3a` defines the first explicitly approved `benchmark_v1` subset with benchmark manifests, selection audit, a stability policy, and usage guidance. `D4a` upgrades the synthetic generator's visual realism without new external assets by adding recipe-backed printed and handwritten-look rendering, richer document-like marks, deterministic degradation presets, and public metadata. `D4b` adds synthetic controls over that metadata and reports synthetic composition in build and alpha export outputs. `D5a` adds optional, portable annotation-reference slots and annotation manifests so future transcription work can attach to release items without making transcriptions mandatory for current alpha/public outputs. `E1a` defines source proposal, source-adapter, synthetic asset, dataset issue, external review, and release-governance contribution paths while preserving existing rights, privacy, review, and release gates.
 
 ## 4.4 Alpha release readiness gates
 
@@ -212,6 +212,8 @@ Some completed bootstrap work predates PR-based tracking. In particular, `A1a` i
 | D2a | #28 |
 | D3a | #30 |
 | D4a | #32 |
+| D4b | #33 |
+| D5a | #34 |
 
 ## 4.6 Planned PR documentation rule
 
@@ -882,6 +884,9 @@ Enable outside contributors to safely help expand or improve the project.
 - a contributor can understand how to propose a new source or improvement
 - external contributions are constrained by policy and schema validation
 - contribution pathways do not bypass rights or privacy safeguards
+
+### Current-state clarification
+`E1a` is implemented on the current ref as policy and documentation rails, not as a new ingestion workflow. The contribution model now lives in [`CONTRIBUTING.md`](../CONTRIBUTING.md), [`docs/source_adapter_contribution_guide.md`](./source_adapter_contribution_guide.md), [`docs/synthetic_asset_contribution_guide.md`](./synthetic_asset_contribution_guide.md), and [`docs/release_governance.md`](./release_governance.md). It defines source proposal requirements, review expectations for external changes, synthetic asset licensing/provenance rules, a dataset issue taxonomy, source-adapter acceptance criteria, and release governance notes while leaving typed config validation, rights classification, privacy review, review merge, release eligibility, benchmark stability, and export portability as mandatory gates.
 
 ### Risks / dependencies
 - community contributions increasing rights ambiguity
