@@ -2,7 +2,7 @@
 
 `hocrgen` is the open-source dataset operations toolchain for the HeOCR project.
 
-This repository now implements a conservative review-readiness, source-operations, benchmark-subset, and community-contribution policy layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, curated dry-run release assembly, and documented contribution safety rails.
+This repository now implements a conservative review-readiness, source-operations, benchmark-subset, evaluation-utility, and community-contribution policy layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, lightweight text evaluation over benchmark manifests, curated dry-run release assembly, and documented contribution safety rails.
 
 ## What `hocrgen` can do today
 
@@ -27,6 +27,7 @@ This repository now implements a conservative review-readiness, source-operation
 - assign deterministic `train` / `validation` / `test` splits over the release-ready deduped set
 - select an explicit, repo-approved `benchmark_v1` subset from release-ready items
 - carry optional transcription and layout-label reference slots without requiring annotations for release-ready items
+- load benchmark examples and score deterministic text predictions with simple evaluation metrics
 - emit curated release manifests with duplicate-cluster, review-queue, split, and leakage-report artifacts
 - document safe community contribution paths for source proposals, source adapters, synthetic assets, dataset issues, and release governance
 
@@ -86,7 +87,7 @@ python scripts/promote_nli_seeds.py \
 - broad live-source crawling
 - near-duplicate / perceptual deduplication
 - OCR-aware privacy screening
-- advanced classification and later benchmark/evaluation utilities
+- advanced classification and model-training infrastructure
 - final publication to Hugging Face or the GitHub dataset repo
 - full release packaging maturity
 
@@ -377,6 +378,37 @@ Benchmark artifacts:
 - `build_release/BENCHMARK_CARD.md`
 - exported release mirrors under `manifests/` and `docs/BENCHMARK_CARD.md`
 
+## Benchmark evaluation utilities
+
+`E2a` adds lightweight benchmark loading and text-evaluation utilities without introducing model training infrastructure.
+
+Programmatic usage starts from the existing benchmark artifacts:
+
+```python
+from pathlib import Path
+
+from hocrgen.evaluation import load_benchmark_examples, summarize_benchmark_examples
+
+examples = load_benchmark_examples(
+    Path("releases/alpha-v0/manifests/benchmark_manifest.json"),
+    item_manifest_path=Path("releases/alpha-v0/manifests/item_manifest.json"),
+    annotation_manifest_path=Path("releases/alpha-v0/manifests/annotation_manifest.json"),
+)
+summary = summarize_benchmark_examples(examples)
+```
+
+CLI evaluation accepts JSONL or JSON records keyed by `item_id` with a text field:
+
+```bash
+hocrgen evaluate-benchmark \
+  --benchmark-manifest releases/alpha-v0/manifests/benchmark_manifest.json \
+  --predictions predictions.jsonl \
+  --references references.jsonl \
+  --output reports/benchmark_v1_evaluation.json
+```
+
+The report includes item coverage, character error rate, exact-match rate, per-item edit distances, and a small `leaderboard_ready` block with the primary metric convention. Current public artifacts do not require transcriptions, so references are supplied explicitly until a future annotated subset lands. Evaluation helpers keep all joined asset and annotation paths release-relative and portable.
+
 ## Annotation readiness
 
 `hocrgen` reserves typed, optional annotation slots on item manifests so future annotated subsets can attach release-relative transcription and layout-label files without changing the core release flow.
@@ -435,6 +467,7 @@ hocrgen privacy-scan --profile profile_open_v1 --dry-run
 hocrgen review-export --profile profile_open_v1 --dry-run
 hocrgen split --profile profile_open_v1 --dry-run
 hocrgen build-release --profile profile_open_v1 --dry-run
+hocrgen evaluate-benchmark --benchmark-manifest <benchmark_manifest.json> --predictions <predictions.jsonl> --references <references.jsonl>
 ```
 
 ## Planned PR workflow
