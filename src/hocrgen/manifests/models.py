@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from pathlib import PurePosixPath
+import re
 from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -45,6 +47,15 @@ class ItemRecord(EnrichedCandidateRecord):
     annotation_status: Literal["not_available", "partial", "available"] = "not_available"
     transcription: "TranscriptionReference | None" = None
     layout_labels: list["LayoutLabelReference"] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_annotation_status(self) -> "ItemRecord":
+        _validate_annotation_status_consistency(
+            self.annotation_status,
+            self.transcription,
+            self.layout_labels,
+        )
+        return self
 
 
 class AcquiredAsset(ManifestModel):
@@ -197,7 +208,18 @@ class AnnotationFileReference(ManifestModel):
     @field_validator("path")
     @classmethod
     def validate_portable_path(cls, path: str) -> str:
-        if path.startswith(("/", "file://", "\\\\")) or ".work/" in path or ".work\\" in path:
+        parsed = PurePosixPath(path)
+        if (
+            not path
+            or path != path.strip()
+            or "\\" in path
+            or "://" in path
+            or re.match(r"^[A-Za-z]:", path)
+            or parsed.is_absolute()
+            or not parsed.parts
+            or any(part in {"", ".", ".."} for part in parsed.parts)
+            or ".work" in parsed.parts
+        ):
             raise ValueError("annotation reference paths must be release-relative and portable")
         return path
 
@@ -220,6 +242,27 @@ class AnnotationManifestItemRecord(ManifestModel):
     annotation_status: Literal["not_available", "partial", "available"]
     transcription: TranscriptionReference | None = None
     layout_labels: list[LayoutLabelReference] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_annotation_status(self) -> "AnnotationManifestItemRecord":
+        _validate_annotation_status_consistency(
+            self.annotation_status,
+            self.transcription,
+            self.layout_labels,
+        )
+        return self
+
+
+def _validate_annotation_status_consistency(
+    annotation_status: Literal["not_available", "partial", "available"],
+    transcription: TranscriptionReference | None,
+    layout_labels: list[LayoutLabelReference],
+) -> None:
+    has_references = transcription is not None or bool(layout_labels)
+    if annotation_status == "not_available" and has_references:
+        raise ValueError("annotation_status not_available cannot include annotation references")
+    if annotation_status in {"partial", "available"} and not has_references:
+        raise ValueError(f"annotation_status {annotation_status} requires at least one annotation reference")
 
 
 class AnnotationManifestRecord(ManifestModel):

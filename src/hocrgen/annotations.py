@@ -5,13 +5,19 @@ from typing import Any
 from hocrgen.manifests.models import AnnotationManifestItemRecord, AnnotationManifestRecord
 
 
+def _annotation_status_for_item(item: Any) -> str:
+    if item.transcription is not None or item.layout_labels:
+        return "available"
+    return "not_available"
+
+
 def build_annotation_manifest(items: list[Any], *, subset_id: str) -> AnnotationManifestRecord:
     manifest_items = [
         AnnotationManifestItemRecord(
             item_id=item.item_id,
             source_id=item.source_id,
             split=item.split,
-            annotation_status=item.annotation_status,
+            annotation_status=_annotation_status_for_item(item),
             transcription=item.transcription,
             layout_labels=list(item.layout_labels),
         )

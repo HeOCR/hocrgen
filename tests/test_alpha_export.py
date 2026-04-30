@@ -11,10 +11,12 @@ from pathlib import Path
 import pytest
 
 from hocrgen.cli import handle_export_alpha, main
+from hocrgen.annotations import build_annotation_manifest
 from hocrgen.config.loader import default_config_root, load_and_validate_bundle
 from hocrgen.config.models import RightsClassification
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.manifests.models import (
+    AnnotationManifestItemRecord,
     AlphaExportedItemRecord,
     LayoutLabelReference,
     NormalizedAssetRecord,
@@ -475,13 +477,65 @@ def test_export_alpha_docs_and_release_record_include_metadata(
 
 
 def test_annotation_references_reject_nonportable_paths() -> None:
-    with pytest.raises(ValueError, match="release-relative"):
-        TranscriptionReference(path="/tmp/transcription.json")
-
-    with pytest.raises(ValueError, match="release-relative"):
-        LayoutLabelReference(path=".work/run/layout.json")
+    rejected_paths = [
+        "",
+        "/tmp/transcription.json",
+        "file:///tmp/transcription.json",
+        "annotations/../../private.json",
+        "C:/Users/me/transcription.json",
+        r"C:\Users\me\transcription.json",
+        ".work/run/layout.json",
+    ]
+    for path in rejected_paths:
+        with pytest.raises(ValueError, match="release-relative"):
+            TranscriptionReference(path=path)
 
     assert TranscriptionReference(path="annotations/item-001/transcription.json").path == "annotations/item-001/transcription.json"
+
+
+def test_annotation_manifest_items_reject_status_reference_contradictions() -> None:
+    transcription = TranscriptionReference(path="annotations/item-001/transcription.json")
+
+    with pytest.raises(ValueError, match="not_available"):
+        AnnotationManifestItemRecord(
+            item_id="item-001",
+            source_id="fixture_source",
+            annotation_status="not_available",
+            transcription=transcription,
+        )
+
+    with pytest.raises(ValueError, match="requires at least one"):
+        AnnotationManifestItemRecord(
+            item_id="item-001",
+            source_id="fixture_source",
+            annotation_status="available",
+        )
+
+    item = AnnotationManifestItemRecord(
+        item_id="item-001",
+        source_id="fixture_source",
+        annotation_status="available",
+        transcription=transcription,
+    )
+    assert item.annotation_status == "available"
+
+
+def test_annotation_manifest_builder_derives_status_from_references() -> None:
+    transcription = TranscriptionReference(path="annotations/item-001/transcription.json")
+    item = Namespace(
+        item_id="item-001",
+        source_id="fixture_source",
+        split="train",
+        annotation_status="not_available",
+        transcription=transcription,
+        layout_labels=[],
+    )
+
+    manifest = build_annotation_manifest([item], subset_id="fixture_subset")
+
+    assert manifest.items[0].annotation_status == "available"
+    assert manifest.annotated_item_count == 1
+    assert manifest.transcription_item_count == 1
 
 
 def test_export_alpha_auto_discovers_previous_sibling_release(tmp_path: Path, capsys) -> None:
