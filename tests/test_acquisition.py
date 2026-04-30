@@ -305,6 +305,18 @@ def test_synthetic_controls_reject_empty_selection() -> None:
         )
 
 
+def test_synthetic_controls_reject_unknown_degradation_preset() -> None:
+    bundle = load_and_validate_bundle()
+    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+
+    with pytest.raises(StageExecutionError, match="selected no configured templates"):
+        SyntheticFetcher().discover_candidates(
+            source,
+            bundle,
+            StageOptions(synthetic_degradation_filter={"unknown_preset"}),
+        )
+
+
 def test_synthetic_metadata_validation_rejects_recipe_mismatch() -> None:
     bundle = load_and_validate_bundle()
     source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
