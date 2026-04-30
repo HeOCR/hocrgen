@@ -240,6 +240,33 @@ def test_summarize_run_collects_policy_rejection_warning_line(tmp_path: Path) ->
     assert any("Policy rejections:" in warning for warning in summary["warnings"])
 
 
+def test_summarize_run_collects_source_health_warning_before_build_release(tmp_path: Path) -> None:
+    run_dir = _write_run_files(
+        tmp_path / "run",
+        latest_stage="discover",
+        stage_summaries={
+            "discover": {
+                "candidate_count": 0,
+                "source_health": {
+                    "skipped_sources": [
+                        {
+                            "operational_reason": "",
+                            "operational_status": "active",
+                            "skip_reason": "source_health_failed",
+                            "source_id": "nli_any_use_permitted",
+                        }
+                    ]
+                },
+            }
+        },
+    )
+
+    summary = summarize_run(run_dir)
+
+    assert any("nli_any_use_permitted skipped: source_health_failed" in warning for warning in summary["warnings"])
+    assert any("no operational reason recorded" in warning for warning in summary["warnings"])
+
+
 def test_summarize_run_prefers_build_release_counts_over_review_export_counts(tmp_path: Path) -> None:
     run_dir = _write_run_files(
         tmp_path / "run",
@@ -337,6 +364,28 @@ def test_load_resumed_pipeline_state_rejects_missing_items_list(tmp_path: Path) 
     (discover_dir / "candidates.json").write_text(json.dumps({"not_items": []}), encoding="utf-8")
 
     with pytest.raises(StageExecutionError, match="missing an items list"):
+        load_resumed_pipeline_state(run_dir, "profile_open_v1", "fetch-metadata")
+
+
+def test_load_resumed_pipeline_state_rejects_invalid_source_health_sources_type(tmp_path: Path) -> None:
+    run_dir = _write_run_files(tmp_path / "run", latest_stage="discover")
+    discover_dir = run_dir / "discover"
+    discover_dir.mkdir(exist_ok=True)
+    (discover_dir / "candidates.json").write_text(json.dumps({"items": []}), encoding="utf-8")
+    (discover_dir / "source_health.json").write_text(json.dumps({"sources": {}}), encoding="utf-8")
+
+    with pytest.raises(StageExecutionError, match="'sources' must be a list"):
+        load_resumed_pipeline_state(run_dir, "profile_open_v1", "fetch-metadata")
+
+
+def test_load_resumed_pipeline_state_rejects_invalid_source_health_entry_type(tmp_path: Path) -> None:
+    run_dir = _write_run_files(tmp_path / "run", latest_stage="discover")
+    discover_dir = run_dir / "discover"
+    discover_dir.mkdir(exist_ok=True)
+    (discover_dir / "candidates.json").write_text(json.dumps({"items": []}), encoding="utf-8")
+    (discover_dir / "source_health.json").write_text(json.dumps({"sources": ["bad"]}), encoding="utf-8")
+
+    with pytest.raises(StageExecutionError, match="each entry in 'sources' must be an object"):
         load_resumed_pipeline_state(run_dir, "profile_open_v1", "fetch-metadata")
 
 

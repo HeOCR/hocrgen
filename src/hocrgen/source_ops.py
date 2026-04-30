@@ -78,10 +78,6 @@ def evaluate_source_health(bundle: ConfigBundle, profile_id: str, options: Stage
     return results
 
 
-def selected_source_ids_from_health(source_health: Iterable[SourceHealthResult]) -> set[str]:
-    return {result.source_id for result in source_health if result.selected}
-
-
 def source_health_summary(source_health: Iterable[SourceHealthResult | dict[str, Any]]) -> dict[str, Any]:
     results = [_health_record(result) for result in source_health]
     skipped = [result for result in results if result["skipped"]]
@@ -116,19 +112,6 @@ def _health_record(result: SourceHealthResult | dict[str, Any]) -> dict[str, Any
     if isinstance(result, SourceHealthResult):
         return result.model_dump()
     return result
-
-
-def validate_source_operations(bundle: ConfigBundle) -> None:
-    errors: list[dict[str, Any]] = []
-    for source in bundle.source_registry.sources:
-        checks, candidate_count, asset_count = _inspect_source(source, bundle)
-        checks.extend(_check_expectations(source, candidate_count, asset_count))
-        failed = [check for check in checks if check["status"] != "ok"]
-        if failed:
-            errors.append({"source_id": source.id, "failed_checks": failed})
-    if errors:
-        raise ConfigValidationError("source operations validation failed", details=errors)
-
 
 def _skip_reason(source: SourceConfig, selection_requested: bool, health_status: str) -> str | None:
     if not selection_requested:
@@ -193,7 +176,7 @@ def _inspect_records_source(source: SourceConfig, bundle: ConfigBundle) -> tuple
         asset_reference = record.get("asset_path")
         if not asset_reference:
             continue
-        asset_path = bundle.resolve_path(str(asset_reference))
+        asset_path = _resolve_source_local_reference(str(asset_reference), records_path, bundle)
         asset_count += 1
         checks.append(_path_check("record_asset", asset_path))
     return checks, candidate_count, asset_count

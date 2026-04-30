@@ -235,7 +235,16 @@ def _load_stage_state(stage: str, run_dir: Path, state: PipelineState) -> None:
         source_health_path = stage_dir / "source_health.json"
         if source_health_path.exists():
             source_health = _load_json_object(source_health_path, "source health")
-            state.source_health = list(source_health.get("sources", []))
+            sources = source_health.get("sources", [])
+            if not isinstance(sources, list):
+                raise StageExecutionError(
+                    f"invalid source health artifact at {source_health_path}: 'sources' must be a list"
+                )
+            if any(not isinstance(source, dict) for source in sources):
+                raise StageExecutionError(
+                    f"invalid source health artifact at {source_health_path}: each entry in 'sources' must be an object"
+                )
+            state.source_health = list(sources)
         return
     if stage == "fetch-metadata":
         state.enriched_candidates = _load_items(stage_dir / "enriched_candidates.json", EnrichedCandidateRecord)
