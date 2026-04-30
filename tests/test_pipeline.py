@@ -48,6 +48,7 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     release_summary = json.loads((run_dir / "build_release" / "release_summary.json").read_text(encoding="utf-8"))
     source_stats = json.loads((run_dir / "build_release" / "source_stats.json").read_text(encoding="utf-8"))
     synthetic_composition = json.loads((run_dir / "build_release" / "synthetic_composition.json").read_text(encoding="utf-8"))
+    annotation_manifest = json.loads((run_dir / "build_release" / "annotation_manifest.json").read_text(encoding="utf-8"))
     item_manifest = json.loads((run_dir / "build_release" / "item_manifest.json").read_text(encoding="utf-8"))
     removed_duplicate_items = json.loads((run_dir / "build_release" / "removed_duplicate_items.json").read_text(encoding="utf-8"))
     review_required_items = json.loads((run_dir / "build_release" / "review_required_items.json").read_text(encoding="utf-8"))
@@ -77,6 +78,13 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert release_summary["benchmark_item_count"] == 3
     assert release_summary["real_items"] == 2
     assert release_summary["synthetic_items"] == 2
+    assert release_summary["annotation_manifest"] == {
+        "annotated_item_count": 0,
+        "layout_label_item_count": 0,
+        "layout_labels_required": False,
+        "transcription_item_count": 0,
+        "transcription_required": False,
+    }
     assert sum(release_summary["split_counts"].values()) == 4
     assert source_stats["asset_formats"] == {"jpeg": 4}
     assert source_stats["sources"]["nli_any_use_permitted"] == 1
@@ -96,6 +104,12 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert "biblia_open" not in source_stats["sources"]
     assert len(split_manifest["items"]) == 4
     assert len(item_manifest["items"]) == 4
+    assert annotation_manifest["subset_id"] == "release_ready"
+    assert annotation_manifest["transcription_required"] is False
+    assert annotation_manifest["annotated_item_count"] == 0
+    assert {item["annotation_status"] for item in annotation_manifest["items"]} == {"not_available"}
+    assert all(item["transcription"] is None for item in annotation_manifest["items"])
+    assert all(item["layout_labels"] == [] for item in annotation_manifest["items"])
     assert removed_duplicate_items["items"] == []
     assert len(review_required_items["items"]) == 1
     assert {item["source_id"] for item in review_required_items["items"]} == {"biblia_open"}

@@ -26,6 +26,7 @@ This repository now implements a conservative review-readiness, source-operation
 - merge repo-tracked review decisions and allow/block overrides back into release gating
 - assign deterministic `train` / `validation` / `test` splits over the release-ready deduped set
 - select an explicit, repo-approved `benchmark_v1` subset from release-ready items
+- carry optional transcription and layout-label reference slots without requiring annotations for release-ready items
 - emit curated release manifests with duplicate-cluster, review-queue, split, and leakage-report artifacts
 
 ## Supported sources in the current MVP
@@ -169,6 +170,7 @@ This now runs a real sample-backed pipeline and emits populated artifacts such a
       build_release/leakage_report.json
       build_release/release_summary.json
       build_release/source_stats.json
+      build_release/annotation_manifest.json
       build_release/classification_stats.json
       build_release/privacy_stats.json
       build_release/benchmark_manifest.json
@@ -237,6 +239,7 @@ The alpha exporter:
 - caps synthetic inclusion at `2x` the exported real-item count, still bounded by `--max-synthetic-items`
 - writes repo-ready manifests under `manifests/`
 - writes `release_diff.json` with added/removed/changed item reporting against the prior exported release when one is available
+- writes `annotation_manifest.json` as an additive, optional map for future transcription and layout-label references
 - mirrors `benchmark_v1` manifests and `BENCHMARK_CARD.md` for the exported release-ready benchmark items
 - rewrites review preview references into release-local files under `manifests/review_previews/`
 - writes `CHANGELOG.md`, `DATASET_CARD.md`, `RELEASE_NOTES.md`, `PROVENANCE.md`, `BENCHMARK_CARD.md`, and `HANDOFF.md` under `docs/`
@@ -372,6 +375,12 @@ Benchmark artifacts:
 - `build_release/benchmark_stability_policy.json`
 - `build_release/BENCHMARK_CARD.md`
 - exported release mirrors under `manifests/` and `docs/BENCHMARK_CARD.md`
+
+## Annotation readiness
+
+`hocrgen` reserves typed, optional annotation slots on item manifests so future annotated subsets can attach release-relative transcription and layout-label files without changing the core release flow.
+
+Current alpha and release builds do not require transcriptions. Items default to `annotation_status: not_available`, `transcription: null`, and `layout_labels: []`. `build-release` emits `build_release/annotation_manifest.json`; `export-alpha` mirrors it to `manifests/annotation_manifest.json`. Annotation references must remain portable and release-relative, such as `annotations/<item_id>/transcription.json`, so public exports do not depend on local `.work/` paths.
 
 ## Synthetic generation
 

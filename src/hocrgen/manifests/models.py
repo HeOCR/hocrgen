@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from hocrgen.config.models import PrivacyFlag, RightsClassification
 
@@ -42,6 +42,9 @@ class ItemRecord(EnrichedCandidateRecord):
     eligibility_reason: str
     is_synthetic: bool = False
     provenance: dict[str, Any] = Field(default_factory=dict)
+    annotation_status: Literal["not_available", "partial", "available"] = "not_available"
+    transcription: "TranscriptionReference | None" = None
+    layout_labels: list["LayoutLabelReference"] = Field(default_factory=list)
 
 
 class AcquiredAsset(ManifestModel):
@@ -183,6 +186,51 @@ class ExportedAssetRecord(ManifestModel):
 
 class AlphaExportedItemRecord(PrivacyScannedItemRecord):
     exported_assets: list[ExportedAssetRecord] = Field(default_factory=list)
+
+
+class AnnotationFileReference(ManifestModel):
+    path: str
+    schema_id: Literal["hocrgen_transcription_v1", "hocrgen_layout_labels_v1"]
+    media_type: str = "application/json"
+    sha256: str | None = None
+
+    @field_validator("path")
+    @classmethod
+    def validate_portable_path(cls, path: str) -> str:
+        if path.startswith(("/", "file://", "\\\\")) or ".work/" in path or ".work\\" in path:
+            raise ValueError("annotation reference paths must be release-relative and portable")
+        return path
+
+
+class TranscriptionReference(AnnotationFileReference):
+    schema_id: Literal["hocrgen_transcription_v1"] = "hocrgen_transcription_v1"
+    text_direction: Literal["rtl", "ltr", "mixed", "unknown"] = "unknown"
+    language: str | None = None
+
+
+class LayoutLabelReference(AnnotationFileReference):
+    schema_id: Literal["hocrgen_layout_labels_v1"] = "hocrgen_layout_labels_v1"
+    label_set: str | None = None
+
+
+class AnnotationManifestItemRecord(ManifestModel):
+    item_id: str
+    source_id: str
+    split: Literal["train", "validation", "test"] | None = None
+    annotation_status: Literal["not_available", "partial", "available"]
+    transcription: TranscriptionReference | None = None
+    layout_labels: list[LayoutLabelReference] = Field(default_factory=list)
+
+
+class AnnotationManifestRecord(ManifestModel):
+    subset_id: str
+    transcription_required: bool = False
+    layout_labels_required: bool = False
+    annotated_item_count: int
+    transcription_item_count: int
+    layout_label_item_count: int
+    items: list[AnnotationManifestItemRecord] = Field(default_factory=list)
+    schema_version: Literal[1] = 1
 
 
 class AlphaReleaseRecord(ManifestModel):

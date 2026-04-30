@@ -6,6 +6,7 @@ from math import floor
 from pathlib import Path
 from typing import Any
 
+from hocrgen.annotations import build_annotation_manifest
 from hocrgen.benchmark import load_benchmark_config, select_benchmark_items
 from hocrgen.classify.heuristics import classify_items
 from hocrgen.config.loader import ConfigBundle
@@ -588,6 +589,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     release_summary_path = stage_dir / "release_summary.json"
     source_stats_path = stage_dir / "source_stats.json"
     synthetic_composition_path = stage_dir / "synthetic_composition.json"
+    annotation_manifest_path = stage_dir / "annotation_manifest.json"
     classification_stats_path = stage_dir / "classification_stats.json"
     privacy_stats_path = stage_dir / "privacy_stats.json"
     benchmark_manifest_path = stage_dir / "benchmark_manifest.json"
@@ -621,6 +623,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         "source_id": dict(Counter(item.source_id for item in state.privacy_scanned_items)),
     }
     synthetic_composition = synthetic_composition_report(state.release_ready_items)
+    annotation_manifest = build_annotation_manifest(state.release_ready_items, subset_id="release_ready")
     try:
         benchmark_config = load_benchmark_config(bundle.config_root)
     except ConfigValidationError as exc:
@@ -650,6 +653,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     write_json(classification_stats_path, classification_stats)
     write_json(privacy_stats_path, privacy_stats)
     write_json(synthetic_composition_path, synthetic_composition)
+    write_json(annotation_manifest_path, annotation_manifest.model_dump(mode="json"))
     write_json(benchmark_manifest_path, {"items": _dump_models(state.benchmark_items)})
     write_json(benchmark_selection_audit_path, {"items": _dump_models(state.benchmark_selection_audit)})
     write_json(benchmark_stability_policy_path, state.benchmark_stability_policy)
@@ -694,6 +698,13 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             "split_counts": split_counts,
             "synthetic_items": sum(1 for item in state.release_ready_items if item.is_synthetic),
             "synthetic_composition": synthetic_composition,
+            "annotation_manifest": {
+                "annotated_item_count": annotation_manifest.annotated_item_count,
+                "transcription_item_count": annotation_manifest.transcription_item_count,
+                "layout_label_item_count": annotation_manifest.layout_label_item_count,
+                "transcription_required": annotation_manifest.transcription_required,
+                "layout_labels_required": annotation_manifest.layout_labels_required,
+            },
             "benchmark_id": benchmark_outputs.config.benchmark_id,
             "benchmark_item_count": len(state.benchmark_items),
         },
@@ -720,6 +731,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             "split_manifest": str(split_manifest_path.relative_to(context.run_dir)),
             "source_stats": str(source_stats_path.relative_to(context.run_dir)),
             "synthetic_composition": str(synthetic_composition_path.relative_to(context.run_dir)),
+            "annotation_manifest": str(annotation_manifest_path.relative_to(context.run_dir)),
             "stage": "build-release",
         },
     )
@@ -740,6 +752,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             release_summary_path,
             source_stats_path,
             synthetic_composition_path,
+            annotation_manifest_path,
             classification_stats_path,
             privacy_stats_path,
             benchmark_manifest_path,
