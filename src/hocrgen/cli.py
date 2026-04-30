@@ -10,6 +10,12 @@ from hocrgen.config.loader import ConfigBundle, load_and_validate_bundle
 from hocrgen.core.context import create_run_context
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.core.logging import configure_logging
+from hocrgen.evaluation import (
+    evaluate_text_predictions,
+    load_benchmark_examples,
+    load_text_records,
+    summarize_benchmark_examples,
+)
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.package.alpha import AlphaExportConfig, export_alpha_release
 from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_summary
@@ -52,6 +58,53 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output format for the run summary",
     )
     summarize_run_parser.set_defaults(handler=handle_summarize_run)
+
+    evaluate_benchmark_parser = subparsers.add_parser(
+        "evaluate-benchmark",
+        help="Evaluate JSON/JSONL text predictions against benchmark item references",
+    )
+    evaluate_benchmark_parser.add_argument(
+        "--benchmark-manifest",
+        type=Path,
+        required=True,
+        help="Path to benchmark_manifest.json from build-release or export-alpha",
+    )
+    evaluate_benchmark_parser.add_argument(
+        "--predictions",
+        type=Path,
+        required=True,
+        help="JSONL/JSON predictions keyed by item_id with a text field",
+    )
+    evaluate_benchmark_parser.add_argument(
+        "--references",
+        type=Path,
+        required=True,
+        help="JSONL/JSON references keyed by item_id with a text field",
+    )
+    evaluate_benchmark_parser.add_argument(
+        "--item-manifest",
+        type=Path,
+        default=None,
+        help="Optional exported item_manifest.json to expose release-relative asset paths",
+    )
+    evaluate_benchmark_parser.add_argument(
+        "--annotation-manifest",
+        type=Path,
+        default=None,
+        help="Optional annotation_manifest.json to expose reference availability",
+    )
+    evaluate_benchmark_parser.add_argument(
+        "--prediction-field",
+        default="text",
+        help="Prediction text field name in the predictions file",
+    )
+    evaluate_benchmark_parser.add_argument(
+        "--reference-field",
+        default="text",
+        help="Reference text field name in the references file",
+    )
+    evaluate_benchmark_parser.add_argument("--output", type=Path, default=None, help="Optional path for the JSON report")
+    evaluate_benchmark_parser.set_defaults(handler=handle_evaluate_benchmark)
 
     export_alpha_parser = subparsers.add_parser("export-alpha", help="Export a narrow alpha release tree for the HeOCR repo")
     export_alpha_parser.add_argument("--profile", required=True, help="Release profile id")
@@ -258,6 +311,34 @@ def handle_summarize_run(args: argparse.Namespace) -> int:
         return 0
 
     _print_json(summary)
+    return 0
+
+
+def handle_evaluate_benchmark(args: argparse.Namespace) -> int:
+    try:
+        examples = load_benchmark_examples(
+            args.benchmark_manifest,
+            item_manifest_path=args.item_manifest,
+            annotation_manifest_path=args.annotation_manifest,
+        )
+        predictions = load_text_records(args.predictions, value_field=args.prediction_field)
+        references = load_text_records(args.references, value_field=args.reference_field)
+        report = {
+            "status": "ok",
+            "benchmark": summarize_benchmark_examples(examples),
+            "metrics": evaluate_text_predictions(examples, predictions=predictions, references=references),
+        }
+        if args.output is not None:
+            try:
+                args.output.parent.mkdir(parents=True, exist_ok=True)
+                args.output.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+            except OSError as exc:
+                raise StageExecutionError(f"could not write evaluation report to {args.output}: {exc}") from exc
+    except StageExecutionError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+
+    _print_json(report)
     return 0
 
 
