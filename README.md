@@ -2,16 +2,18 @@
 
 `hocrgen` is the open-source dataset operations toolchain for the HeOCR project.
 
-This repository now implements Milestone 5: a conservative review-readiness pipeline on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, and curated dry-run release assembly.
+This repository now implements a conservative review-readiness and source-operations pipeline on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, and curated dry-run release assembly.
 
 ## What `hocrgen` can do today
 
 - validate typed source, profile, and license config
+- validate source-operations settings and fixture-backed source health expectations
 - ingest a seed-driven NLI source for items explicitly marked `Any Use Permitted`
 - ingest bounded static sample packages for Pinkas and BiblIA
 - generate deterministic synthetic Hebrew sample documents as degraded JPEG assets
 - normalize rights into controlled license values and policy classifications
 - apply release-profile eligibility rules
+- report source health and skip frozen/degraded sources with explicit reasons
 - materialize acquired/generated sample assets into a run workdir
 - normalize acquired assets into a stable run layout with technical metadata
 - compute checksums, dimensions, file sizes, and format metadata
@@ -123,6 +125,7 @@ This now runs a real sample-backed pipeline and emits populated artifacts such a
       summary.json
       logs/run.log
       discover/candidates.json
+      discover/source_health.json
       fetch_metadata/enriched_candidates.json
       policy_filter/accepted_items.json
       policy_filter/rejected_items.json
@@ -401,6 +404,11 @@ Planned PR metadata should also follow a stable notation rule:
 - If a PR belongs to a planned milestone but no notation exists yet, define the notation in the planning docs before opening the PR
 - Retire generic `[codex] ...` titles for planned work; use a plain summary title for unplanned/ad hoc PRs unless another repo-specific rule overrides it
 
+Roadmap notation is location-based. When a notation such as `D2a` appears in repo docs, it means the
+work is implemented on the current ref being read. On an implementation branch that means the branch
+contains the work; after merge, the same wording means `main` contains the work. Write durable
+planning docs in current-ref language so they do not become stale after the merge.
+
 This keeps the machine-readable state tracker and the human-facing planning documents aligned with the code that just landed, instead of leaving planning updates as a later cleanup task.
 
 When checking "what is next" or whether a roadmap item is still open, use this order of precedence:
@@ -411,6 +419,21 @@ When checking "what is next" or whether a roadmap item is still open, use this o
 4. [`.agent-plan.md`](./.agent-plan.md) as the current merged-main summary
 
 If these disagree, treat `main` plus merged PR history as authoritative and reconcile the planning docs before starting the next roadmap item.
+
+## Source operations
+
+`D2a` adds a deterministic source-health layer around the fixture-backed source adapters. Each source
+has typed source-operations config with an `active`, `frozen`, or `degraded` operational status,
+an operator-facing reason for non-active states, and optional minimum health expectations.
+
+During `discover`, `hocrgen` validates the configured fixture manifests, packaged record files,
+synthetic font/text assets, and configured minimum counts. The run emits
+`discover/source_health.json`, includes a source-health rollup in `discover/summary.json`, and carries
+the same rollup into `build_release/source_stats.json`.
+
+Frozen and degraded sources are skipped conservatively with explicit reporting. Publication remains
+manual, and D2a does not introduce live crawling, network health checks, retry/backoff automation, or
+last-good snapshot reuse.
 
 ## PR agent context
 

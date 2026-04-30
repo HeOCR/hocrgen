@@ -84,6 +84,12 @@ Each milestone includes:
 - `next`: the most likely next implementation PR
 - `planned`: not yet started
 
+Roadmap notation is interpreted by repository location. A notation such as `D2a` means the work is
+implemented on the current ref where the documentation is being read. On an implementation branch it
+means the branch carries the work; after merge, the same current-ref wording means `main` carries the
+work. Durable planning docs should therefore avoid branch-local status notes that become stale after
+merge.
+
 ### State interpretation
 The implementation state in the tables below tracks overall delivery status for a milestone or PR, but it does not by itself imply that the resulting content is already representative enough for public alpha use. In practice, the roadmap now distinguishes three separate ideas:
 
@@ -111,9 +117,9 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | C4 | Curation and operational hardening | C4a | Privacy and sensitivity screening MVP | completed |
 | C5 | Curation and operational hardening | C5a, C5b | Review queue export, then review decision merge/operational review loop | completed |
 | C6 | Curation and operational hardening | C6a | Release diffs and changelog automation | completed |
-| D1 | Expansion and benchmark formation | D1a | Scheduled GitHub-first dry-run maintenance and reporting workflows | next |
-| D2 | Expansion and benchmark formation | D2a | Stable source-operations maturity | planned |
-| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | planned |
+| D1 | Expansion and benchmark formation | D1a | Scheduled GitHub-first dry-run maintenance and reporting workflows | completed |
+| D2 | Expansion and benchmark formation | D2a | Stable source-operations maturity | completed |
+| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | next |
 | D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | planned |
 | D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | planned |
 | E1 | Ecosystem maturity | E1a | Community contribution model | planned |
@@ -147,9 +153,9 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | C5a | C5 | Review queue export and review-side artifacts | yes | completed | merged as PR #6 |
 | C5b | C5 | Review decision schema merge, operational review loop, and post-review release gating | no | completed | merged as PR #22 |
 | C6a | C6 | Release diffs and changelog generation | no | completed | merged as PR #23 |
-| D1a | D1 | Scheduled GitHub-first dry-run maintenance and reporting workflows | no | next | current planned PR |
-| D2a | D2 | Source refresh/reliability maturity and source freeze controls | no | planned | future source-ops PR |
-| D3a | D3 | Benchmark subset v1 and benchmark-facing manifests | no | planned | future benchmark PR |
+| D1a | D1 | Scheduled GitHub-first dry-run maintenance and reporting workflows | no | completed | merged as PR #27 |
+| D2a | D2 | Source refresh/reliability maturity and source freeze controls | no | completed | current ref source-ops PR |
+| D3a | D3 | Benchmark subset v1 and benchmark-facing manifests | no | next | next benchmark PR |
 | D4a | D4 | Richer synthetic generation for realism and document likeness | no | planned | future synthetic-quality PR |
 | D4b | D4 | Synthetic diversity controls and reporting hardening | no | planned | follow-up to D4a |
 | D5a | D5 | Optional transcription-ready architecture foundations | no | planned | future annotation-architecture PR |
@@ -160,11 +166,11 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 
 ## 4.3 Current critical path
 
-The immediate implementation critical path after `C6a` is:
+The immediate implementation critical path after `D2a` is:
 
-1. **D1a**: add scheduled GitHub-first dry-run maintenance and reporting workflows so recurring maintenance no longer depends on one-off manual runs
+1. **D3a**: define the first benchmark subset, benchmark-facing manifests, and usage guidance so downstream evaluation can target a stable slice of HeOCR
 
-This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` is now merged and makes exported release trees explainable over time through baseline-aware diffs and changelog generation. The next operational bottleneck is scheduled, GitHub-first dry-run maintenance with persisted artifacts and operator-facing summaries in `D1a`.
+This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` made exported release trees explainable over time through baseline-aware diffs and changelog generation. `D1a` moved routine dry-run maintenance into GitHub Actions with persisted run summaries. `D2a` adds source health, fixture-backed adapter regression coverage, and freeze/degrade reporting so source instability is visible before benchmark work depends on it.
 
 ## 4.4 Alpha release readiness gates
 
@@ -202,10 +208,11 @@ Some completed bootstrap work predates PR-based tracking. In particular, `A1a` i
 | B3b | #14 |
 | C5b | #22 |
 | C6a | #23 |
+| D1a | #27 |
 
 ## 4.6 Planned PR documentation rule
 
-When a PR is opened to implement a roadmap-tracked milestone or sub-PR, that implementation branch should update the planning/state documents together with the code. The default expectation is:
+When a PR is opened to implement a roadmap-tracked milestone or sub-PR, the implementation ref should update the planning/state documents together with the code. The default expectation is:
 
 - update [`.agent-plan.md`](../.agent-plan.md) with the current execution state and next immediate tasks
 - update [`README.md`](../README.md) when user-visible capabilities, workflow guidance, or operator expectations changed
@@ -213,7 +220,7 @@ When a PR is opened to implement a roadmap-tracked milestone or sub-PR, that imp
 - use the roadmap or plan notation in the PR title as `<notation>: <sentence-case summary>`
 - include a top-level `## Planning notation` section in the PR body that names the notation, parent milestone, and plan source
 
-This is a workflow rule, not optional polish. The point is to keep static capabilities, immediate execution state, and human-facing roadmap documents synchronized with the implementation PR that changed them. In practice, a planned PR is not complete until its code changes and its plan/documentation updates land together in the same branch, with the notation reflected consistently in the PR metadata.
+This is a workflow rule, not optional polish. The point is to keep static capabilities, immediate execution state, and human-facing roadmap documents synchronized with the implementation PR that changed them. In practice, a planned PR is not complete until its code changes and its plan/documentation updates land together on the implementation ref, with the notation reflected consistently in the PR metadata. Current-ref wording is preferred because it remains correct after merge.
 
 For status reconciliation, treat merged `main` and merged GitHub PR history as authoritative over branch-local execution notes. If a roadmap table, `.agent-plan.md`, or another planning surface disagrees with merged `main`, update the planning docs before treating the notation as still open.
 
@@ -731,13 +738,15 @@ Make supported sources operationally reliable.
 ### Deliverables
 - fixture suite for each adapter
 - source health status report
-- operational alerts in CI summaries
+- source health warnings in run summaries
 - source freeze/degrade modes
+- planning consistency guard for current-state docs
 
 ### Exit criteria
 - adapter breakages are detected quickly
 - source instability does not silently corrupt releases
 - source-specific operational behavior is documented
+- roadmap and planning surfaces agree on completed and next notation
 
 ### Risks / dependencies
 - upstream source churn
