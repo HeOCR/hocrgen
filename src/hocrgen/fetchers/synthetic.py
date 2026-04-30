@@ -31,10 +31,41 @@ def _template_ids_for_options(source: SourceConfig, options: StageOptions) -> li
     return selected
 
 
+def _recipe_for_metadata(
+    *,
+    source_id: str,
+    metadata: dict,
+    recipes: dict,
+    fallback_template_id: str,
+    record_id: str,
+) -> tuple[str, object]:
+    template_id = str(metadata.get("synthetic_template_id") or fallback_template_id)
+    if template_id not in recipes:
+        raise StageExecutionError(
+            f"synthetic record {record_id} template_id {template_id!r} is not allowed by current synthetic controls for source {source_id}"
+        )
+
+    recipe = recipes[template_id]
+    expected_metadata = {
+        "synthetic_recipe_id": recipe.recipe_id,
+        "synthetic_degradation_preset": recipe.degradation_preset,
+    }
+    for key, expected_value in expected_metadata.items():
+        value = metadata.get(key)
+        if value and str(value) != expected_value:
+            raise StageExecutionError(
+                f"synthetic record {record_id} {key} {value!r} does not match template_id {template_id!r} "
+                f"under current synthetic controls for source {source_id}; expected {expected_value!r}"
+            )
+    return template_id, recipe
+
+
 class SyntheticFetcher:
     def discover_candidates(self, source: SourceConfig, bundle: ConfigBundle, options: StageOptions) -> list[CandidateRecord]:
         del bundle
         count = source.settings.synthetic_batch_size or 1
+        if options.max_items is not None:
+            count = min(count, options.max_items)
         template_ids = _template_ids_for_options(source, options)
         recipes = recipe_catalog(template_ids)
         candidates: list[CandidateRecord] = []
@@ -65,8 +96,13 @@ class SyntheticFetcher:
         recipes = recipe_catalog(selected_templates)
         enriched: list[EnrichedCandidateRecord] = []
         for candidate in candidates:
-            template_id = str(candidate.raw_metadata.get("synthetic_template_id") or selected_templates[0])
-            recipe = recipes[template_id]
+            template_id, recipe = _recipe_for_metadata(
+                source_id=source.id,
+                metadata=candidate.raw_metadata,
+                recipes=recipes,
+                fallback_template_id=selected_templates[0],
+                record_id=candidate.candidate_id,
+            )
             enriched.append(
                 EnrichedCandidateRecord(
                     **candidate.model_dump(),
@@ -85,10 +121,17 @@ class SyntheticFetcher:
         items = list(items)
         seed = options.synthetic_seed if options.synthetic_seed is not None else (source.settings.synthetic_seed or 17)
         selected_templates = _template_ids_for_options(source, options)
-        template_ids = [
-            str(item.metadata.get("synthetic_template_id") or selected_templates[index % len(selected_templates)])
-            for index, item in enumerate(items)
-        ]
+        recipes = recipe_catalog(selected_templates)
+        template_ids: list[str] = []
+        for index, item in enumerate(items):
+            template_id, _recipe = _recipe_for_metadata(
+                source_id=source.id,
+                metadata=item.metadata,
+                recipes=recipes,
+                fallback_template_id=selected_templates[index % len(selected_templates)],
+                record_id=item.item_id,
+            )
+            template_ids.append(template_id)
         documents = generate_documents(
             count=len(items),
             seed=seed,

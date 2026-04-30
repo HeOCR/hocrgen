@@ -35,12 +35,14 @@ from hocrgen.package.alpha import (
     _handoff_doc,
     _sanitize_portable_value,
     _select_alpha_items,
+    _synthetic_composition_lines,
     _source_priority,
     _split_sort_key,
     _validate_heocr_repo_root,
     _validate_overwrite_target,
     export_alpha_release,
 )
+from hocrgen.synthetic.reporting import synthetic_composition_report
 
 
 def _fixture_config_root(tmp_path: Path) -> Path:
@@ -55,6 +57,34 @@ def _fixture_config_root(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     return config_root
+
+
+def test_synthetic_composition_helpers_cover_empty_and_missing_metadata() -> None:
+    missing_metadata_item = Namespace(
+        is_synthetic=True,
+        metadata={},
+        split=None,
+    )
+    real_item = Namespace(
+        is_synthetic=False,
+        metadata={},
+        split="train",
+    )
+
+    empty_report = synthetic_composition_report([real_item])
+    missing_report = synthetic_composition_report([real_item, missing_metadata_item])
+
+    assert _synthetic_composition_lines(empty_report) == ["- Synthetic items: 0"]
+    assert missing_report["by_template_id"] == {"unknown": 1}
+    assert missing_report["by_recipe_id"] == {"unknown": 1}
+    assert missing_report["by_degradation_preset"] == {"unknown": 1}
+    assert missing_report["by_font_id"] == {"unknown": 1}
+    assert missing_report["missing_metadata"] == {
+        "synthetic_degradation_preset": 1,
+        "synthetic_font_id": 1,
+        "synthetic_recipe_id": 1,
+        "synthetic_template_id": 1,
+    }
 
 
 def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
