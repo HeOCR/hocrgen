@@ -26,8 +26,8 @@ Font PRs must include:
 
 - the font file under `src/hocrgen/data/synthetic/fonts/`
 - the full license text next to the font
-- a `manifest.yaml` entry with font id, family/name, license id, and file path
-- a note explaining why the license allows redistribution and generated dataset use
+- a `manifest.yaml` entry using the current packaged font manifest shape: `id`, `file`, `style`, and `notes`
+- a note in `notes` or the PR description explaining why the committed license allows redistribution and generated dataset use
 - deterministic test or smoke output coverage if the font changes default generation
 
 Do not rely on a website summary alone. Include the committed license artifact used for review.

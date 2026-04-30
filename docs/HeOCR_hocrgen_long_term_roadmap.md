@@ -158,7 +158,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | D3a | D3 | Benchmark subset v1 and benchmark-facing manifests | no | completed | merged as PR #30 |
 | D4a | D4 | Richer synthetic generation for realism and document likeness | no | completed | merged as PR #32 |
 | D4b | D4 | Synthetic diversity controls and reporting hardening | no | completed | merged as PR #33 |
-| D5a | D5 | Optional transcription-ready architecture foundations | no | completed | current ref annotation-architecture PR |
+| D5a | D5 | Optional transcription-ready architecture foundations | no | completed | merged as PR #34 |
 | E1a | E1 | Community contribution model and contribution safety rails | no | completed | current ref contribution-governance PR |
 | E2a | E2 | Baselines and evaluation utilities | no | next | future evaluation PR |
 | E3a | E3 | Annotation subset pilots | no | planned | future annotation PR |
