@@ -35,6 +35,11 @@ def test_classify_stage_assigns_expected_source_priors(tmp_path: Path, capsys) -
     run_dir = Path(json.loads(capsys.readouterr().out)["run_dir"])
     classified_items = json.loads((run_dir / "classify" / "classified_items.json").read_text(encoding="utf-8"))["items"]
     by_source = {item["source_id"]: item for item in classified_items}
+    synthetic_classes = {
+        item["metadata"]["synthetic_template_id"]: item["content_class"]
+        for item in classified_items
+        if item["source_id"] == "project_synthetic"
+    }
 
     assert by_source["nli_any_use_permitted"]["period_class"] == "modern"
     assert by_source["nli_any_use_permitted"]["content_class"] == "handwritten"
@@ -42,7 +47,10 @@ def test_classify_stage_assigns_expected_source_priors(tmp_path: Path, capsys) -
     assert by_source["pinkas_open"]["content_class"] == "handwritten"
     assert by_source["biblia_open"]["period_class"] == "historical"
     assert by_source["project_synthetic"]["period_class"] == "modern"
-    assert by_source["project_synthetic"]["content_class"] == "printed"
+    assert synthetic_classes == {
+        "printed_letter": "printed",
+        "handwritten_note": "handwritten",
+    }
 
 
 def test_low_confidence_classification_routes_to_review(tmp_path: Path, capsys) -> None:
@@ -267,6 +275,7 @@ def test_build_release_applies_review_decisions_and_overrides(tmp_path: Path, ca
         "nli_any_use_permitted:nli-ms-seed-006",
         "pinkas_open:pinkas-ledger-001",
         "project_synthetic:synthetic-0",
+        "project_synthetic:synthetic-1",
     }
     assert review_required_items == []
     assert release_summary["review_approved_count"] == 1

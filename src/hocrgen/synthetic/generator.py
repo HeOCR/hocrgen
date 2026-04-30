@@ -159,6 +159,16 @@ def _degrade(image: Image.Image, randomizer: random.Random, background: tuple[in
 
 
 def _recipe_for_template(template_id: str) -> SyntheticRecipe:
+    if template_id == "printed_letter":
+        return SyntheticRecipe(
+            template_id=template_id,
+            recipe_id="printed_letter_form_v1",
+            font_style="printed",
+            degradation_preset="office_scan_soft",
+            paper_tone="printed",
+            line_count=4,
+            jpeg_quality=82,
+        )
     if template_id == "handwritten_note":
         return SyntheticRecipe(
             template_id=template_id,
@@ -169,15 +179,7 @@ def _recipe_for_template(template_id: str) -> SyntheticRecipe:
             line_count=3,
             jpeg_quality=78,
         )
-    return SyntheticRecipe(
-        template_id=template_id,
-        recipe_id="printed_letter_form_v1",
-        font_style="printed",
-        degradation_preset="office_scan_soft",
-        paper_tone="printed",
-        line_count=4,
-        jpeg_quality=82,
-    )
+    raise ValueError(f"Unsupported synthetic template_id: {template_id}")
 
 
 def _draw_paper_frame(draw: ImageDraw.ImageDraw, randomizer: random.Random, handwritten: bool) -> None:

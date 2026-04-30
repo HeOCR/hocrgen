@@ -811,7 +811,7 @@ Make the synthetic component more useful and document-like.
 - heavier post-processing presets that can emulate more severe scanning, copying, and print-process defects
 
 ### Current-state clarification
-`D4a` implements the visual realism pass on the current ref while deliberately preserving the existing public source settings and avoiding new external synthetic assets. The generator now keeps the existing `printed_letter` and `handwritten_note` template IDs, but backs them with stable recipe/degradation metadata and richer deterministic rendering. The remaining `D4b` work is diversity controls, filtering/reporting surfaces, and broader synthetic composition reporting.
+`D4a` implements the visual realism pass on the current ref while avoiding new external synthetic assets. The generator now keeps the existing `printed_letter` and `handwritten_note` template IDs, backs them with stable recipe/degradation metadata and richer deterministic rendering, and emits both default recipes into the conservative public profile. The remaining `D4b` work is diversity controls, filtering/reporting surfaces, and broader synthetic composition reporting.
 
 ### Exit criteria
 - synthetic data covers more realistic Hebrew document patterns

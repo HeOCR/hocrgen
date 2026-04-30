@@ -228,6 +228,63 @@ def test_synthetic_template_recipes_are_distinct_and_deterministic(tmp_path: Pat
     assert first[0].sha256 != first[1].sha256
 
 
+def test_synthetic_visual_recipes_render_expected_page_features(tmp_path: Path) -> None:
+    bundle = load_and_validate_bundle()
+    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    documents = generate_documents(
+        count=2,
+        seed=31,
+        template_ids=["printed_letter", "handwritten_note"],
+        font_manifest_path=bundle.resolve_path(source.settings.font_manifest or ""),
+        text_corpus_path=bundle.resolve_path(source.settings.text_corpus_path or ""),
+        output_dir=tmp_path / "synthetic",
+    )
+    by_template = {document.template_id: document for document in documents}
+
+    with Image.open(by_template["printed_letter"].path).convert("RGB") as printed:
+        form_region = printed.crop((140, 330, 1060, 820))
+        printed_pixels = list(form_region.getdata())
+        red_stamp_pixels = sum(1 for r, g, b in printed_pixels if r > 90 and r > g * 1.45 and r > b * 1.45)
+        dark_ink_pixels = sum(1 for r, g, b in printed_pixels if r < 115 and g < 105 and b < 95)
+        faint_rule_pixels = sum(
+            1
+            for r, g, b in printed_pixels
+            if 175 <= r <= 235 and 165 <= g <= 225 and 145 <= b <= 210 and max(r, g, b) - min(r, g, b) > 8
+        )
+        assert red_stamp_pixels > 500
+        assert dark_ink_pixels > 5_000
+        assert faint_rule_pixels > 50_000
+
+    with Image.open(by_template["handwritten_note"].path).convert("RGB") as handwritten:
+        marginalia_region = handwritten.crop((120, 430, 280, 760))
+        guide_region = handwritten.crop((150, 300, 1050, 1150))
+        marginalia_pixels = list(marginalia_region.getdata())
+        guide_pixels = list(guide_region.getdata())
+        marginalia_ink_pixels = sum(1 for r, g, b in marginalia_pixels if r < 115 and g < 105 and b < 95)
+        guide_rule_pixels = sum(
+            1
+            for r, g, b in guide_pixels
+            if 175 <= r <= 235 and 165 <= g <= 225 and 145 <= b <= 210 and max(r, g, b) - min(r, g, b) > 8
+        )
+        assert marginalia_ink_pixels > 150
+        assert guide_rule_pixels > 500_000
+
+
+def test_synthetic_generation_rejects_unknown_template_ids(tmp_path: Path) -> None:
+    bundle = load_and_validate_bundle()
+    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+
+    with pytest.raises(ValueError, match="Unsupported synthetic template_id: typo_template"):
+        generate_documents(
+            count=1,
+            seed=7,
+            template_ids=["typo_template"],
+            font_manifest_path=bundle.resolve_path(source.settings.font_manifest or ""),
+            text_corpus_path=bundle.resolve_path(source.settings.text_corpus_path or ""),
+            output_dir=tmp_path / "synthetic",
+        )
+
+
 def test_synthetic_generation_fails_for_empty_inputs(tmp_path: Path) -> None:
     font_manifest_path = tmp_path / "fonts.yaml"
     text_corpus_path = tmp_path / "corpus.txt"

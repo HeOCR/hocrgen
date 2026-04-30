@@ -221,10 +221,11 @@ def _apply_synthetic_cap(
     for item in accepted_items:
         if item.is_synthetic and item.item_id not in allowed_ids:
             rejected_items.append(
-                ItemRecord(
-                    **item.model_dump(),
-                    eligibility="rejected",
-                    eligibility_reason="synthetic_fraction_exceeded",
+                item.model_copy(
+                    update={
+                        "eligibility": "rejected",
+                        "eligibility_reason": "synthetic_fraction_exceeded",
+                    }
                 )
             )
         else:

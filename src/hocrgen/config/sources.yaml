@@ -87,7 +87,7 @@ sources:
         min_candidates: 1
         min_assets: 1
     settings:
-      synthetic_batch_size: 1
+      synthetic_batch_size: 2
       synthetic_seed: 17
       template_ids:
         - printed_letter

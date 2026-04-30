@@ -385,7 +385,7 @@ The synthetic subsystem is modest but real:
 - applies a conservative Hebrew RTL display-order heuristic before Pillow rendering for environments without optional RTL layout libraries; this is not full bidi-aware layout and may be inaccurate for mixed-direction text
 - renders printed pages with form-like guide lines, identifiers, stamps, ink variation, paper edges, stains, and scan-like degradation
 - renders handwritten-look pages with looser line placement, marginal notes, underlines, creases, stronger paper wear, and worn notebook-style degradation
-- keeps synthetic release inclusion bounded by the existing profile and alpha export caps; broader diversity controls and reporting remain planned for `D4b`
+- keeps synthetic release inclusion bounded by profile and alpha export caps while allowing both default D4a recipes into the conservative public profile; broader diversity controls and reporting remain planned for `D4b`
 
 ## Fixtures and tests
 
