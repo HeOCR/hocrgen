@@ -102,7 +102,7 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
     changelog = (output_dir / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
     release_notes = (output_dir / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
     assert release_diff["previous_version"] is None
-    assert release_diff["counts"] == {"added": 3, "removed": 0, "changed": 0, "unchanged": 0}
+    assert release_diff["counts"] == {"added": 4, "removed": 0, "changed": 0, "unchanged": 0}
     assert {item["item_id"] for item in benchmark_manifest["items"]} == {
         "nli_any_use_permitted:nli-ms-seed-006",
         "pinkas_open:pinkas-ledger-001",
@@ -178,8 +178,8 @@ def test_export_alpha_only_copies_release_ready_items(tmp_path: Path, capsys) ->
     assert "nli_any_use_permitted:nli-ms-001" not in exported_ids
     assert "biblia_open:biblia-doc-001" not in exported_ids
     assert "nli_any_use_permitted:nli-ms-seed-006" in exported_ids
-    assert len(item_manifest["items"]) == 3
-    assert len(split_manifest["items"]) == 3
+    assert len(item_manifest["items"]) == 4
+    assert len(split_manifest["items"]) == 4
     assert len(review_required["items"]) == 1
     assert {item["source_id"] for item in review_required["items"]} == {"biblia_open"}
     for item in review_required["items"]:
@@ -202,9 +202,14 @@ def test_export_alpha_only_copies_release_ready_items(tmp_path: Path, capsys) ->
             assert (export_dir / asset["release_asset_path"]).exists()
             assert "source_normalized_asset_path" not in asset
             assert "source_preview_path" not in asset
-    synthetic_item = next(item for item in item_manifest["items"] if item["source_id"] == "project_synthetic")
-    assert {asset["asset_format"] for asset in synthetic_item["exported_assets"]} == {"jpeg"}
-    assert all(asset["release_asset_path"].endswith(".jpg") for asset in synthetic_item["exported_assets"])
+    synthetic_items = [item for item in item_manifest["items"] if item["source_id"] == "project_synthetic"]
+    assert {item["metadata"]["synthetic_template_id"] for item in synthetic_items} == {
+        "printed_letter",
+        "handwritten_note",
+    }
+    for synthetic_item in synthetic_items:
+        assert {asset["asset_format"] for asset in synthetic_item["exported_assets"]} == {"jpeg"}
+        assert all(asset["release_asset_path"].endswith(".jpg") for asset in synthetic_item["exported_assets"])
 
 
 def test_export_alpha_enforces_real_and_synthetic_caps_deterministically(tmp_path: Path, capsys) -> None:
@@ -347,7 +352,7 @@ def test_export_alpha_summary_marks_when_synthetic_cap_is_bound_by_real_items(tm
     release_summary = json.loads((export_dir / "manifests" / "release_summary.json").read_text(encoding="utf-8"))
 
     assert release_summary["exported_real_items"] == 1
-    assert release_summary["exported_synthetic_items"] == 1
+    assert release_summary["exported_synthetic_items"] == 2
     assert release_summary["synthetic_clamped_to_real"] is True
 
 
@@ -455,7 +460,7 @@ def test_export_alpha_auto_discovers_previous_sibling_release(tmp_path: Path, ca
     release_notes = (export_dir / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
 
     assert release_diff["previous_version"] == "alpha-v0"
-    assert release_diff["counts"]["unchanged"] == 3
+    assert release_diff["counts"]["unchanged"] == 4
     assert "Compared to `alpha-v0`" in release_notes
 
 
@@ -510,7 +515,7 @@ def test_export_alpha_compare_to_override_reports_selection_limit_removed(tmp_pa
     changelog = (export_dir / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
 
     assert release_diff["previous_version"] == "alpha-v0"
-    assert release_diff["counts"]["removed"] == 1
+    assert release_diff["counts"]["removed"] == 2
     assert release_diff["counts"]["unchanged"] == 2
     assert release_diff["removed_items"] == [
         {
@@ -518,7 +523,13 @@ def test_export_alpha_compare_to_override_reports_selection_limit_removed(tmp_pa
             "previous_split": "train",
             "reason": "selection_limit_excluded",
             "source_id": "pinkas_open",
-        }
+        },
+        {
+            "item_id": "project_synthetic:synthetic-1",
+            "previous_split": "train",
+            "reason": "selection_limit_excluded",
+            "source_id": "project_synthetic",
+        },
     ]
     assert "`selection_limit_excluded`" in changelog
 

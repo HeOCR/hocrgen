@@ -61,6 +61,8 @@ class SyntheticFetcher:
                     metadata={
                         **existing_metadata,
                         "synthetic_template_id": document.template_id,
+                        "synthetic_recipe_id": document.recipe_id,
+                        "synthetic_degradation_preset": document.degradation_preset,
                         "synthetic_font_id": document.font_id,
                         "synthetic_footer": document.footer,
                         "synthetic_generator_version": document.generator_version,

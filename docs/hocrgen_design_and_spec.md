@@ -401,7 +401,7 @@ allowed_rights_classifications:
   - open
   - open_with_attribution
   - sharealike
-synthetic_fraction_max: 0.25
+synthetic_fraction_max: 0.5
 privacy_mode: conservative
 publish_targets:
   - huggingface

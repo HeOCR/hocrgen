@@ -12,7 +12,7 @@ allowed_rights_classifications:
   - sharealike
 allow_unknown_rights: false
 require_public_release_licenses: true
-synthetic_fraction_max: 0.25
+synthetic_fraction_max: 0.5
 privacy_mode: conservative
 publish_targets:
   - huggingface

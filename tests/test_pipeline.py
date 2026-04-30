@@ -58,15 +58,15 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     benchmark_policy = json.loads((run_dir / "build_release" / "benchmark_stability_policy.json").read_text(encoding="utf-8"))
     benchmark_card = (run_dir / "build_release" / "BENCHMARK_CARD.md").read_text(encoding="utf-8")
 
-    assert len(normalized_items["items"]) == 4
+    assert len(normalized_items["items"]) == 5
     assert qa_report["failed_count"] == 0
-    assert release_summary["accepted_count"] == 4
-    assert release_summary["acquired_count"] == 4
-    assert release_summary["normalized_count"] == 4
-    assert release_summary["retained_count"] == 4
+    assert release_summary["accepted_count"] == 5
+    assert release_summary["acquired_count"] == 5
+    assert release_summary["normalized_count"] == 5
+    assert release_summary["retained_count"] == 5
     assert release_summary["duplicate_removed_count"] == 0
     assert release_summary["qa_failed_count"] == 0
-    assert release_summary["release_ready_count"] == 3
+    assert release_summary["release_ready_count"] == 4
     assert release_summary["review_approved_count"] == 0
     assert release_summary["review_rejected_count"] == 0
     assert release_summary["review_required_count"] == 1
@@ -75,30 +75,39 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert release_summary["benchmark_id"] == "benchmark_v1"
     assert release_summary["benchmark_item_count"] == 3
     assert release_summary["real_items"] == 2
-    assert release_summary["synthetic_items"] == 1
-    assert sum(release_summary["split_counts"].values()) == 3
-    assert source_stats["asset_formats"] == {"jpeg": 3}
+    assert release_summary["synthetic_items"] == 2
+    assert sum(release_summary["split_counts"].values()) == 4
+    assert source_stats["asset_formats"] == {"jpeg": 4}
     assert source_stats["sources"]["nli_any_use_permitted"] == 1
     assert source_stats["sources"]["pinkas_open"] == 1
-    assert source_stats["sources"]["project_synthetic"] == 1
+    assert source_stats["sources"]["project_synthetic"] == 2
     assert "biblia_open" not in source_stats["sources"]
-    assert len(split_manifest["items"]) == 3
-    assert len(item_manifest["items"]) == 3
+    assert len(split_manifest["items"]) == 4
+    assert len(item_manifest["items"]) == 4
     assert removed_duplicate_items["items"] == []
     assert len(review_required_items["items"]) == 1
     assert {item["source_id"] for item in review_required_items["items"]} == {"biblia_open"}
     assert len(review_queue["items"]) == 1
     assert {item["review_item_id"] for item in review_queue["items"]} == {"review:biblia_open:biblia-doc-001"}
     decision_audit = json.loads((run_dir / "build_release" / "decision_audit.json").read_text(encoding="utf-8"))
-    assert len(decision_audit["items"]) == 4
+    assert len(decision_audit["items"]) == 5
     assert {item["decision_source"] for item in decision_audit["items"]} == {
         "automatic_release_ready",
         "default_unresolved",
     }
-    assert classification_stats["period_class"]["modern"] == 2
+    assert classification_stats["period_class"]["modern"] == 3
     by_source = {item["source_id"]: item for item in item_manifest["items"]}
     assert by_source["nli_any_use_permitted"]["quality_tier"] == "high"
-    assert privacy_stats["privacy_flag"] == {"clear": 4}
+    synthetic_items = [item for item in item_manifest["items"] if item["source_id"] == "project_synthetic"]
+    assert {item["metadata"]["synthetic_template_id"] for item in synthetic_items} == {
+        "printed_letter",
+        "handwritten_note",
+    }
+    assert {item["metadata"]["synthetic_recipe_id"] for item in synthetic_items} == {
+        "printed_letter_form_v1",
+        "handwritten_note_marginalia_v1",
+    }
+    assert privacy_stats["privacy_flag"] == {"clear": 5}
     benchmark_ids = {item["item_id"] for item in benchmark_manifest["items"]}
     assert benchmark_ids == {
         "nli_any_use_permitted:nli-ms-seed-006",
@@ -303,10 +312,10 @@ def test_build_release_removes_exact_duplicates(tmp_path: Path, capsys) -> None:
 
     review_required_items = json.loads((run_dir / "build_release" / "review_required_items.json").read_text(encoding="utf-8"))
 
-    assert release_summary["normalized_count"] == 4
-    assert release_summary["retained_count"] == 3
+    assert release_summary["normalized_count"] == 5
+    assert release_summary["retained_count"] == 4
     assert release_summary["duplicate_removed_count"] == 1
-    assert release_summary["release_ready_count"] == 3
+    assert release_summary["release_ready_count"] == 4
     assert release_summary["review_approved_count"] == 0
     assert release_summary["review_required_count"] == 0
     assert release_summary["review_unresolved_count"] == 0
@@ -314,8 +323,8 @@ def test_build_release_removes_exact_duplicates(tmp_path: Path, capsys) -> None:
     assert duplicate_relations["items"][0]["reason"] == "exact_asset_sequence_match"
     assert len(duplicate_clusters["items"]) == 1
     assert len(removed_duplicate_items["items"]) == 1
-    assert len(split_manifest["items"]) == 3
-    assert len(item_manifest["items"]) == 3
+    assert len(split_manifest["items"]) == 4
+    assert len(item_manifest["items"]) == 4
     assert review_required_items["items"] == []
 
 
