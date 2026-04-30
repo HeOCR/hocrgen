@@ -91,7 +91,6 @@ def export_alpha_release(
         if not config.overwrite:
             raise StageExecutionError(f"alpha export directory already exists: {export_dir}")
         _validate_overwrite_target(export_dir, config.version)
-        shutil.rmtree(export_dir)
     release_items = _load_models(build_dir / "item_manifest.json", PrivacyScannedItemRecord)
     review_required_items = _load_models(build_dir / "review_required_items.json", PrivacyScannedItemRecord)
     blocked_items = _load_models(build_dir / "blocked_items.json", PrivacyScannedItemRecord)
@@ -113,6 +112,7 @@ def export_alpha_release(
     selected_benchmark_audit = [
         item for item in benchmark_inputs.selection_audit if item.item_id in selected_benchmark_ids
     ]
+    benchmark_card = _benchmark_card_for_export(benchmark_inputs, selected_benchmark_items)
     included_sources = _ordered_sources(profile, {item.source_id for item in selected_items})
     selected_split_manifest = [assignment for assignment in split_manifest if assignment.item_id in selected_ids]
     review_required_ids = {item.item_id for item in review_required_items}
@@ -129,6 +129,8 @@ def export_alpha_release(
         if cluster.cluster_id in selected_duplicate_cluster_ids
     ]
 
+    if export_dir.exists():
+        shutil.rmtree(export_dir)
     exported_items = _copy_export_assets(selected_items, export_dir / "data")
     source_stats = _build_source_stats(exported_items, selected_duplicate_relations)
     classification_stats = _build_classification_stats(exported_items)
@@ -236,7 +238,7 @@ def export_alpha_release(
             handoff_repo_root,
         ),
     )
-    _write_markdown(docs_dir / "BENCHMARK_CARD.md", benchmark_inputs.card_markdown)
+    _write_markdown(docs_dir / "BENCHMARK_CARD.md", benchmark_card)
 
     summary_path = run_dir / "export_alpha" / "summary.json"
     write_json(
@@ -1047,6 +1049,55 @@ def _load_benchmark_export_inputs(build_dir: Path) -> BenchmarkExportInputs:
             "alpha export requires build-release benchmark artifacts; "
             "rerun build-release with benchmark outputs before export-alpha"
         ) from exc
+
+
+def _benchmark_card_for_export(inputs: BenchmarkExportInputs, items: list[BenchmarkItemRecord]) -> str:
+    try:
+        benchmark_id = str(inputs.stability_policy["benchmark_id"])
+        description = str(inputs.stability_policy.get("description", "Exported benchmark subset."))
+        selection_policy = str(inputs.stability_policy["selection_policy"])
+        review_bar = str(inputs.stability_policy["review_bar"])
+        stability_policy = dict(inputs.stability_policy["stability_policy"])
+    except (KeyError, TypeError, ValueError, ValidationError) as exc:
+        raise StageExecutionError("alpha export benchmark policy is invalid for card rendering") from exc
+    real_count = sum(1 for item in items if not item.is_synthetic)
+    synthetic_count = sum(1 for item in items if item.is_synthetic)
+    split_counts: dict[str, int] = {}
+    for item in items:
+        split_counts[item.benchmark_split] = split_counts.get(item.benchmark_split, 0) + 1
+    lines = [
+        f"# Benchmark Card: {benchmark_id}",
+        "",
+        "## Summary",
+        description,
+        "",
+        "## Selection Policy",
+        selection_policy,
+        "",
+        "## Review Bar",
+        review_bar,
+        "",
+        "## Stability Policy",
+    ]
+    lines.extend(f"- {key}: {value}" for key, value in sorted(stability_policy.items()))
+    lines.extend(
+        [
+            "",
+            "## Composition",
+            f"- Items: {len(items)}",
+            f"- Real items: {real_count}",
+            f"- Synthetic control items: {synthetic_count}",
+            "",
+            "## Benchmark Splits",
+        ]
+    )
+    lines.extend(f"- `{split}`: {count}" for split, count in sorted(split_counts.items()))
+    lines.extend(["", "## Items"])
+    lines.extend(
+        f"- `{item.item_id}` ({item.source_id}, `{item.benchmark_split}`): {item.rationale}"
+        for item in items
+    )
+    return "\n".join(lines + [""])
 
 
 def _write_markdown(path: Path, content: str) -> None:

@@ -150,6 +150,7 @@ def select_benchmark_items(
     stability_policy = {
         "benchmark_id": config.benchmark_id,
         "version": config.version,
+        "description": config.description,
         "selection_policy": config.selection_policy,
         "review_bar": config.review_bar,
         "stability_policy": config.stability_policy,
