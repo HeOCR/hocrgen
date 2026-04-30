@@ -381,9 +381,11 @@ The synthetic subsystem is modest but real:
 - outputs degraded JPEG page assets plus reproducibility metadata
 - uses tracked governed fonts from [`src/hocrgen/data/synthetic/fonts/manifest.yaml`](./src/hocrgen/data/synthetic/fonts/manifest.yaml)
 - uses a curated packaged Hebrew text corpus from [`src/hocrgen/data/synthetic/texts/hebrew_lines.txt`](./src/hocrgen/data/synthetic/texts/hebrew_lines.txt)
-- supports a printed-style and handwritten-look template family
+- supports a printed-style and handwritten-look template family with stable recipe and degradation metadata
 - applies a conservative Hebrew RTL display-order heuristic before Pillow rendering for environments without optional RTL layout libraries; this is not full bidi-aware layout and may be inaccurate for mixed-direction text
-- applies lightweight paper variation, blur/noise, and JPEG compression to avoid pristine mock-document output
+- renders printed pages with form-like guide lines, identifiers, stamps, ink variation, paper edges, stains, and scan-like degradation
+- renders handwritten-look pages with looser line placement, marginal notes, underlines, creases, stronger paper wear, and worn notebook-style degradation
+- keeps synthetic release inclusion bounded by the existing profile and alpha export caps; broader diversity controls and reporting remain planned for `D4b`
 
 ## Fixtures and tests
 

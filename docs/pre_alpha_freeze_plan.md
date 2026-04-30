@@ -14,7 +14,7 @@ The pre-alpha blocker sequence is now complete:
 3. the Pinkas exemplar is a text-bearing historical page
 4. synthetic alpha output preserves Hebrew ordering and uses the `2x real items` cap
 
-The remaining work after this document is no longer alpha freeze. `C5b`, `C6a`, `D1a`, `D2a`, and `D3a` are now represented in the current-ref roadmap state: review decisions can merge back into the pipeline, release-to-release changes are explainable, scheduled dry-run maintenance exists, source-operations health/freeze reporting is available, and the first explicitly approved benchmark subset exists. The next planned milestone is `D4a`, richer synthetic generation for realism and document likeness.
+The remaining work after this document is no longer alpha freeze. `C5b`, `C6a`, `D1a`, `D2a`, `D3a`, and `D4a` are now represented in the current-ref roadmap state: review decisions can merge back into the pipeline, release-to-release changes are explainable, scheduled dry-run maintenance exists, source-operations health/freeze reporting is available, the first explicitly approved benchmark subset exists, and synthetic rendering has a richer visual realism pass. The next planned milestone is `D4b`, synthetic diversity controls and reporting hardening.
 
 ## Pre-Alpha PR Sequence
 
@@ -99,12 +99,13 @@ After the blockers above are closed, the remaining step is to freeze the actual 
 
 These items remain important, but they should not block the first alpha unless a low-risk subset naturally lands during the blocker work above.
 
-### `D4a` / `D4b` — richer synthetic maturity
+### `D4b` — richer synthetic diversity maturity
 
-- handwritten-like generation families that are visually distinct from print-like pages
-- stronger degradation and post-processing families
-- broader layout diversity, overlays, forms, marginalia, and realism controls
+- broader layout diversity, overlays, forms, marginalia, and realism controls beyond the D4a recipes
 - diversity reporting and richer synthetic filtering/reporting
+- synthetic subset selection controls built on stable D4a recipe/degradation metadata
+
+`D4a` is now implemented on the current ref as a visual realism pass over the existing packaged fonts, text corpus, and template IDs.
 
 ### `C5b` — review-decision merge and operational review loop
 
@@ -122,7 +123,7 @@ This milestone is now implemented in `hocrgen` via the dedicated `review-merge` 
 - evaluation utilities
 - community contribution maturity
 
-`C6a`, `D1a`, `D2a`, and `D3a` are complete on the current ref. The next planned milestone after this document is `D4a`.
+`C6a`, `D1a`, `D2a`, `D3a`, and `D4a` are complete on the current ref. The next planned milestone after this document is `D4b`.
 
 ## Working Rules For The Pre-Alpha Sequence
 

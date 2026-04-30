@@ -14,7 +14,15 @@ from hocrgen.fetchers.pinkas import PinkasImporter
 from hocrgen.fetchers.synthetic import SyntheticFetcher
 from hocrgen.manifests.models import ItemRecord
 from hocrgen.parsers.rights import RightsResult, classify_eligibility, normalize_rights
-from hocrgen.synthetic.generator import _font_path, _load_font, _rtl_display_text, _select_font, _wrap_hebrew_text, generate_documents
+from hocrgen.synthetic.generator import (
+    CANVAS_SIZE,
+    _font_path,
+    _load_font,
+    _rtl_display_text,
+    _select_font,
+    _wrap_hebrew_text,
+    generate_documents,
+)
 
 
 def test_nli_fetcher_parses_fixture_metadata() -> None:
@@ -147,7 +155,9 @@ def test_synthetic_generation_is_deterministic(tmp_path: Path) -> None:
     assert acquired_once[0].acquired_assets[0].sha256 == acquired_twice[0].acquired_assets[0].sha256
     assert acquired_once[0].acquired_assets[0].path.endswith(".jpg")
     assert acquired_once[0].acquired_assets[0].media_type == "image/jpeg"
-    assert acquired_once[0].metadata["synthetic_generator_version"] == "b5b3-jpeg-v2"
+    assert acquired_once[0].metadata["synthetic_generator_version"] == "d4a-realism-v1"
+    assert acquired_once[0].metadata["synthetic_recipe_id"] == "printed_letter_form_v1"
+    assert acquired_once[0].metadata["synthetic_degradation_preset"] == "office_scan_soft"
     assert acquired_once[0].metadata["synthetic_font_id"] in {
         "alef-regular",
         "gveret-levin-regular",
@@ -168,15 +178,54 @@ def test_synthetic_generation_uses_packaged_fonts_and_curated_text(tmp_path: Pat
     )
 
     assert {document.path.suffix for document in documents} == {".jpg"}
-    assert {document.generator_version for document in documents} == {"b5b3-jpeg-v2"}
+    assert {document.generator_version for document in documents} == {"d4a-realism-v1"}
     assert {document.font_id for document in documents} == {
         "alef-regular",
         "gveret-levin-regular",
     }
+    assert {document.recipe_id for document in documents} == {
+        "printed_letter_form_v1",
+        "handwritten_note_marginalia_v1",
+    }
+    assert {document.degradation_preset for document in documents} == {
+        "office_scan_soft",
+        "notebook_scan_worn",
+    }
+    for document in documents:
+        with Image.open(document.path) as image:
+            assert image.size == CANVAS_SIZE
+            assert image.mode == "RGB"
     forbidden_fragments = {"Ref.", "Batch", "Office Copy", "אנגלית", "אפשר להוסיף מזהה קצר"}
     for document in documents:
         for line in document.body.splitlines():
             assert not any(fragment in line for fragment in forbidden_fragments)
+
+
+def test_synthetic_template_recipes_are_distinct_and_deterministic(tmp_path: Path) -> None:
+    bundle = load_and_validate_bundle()
+    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+
+    first = generate_documents(
+        count=2,
+        seed=31,
+        template_ids=["printed_letter", "handwritten_note"],
+        font_manifest_path=bundle.resolve_path(source.settings.font_manifest or ""),
+        text_corpus_path=bundle.resolve_path(source.settings.text_corpus_path or ""),
+        output_dir=tmp_path / "first",
+    )
+    second = generate_documents(
+        count=2,
+        seed=31,
+        template_ids=["printed_letter", "handwritten_note"],
+        font_manifest_path=bundle.resolve_path(source.settings.font_manifest or ""),
+        text_corpus_path=bundle.resolve_path(source.settings.text_corpus_path or ""),
+        output_dir=tmp_path / "second",
+    )
+
+    assert [document.sha256 for document in first] == [document.sha256 for document in second]
+    assert first[0].recipe_id != first[1].recipe_id
+    assert first[0].degradation_preset != first[1].degradation_preset
+    assert first[0].sha256 != first[1].sha256
 
 
 def test_synthetic_generation_fails_for_empty_inputs(tmp_path: Path) -> None:

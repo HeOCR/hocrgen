@@ -120,7 +120,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | D1 | Expansion and benchmark formation | D1a | Scheduled GitHub-first dry-run maintenance and reporting workflows | completed |
 | D2 | Expansion and benchmark formation | D2a | Stable source-operations maturity | completed |
 | D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |
-| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | next |
+| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | partial |
 | D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | planned |
 | E1 | Ecosystem maturity | E1a | Community contribution model | planned |
 | E2 | Ecosystem maturity | E2a | Baselines and evaluation utilities | planned |
@@ -156,8 +156,8 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | D1a | D1 | Scheduled GitHub-first dry-run maintenance and reporting workflows | no | completed | merged as PR #27 |
 | D2a | D2 | Source refresh/reliability maturity and source freeze controls | no | completed | merged as PR #28 |
 | D3a | D3 | Benchmark subset v1 and benchmark-facing manifests | no | completed | current ref benchmark PR |
-| D4a | D4 | Richer synthetic generation for realism and document likeness | no | next | next synthetic-quality PR |
-| D4b | D4 | Synthetic diversity controls and reporting hardening | no | planned | follow-up to D4a |
+| D4a | D4 | Richer synthetic generation for realism and document likeness | no | completed | current ref synthetic-quality PR |
+| D4b | D4 | Synthetic diversity controls and reporting hardening | no | next | follow-up to D4a |
 | D5a | D5 | Optional transcription-ready architecture foundations | no | planned | future annotation-architecture PR |
 | E1a | E1 | Community contribution model and contribution safety rails | no | planned | future governance PR |
 | E2a | E2 | Baselines and evaluation utilities | no | planned | future evaluation PR |
@@ -166,11 +166,11 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 
 ## 4.3 Current critical path
 
-The immediate implementation critical path after `D3a` is:
+The immediate implementation critical path after `D4a` is:
 
-1. **D4a**: improve synthetic document realism and document-likeness beyond the alpha-minimum generator while keeping synthetic content governed and bounded
+1. **D4b**: add synthetic diversity controls and reporting hardening on top of the richer D4a generator metadata
 
-This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` made exported release trees explainable over time through baseline-aware diffs and changelog generation. `D1a` moved routine dry-run maintenance into GitHub Actions with persisted run summaries. `D2a` adds source health, fixture-backed adapter regression coverage, and freeze/degrade reporting so source instability is visible before benchmark work depends on it. `D3a` defines the first explicitly approved `benchmark_v1` subset with benchmark manifests, selection audit, a stability policy, and usage guidance.
+This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` made exported release trees explainable over time through baseline-aware diffs and changelog generation. `D1a` moved routine dry-run maintenance into GitHub Actions with persisted run summaries. `D2a` adds source health, fixture-backed adapter regression coverage, and freeze/degrade reporting so source instability is visible before benchmark work depends on it. `D3a` defines the first explicitly approved `benchmark_v1` subset with benchmark manifests, selection audit, a stability policy, and usage guidance. `D4a` upgrades the synthetic generator's visual realism without new external assets by adding recipe-backed printed and handwritten-look rendering, richer document-like marks, deterministic degradation presets, and public metadata that later diversity reporting can consume.
 
 ## 4.4 Alpha release readiness gates
 
@@ -801,7 +801,7 @@ Make the synthetic component more useful and document-like.
 - expanded recipe library
 - richer asset manifests
 - improved realism controls
-- synthetic diversity reports
+- synthetic diversity reports (`D4b`)
 - raster output mode suitable for release packaging
 - curated handwriting-like and print-like Hebrew font sets with explicit governance
 - document-style Hebrew corpora with no prompt/instruction leakage
@@ -809,6 +809,9 @@ Make the synthetic component more useful and document-like.
 - layout families that model plausible placement of headers, bodies, footers, notes, and identifiers
 - handwritten-like generation families that read as handwritten rather than merely typed with a governed font
 - heavier post-processing presets that can emulate more severe scanning, copying, and print-process defects
+
+### Current-state clarification
+`D4a` implements the visual realism pass on the current ref while deliberately preserving the existing public source settings and avoiding new external synthetic assets. The generator now keeps the existing `printed_letter` and `handwritten_note` template IDs, but backs them with stable recipe/degradation metadata and richer deterministic rendering. The remaining `D4b` work is diversity controls, filtering/reporting surfaces, and broader synthetic composition reporting.
 
 ### Exit criteria
 - synthetic data covers more realistic Hebrew document patterns

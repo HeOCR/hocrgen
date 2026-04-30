@@ -11,7 +11,7 @@ from hocrgen.config.loader import load_yaml_file
 from hocrgen.utils.hashing import sha256_file
 
 
-GENERATOR_VERSION = "b5b3-jpeg-v2"
+GENERATOR_VERSION = "d4a-realism-v1"
 CANVAS_SIZE = (1200, 1600)
 PAPER_MARGIN = 96
 
@@ -35,11 +35,24 @@ FOOTER_LABELS = [
 
 
 @dataclass(frozen=True)
+class SyntheticRecipe:
+    template_id: str
+    recipe_id: str
+    font_style: str
+    degradation_preset: str
+    paper_tone: str
+    line_count: int
+    jpeg_quality: int
+
+
+@dataclass(frozen=True)
 class SyntheticDocument:
     title: str
     body: str
     footer: str
     template_id: str
+    recipe_id: str
+    degradation_preset: str
     font_id: str
     path: Path
     sha256: str
@@ -121,14 +134,159 @@ def _apply_grain(image: Image.Image, randomizer: random.Random) -> Image.Image:
     return Image.blend(image, textured, alpha=0.08)
 
 
-def _degrade(image: Image.Image, randomizer: random.Random, background: tuple[int, int, int]) -> Image.Image:
-    angle = randomizer.uniform(-0.9, 0.9)
+def _degrade(image: Image.Image, randomizer: random.Random, background: tuple[int, int, int], preset: str) -> Image.Image:
+    if preset == "notebook_scan_worn":
+        angle_range = 1.5
+        blur_range = (0.25, 0.75)
+        contrast = 0.92
+        brightness = 0.97
+        grain_passes = 2
+    else:
+        angle_range = 0.85
+        blur_range = (0.15, 0.45)
+        contrast = 0.96
+        brightness = 0.99
+        grain_passes = 1
+
+    angle = randomizer.uniform(-angle_range, angle_range)
     degraded = image.rotate(angle, resample=Image.Resampling.BICUBIC, expand=False, fillcolor=background)
-    degraded = degraded.filter(ImageFilter.GaussianBlur(radius=randomizer.uniform(0.2, 0.5)))
-    degraded = _apply_grain(degraded, randomizer)
-    degraded = ImageEnhance.Contrast(degraded).enhance(0.96)
-    degraded = ImageEnhance.Brightness(degraded).enhance(0.99)
+    degraded = degraded.filter(ImageFilter.GaussianBlur(radius=randomizer.uniform(*blur_range)))
+    for _ in range(grain_passes):
+        degraded = _apply_grain(degraded, randomizer)
+    degraded = ImageEnhance.Contrast(degraded).enhance(contrast)
+    degraded = ImageEnhance.Brightness(degraded).enhance(brightness)
     return degraded
+
+
+def _recipe_for_template(template_id: str) -> SyntheticRecipe:
+    if template_id == "handwritten_note":
+        return SyntheticRecipe(
+            template_id=template_id,
+            recipe_id="handwritten_note_marginalia_v1",
+            font_style="handwritten_like",
+            degradation_preset="notebook_scan_worn",
+            paper_tone="handwritten",
+            line_count=3,
+            jpeg_quality=78,
+        )
+    return SyntheticRecipe(
+        template_id=template_id,
+        recipe_id="printed_letter_form_v1",
+        font_style="printed",
+        degradation_preset="office_scan_soft",
+        paper_tone="printed",
+        line_count=4,
+        jpeg_quality=82,
+    )
+
+
+def _draw_paper_frame(draw: ImageDraw.ImageDraw, randomizer: random.Random, handwritten: bool) -> None:
+    edge = (193, 181, 158) if handwritten else (203, 195, 176)
+    shadow = (220, 211, 191) if handwritten else (226, 219, 202)
+    left = PAPER_MARGIN - randomizer.randint(8, 18)
+    top = PAPER_MARGIN - randomizer.randint(4, 16)
+    right = CANVAS_SIZE[0] - PAPER_MARGIN + randomizer.randint(8, 16)
+    bottom = CANVAS_SIZE[1] - PAPER_MARGIN + randomizer.randint(6, 18)
+    draw.rectangle((left + 10, top + 12, right + 10, bottom + 12), outline=shadow, width=3)
+    draw.rectangle((left, top, right, bottom), outline=edge, width=2)
+    if not handwritten:
+        draw.line((left + 36, top, left + 36, bottom), fill=(224, 214, 195), width=2)
+
+
+def _draw_creased_paper(draw: ImageDraw.ImageDraw, randomizer: random.Random, handwritten: bool) -> None:
+    crease_color = (225, 216, 196) if handwritten else (231, 224, 207)
+    for _ in range(3 if handwritten else 2):
+        x = randomizer.randint(PAPER_MARGIN + 40, CANVAS_SIZE[0] - PAPER_MARGIN - 40)
+        wobble = randomizer.randint(-12, 12)
+        draw.line((x, PAPER_MARGIN, x + wobble, CANVAS_SIZE[1] - PAPER_MARGIN), fill=crease_color, width=1)
+    for _ in range(2):
+        y = randomizer.randint(PAPER_MARGIN + 80, CANVAS_SIZE[1] - PAPER_MARGIN - 80)
+        draw.line((PAPER_MARGIN, y, CANVAS_SIZE[0] - PAPER_MARGIN, y + randomizer.randint(-8, 8)), fill=crease_color, width=1)
+
+
+def _draw_stains(image: Image.Image, randomizer: random.Random, handwritten: bool) -> None:
+    overlay = Image.new("RGBA", image.size, (0, 0, 0, 0))
+    draw = ImageDraw.Draw(overlay)
+    count = 5 if handwritten else 3
+    for _ in range(count):
+        x = randomizer.randint(PAPER_MARGIN, CANVAS_SIZE[0] - PAPER_MARGIN)
+        y = randomizer.randint(PAPER_MARGIN, CANVAS_SIZE[1] - PAPER_MARGIN)
+        rx = randomizer.randint(18, 62 if handwritten else 44)
+        ry = randomizer.randint(12, 46 if handwritten else 32)
+        color = (149, 118, 72, randomizer.randint(14, 28))
+        draw.ellipse((x - rx, y - ry, x + rx, y + ry), fill=color)
+    image.alpha_composite(overlay)
+
+
+def _draw_printed_form_guides(draw: ImageDraw.ImageDraw, randomizer: random.Random) -> None:
+    guide = (184, 174, 154)
+    faint = (215, 207, 188)
+    left = PAPER_MARGIN + 56
+    right = CANVAS_SIZE[0] - PAPER_MARGIN - 56
+    top = PAPER_MARGIN + 250
+    row_height = 92
+    for row in range(5):
+        y = top + row * row_height + randomizer.randint(-2, 2)
+        draw.line((left, y, right, y), fill=faint, width=2)
+        if row < 4:
+            label_x = right - randomizer.randint(6, 18)
+            draw.line((label_x - 220, y + 42, label_x, y + 42), fill=guide, width=1)
+    box_top = top + 5 * row_height + 54
+    draw.rectangle((left, box_top, right, box_top + 220), outline=faint, width=2)
+    for offset in (180, 390, 620):
+        draw.line((right - offset, box_top, right - offset, box_top + 220), fill=faint, width=1)
+
+
+def _draw_stamp(draw: ImageDraw.ImageDraw, randomizer: random.Random, font: ImageFont.FreeTypeFont) -> None:
+    center_x = PAPER_MARGIN + randomizer.randint(150, 260)
+    center_y = PAPER_MARGIN + randomizer.randint(135, 245)
+    radius_x = randomizer.randint(92, 118)
+    radius_y = randomizer.randint(44, 58)
+    color = (129, 47, 41)
+    draw.ellipse(
+        (center_x - radius_x, center_y - radius_y, center_x + radius_x, center_y + radius_y),
+        outline=color,
+        width=4,
+    )
+    draw.text((center_x + 62, center_y - 13), _rtl_display_text("נבדק"), font=font, fill=color, anchor="ra")
+
+
+def _draw_handwritten_guides(draw: ImageDraw.ImageDraw, randomizer: random.Random) -> None:
+    guide = (209, 198, 177)
+    for row in range(10):
+        y = PAPER_MARGIN + 210 + row * 92 + randomizer.randint(-5, 5)
+        draw.line((PAPER_MARGIN + 65, y, CANVAS_SIZE[0] - PAPER_MARGIN - 70, y), fill=guide, width=1)
+
+
+def _draw_marginalia(
+    draw: ImageDraw.ImageDraw,
+    randomizer: random.Random,
+    font: ImageFont.FreeTypeFont,
+) -> None:
+    notes = ["נבדק", "להמשך", "עותק"]
+    x = PAPER_MARGIN + randomizer.randint(60, 150)
+    y = PAPER_MARGIN + randomizer.randint(430, 680)
+    note = notes[randomizer.randrange(len(notes))]
+    draw.text((x + 115, y), _rtl_display_text(note), font=font, fill=(88, 68, 48), anchor="ra")
+    draw.line((x, y + 44, x + 120, y + 32), fill=(88, 68, 48), width=2)
+    for _ in range(2):
+        sx = x + randomizer.randint(5, 95)
+        sy = y + randomizer.randint(60, 140)
+        draw.arc((sx, sy, sx + 70, sy + 32), start=190, end=345, fill=(94, 72, 50), width=2)
+
+
+def _draw_handwritten_underline(
+    draw: ImageDraw.ImageDraw,
+    randomizer: random.Random,
+    x: int,
+    y: int,
+    width: int,
+) -> None:
+    points = []
+    for step in range(0, width, 24):
+        points.append((x - step, y + randomizer.randint(-2, 3)))
+    if len(points) > 1:
+        draw.line(points, fill=(56, 44, 34), width=2)
 
 
 def _draw_document(
@@ -139,18 +297,30 @@ def _draw_document(
     font_path: Path,
     template_id: str,
 ) -> Image.Image:
-    handwritten = template_id == "handwritten_note"
+    recipe = _recipe_for_template(template_id)
+    handwritten = recipe.font_style == "handwritten_like"
     background = (246, 241, 230) if not handwritten else (243, 235, 220)
-    image = _paper_background(randomizer, CANVAS_SIZE, "handwritten" if handwritten else "printed")
+    image = _paper_background(randomizer, CANVAS_SIZE, recipe.paper_tone).convert("RGBA")
     draw = ImageDraw.Draw(image)
 
     title_font = _load_font(font_path, 62 if not handwritten else 66)
     body_font = _load_font(font_path, 42 if not handwritten else 46)
     footer_font = _load_font(font_path, 28)
+    annotation_font = _load_font(font_path, 30 if handwritten else 26)
+
+    _draw_paper_frame(draw, randomizer, handwritten)
+    _draw_creased_paper(draw, randomizer, handwritten)
+    if handwritten:
+        _draw_handwritten_guides(draw, randomizer)
+        _draw_marginalia(draw, randomizer, annotation_font)
+    else:
+        _draw_printed_form_guides(draw, randomizer)
+        _draw_stamp(draw, randomizer, annotation_font)
+    _draw_stains(image, randomizer, handwritten)
 
     title_x = CANVAS_SIZE[0] - PAPER_MARGIN - randomizer.randint(0, 24)
     title_y = PAPER_MARGIN + randomizer.randint(4, 24)
-    draw.text((title_x, title_y), _rtl_display_text(title), font=title_font, fill=(34, 29, 24), anchor="ra")
+    draw.text((title_x, title_y), _rtl_display_text(title), font=title_font, fill=(34, 29, 24, 255), anchor="ra")
 
     body_top = title_y + (132 if not handwritten else 118)
     max_width = CANVAS_SIZE[0] - (2 * PAPER_MARGIN) - 40
@@ -161,19 +331,36 @@ def _draw_document(
     line_height = 76 if handwritten else 68
     start_x = CANVAS_SIZE[0] - PAPER_MARGIN - randomizer.randint(0, 20)
     for index, line in enumerate(wrapped_lines):
-        x = start_x - randomizer.randint(0, 10 if handwritten else 4)
-        y = body_top + index * line_height + randomizer.randint(-3, 3 if handwritten else 1)
-        draw.text((x, y), _rtl_display_text(line), font=body_font, fill=(33, 28, 23), anchor="ra")
+        x = start_x - randomizer.randint(0, 28 if handwritten else 6)
+        y = body_top + index * line_height + randomizer.randint(-10 if handwritten else -2, 8 if handwritten else 2)
+        ink = randomizer.randint(-8, 7)
+        fill = (max(18, 33 + ink), max(16, 28 + ink), max(12, 23 + ink), 255)
+        draw.text((x, y), _rtl_display_text(line), font=body_font, fill=fill, anchor="ra")
+        if handwritten and index in {0, len(wrapped_lines) - 1}:
+            _draw_handwritten_underline(draw, randomizer, x - 5, y + 52, min(360, max_width // 2))
 
     footer_x = CANVAS_SIZE[0] - PAPER_MARGIN - randomizer.randint(12, 48)
     footer_y = CANVAS_SIZE[1] - PAPER_MARGIN - randomizer.randint(8, 24)
-    draw.text((footer_x, footer_y), _rtl_display_text(footer), font=footer_font, fill=(93, 82, 70), anchor="ra")
+    draw.text((footer_x, footer_y), _rtl_display_text(footer), font=footer_font, fill=(93, 82, 70, 255), anchor="ra")
 
-    return _degrade(image, randomizer, background)
+    if handwritten:
+        for _ in range(3):
+            x = randomizer.randint(PAPER_MARGIN + 120, CANVAS_SIZE[0] - PAPER_MARGIN - 180)
+            y = randomizer.randint(CANVAS_SIZE[1] - PAPER_MARGIN - 220, CANVAS_SIZE[1] - PAPER_MARGIN - 120)
+            radius = randomizer.randint(18, 34)
+            draw.arc((x, y, x + radius * 3, y + radius), start=180, end=360, fill=(63, 50, 38, 255), width=2)
+    else:
+        for column in range(3):
+            x = CANVAS_SIZE[0] - PAPER_MARGIN - 180 - (column * 220)
+            y = CANVAS_SIZE[1] - PAPER_MARGIN - 160
+            draw.line((x - 120, y, x, y), fill=(132, 121, 102, 255), width=2)
+            draw.text((x, y + 12), _rtl_display_text("אישור"), font=annotation_font, fill=(104, 92, 76, 255), anchor="ra")
+
+    return _degrade(image.convert("RGB"), randomizer, background, recipe.degradation_preset)
 
 
 def _select_font(fonts: list[dict], template_id: str) -> dict:
-    target_style = "handwritten_like" if template_id == "handwritten_note" else "printed"
+    target_style = _recipe_for_template(template_id).font_style
     for font in fonts:
         if font.get("style") == target_style:
             return font
@@ -186,7 +373,7 @@ def _select_title(template_id: str, index: int) -> str:
 
 
 def _select_body_lines(randomizer: random.Random, corpus: list[str], template_id: str) -> list[str]:
-    line_count = 3 if template_id == "handwritten_note" else 4
+    line_count = _recipe_for_template(template_id).line_count
     return randomizer.sample(corpus, k=min(line_count, len(corpus)))
 
 
@@ -219,6 +406,7 @@ def generate_documents(
     documents: list[SyntheticDocument] = []
     for index in range(count):
         template_id = template_ids[index % len(template_ids)]
+        recipe = _recipe_for_template(template_id)
         font_entry = _select_font(fonts, template_id)
         font_path = _font_path(font_manifest_path, font_entry)
         title = _select_title(template_id, index)
@@ -233,13 +421,15 @@ def generate_documents(
             font_path=font_path,
             template_id=template_id,
         )
-        image.save(path, format="JPEG", quality=82, optimize=True)
+        image.save(path, format="JPEG", quality=recipe.jpeg_quality, optimize=True)
         documents.append(
             SyntheticDocument(
                 title=title,
                 body="\n".join(body_lines),
                 footer=footer,
                 template_id=template_id,
+                recipe_id=recipe.recipe_id,
+                degradation_preset=recipe.degradation_preset,
                 font_id=str(font_entry["id"]),
                 path=path,
                 sha256=sha256_file(path),

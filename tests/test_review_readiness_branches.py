@@ -151,6 +151,16 @@ def test_classification_private_branches_cover_unknown_and_confidence_paths() ->
     )
     assert _content_class(handwritten_template, bundle)[0] == "handwritten"
 
+    printed_template = _curated_item(
+        item_id="project_synthetic:printed",
+        source_id="project_synthetic",
+        source_item_id="printed",
+        asset_hashes=["a"],
+        metadata={"synthetic_template_id": "printed_letter"},
+        is_synthetic=True,
+    )
+    assert _content_class(printed_template, bundle)[0] == "printed"
+
     printed_text = _curated_item(
         item_id="custom:printed",
         source_id="custom_source",
