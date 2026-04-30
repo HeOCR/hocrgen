@@ -11,10 +11,19 @@ from pathlib import Path
 import pytest
 
 from hocrgen.cli import handle_export_alpha, main
+from hocrgen.annotations import build_annotation_manifest
 from hocrgen.config.loader import default_config_root, load_and_validate_bundle
 from hocrgen.config.models import RightsClassification
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
-from hocrgen.manifests.models import AlphaExportedItemRecord, NormalizedAssetRecord, PrivacyScannedItemRecord, ReviewQueueRecord
+from hocrgen.manifests.models import (
+    AnnotationManifestItemRecord,
+    AlphaExportedItemRecord,
+    LayoutLabelReference,
+    NormalizedAssetRecord,
+    PrivacyScannedItemRecord,
+    ReviewQueueRecord,
+    TranscriptionReference,
+)
 from hocrgen.package.alpha import (
     AlphaExportConfig,
     BenchmarkExportInputs,
@@ -111,6 +120,7 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
     assert payload["export_dir"] == str(output_dir)
     assert (output_dir / "data").exists()
     assert (output_dir / "manifests" / "item_manifest.json").exists()
+    assert (output_dir / "manifests" / "annotation_manifest.json").exists()
     assert (output_dir / "manifests" / "benchmark_manifest.json").exists()
     assert (output_dir / "manifests" / "benchmark_selection_audit.json").exists()
     assert (output_dir / "manifests" / "benchmark_stability_policy.json").exists()
@@ -423,6 +433,7 @@ def test_export_alpha_docs_and_release_record_include_metadata(
     release_record = json.loads((export_dir / "manifests" / "release_record.json").read_text(encoding="utf-8"))
     release_summary = json.loads((export_dir / "manifests" / "release_summary.json").read_text(encoding="utf-8"))
     synthetic_composition = json.loads((export_dir / "manifests" / "synthetic_composition.json").read_text(encoding="utf-8"))
+    annotation_manifest = json.loads((export_dir / "manifests" / "annotation_manifest.json").read_text(encoding="utf-8"))
     dataset_card = (export_dir / "docs" / "DATASET_CARD.md").read_text(encoding="utf-8")
     changelog = (export_dir / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
     release_notes = (export_dir / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
@@ -432,6 +443,11 @@ def test_export_alpha_docs_and_release_record_include_metadata(
     assert release_record["profile_id"] == "profile_open_v1"
     assert release_record["included_sources"] == ["nli_any_use_permitted", "pinkas_open", "project_synthetic"]
     assert release_summary["synthetic_composition"]["by_recipe_id"] == synthetic_composition["by_recipe_id"]
+    assert release_summary["annotation_manifest"]["transcription_item_count"] == 0
+    assert annotation_manifest["subset_id"] == "alpha_export"
+    assert annotation_manifest["transcription_required"] is False
+    assert annotation_manifest["layout_labels_required"] is False
+    assert annotation_manifest["items"][0]["annotation_status"] == "not_available"
     assert synthetic_composition["by_template_id"] == {
         "handwritten_note": 1,
         "printed_letter": 1,
@@ -446,6 +462,8 @@ def test_export_alpha_docs_and_release_record_include_metadata(
     assert "# Changelog: alpha-v0" in changelog
     assert "Release Notes: alpha-v0" in release_notes
     assert "## Synthetic Composition" in dataset_card
+    assert "## Annotation Readiness" in dataset_card
+    assert "Items with transcription references: 0" in release_notes
     assert "`handwritten_note_marginalia_v1`=1" in release_notes
     exported_synthetic_items = [
         item
@@ -456,6 +474,123 @@ def test_export_alpha_docs_and_release_record_include_metadata(
     assert dataset_card.index("`nli_any_use_permitted`") < dataset_card.index("`pinkas_open`")
     assert dataset_card.index("`pinkas_open`") < dataset_card.index("`project_synthetic`")
     assert "`biblia_open`" not in dataset_card
+
+
+def test_annotation_references_reject_nonportable_paths() -> None:
+    rejected_paths = [
+        "",
+        "/tmp/transcription.json",
+        "file:///tmp/transcription.json",
+        "annotations/../../private.json",
+        "../annotations/item-001/transcription.json",
+        "../layouts/item-001/layout.json",
+        "C:/Users/me/transcription.json",
+        r"C:\Users\me\transcription.json",
+        r"annotations\item-001\transcription.json",
+        ".work/run/layout.json",
+    ]
+    for path in rejected_paths:
+        with pytest.raises(ValueError, match="release-relative"):
+            TranscriptionReference(path=path)
+
+    assert TranscriptionReference(path="annotations/item-001/transcription.json").path == "annotations/item-001/transcription.json"
+
+
+def test_annotation_manifest_items_reject_status_reference_contradictions() -> None:
+    transcription = TranscriptionReference(path="annotations/item-001/transcription.json")
+
+    with pytest.raises(ValueError, match="not_available"):
+        AnnotationManifestItemRecord(
+            item_id="item-001",
+            source_id="fixture_source",
+            annotation_status="not_available",
+            transcription=transcription,
+        )
+
+    with pytest.raises(ValueError, match="requires at least one"):
+        AnnotationManifestItemRecord(
+            item_id="item-001",
+            source_id="fixture_source",
+            annotation_status="available",
+        )
+
+    item = AnnotationManifestItemRecord(
+        item_id="item-001",
+        source_id="fixture_source",
+        annotation_status="available",
+        transcription=transcription,
+    )
+    assert item.annotation_status == "available"
+
+
+def test_annotation_manifest_builder_preserves_validated_status() -> None:
+    transcription = TranscriptionReference(path="annotations/item-001/transcription.json")
+    item = PrivacyScannedItemRecord.model_validate(
+        {
+            "annotation_status": "partial",
+            "transcription": transcription.model_dump(mode="python"),
+            "layout_labels": [],
+            "item_id": "item-001",
+            "candidate_id": "fixture_source:source-item-001",
+            "source_id": "fixture_source",
+            "source_item_id": "source-item-001",
+            "source_url": "https://example.test/item-001",
+            "discovery_method": "fixture",
+            "raw_metadata": {},
+            "asset_references": [],
+            "metadata": {},
+            "normalized_license": "PD-IL",
+            "rights_classification": "open",
+            "eligibility": "accepted",
+            "eligibility_reason": "allowed_by_profile",
+            "is_synthetic": False,
+            "provenance": {},
+            "acquired_assets": [],
+            "normalized_assets": [],
+            "qa_status": "passed",
+            "qa_fail_reasons": [],
+            "content_fingerprint": "fingerprint",
+            "dedupe_status": "retained",
+            "canonical_item_id": "item-001",
+            "split": "train",
+            "split_group_id": "group-001",
+            "content_class": "printed",
+            "content_confidence": 1.0,
+            "period_class": "modern",
+            "period_confidence": 1.0,
+            "language_class": "hebrew_only",
+            "language_confidence": 1.0,
+            "quality_score": 1.0,
+            "quality_tier": "high",
+            "classification_review_reasons": [],
+            "privacy_flag": "clear",
+            "privacy_reasons": [],
+            "privacy_decision": "release_ready",
+        }
+    )
+
+    manifest = build_annotation_manifest([item], subset_id="fixture_subset")
+
+    assert manifest.items[0].annotation_status == "partial"
+    assert manifest.annotated_item_count == 1
+    assert manifest.transcription_item_count == 1
+
+
+def test_annotation_manifest_builder_derives_status_when_missing() -> None:
+    transcription = TranscriptionReference(path="annotations/item-001/transcription.json")
+    item = Namespace(
+        item_id="item-001",
+        source_id="fixture_source",
+        split="train",
+        transcription=transcription,
+        layout_labels=[],
+    )
+
+    manifest = build_annotation_manifest([item], subset_id="fixture_subset")
+
+    assert manifest.items[0].annotation_status == "available"
+    assert manifest.annotated_item_count == 1
+    assert manifest.transcription_item_count == 1
 
 
 def test_export_alpha_auto_discovers_previous_sibling_release(tmp_path: Path, capsys) -> None:

@@ -13,6 +13,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
+from hocrgen.annotations import build_annotation_manifest
 from hocrgen.config.loader import ConfigBundle
 from hocrgen.config.models import ReleaseProfile, SourceConfig
 from hocrgen.core.errors import StageExecutionError
@@ -137,6 +138,7 @@ def export_alpha_release(
     classification_stats = _build_classification_stats(exported_items)
     privacy_stats = _build_privacy_stats(exported_items)
     synthetic_composition = synthetic_composition_report(exported_items)
+    annotation_manifest = build_annotation_manifest(exported_items, subset_id="alpha_export")
     split_counts = dict(Counter(item.split for item in exported_items if item.split))
     exported_real_items = sum(1 for item in exported_items if not item.is_synthetic)
     exported_synthetic_items = sum(1 for item in exported_items if item.is_synthetic)
@@ -174,6 +176,13 @@ def export_alpha_release(
         "synthetic_items": exported_synthetic_items,
         "synthetic_clamped_to_real": synthetic_limit < config.max_synthetic_items,
         "synthetic_composition": synthetic_composition,
+        "annotation_manifest": {
+            "annotated_item_count": annotation_manifest.annotated_item_count,
+            "transcription_item_count": annotation_manifest.transcription_item_count,
+            "layout_label_item_count": annotation_manifest.layout_label_item_count,
+            "transcription_required": annotation_manifest.transcription_required,
+            "layout_labels_required": annotation_manifest.layout_labels_required,
+        },
         "version": config.version,
     }
     baseline_dir = _resolve_comparison_release(export_dir, config)
@@ -194,6 +203,7 @@ def export_alpha_release(
     write_json(manifests_dir / "split_manifest.json", {"items": [item.model_dump(mode="json") for item in selected_split_manifest]})
     write_json(manifests_dir / "source_stats.json", source_stats)
     write_json(manifests_dir / "synthetic_composition.json", synthetic_composition)
+    write_json(manifests_dir / "annotation_manifest.json", annotation_manifest.model_dump(mode="json"))
     write_json(manifests_dir / "classification_stats.json", classification_stats)
     write_json(manifests_dir / "privacy_stats.json", privacy_stats)
     write_json(manifests_dir / "release_summary.json", release_summary)
@@ -254,6 +264,7 @@ def export_alpha_release(
             "release_diff": "manifests/release_diff.json",
             "release_record": "manifests/release_record.json",
             "release_summary": "manifests/release_summary.json",
+            "annotation_manifest": "manifests/annotation_manifest.json",
             "stage": "export-alpha",
             "synthetic_composition": "manifests/synthetic_composition.json",
             "version": config.version,
@@ -264,6 +275,7 @@ def export_alpha_release(
         manifests_dir / "split_manifest.json",
         manifests_dir / "source_stats.json",
         manifests_dir / "synthetic_composition.json",
+        manifests_dir / "annotation_manifest.json",
         manifests_dir / "classification_stats.json",
         manifests_dir / "privacy_stats.json",
         manifests_dir / "release_summary.json",
@@ -738,6 +750,10 @@ def _dataset_card(
             "## Synthetic Composition",
             *(_synthetic_composition_lines(synthetic_composition)),
             "",
+            "## Annotation Readiness",
+            "- Transcriptions are optional and are not required for this alpha payload.",
+            "- `manifests/annotation_manifest.json` defines the additive transcription and layout-label slots for future annotated subsets.",
+            "",
             "## Known Limitations",
             "- This is an alpha release, not a full corpus snapshot.",
             "- Kaggle and Hugging Face publication are intentionally deferred.",
@@ -783,6 +799,12 @@ def _release_notes(
             "",
             "## Synthetic Composition",
             *(_synthetic_composition_lines(synthetic_composition)),
+            "",
+            "## Annotation Readiness",
+            f"- Annotated items: {release_summary['annotation_manifest']['annotated_item_count']}",
+            f"- Items with transcription references: {release_summary['annotation_manifest']['transcription_item_count']}",
+            f"- Items with layout-label references: {release_summary['annotation_manifest']['layout_label_item_count']}",
+            "- Current alpha exports do not require transcriptions or layout labels.",
             "",
             "## Compared To Previous Release",
             f"- {comparison_summary}",
