@@ -14,7 +14,7 @@ The pre-alpha blocker sequence is now complete:
 3. the Pinkas exemplar is a text-bearing historical page
 4. synthetic alpha output preserves Hebrew ordering and uses the `2x real items` cap
 
-The remaining work after this document is no longer alpha freeze. `C5b`, `C6a`, `D1a`, `D2a`, `D3a`, and `D4a` are now represented in the current-ref roadmap state: review decisions can merge back into the pipeline, release-to-release changes are explainable, scheduled dry-run maintenance exists, source-operations health/freeze reporting is available, the first explicitly approved benchmark subset exists, and synthetic rendering has a richer visual realism pass. The next planned milestone is `D4b`, synthetic diversity controls and reporting hardening.
+The remaining work after this document is no longer alpha freeze. `C5b`, `C6a`, `D1a`, `D2a`, `D3a`, `D4a`, and `D4b` are now represented in the current-ref roadmap state: review decisions can merge back into the pipeline, release-to-release changes are explainable, scheduled dry-run maintenance exists, source-operations health/freeze reporting is available, the first explicitly approved benchmark subset exists, synthetic rendering has a richer visual realism pass, and synthetic diversity controls/reporting are available. The next planned milestone is `D5a`, optional transcription-ready architecture foundations.
 
 ## Pre-Alpha PR Sequence
 
@@ -105,7 +105,7 @@ These items remain important, but they should not block the first alpha unless a
 - diversity reporting and richer synthetic filtering/reporting
 - synthetic subset selection controls built on stable D4a recipe/degradation metadata
 
-`D4a` is now implemented on the current ref as a visual realism pass over the existing packaged fonts, text corpus, and template IDs.
+`D4a` and `D4b` are now implemented on the current ref over the existing packaged fonts, text corpus, template IDs, and D4a metadata.
 
 ### `C5b` — review-decision merge and operational review loop
 
@@ -123,7 +123,7 @@ This milestone is now implemented in `hocrgen` via the dedicated `review-merge` 
 - evaluation utilities
 - community contribution maturity
 
-`C6a`, `D1a`, `D2a`, `D3a`, and `D4a` are complete on the current ref. The next planned milestone after this document is `D4b`.
+`C6a`, `D1a`, `D2a`, `D3a`, `D4a`, and `D4b` are complete on the current ref. The next planned milestone after this document is `D5a`.
 
 ## Working Rules For The Pre-Alpha Sequence
 

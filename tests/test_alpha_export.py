@@ -391,6 +391,8 @@ def test_export_alpha_docs_and_release_record_include_metadata(
     payload = json.loads(capsys.readouterr().out)
     export_dir = Path(payload["export_dir"])
     release_record = json.loads((export_dir / "manifests" / "release_record.json").read_text(encoding="utf-8"))
+    release_summary = json.loads((export_dir / "manifests" / "release_summary.json").read_text(encoding="utf-8"))
+    synthetic_composition = json.loads((export_dir / "manifests" / "synthetic_composition.json").read_text(encoding="utf-8"))
     dataset_card = (export_dir / "docs" / "DATASET_CARD.md").read_text(encoding="utf-8")
     changelog = (export_dir / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
     release_notes = (export_dir / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
@@ -399,6 +401,11 @@ def test_export_alpha_docs_and_release_record_include_metadata(
 
     assert release_record["profile_id"] == "profile_open_v1"
     assert release_record["included_sources"] == ["nli_any_use_permitted", "pinkas_open", "project_synthetic"]
+    assert release_summary["synthetic_composition"]["by_recipe_id"] == synthetic_composition["by_recipe_id"]
+    assert synthetic_composition["by_template_id"] == {
+        "handwritten_note": 1,
+        "printed_letter": 1,
+    }
     if git_result.returncode == 0:
         current_commit = git_result.stdout.strip()
         assert release_record["hocrgen_commit"] == current_commit
@@ -408,6 +415,8 @@ def test_export_alpha_docs_and_release_record_include_metadata(
     assert "# HeOCR alpha-v0" in dataset_card
     assert "# Changelog: alpha-v0" in changelog
     assert "Release Notes: alpha-v0" in release_notes
+    assert "## Synthetic Composition" in dataset_card
+    assert "`handwritten_note_marginalia_v1`=1" in release_notes
     assert dataset_card.index("`nli_any_use_permitted`") < dataset_card.index("`pinkas_open`")
     assert dataset_card.index("`pinkas_open`") < dataset_card.index("`project_synthetic`")
     assert "`biblia_open`" not in dataset_card

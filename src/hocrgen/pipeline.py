@@ -45,6 +45,7 @@ from hocrgen.privacy.rules import apply_privacy_rules
 from hocrgen.review.queue import export_review_queue
 from hocrgen.source_ops import evaluate_source_health, source_health_summary
 from hocrgen.split.assign import assign_splits
+from hocrgen.synthetic.reporting import synthetic_composition_report
 
 
 PIPELINE_STAGES = (
@@ -586,6 +587,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     leakage_report_path = stage_dir / "leakage_report.json"
     release_summary_path = stage_dir / "release_summary.json"
     source_stats_path = stage_dir / "source_stats.json"
+    synthetic_composition_path = stage_dir / "synthetic_composition.json"
     classification_stats_path = stage_dir / "classification_stats.json"
     privacy_stats_path = stage_dir / "privacy_stats.json"
     benchmark_manifest_path = stage_dir / "benchmark_manifest.json"
@@ -618,6 +620,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         "privacy_reason": dict(Counter(reason for item in state.privacy_scanned_items for reason in item.privacy_reasons)),
         "source_id": dict(Counter(item.source_id for item in state.privacy_scanned_items)),
     }
+    synthetic_composition = synthetic_composition_report(state.release_ready_items)
     try:
         benchmark_config = load_benchmark_config(bundle.config_root)
     except ConfigValidationError as exc:
@@ -646,6 +649,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     write_json(leakage_report_path, state.leakage_report)
     write_json(classification_stats_path, classification_stats)
     write_json(privacy_stats_path, privacy_stats)
+    write_json(synthetic_composition_path, synthetic_composition)
     write_json(benchmark_manifest_path, {"items": _dump_models(state.benchmark_items)})
     write_json(benchmark_selection_audit_path, {"items": _dump_models(state.benchmark_selection_audit)})
     write_json(benchmark_stability_policy_path, state.benchmark_stability_policy)
@@ -661,6 +665,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             "sources": retained_source_counts,
             "sources_by_split": source_split_counts,
             "splits": split_counts,
+            "synthetic_composition": synthetic_composition,
         },
     )
     write_json(
@@ -688,6 +693,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             "review_unresolved_count": len(state.review_required_items),
             "split_counts": split_counts,
             "synthetic_items": sum(1 for item in state.release_ready_items if item.is_synthetic),
+            "synthetic_composition": synthetic_composition,
             "benchmark_id": benchmark_outputs.config.benchmark_id,
             "benchmark_item_count": len(state.benchmark_items),
         },
@@ -713,6 +719,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             "review_required_items": str(review_required_items_path.relative_to(context.run_dir)),
             "split_manifest": str(split_manifest_path.relative_to(context.run_dir)),
             "source_stats": str(source_stats_path.relative_to(context.run_dir)),
+            "synthetic_composition": str(synthetic_composition_path.relative_to(context.run_dir)),
             "stage": "build-release",
         },
     )
@@ -732,6 +739,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             leakage_report_path,
             release_summary_path,
             source_stats_path,
+            synthetic_composition_path,
             classification_stats_path,
             privacy_stats_path,
             benchmark_manifest_path,

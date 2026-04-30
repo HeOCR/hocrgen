@@ -184,6 +184,10 @@ def _recipe_for_template(template_id: str) -> SyntheticRecipe:
     raise ValueError(f"Unsupported synthetic template_id: {template_id}")
 
 
+def recipe_catalog(template_ids: list[str]) -> dict[str, SyntheticRecipe]:
+    return {template_id: _recipe_for_template(template_id) for template_id in template_ids}
+
+
 def _draw_paper_frame(draw: ImageDraw.ImageDraw, randomizer: random.Random, handwritten: bool) -> None:
     edge = (193, 181, 158) if handwritten else (203, 195, 176)
     shadow = (220, 211, 191) if handwritten else (226, 219, 202)

@@ -228,6 +228,39 @@ def test_synthetic_template_recipes_are_distinct_and_deterministic(tmp_path: Pat
     assert first[0].sha256 != first[1].sha256
 
 
+def test_synthetic_controls_filter_by_recipe_and_degradation_preset(tmp_path: Path) -> None:
+    bundle = load_and_validate_bundle()
+    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    fetcher = SyntheticFetcher()
+    options = StageOptions(
+        synthetic_recipe_filter={"handwritten_note_marginalia_v1"},
+        synthetic_degradation_filter={"notebook_scan_worn"},
+    )
+
+    candidates = fetcher.discover_candidates(source, bundle, options)
+    enriched = fetcher.fetch_candidate_metadata(source, bundle, candidates, options)
+    items = [
+        ItemRecord(
+            **record.model_dump(),
+            item_id=f"{record.source_id}:{record.source_item_id}",
+            normalized_license="PROJECT-SYNTHETIC",
+            rights_classification="open",
+            eligibility="accepted",
+            eligibility_reason="allowed_by_profile",
+            is_synthetic=True,
+            provenance={"source_name": source.name, "fetcher": source.fetcher, "upstream_identifier": record.source_item_id},
+        )
+        for record in enriched
+    ]
+
+    acquired = fetcher.acquire_items(source, bundle, items, tmp_path / "out", options)
+
+    assert {candidate.raw_metadata["synthetic_template_id"] for candidate in candidates} == {"handwritten_note"}
+    assert {item.metadata["synthetic_recipe_id"] for item in enriched} == {"handwritten_note_marginalia_v1"}
+    assert {item.metadata["synthetic_template_id"] for item in acquired} == {"handwritten_note"}
+    assert {item.metadata["synthetic_degradation_preset"] for item in acquired} == {"notebook_scan_worn"}
+
+
 def test_synthetic_visual_recipes_render_expected_page_features(tmp_path: Path) -> None:
     bundle = load_and_validate_bundle()
     source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")

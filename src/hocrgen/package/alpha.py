@@ -34,6 +34,7 @@ from hocrgen.manifests.models import (
     SplitAssignmentRecord,
 )
 from hocrgen.normalize.files import sanitize_item_id
+from hocrgen.synthetic.reporting import synthetic_composition_report
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -135,6 +136,7 @@ def export_alpha_release(
     source_stats = _build_source_stats(exported_items, selected_duplicate_relations)
     classification_stats = _build_classification_stats(exported_items)
     privacy_stats = _build_privacy_stats(exported_items)
+    synthetic_composition = synthetic_composition_report(exported_items)
     split_counts = dict(Counter(item.split for item in exported_items if item.split))
     exported_real_items = sum(1 for item in exported_items if not item.is_synthetic)
     exported_synthetic_items = sum(1 for item in exported_items if item.is_synthetic)
@@ -171,6 +173,7 @@ def export_alpha_release(
         "split_counts": split_counts,
         "synthetic_items": exported_synthetic_items,
         "synthetic_clamped_to_real": synthetic_limit < config.max_synthetic_items,
+        "synthetic_composition": synthetic_composition,
         "version": config.version,
     }
     baseline_dir = _resolve_comparison_release(export_dir, config)
@@ -190,6 +193,7 @@ def export_alpha_release(
     write_json(manifests_dir / "item_manifest.json", {"items": [_public_item_payload(item) for item in exported_items]})
     write_json(manifests_dir / "split_manifest.json", {"items": [item.model_dump(mode="json") for item in selected_split_manifest]})
     write_json(manifests_dir / "source_stats.json", source_stats)
+    write_json(manifests_dir / "synthetic_composition.json", synthetic_composition)
     write_json(manifests_dir / "classification_stats.json", classification_stats)
     write_json(manifests_dir / "privacy_stats.json", privacy_stats)
     write_json(manifests_dir / "release_summary.json", release_summary)
@@ -251,6 +255,7 @@ def export_alpha_release(
             "release_record": "manifests/release_record.json",
             "release_summary": "manifests/release_summary.json",
             "stage": "export-alpha",
+            "synthetic_composition": "manifests/synthetic_composition.json",
             "version": config.version,
         },
     )
@@ -258,6 +263,7 @@ def export_alpha_release(
         manifests_dir / "item_manifest.json",
         manifests_dir / "split_manifest.json",
         manifests_dir / "source_stats.json",
+        manifests_dir / "synthetic_composition.json",
         manifests_dir / "classification_stats.json",
         manifests_dir / "privacy_stats.json",
         manifests_dir / "release_summary.json",
@@ -706,6 +712,7 @@ def _dataset_card(
     included_sources: list[str],
 ) -> str:
     split_counts = Counter(item.split for item in items if item.split)
+    synthetic_composition = synthetic_composition_report(items)
     return "\n".join(
         [
             f"# HeOCR {version}",
@@ -728,6 +735,9 @@ def _dataset_card(
             "## Split Counts",
             *[f"- `{split}`: {count}" for split, count in sorted(split_counts.items(), key=lambda item: _split_sort_key(item[0]))],
             "",
+            "## Synthetic Composition",
+            *(_synthetic_composition_lines(synthetic_composition)),
+            "",
             "## Known Limitations",
             "- This is an alpha release, not a full corpus snapshot.",
             "- Kaggle and Hugging Face publication are intentionally deferred.",
@@ -745,6 +755,7 @@ def _release_notes(
     release_diff: ReleaseDiffRecord,
 ) -> str:
     split_counts = release_summary["split_counts"]
+    synthetic_composition = release_summary["synthetic_composition"]
     comparison_summary = (
         f"Compared to `{release_diff.previous_version}`: +{release_diff.counts['added']} / "
         f"-{release_diff.counts['removed']} / ~{release_diff.counts['changed']}. "
@@ -770,6 +781,9 @@ def _release_notes(
             "## Included Sources",
             *[f"- `{source_id}`: {source_stats['sources'][source_id]} items" for source_id in included_sources],
             "",
+            "## Synthetic Composition",
+            *(_synthetic_composition_lines(synthetic_composition)),
+            "",
             "## Compared To Previous Release",
             f"- {comparison_summary}",
             "",
@@ -780,6 +794,17 @@ def _release_notes(
             "",
         ]
     )
+
+
+def _synthetic_composition_lines(report: dict[str, Any]) -> list[str]:
+    if report["synthetic_items"] == 0:
+        return ["- Synthetic items: 0"]
+    return [
+        f"- Synthetic items: {report['synthetic_items']} ({report['synthetic_fraction']:.2%} of exported items)",
+        "- Recipes: " + ", ".join(f"`{recipe}`={count}" for recipe, count in sorted(report["by_recipe_id"].items())),
+        "- Degradation presets: "
+        + ", ".join(f"`{preset}`={count}" for preset, count in sorted(report["by_degradation_preset"].items())),
+    ]
 
 
 def _changelog_doc(version: str, release_diff: ReleaseDiffRecord) -> str:

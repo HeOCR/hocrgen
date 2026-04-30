@@ -47,6 +47,7 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     split_manifest = json.loads((run_dir / "split" / "split_manifest.json").read_text(encoding="utf-8"))
     release_summary = json.loads((run_dir / "build_release" / "release_summary.json").read_text(encoding="utf-8"))
     source_stats = json.loads((run_dir / "build_release" / "source_stats.json").read_text(encoding="utf-8"))
+    synthetic_composition = json.loads((run_dir / "build_release" / "synthetic_composition.json").read_text(encoding="utf-8"))
     item_manifest = json.loads((run_dir / "build_release" / "item_manifest.json").read_text(encoding="utf-8"))
     removed_duplicate_items = json.loads((run_dir / "build_release" / "removed_duplicate_items.json").read_text(encoding="utf-8"))
     review_required_items = json.loads((run_dir / "build_release" / "review_required_items.json").read_text(encoding="utf-8"))
@@ -81,6 +82,17 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert source_stats["sources"]["nli_any_use_permitted"] == 1
     assert source_stats["sources"]["pinkas_open"] == 1
     assert source_stats["sources"]["project_synthetic"] == 2
+    assert source_stats["synthetic_composition"]["by_recipe_id"] == {
+        "handwritten_note_marginalia_v1": 1,
+        "printed_letter_form_v1": 1,
+    }
+    assert synthetic_composition["synthetic_items"] == 2
+    assert synthetic_composition["real_items"] == 2
+    assert synthetic_composition["by_degradation_preset"] == {
+        "notebook_scan_worn": 1,
+        "office_scan_soft": 1,
+    }
+    assert synthetic_composition["missing_metadata"] == {}
     assert "biblia_open" not in source_stats["sources"]
     assert len(split_manifest["items"]) == 4
     assert len(item_manifest["items"]) == 4

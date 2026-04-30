@@ -61,6 +61,14 @@ def build_parser() -> argparse.ArgumentParser:
     export_alpha_parser.add_argument("--source", action="append", default=None, help="Limit execution to one or more source ids")
     export_alpha_parser.add_argument("--max-items", type=int, default=None, help="Limit items per source during discovery/import")
     export_alpha_parser.add_argument("--seed", type=int, default=None, help="Override the synthetic generator seed")
+    export_alpha_parser.add_argument("--synthetic-template", action="append", default=None, help="Limit synthetic generation to one or more template ids")
+    export_alpha_parser.add_argument("--synthetic-recipe", action="append", default=None, help="Limit synthetic generation to one or more recipe ids")
+    export_alpha_parser.add_argument(
+        "--synthetic-degradation-preset",
+        action="append",
+        default=None,
+        help="Limit synthetic generation to one or more degradation preset ids",
+    )
     export_alpha_parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
     export_alpha_parser.add_argument("--version", default="alpha-v0", help="Versioned release folder name")
     export_alpha_parser.add_argument("--output-dir", type=Path, default=None, help="Override the alpha export root directory")
@@ -90,6 +98,14 @@ def build_parser() -> argparse.ArgumentParser:
         stage_parser.add_argument("--source", action="append", default=None, help="Limit execution to one or more source ids")
         stage_parser.add_argument("--max-items", type=int, default=None, help="Limit items per source during discovery/import")
         stage_parser.add_argument("--seed", type=int, default=None, help="Override the synthetic generator seed")
+        stage_parser.add_argument("--synthetic-template", action="append", default=None, help="Limit synthetic generation to one or more template ids")
+        stage_parser.add_argument("--synthetic-recipe", action="append", default=None, help="Limit synthetic generation to one or more recipe ids")
+        stage_parser.add_argument(
+            "--synthetic-degradation-preset",
+            action="append",
+            default=None,
+            help="Limit synthetic generation to one or more degradation preset ids",
+        )
         stage_parser.add_argument("--resume-run-dir", type=Path, default=None, help="Resume from a previous run directory")
         stage_parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
         stage_parser.set_defaults(handler=handle_stage, stage_name=stage)
@@ -103,6 +119,20 @@ def _print_json(payload: dict) -> None:
 
 def _load_bundle(config_root: Path | None) -> ConfigBundle:
     return load_and_validate_bundle(config_root.resolve() if config_root else None)
+
+
+def _stage_options_from_args(args: argparse.Namespace) -> StageOptions:
+    synthetic_template = getattr(args, "synthetic_template", None)
+    synthetic_recipe = getattr(args, "synthetic_recipe", None)
+    synthetic_degradation_preset = getattr(args, "synthetic_degradation_preset", None)
+    return StageOptions(
+        source_filter=set(args.source) if args.source else None,
+        max_items=args.max_items,
+        synthetic_seed=args.seed,
+        synthetic_template_filter=set(synthetic_template) if synthetic_template else None,
+        synthetic_recipe_filter=set(synthetic_recipe) if synthetic_recipe else None,
+        synthetic_degradation_filter=set(synthetic_degradation_preset) if synthetic_degradation_preset else None,
+    )
 
 
 def handle_config_validate(args: argparse.Namespace) -> int:
@@ -158,11 +188,7 @@ def handle_stage(args: argparse.Namespace) -> int:
     )
 
     run_path = write_run_metadata(context)
-    options = StageOptions(
-        source_filter=set(args.source) if args.source else None,
-        max_items=args.max_items,
-        synthetic_seed=args.seed,
-    )
+    options = _stage_options_from_args(args)
     initial_state = None
     start_stage = None
     if args.resume_run_dir is not None:
@@ -254,11 +280,7 @@ def handle_export_alpha(args: argparse.Namespace) -> int:
     )
 
     run_path = write_run_metadata(context)
-    options = StageOptions(
-        source_filter=set(args.source) if args.source else None,
-        max_items=args.max_items,
-        synthetic_seed=args.seed,
-    )
+    options = _stage_options_from_args(args)
     try:
         stage_results = execute_pipeline("build-release", bundle, context, options)
     except StageExecutionError as exc:
