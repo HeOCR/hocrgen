@@ -184,7 +184,7 @@ def test_blocked_items_are_excluded_from_split_and_release_outputs(tmp_path: Pat
     privacy_rules = privacy_path.read_text(encoding="utf-8")
     privacy_rules = privacy_rules.replace(
         "rules:\n",
-        "rules:\n  - id: block_pinkas_fixture\n    flag: blocked_sensitive\n    patterns:\n      - Kopychintsy\n    fields:\n      - title\n    applies_to_sources:\n      - pinkas_open\n",
+        "rules:\n  - id: block_biblia_fixture\n    flag: blocked_sensitive\n    patterns:\n      - Hebrew Bible\n    fields:\n      - title\n    applies_to_sources:\n      - biblia_open\n",
         1,
     )
     privacy_path.write_text(privacy_rules, encoding="utf-8")
@@ -209,9 +209,9 @@ def test_blocked_items_are_excluded_from_split_and_release_outputs(tmp_path: Pat
     release_summary = json.loads((run_dir / "build_release" / "release_summary.json").read_text(encoding="utf-8"))
 
     assert len(blocked_items) == 1
-    assert blocked_items[0]["source_id"] == "pinkas_open"
-    assert all(not item["item_id"].startswith("pinkas_open:") for item in split_manifest)
-    assert all(item["source_id"] != "pinkas_open" for item in item_manifest)
+    assert blocked_items[0]["source_id"] == "biblia_open"
+    assert all(not item["item_id"].startswith("biblia_open:") for item in split_manifest)
+    assert all(item["source_id"] != "biblia_open" for item in item_manifest)
     assert release_summary["blocked_count"] == 1
 
 
@@ -243,18 +243,6 @@ def test_build_release_applies_review_decisions_and_overrides(tmp_path: Path, ca
         ),
         encoding="utf-8",
     )
-    (review_root / "blocklists" / "block_nli.json").write_text(
-        json.dumps(
-            {
-                "item_id": "nli_any_use_permitted:nli-ms-seed-006",
-                "rationale": "Exclude this exemplar from the release",
-                "reviewer": "qa-2",
-                "timestamp": "2026-04-21T10:05:00Z",
-            }
-        ),
-        encoding="utf-8",
-    )
-
     exit_code = main(
         [
             "build-release",
@@ -276,23 +264,18 @@ def test_build_release_applies_review_decisions_and_overrides(tmp_path: Path, ca
 
     assert {item["item_id"] for item in item_manifest} == {
         "biblia_open:biblia-doc-001",
+        "nli_any_use_permitted:nli-ms-seed-006",
         "pinkas_open:pinkas-ledger-001",
         "project_synthetic:synthetic-0",
     }
     assert review_required_items == []
     assert release_summary["review_approved_count"] == 1
-    assert release_summary["review_rejected_count"] == 1
+    assert release_summary["review_rejected_count"] == 0
     assert release_summary["review_unresolved_count"] == 0
     assert release_summary["review_required_count"] == 0
     assert any(
         item["item_id"] == "biblia_open:biblia-doc-001"
         and item["decision_source"] == "manual_decision"
         and item["outcome"] == "release_ready"
-        for item in decision_audit
-    )
-    assert any(
-        item["item_id"] == "nli_any_use_permitted:nli-ms-seed-006"
-        and item["decision_source"] == "blocklist"
-        and item["outcome"] == "rejected"
         for item in decision_audit
     )

@@ -18,6 +18,8 @@ from hocrgen.manifests.io import write_json
 from hocrgen.manifests.models import (
     AlphaExportedItemRecord,
     AlphaReleaseRecord,
+    BenchmarkItemRecord,
+    BenchmarkSelectionAuditRecord,
     CuratedItemRecord,
     DuplicateClusterRecord,
     DuplicateRelationRecord,
@@ -88,6 +90,10 @@ def export_alpha_release(
     duplicate_clusters = _load_models(build_dir / "duplicate_clusters.json", DuplicateClusterRecord)
     removed_duplicate_items = _load_models(build_dir / "removed_duplicate_items.json", CuratedItemRecord)
     review_queue = _load_models(build_dir / "review_queue.json", ReviewQueueRecord)
+    benchmark_items = _load_models(build_dir / "benchmark_manifest.json", BenchmarkItemRecord)
+    benchmark_selection_audit = _load_models(build_dir / "benchmark_selection_audit.json", BenchmarkSelectionAuditRecord)
+    benchmark_stability_policy = _load_json(build_dir / "benchmark_stability_policy.json")
+    benchmark_card = (build_dir / "BENCHMARK_CARD.md").read_text(encoding="utf-8")
     build_release_summary = _load_json(build_dir / "release_summary.json")
 
     selected_items = _select_alpha_items(release_items, profile, config)
@@ -95,6 +101,9 @@ def export_alpha_release(
         raise StageExecutionError("alpha export selection is empty")
 
     selected_ids = {item.item_id for item in selected_items}
+    selected_benchmark_items = [item for item in benchmark_items if item.item_id in selected_ids]
+    selected_benchmark_ids = {item.item_id for item in selected_benchmark_items}
+    selected_benchmark_audit = [item for item in benchmark_selection_audit if item.item_id in selected_benchmark_ids]
     included_sources = _ordered_sources(profile, {item.source_id for item in selected_items})
     selected_split_manifest = [assignment for assignment in split_manifest if assignment.item_id in selected_ids]
     review_required_ids = {item.item_id for item in review_required_items}
@@ -183,6 +192,12 @@ def export_alpha_release(
     )
     write_json(manifests_dir / "release_record.json", release_record.model_dump(mode="json"))
     write_json(manifests_dir / "release_diff.json", release_diff.model_dump(mode="json"))
+    write_json(manifests_dir / "benchmark_manifest.json", {"items": [item.model_dump(mode="json") for item in selected_benchmark_items]})
+    write_json(
+        manifests_dir / "benchmark_selection_audit.json",
+        {"items": [item.model_dump(mode="json") for item in selected_benchmark_audit]},
+    )
+    write_json(manifests_dir / "benchmark_stability_policy.json", benchmark_stability_policy)
 
     _write_markdown(
         docs_dir / "DATASET_CARD.md",
@@ -212,6 +227,7 @@ def export_alpha_release(
             handoff_repo_root,
         ),
     )
+    _write_markdown(docs_dir / "BENCHMARK_CARD.md", benchmark_card)
 
     summary_path = run_dir / "export_alpha" / "summary.json"
     write_json(
@@ -241,11 +257,15 @@ def export_alpha_release(
         manifests_dir / "review_queue.json",
         manifests_dir / "release_record.json",
         manifests_dir / "release_diff.json",
+        manifests_dir / "benchmark_manifest.json",
+        manifests_dir / "benchmark_selection_audit.json",
+        manifests_dir / "benchmark_stability_policy.json",
         docs_dir / "DATASET_CARD.md",
         docs_dir / "CHANGELOG.md",
         docs_dir / "RELEASE_NOTES.md",
         docs_dir / "PROVENANCE.md",
         docs_dir / "HANDOFF.md",
+        docs_dir / "BENCHMARK_CARD.md",
         summary_path,
     ]
     return AlphaExportResult(

@@ -13,6 +13,7 @@ def test_config_validate_command_succeeds(capsys) -> None:
     assert exit_code == 0
     assert payload["status"] == "ok"
     assert payload["profile_count"] == 2
+    assert payload["benchmark"] == {"approved_item_count": 3, "benchmark_id": "benchmark_v1", "version": 1}
     assert payload["privacy_rules_version"] == 1
     assert payload["quality_thresholds_version"] == 1
     assert payload["review_data_counts"] == {"allowlist": 0, "blocklist": 0, "manual_decisions": 0}
@@ -36,6 +37,10 @@ def test_build_release_command_creates_real_manifests(tmp_path: Path, capsys) ->
     assert (run_dir / "review" / "queue.json").exists()
     assert (run_dir / "review_merge" / "decision_audit.json").exists()
     assert (run_dir / "split" / "split_manifest.json").exists()
+    assert (run_dir / "build_release" / "benchmark_manifest.json").exists()
+    assert (run_dir / "build_release" / "benchmark_selection_audit.json").exists()
+    assert (run_dir / "build_release" / "benchmark_stability_policy.json").exists()
+    assert (run_dir / "build_release" / "BENCHMARK_CARD.md").exists()
     assert (run_dir / "build_release" / "release_summary.json").exists()
 
 

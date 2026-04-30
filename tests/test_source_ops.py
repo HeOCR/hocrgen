@@ -73,7 +73,7 @@ def _item_from_enriched(record: EnrichedCandidateRecord, *, synthetic: bool = Fa
 
 def test_frozen_source_is_skipped_and_reported(tmp_path: Path, capsys) -> None:
     config_root = _copy_config(tmp_path)
-    _update_source_operations(config_root, "pinkas_open", status="frozen", reason="upstream refresh paused")
+    _update_source_operations(config_root, "biblia_open", status="frozen", reason="upstream refresh paused")
 
     exit_code = main(
         [
@@ -93,24 +93,24 @@ def test_frozen_source_is_skipped_and_reported(tmp_path: Path, capsys) -> None:
     source_stats = json.loads((run_dir / "build_release" / "source_stats.json").read_text(encoding="utf-8"))
 
     assert exit_code == 0
-    pinkas_health = next(source for source in source_health["sources"] if source["source_id"] == "pinkas_open")
-    assert pinkas_health["selected"] is False
-    assert pinkas_health["skipped"] is True
-    assert pinkas_health["skip_reason"] == "source_frozen"
-    assert "pinkas_open" not in source_stats["sources"]
+    biblia_health = next(source for source in source_health["sources"] if source["source_id"] == "biblia_open")
+    assert biblia_health["selected"] is False
+    assert biblia_health["skipped"] is True
+    assert biblia_health["skip_reason"] == "source_frozen"
+    assert "biblia_open" not in source_stats["sources"]
     assert source_stats["source_health"]["skipped_sources"] == [
         {
             "operational_reason": "upstream refresh paused",
             "operational_status": "frozen",
             "skip_reason": "source_frozen",
-            "source_id": "pinkas_open",
+            "source_id": "biblia_open",
         }
     ]
 
 
 def test_degraded_source_is_skipped_and_reported(tmp_path: Path, capsys) -> None:
     config_root = _copy_config(tmp_path)
-    _update_source_operations(config_root, "project_synthetic", status="degraded", reason="synthetic asset audit in progress")
+    _update_source_operations(config_root, "biblia_open", status="degraded", reason="fixture audit in progress")
 
     exit_code = main(
         [
@@ -129,7 +129,7 @@ def test_degraded_source_is_skipped_and_reported(tmp_path: Path, capsys) -> None
     source_stats = json.loads((run_dir / "build_release" / "source_stats.json").read_text(encoding="utf-8"))
 
     assert exit_code == 0
-    assert "project_synthetic" not in source_stats["sources"]
+    assert "biblia_open" not in source_stats["sources"]
     assert source_stats["source_health"]["degraded_source_count"] == 1
     assert source_stats["source_health"]["skipped_sources"][0]["skip_reason"] == "source_degraded"
 
@@ -150,7 +150,7 @@ def test_active_source_health_is_emitted_in_discover_and_build_release(tmp_path:
 
 def test_summarize_run_markdown_includes_source_health_warning(tmp_path: Path, capsys) -> None:
     config_root = _copy_config(tmp_path)
-    _update_source_operations(config_root, "pinkas_open", status="frozen", reason="fixture maintenance")
+    _update_source_operations(config_root, "biblia_open", status="frozen", reason="fixture maintenance")
     build_exit = main(
         [
             "build-release",
@@ -170,7 +170,7 @@ def test_summarize_run_markdown_includes_source_health_warning(tmp_path: Path, c
 
     assert build_exit == 0
     assert summarize_exit == 0
-    assert "pinkas_open skipped: source_frozen" in markdown
+    assert "biblia_open skipped: source_frozen" in markdown
 
 
 def test_invalid_source_operations_config_requires_reason(tmp_path: Path) -> None:

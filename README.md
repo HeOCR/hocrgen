@@ -2,7 +2,7 @@
 
 `hocrgen` is the open-source dataset operations toolchain for the HeOCR project.
 
-This repository now implements a conservative review-readiness and source-operations pipeline on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, and curated dry-run release assembly.
+This repository now implements a conservative review-readiness, source-operations, and benchmark-subset pipeline on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, and curated dry-run release assembly.
 
 ## What `hocrgen` can do today
 
@@ -25,6 +25,7 @@ This repository now implements a conservative review-readiness and source-operat
 - export review-ready, blocked, and release-ready subsets as machine-readable manifests
 - merge repo-tracked review decisions and allow/block overrides back into release gating
 - assign deterministic `train` / `validation` / `test` splits over the release-ready deduped set
+- select an explicit, repo-approved `benchmark_v1` subset from release-ready items
 - emit curated release manifests with duplicate-cluster, review-queue, split, and leakage-report artifacts
 
 ## Supported sources in the current MVP
@@ -83,7 +84,7 @@ python scripts/promote_nli_seeds.py \
 - broad live-source crawling
 - near-duplicate / perceptual deduplication
 - OCR-aware privacy screening
-- advanced classification and benchmark subset logic
+- advanced classification and later benchmark/evaluation utilities
 - final publication to Hugging Face or the GitHub dataset repo
 - full release packaging maturity
 
@@ -108,6 +109,7 @@ This validates:
 - normalized license mappings under [`src/hocrgen/config/licenses.yaml`](./src/hocrgen/config/licenses.yaml)
 - technical QA thresholds under [`src/hocrgen/config/quality_thresholds.yaml`](./src/hocrgen/config/quality_thresholds.yaml)
 - privacy rules under [`src/hocrgen/config/privacy_rules.yaml`](./src/hocrgen/config/privacy_rules.yaml)
+- benchmark v1 approvals and stability policy under [`benchmark_data/benchmark_v1/config.json`](./benchmark_data/benchmark_v1/config.json)
 
 ## Run a real Milestone 5 dry-run
 
@@ -169,6 +171,10 @@ This now runs a real sample-backed pipeline and emits populated artifacts such a
       build_release/source_stats.json
       build_release/classification_stats.json
       build_release/privacy_stats.json
+      build_release/benchmark_manifest.json
+      build_release/benchmark_selection_audit.json
+      build_release/benchmark_stability_policy.json
+      build_release/BENCHMARK_CARD.md
 ```
 
 ## Stage commands
@@ -231,8 +237,9 @@ The alpha exporter:
 - caps synthetic inclusion at `2x` the exported real-item count, still bounded by `--max-synthetic-items`
 - writes repo-ready manifests under `manifests/`
 - writes `release_diff.json` with added/removed/changed item reporting against the prior exported release when one is available
+- mirrors `benchmark_v1` manifests and `BENCHMARK_CARD.md` for the exported release-ready benchmark items
 - rewrites review preview references into release-local files under `manifests/review_previews/`
-- writes `CHANGELOG.md`, `DATASET_CARD.md`, `RELEASE_NOTES.md`, `PROVENANCE.md`, and `HANDOFF.md` under `docs/`
+- writes `CHANGELOG.md`, `DATASET_CARD.md`, `RELEASE_NOTES.md`, `PROVENANCE.md`, `BENCHMARK_CARD.md`, and `HANDOFF.md` under `docs/`
 
 By default `export-alpha` auto-discovers the previous sibling release under the same export root and compares against it. To override that baseline explicitly:
 
@@ -351,6 +358,20 @@ What it does not do yet:
 - perceptual or semantic near-duplicate detection
 - OCR-aware grouping
 - content-quality ranking beyond technical QA
+
+## Benchmark subset
+
+`benchmark_v1` is a small, explicitly approved benchmark-facing slice emitted by `build-release` and mirrored by `export-alpha`.
+
+The initial benchmark contains two real release-ready exemplars plus one governed synthetic control item. Every benchmark item must be named in [`benchmark_data/benchmark_v1/config.json`](./benchmark_data/benchmark_v1/config.json), must remain release-ready after review merge, and must keep its committed benchmark split. If an approved item becomes unresolved, blocked, duplicate-removed, missing from the current run, or assigned to a different split, `build-release` fails with a structured stage error.
+
+Benchmark artifacts:
+
+- `build_release/benchmark_manifest.json`
+- `build_release/benchmark_selection_audit.json`
+- `build_release/benchmark_stability_policy.json`
+- `build_release/BENCHMARK_CARD.md`
+- exported release mirrors under `manifests/` and `docs/BENCHMARK_CARD.md`
 
 ## Synthetic generation
 

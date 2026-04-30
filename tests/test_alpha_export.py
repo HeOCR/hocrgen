@@ -79,7 +79,11 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
     assert payload["export_dir"] == str(output_dir)
     assert (output_dir / "data").exists()
     assert (output_dir / "manifests" / "item_manifest.json").exists()
+    assert (output_dir / "manifests" / "benchmark_manifest.json").exists()
+    assert (output_dir / "manifests" / "benchmark_selection_audit.json").exists()
+    assert (output_dir / "manifests" / "benchmark_stability_policy.json").exists()
     assert (output_dir / "manifests" / "release_diff.json").exists()
+    assert (output_dir / "docs" / "BENCHMARK_CARD.md").exists()
     assert (output_dir / "docs" / "CHANGELOG.md").exists()
     assert (output_dir / "docs" / "DATASET_CARD.md").exists()
     assert (output_dir / "docs" / "RELEASE_NOTES.md").exists()
@@ -91,10 +95,21 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
     assert str(output_dir.resolve()) not in handoff_doc
 
     release_diff = json.loads((output_dir / "manifests" / "release_diff.json").read_text(encoding="utf-8"))
+    benchmark_manifest = json.loads((output_dir / "manifests" / "benchmark_manifest.json").read_text(encoding="utf-8"))
+    benchmark_card = (output_dir / "docs" / "BENCHMARK_CARD.md").read_text(encoding="utf-8")
     changelog = (output_dir / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
     release_notes = (output_dir / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
     assert release_diff["previous_version"] is None
     assert release_diff["counts"] == {"added": 3, "removed": 0, "changed": 0, "unchanged": 0}
+    assert {item["item_id"] for item in benchmark_manifest["items"]} == {
+        "nli_any_use_permitted:nli-ms-seed-006",
+        "pinkas_open:pinkas-ledger-001",
+        "project_synthetic:synthetic-0",
+    }
+    assert str(output_dir.resolve()) not in json.dumps(benchmark_manifest)
+    assert "Selection Policy" in benchmark_card
+    assert "Review Bar" in benchmark_card
+    assert "Stability Policy" in benchmark_card
     assert changelog.startswith("# Changelog: alpha-v0")
     assert "Previous version: none" in changelog
     assert "initial-release addition summary" in release_notes

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 from hocrgen.config.loader import load_and_validate_bundle
 from hocrgen.core.context import create_run_context
@@ -229,7 +230,7 @@ def test_assign_splits_raises_when_leakage_report_is_error(monkeypatch) -> None:
         raise AssertionError("expected split leakage error")
 
 
-def test_build_release_ignores_retained_items_without_split_in_source_split_stats(tmp_path: Path) -> None:
+def test_build_release_ignores_retained_items_without_split_in_source_split_stats(tmp_path: Path, monkeypatch) -> None:
     bundle = load_and_validate_bundle()
     context = create_run_context(profile_id="profile_open_v1", dry_run=True, workdir=tmp_path)
     retained = deduplicate_items(
@@ -247,6 +248,16 @@ def test_build_release_ignores_retained_items_without_split_in_source_split_stat
         retained_items=retained,
         release_ready_items=retained,
         leakage_report={"status": "ok", "duplicate_cluster_leaks": [], "split_group_leaks": [], "group_count": 0},
+    )
+    monkeypatch.setattr(
+        "hocrgen.pipeline.select_benchmark_items",
+        lambda **kwargs: SimpleNamespace(
+            audit=[],
+            card_markdown="",
+            config=SimpleNamespace(benchmark_id="benchmark_v1"),
+            items=[],
+            stability_policy={},
+        ),
     )
 
     _run_build_release(bundle, context, options=None, state=state)  # type: ignore[arg-type]
