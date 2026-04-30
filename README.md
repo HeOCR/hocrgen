@@ -2,7 +2,7 @@
 
 `hocrgen` is the open-source dataset operations toolchain for the HeOCR project.
 
-This repository now implements a conservative review-readiness, source-operations, and benchmark-subset pipeline on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, and curated dry-run release assembly.
+This repository now implements a conservative review-readiness, source-operations, benchmark-subset, and community-contribution policy layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, curated dry-run release assembly, and documented contribution safety rails.
 
 ## What `hocrgen` can do today
 
@@ -28,6 +28,7 @@ This repository now implements a conservative review-readiness, source-operation
 - select an explicit, repo-approved `benchmark_v1` subset from release-ready items
 - carry optional transcription and layout-label reference slots without requiring annotations for release-ready items
 - emit curated release manifests with duplicate-cluster, review-queue, split, and leakage-report artifacts
+- document safe community contribution paths for source proposals, source adapters, synthetic assets, dataset issues, and release governance
 
 ## Supported sources in the current MVP
 
@@ -398,6 +399,19 @@ The synthetic subsystem is modest but real:
 - emits `synthetic_composition.json` during `build-release` and `export-alpha`, with template, recipe, degradation preset, font, split, and synthetic fraction counts
 - keeps synthetic release inclusion bounded by profile and alpha export caps while allowing both default D4a recipes into the conservative public profile
 
+## Community contribution model
+
+`E1a` defines contribution safety rails without adding broad new ingestion behavior. The contribution model is documentation-first and keeps source, review, synthetic, and release changes constrained by existing typed config, rights classification, privacy review, release eligibility, and export portability checks.
+
+Start with the relevant guide:
+
+- [CONTRIBUTING.md](./CONTRIBUTING.md) for code, data policy, source proposals, dataset issue taxonomy, and PR expectations
+- [Source Adapter Contribution Guide](./docs/source_adapter_contribution_guide.md) for fixture-backed source adapter requirements
+- [Synthetic Asset Contribution Guide](./docs/synthetic_asset_contribution_guide.md) for governed fonts, corpora, recipes, and synthetic reporting expectations
+- [Release Governance Notes](./docs/release_governance.md) for public release rules, external review policy, dataset corrections, and planned PR metadata
+
+Community source proposals must begin as issues, not public-profile config changes. A source adapter PR must preserve `hocrgen config validate`, policy filtering, privacy screening, review merge, split leakage checks, release eligibility, and export portability. Synthetic assets require committed license/provenance evidence and must remain subject to profile and alpha export caps.
+
 ## Fixtures and tests
 
 All tests are network-free and run against committed fixtures/sample data.
@@ -535,5 +549,9 @@ artifact handoff between GitHub Actions jobs.
 
 - Product/design spec: [`docs/hocrgen_design_and_spec.md`](./docs/hocrgen_design_and_spec.md)
 - Long-term roadmap: [`docs/HeOCR_hocrgen_long_term_roadmap.md`](./docs/HeOCR_hocrgen_long_term_roadmap.md)
+- Contribution policy: [`CONTRIBUTING.md`](./CONTRIBUTING.md)
+- Source adapter guide: [`docs/source_adapter_contribution_guide.md`](./docs/source_adapter_contribution_guide.md)
+- Synthetic asset guide: [`docs/synthetic_asset_contribution_guide.md`](./docs/synthetic_asset_contribution_guide.md)
+- Release governance: [`docs/release_governance.md`](./docs/release_governance.md)
 - Pre-alpha freeze plan: [`docs/pre_alpha_freeze_plan.md`](./docs/pre_alpha_freeze_plan.md)
 - Normalization and QA notes: [`docs/hocrgen_normalization_and_qa.md`](./docs/hocrgen_normalization_and_qa.md)

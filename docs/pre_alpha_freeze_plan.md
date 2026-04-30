@@ -14,7 +14,7 @@ The pre-alpha blocker sequence is now complete:
 3. the Pinkas exemplar is a text-bearing historical page
 4. synthetic alpha output preserves Hebrew ordering and uses the `2x real items` cap
 
-The remaining work after this document is no longer alpha freeze. `C5b`, `C6a`, `D1a`, `D2a`, `D3a`, `D4a`, `D4b`, and `D5a` are now represented in the current-ref roadmap state: review decisions can merge back into the pipeline, release-to-release changes are explainable, scheduled dry-run maintenance exists, source-operations health/freeze reporting is available, the first explicitly approved benchmark subset exists, synthetic rendering has a richer visual realism pass, synthetic diversity controls/reporting are available, and optional transcription-ready manifest foundations exist without requiring annotations. The next planned milestone is `E1a`, community contribution model and contribution safety rails.
+The remaining work after this document is no longer alpha freeze. `C5b`, `C6a`, `D1a`, `D2a`, `D3a`, `D4a`, `D4b`, `D5a`, and `E1a` are now represented in the current-ref roadmap state: review decisions can merge back into the pipeline, release-to-release changes are explainable, scheduled dry-run maintenance exists, source-operations health/freeze reporting is available, the first explicitly approved benchmark subset exists, synthetic rendering has a richer visual realism pass, synthetic diversity controls/reporting are available, optional transcription-ready manifest foundations exist without requiring annotations, and contribution safety rails are documented for community source, synthetic, review, and release-governance changes. The next planned milestone is `E2a`, baselines and evaluation utilities.
 
 ## Pre-Alpha PR Sequence
 
@@ -123,7 +123,7 @@ This milestone is now implemented in `hocrgen` via the dedicated `review-merge` 
 - evaluation utilities
 - community contribution maturity
 
-`C6a`, `D1a`, `D2a`, `D3a`, `D4a`, `D4b`, and `D5a` are complete on the current ref. The next planned milestone after this document is `E1a`.
+`C6a`, `D1a`, `D2a`, `D3a`, `D4a`, `D4b`, `D5a`, and `E1a` are complete on the current ref. The next planned milestone after this document is `E2a`.
 
 ## Working Rules For The Pre-Alpha Sequence
 
