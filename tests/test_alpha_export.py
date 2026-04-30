@@ -447,6 +447,12 @@ def test_export_alpha_docs_and_release_record_include_metadata(
     assert "Release Notes: alpha-v0" in release_notes
     assert "## Synthetic Composition" in dataset_card
     assert "`handwritten_note_marginalia_v1`=1" in release_notes
+    exported_synthetic_items = [
+        item
+        for item in json.loads((export_dir / "manifests" / "item_manifest.json").read_text(encoding="utf-8"))["items"]
+        if item["source_id"] == "project_synthetic"
+    ]
+    assert all("synthetic_available_template_ids" not in item["metadata"] for item in exported_synthetic_items)
     assert dataset_card.index("`nli_any_use_permitted`") < dataset_card.index("`pinkas_open`")
     assert dataset_card.index("`pinkas_open`") < dataset_card.index("`project_synthetic`")
     assert "`biblia_open`" not in dataset_card

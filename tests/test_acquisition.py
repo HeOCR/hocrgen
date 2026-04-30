@@ -257,6 +257,7 @@ def test_synthetic_controls_filter_by_recipe_and_degradation_preset(tmp_path: Pa
 
     assert {candidate.raw_metadata["synthetic_template_id"] for candidate in candidates} == {"handwritten_note"}
     assert {item.metadata["synthetic_recipe_id"] for item in enriched} == {"handwritten_note_marginalia_v1"}
+    assert all("synthetic_available_template_ids" not in item.metadata for item in enriched)
     assert {item.metadata["synthetic_template_id"] for item in acquired} == {"handwritten_note"}
     assert {item.metadata["synthetic_degradation_preset"] for item in acquired} == {"notebook_scan_worn"}
 
@@ -268,6 +269,13 @@ def test_synthetic_discovery_honors_max_items() -> None:
     candidates = SyntheticFetcher().discover_candidates(source, bundle, StageOptions(max_items=1))
 
     assert [candidate.source_item_id for candidate in candidates] == ["synthetic-0"]
+
+
+def test_synthetic_acquire_handles_empty_item_batches(tmp_path: Path) -> None:
+    bundle = load_and_validate_bundle()
+    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+
+    assert SyntheticFetcher().acquire_items(source, bundle, [], tmp_path, StageOptions()) == []
 
 
 def test_synthetic_resume_rejects_candidate_metadata_outside_current_controls() -> None:

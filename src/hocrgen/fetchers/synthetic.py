@@ -111,7 +111,6 @@ class SyntheticFetcher:
                         "synthetic_template_id": template_id,
                         "synthetic_recipe_id": recipe.recipe_id,
                         "synthetic_degradation_preset": recipe.degradation_preset,
-                        "synthetic_available_template_ids": selected_templates,
                     },
                 )
             )
@@ -119,6 +118,8 @@ class SyntheticFetcher:
 
     def acquire_items(self, source: SourceConfig, bundle: ConfigBundle, items, output_dir, options: StageOptions) -> list[AcquiredItemRecord]:
         items = list(items)
+        if not items:
+            return []
         seed = options.synthetic_seed if options.synthetic_seed is not None else (source.settings.synthetic_seed or 17)
         selected_templates = _template_ids_for_options(source, options)
         recipes = recipe_catalog(selected_templates)
