@@ -92,6 +92,20 @@ def test_load_benchmark_examples_rejects_non_portable_annotation_paths(tmp_path:
         load_benchmark_examples(benchmark_manifest, annotation_manifest_path=annotation_manifest)
 
 
+@pytest.mark.parametrize("portable_path", ["C:assets/page.jpg", "assets/.work/page.jpg"])
+def test_load_benchmark_examples_rejects_weaker_non_portable_asset_paths(
+    tmp_path: Path,
+    portable_path: str,
+) -> None:
+    benchmark_manifest = tmp_path / "benchmark_manifest.json"
+    item_manifest = tmp_path / "item_manifest.json"
+    _write_benchmark_manifest(benchmark_manifest)
+    _write_item_manifest(item_manifest, portable_path)
+
+    with pytest.raises(StageExecutionError, match="release-relative and portable"):
+        load_benchmark_examples(benchmark_manifest, item_manifest_path=item_manifest)
+
+
 def test_text_metric_helpers_compute_cer_and_exact_match() -> None:
     assert levenshtein_distance("abc", "axc") == 1
 
@@ -128,6 +142,28 @@ def test_evaluate_text_predictions_reports_coverage_and_leaderboard_status(tmp_p
     assert report["leaderboard_ready"]["ready"] is False
 
 
+def test_evaluate_text_predictions_is_not_leaderboard_ready_with_undefined_primary_metric(tmp_path: Path) -> None:
+    benchmark_manifest = tmp_path / "benchmark_manifest.json"
+    _write_benchmark_manifest(benchmark_manifest)
+    examples = load_benchmark_examples(benchmark_manifest)
+
+    report = evaluate_text_predictions(
+        examples,
+        predictions={
+            "pinkas_open:pinkas-ledger-001": "",
+            "project_synthetic:synthetic-0": "",
+        },
+        references={
+            "pinkas_open:pinkas-ledger-001": "",
+            "project_synthetic:synthetic-0": "",
+        },
+    )
+
+    assert report["evaluated_item_count"] == 2
+    assert report["char_error_rate"] is None
+    assert report["leaderboard_ready"]["ready"] is False
+
+
 def test_load_text_records_accepts_jsonl_and_rejects_duplicates(tmp_path: Path) -> None:
     records = tmp_path / "predictions.jsonl"
     records.write_text(
@@ -154,6 +190,27 @@ def test_load_text_records_accepts_jsonl_and_rejects_duplicates(tmp_path: Path) 
 
     with pytest.raises(StageExecutionError, match="duplicate item_id"):
         load_text_records(records)
+
+
+def test_load_text_records_wraps_missing_file_as_stage_error(tmp_path: Path) -> None:
+    with pytest.raises(StageExecutionError, match="could not be read"):
+        load_text_records(tmp_path / "missing.jsonl")
+
+
+def test_load_text_records_wraps_invalid_json_as_stage_error(tmp_path: Path) -> None:
+    records = tmp_path / "records.json"
+    records.write_text("{", encoding="utf-8")
+
+    with pytest.raises(StageExecutionError, match="could not be loaded"):
+        load_text_records(records)
+
+
+def test_load_benchmark_examples_wraps_invalid_manifest_json_as_stage_error(tmp_path: Path) -> None:
+    benchmark_manifest = tmp_path / "benchmark_manifest.json"
+    benchmark_manifest.write_text("{", encoding="utf-8")
+
+    with pytest.raises(StageExecutionError, match="benchmark manifest"):
+        load_benchmark_examples(benchmark_manifest)
 
 
 def test_evaluate_benchmark_cli_writes_report(tmp_path: Path, capsys) -> None:
@@ -202,6 +259,140 @@ def test_evaluate_benchmark_cli_writes_report(tmp_path: Path, capsys) -> None:
     assert payload["metrics"]["evaluated_item_count"] == 2
     assert payload["metrics"]["char_error_rate"] == pytest.approx(1 / 6)
     assert written == payload
+
+
+def test_evaluate_benchmark_cli_rejects_missing_references(capsys) -> None:
+    with pytest.raises(SystemExit) as exc:
+        main(
+            [
+                "evaluate-benchmark",
+                "--benchmark-manifest",
+                "benchmark_manifest.json",
+                "--predictions",
+                "predictions.jsonl",
+            ]
+        )
+
+    assert exc.value.code == 2
+    assert "--references" in capsys.readouterr().err
+
+
+def test_evaluate_benchmark_cli_returns_json_error_for_missing_prediction_file(tmp_path: Path, capsys) -> None:
+    benchmark_manifest = tmp_path / "benchmark_manifest.json"
+    references = tmp_path / "references.jsonl"
+    _write_benchmark_manifest(benchmark_manifest)
+    references.write_text(json.dumps({"item_id": "pinkas_open:pinkas-ledger-001", "text": "abc"}), encoding="utf-8")
+
+    exit_code = main(
+        [
+            "evaluate-benchmark",
+            "--benchmark-manifest",
+            str(benchmark_manifest),
+            "--predictions",
+            str(tmp_path / "missing.jsonl"),
+            "--references",
+            str(references),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload["status"] == "error"
+    assert "could not be read" in payload["error"]
+
+
+def test_evaluate_benchmark_cli_returns_json_error_for_output_write_failure(tmp_path: Path, capsys) -> None:
+    benchmark_manifest = tmp_path / "benchmark_manifest.json"
+    predictions = tmp_path / "predictions.jsonl"
+    references = tmp_path / "references.jsonl"
+    output_parent = tmp_path / "not-a-directory"
+    output_parent.write_text("file", encoding="utf-8")
+    _write_benchmark_manifest(benchmark_manifest)
+    predictions.write_text(json.dumps({"item_id": "pinkas_open:pinkas-ledger-001", "text": "abc"}), encoding="utf-8")
+    references.write_text(json.dumps({"item_id": "pinkas_open:pinkas-ledger-001", "text": "abc"}), encoding="utf-8")
+
+    exit_code = main(
+        [
+            "evaluate-benchmark",
+            "--benchmark-manifest",
+            str(benchmark_manifest),
+            "--predictions",
+            str(predictions),
+            "--references",
+            str(references),
+            "--output",
+            str(output_parent / "evaluation.json"),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload["status"] == "error"
+    assert "could not write evaluation report" in payload["error"]
+
+
+def _write_item_manifest(path: Path, release_asset_path: str) -> None:
+    path.write_text(
+        json.dumps(
+            {
+                "items": [
+                    {
+                        "acquired_assets": [],
+                        "annotation_status": "not_available",
+                        "asset_references": [],
+                        "canonical_item_id": "pinkas_open:pinkas-ledger-001",
+                        "candidate_id": "pinkas_open:pinkas-ledger-001",
+                        "classification_review_reasons": [],
+                        "content_class": "printed",
+                        "content_confidence": 0.9,
+                        "content_fingerprint": "fingerprint-pinkas",
+                        "dedupe_cluster_id": None,
+                        "dedupe_status": "retained",
+                        "discovery_method": "fixture",
+                        "eligibility": "accepted",
+                        "eligibility_reason": "allowed_by_profile",
+                        "exported_assets": [
+                            {
+                                "asset_format": "jpg",
+                                "media_type": "image/jpeg",
+                                "release_asset_path": release_asset_path,
+                            }
+                        ],
+                        "fixture_path": None,
+                        "is_synthetic": False,
+                        "item_id": "pinkas_open:pinkas-ledger-001",
+                        "language_class": "hebrew_only",
+                        "language_confidence": 0.9,
+                        "layout_labels": [],
+                        "metadata": {},
+                        "normalized_assets": [],
+                        "normalized_license": "CC-BY-4.0",
+                        "period_class": "historical",
+                        "period_confidence": 0.9,
+                        "privacy_decision": "release_ready",
+                        "privacy_flag": "clear",
+                        "privacy_reasons": [],
+                        "provenance": {},
+                        "qa_fail_reasons": [],
+                        "qa_status": "passed",
+                        "quality_score": 0.9,
+                        "quality_tier": "high",
+                        "raw_metadata": {},
+                        "raw_rights_text": "open",
+                        "rights_classification": "open",
+                        "source_id": "pinkas_open",
+                        "source_item_id": "pinkas-ledger-001",
+                        "source_url": "https://example.org/pinkas",
+                        "split": "train",
+                        "split_group_id": "source-item:pinkas_open:pinkas-ledger-001",
+                        "title": "Pinkas page",
+                        "transcription": None,
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
 
 
 def _write_benchmark_manifest(path: Path) -> None:

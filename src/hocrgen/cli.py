@@ -78,7 +78,7 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate_benchmark_parser.add_argument(
         "--references",
         type=Path,
-        default=None,
+        required=True,
         help="JSONL/JSON references keyed by item_id with a text field",
     )
     evaluate_benchmark_parser.add_argument(
@@ -322,19 +322,22 @@ def handle_evaluate_benchmark(args: argparse.Namespace) -> int:
             annotation_manifest_path=args.annotation_manifest,
         )
         predictions = load_text_records(args.predictions, value_field=args.prediction_field)
-        references = load_text_records(args.references, value_field=args.reference_field) if args.references else {}
+        references = load_text_records(args.references, value_field=args.reference_field)
         report = {
             "status": "ok",
             "benchmark": summarize_benchmark_examples(examples),
             "metrics": evaluate_text_predictions(examples, predictions=predictions, references=references),
         }
+        if args.output is not None:
+            try:
+                args.output.parent.mkdir(parents=True, exist_ok=True)
+                args.output.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
+            except OSError as exc:
+                raise StageExecutionError(f"could not write evaluation report to {args.output}: {exc}") from exc
     except StageExecutionError as exc:
         _print_json({"status": "error", "error": str(exc)})
         return 1
 
-    if args.output is not None:
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
     _print_json(report)
     return 0
 

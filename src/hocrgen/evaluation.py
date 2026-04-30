@@ -3,12 +3,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 import json
 from pathlib import Path, PurePosixPath
+import re
 from typing import Any, Iterable, Literal
 
 from pydantic import ValidationError
 
 from hocrgen.config.loader import load_json_file
-from hocrgen.core.errors import StageExecutionError
+from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.manifests.models import AlphaExportedItemRecord, AnnotationManifestRecord, BenchmarkItemRecord
 
 
@@ -126,6 +127,7 @@ def evaluate_text_predictions(
     total_edit_distance = sum(result.edit_distance for result in results)
     total_reference_chars = sum(result.reference_char_count for result in results)
     exact_matches = sum(1 for result in results if result.exact_match)
+    char_error_rate = _ratio(total_edit_distance, total_reference_chars)
     return {
         "benchmark_item_count": len(example_list),
         "prediction_count": len(predictions),
@@ -133,7 +135,7 @@ def evaluate_text_predictions(
         "evaluated_item_count": len(results),
         "prediction_coverage": _ratio(len(example_list) - len(missing_predictions), len(example_list)),
         "reference_coverage": _ratio(len(example_list) - len(missing_references), len(example_list)),
-        "char_error_rate": _ratio(total_edit_distance, total_reference_chars),
+        "char_error_rate": char_error_rate,
         "exact_match_rate": _ratio(exact_matches, len(results)),
         "missing_predictions": sorted(missing_predictions),
         "missing_references": sorted(missing_references),
@@ -148,6 +150,7 @@ def evaluate_text_predictions(
             "requires_full_reference_coverage": True,
             "ready": bool(example_list)
             and len(results) == len(example_list)
+            and char_error_rate is not None
             and not unexpected_predictions
             and not unexpected_references,
         },
@@ -212,7 +215,11 @@ def _load_records(path: Path) -> list[Any]:
     suffix = path.suffix.lower()
     if suffix == ".jsonl":
         records: list[Any] = []
-        for line_number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
+        try:
+            lines = path.read_text(encoding="utf-8").splitlines()
+        except OSError as exc:
+            raise StageExecutionError(f"evaluation records at {path} could not be read: {exc}") from exc
+        for line_number, line in enumerate(lines, start=1):
             if not line.strip():
                 continue
             try:
@@ -221,7 +228,7 @@ def _load_records(path: Path) -> list[Any]:
                 raise StageExecutionError(f"{path} line {line_number} is not valid JSON") from exc
         return records
 
-    payload = load_json_file(path)
+    payload = _load_evaluation_json(path, "evaluation records")
     if isinstance(payload, list):
         return payload
     if isinstance(payload, dict) and isinstance(payload.get("items"), list):
@@ -231,7 +238,7 @@ def _load_records(path: Path) -> list[Any]:
 
 def _load_benchmark_manifest(path: Path) -> list[BenchmarkItemRecord]:
     try:
-        payload = load_json_file(path)
+        payload = _load_evaluation_json(path, "benchmark manifest")
         items = payload.get("items") if isinstance(payload, dict) else None
         if not isinstance(items, list):
             raise StageExecutionError(f"benchmark manifest at {path} must contain a list 'items'")
@@ -242,7 +249,7 @@ def _load_benchmark_manifest(path: Path) -> list[BenchmarkItemRecord]:
 
 def _load_exported_items(path: Path) -> dict[str, AlphaExportedItemRecord]:
     try:
-        payload = load_json_file(path)
+        payload = _load_evaluation_json(path, "item manifest")
         items = payload.get("items") if isinstance(payload, dict) else None
         if not isinstance(items, list):
             raise StageExecutionError(f"item manifest at {path} must contain a list 'items'")
@@ -254,10 +261,19 @@ def _load_exported_items(path: Path) -> dict[str, AlphaExportedItemRecord]:
 
 def _load_annotation_items(path: Path) -> dict[str, Any]:
     try:
-        manifest = AnnotationManifestRecord.model_validate(load_json_file(path))
+        manifest = AnnotationManifestRecord.model_validate(_load_evaluation_json(path, "annotation manifest"))
     except ValidationError as exc:
         raise StageExecutionError(f"annotation manifest at {path} is invalid") from exc
     return _unique_by_item_id(manifest.items, path)
+
+
+def _load_evaluation_json(path: Path, label: str) -> Any:
+    try:
+        return load_json_file(path)
+    except ConfigValidationError as exc:
+        raise StageExecutionError(f"{label} at {path} could not be loaded: {exc}") from exc
+    except OSError as exc:
+        raise StageExecutionError(f"{label} at {path} could not be read: {exc}") from exc
 
 
 def _unique_by_item_id(records: Iterable[Any], path: Path) -> dict[str, Any]:
@@ -299,7 +315,9 @@ def validate_release_relative_path(path: str) -> str:
         or path != path.strip()
         or "\\" in path
         or "://" in path
+        or re.match(r"^[A-Za-z]:", path)
         or parsed.is_absolute()
+        or ".work" in parsed.parts
         or any(part in {"", ".", ".."} for part in parsed.parts)
     ):
         raise StageExecutionError(f"benchmark example path is not release-relative and portable: {path}")
