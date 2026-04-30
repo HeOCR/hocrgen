@@ -35,12 +35,14 @@ from hocrgen.package.alpha import (
     _handoff_doc,
     _sanitize_portable_value,
     _select_alpha_items,
+    _synthetic_composition_lines,
     _source_priority,
     _split_sort_key,
     _validate_heocr_repo_root,
     _validate_overwrite_target,
     export_alpha_release,
 )
+from hocrgen.synthetic.reporting import synthetic_composition_report
 
 
 def _fixture_config_root(tmp_path: Path) -> Path:
@@ -55,6 +57,34 @@ def _fixture_config_root(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     return config_root
+
+
+def test_synthetic_composition_helpers_cover_empty_and_missing_metadata() -> None:
+    missing_metadata_item = Namespace(
+        is_synthetic=True,
+        metadata={},
+        split=None,
+    )
+    real_item = Namespace(
+        is_synthetic=False,
+        metadata={},
+        split="train",
+    )
+
+    empty_report = synthetic_composition_report([real_item])
+    missing_report = synthetic_composition_report([real_item, missing_metadata_item])
+
+    assert _synthetic_composition_lines(empty_report) == ["- Synthetic items: 0"]
+    assert missing_report["by_template_id"] == {"unknown": 1}
+    assert missing_report["by_recipe_id"] == {"unknown": 1}
+    assert missing_report["by_degradation_preset"] == {"unknown": 1}
+    assert missing_report["by_font_id"] == {"unknown": 1}
+    assert missing_report["missing_metadata"] == {
+        "synthetic_degradation_preset": 1,
+        "synthetic_font_id": 1,
+        "synthetic_recipe_id": 1,
+        "synthetic_template_id": 1,
+    }
 
 
 def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
@@ -391,6 +421,8 @@ def test_export_alpha_docs_and_release_record_include_metadata(
     payload = json.loads(capsys.readouterr().out)
     export_dir = Path(payload["export_dir"])
     release_record = json.loads((export_dir / "manifests" / "release_record.json").read_text(encoding="utf-8"))
+    release_summary = json.loads((export_dir / "manifests" / "release_summary.json").read_text(encoding="utf-8"))
+    synthetic_composition = json.loads((export_dir / "manifests" / "synthetic_composition.json").read_text(encoding="utf-8"))
     dataset_card = (export_dir / "docs" / "DATASET_CARD.md").read_text(encoding="utf-8")
     changelog = (export_dir / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
     release_notes = (export_dir / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
@@ -399,6 +431,11 @@ def test_export_alpha_docs_and_release_record_include_metadata(
 
     assert release_record["profile_id"] == "profile_open_v1"
     assert release_record["included_sources"] == ["nli_any_use_permitted", "pinkas_open", "project_synthetic"]
+    assert release_summary["synthetic_composition"]["by_recipe_id"] == synthetic_composition["by_recipe_id"]
+    assert synthetic_composition["by_template_id"] == {
+        "handwritten_note": 1,
+        "printed_letter": 1,
+    }
     if git_result.returncode == 0:
         current_commit = git_result.stdout.strip()
         assert release_record["hocrgen_commit"] == current_commit
@@ -408,6 +445,14 @@ def test_export_alpha_docs_and_release_record_include_metadata(
     assert "# HeOCR alpha-v0" in dataset_card
     assert "# Changelog: alpha-v0" in changelog
     assert "Release Notes: alpha-v0" in release_notes
+    assert "## Synthetic Composition" in dataset_card
+    assert "`handwritten_note_marginalia_v1`=1" in release_notes
+    exported_synthetic_items = [
+        item
+        for item in json.loads((export_dir / "manifests" / "item_manifest.json").read_text(encoding="utf-8"))["items"]
+        if item["source_id"] == "project_synthetic"
+    ]
+    assert all("synthetic_available_template_ids" not in item["metadata"] for item in exported_synthetic_items)
     assert dataset_card.index("`nli_any_use_permitted`") < dataset_card.index("`pinkas_open`")
     assert dataset_card.index("`pinkas_open`") < dataset_card.index("`project_synthetic`")
     assert "`biblia_open`" not in dataset_card

@@ -14,6 +14,9 @@ class StageOptions:
     source_filter: set[str] | None = None
     max_items: int | None = None
     synthetic_seed: int | None = None
+    synthetic_template_filter: set[str] | None = None
+    synthetic_recipe_filter: set[str] | None = None
+    synthetic_degradation_filter: set[str] | None = None
 
 
 class SourceAdapter(Protocol):
