@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 import re
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 
 from PIL import Image, ImageChops, ImageDraw, ImageEnhance, ImageFilter, ImageFont
@@ -77,6 +78,7 @@ def _font_path(manifest_path: Path, font_entry: dict) -> Path:
     return path
 
 
+@lru_cache(maxsize=32)
 def _load_font(font_path: Path, size: int) -> ImageFont.FreeTypeFont:
     return ImageFont.truetype(str(font_path), size)
 
