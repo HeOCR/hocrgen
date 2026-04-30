@@ -48,6 +48,8 @@ Keep adapter code local to the acquisition layer:
 
 Do not add broad live crawling, live network crawling, scheduled ingestion, automatic source promotion, or publication behavior unless the roadmap explicitly calls for it.
 
+The planned NLI release-scale path is a narrow exception: live-but-cached acquisition of vetted seed URLs may be added when the implementation keeps the seed boundary explicit, writes reusable local fixtures/assets, emits an audit report, and leaves CI/release validation network-free. That path must still run through normal source policy, rights, privacy, review, dedupe, split, benchmark, and export-portability gates before any public release.
+
 ## Review and release gates
 
 Before a source adapter can affect public outputs, the source must pass:
