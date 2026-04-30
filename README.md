@@ -54,13 +54,14 @@ The NLI seed data is split on purpose:
 - runnable fixture-backed seeds live in [`src/hocrgen/data/nli/seeds.yaml`](./src/hocrgen/data/nli/seeds.yaml)
 - broader exploratory/manual candidate URLs live in [`src/hocrgen/data/nli/seed_catalog.yaml`](./src/hocrgen/data/nli/seed_catalog.yaml)
 
-Near-term release-scale acquisition should preserve that seed boundary while removing one-by-one manual promotion as the bottleneck. The intended path is:
+Near-term release-scale acquisition preserves that seed boundary while removing one-by-one manual promotion as the bottleneck. The operator path:
 
-1. Add a live-but-cached NLI seed acquisition mode that accepts vetted seed URLs from the catalog or a seed manifest.
-2. Fetch and parse item metadata/assets into the same local fixture shape used by the current deterministic pipeline.
-3. Persist a promotion/acquisition report with rights text, asset paths, failures, and skipped items.
-4. Keep CI and release builds fixture-backed and network-free after the live acquisition step.
-5. Run the normal rights, privacy, review, dedupe, split, benchmark, and export-portability gates before any larger public release.
+1. Accepts vetted seed URLs from the catalog, the runnable seed manifest, or both.
+2. Reuses local fixture-backed seeds without network access when a fixture already exists.
+3. Fetches and parses missing item metadata/assets into the same local fixture shape used by the current deterministic pipeline when explicitly run.
+4. Persists a promotion/acquisition report with rights text, fixture path, asset paths, promoted seeds, skipped seeds, and failed seeds.
+5. Keeps CI and release builds fixture-backed and network-free after the live acquisition step.
+6. Leaves the normal rights, privacy, review, dedupe, split, benchmark, and export-portability gates in charge before any larger public release.
 
 This is the preferred short-term path for growing from the current small alpha exemplar set toward larger releases such as `80` real samples plus bounded synthetic controls. It is not a site-wide crawler and should not bypass source policy, rights checks, review decisions, benchmark stability, or public export portability.
 
@@ -69,10 +70,11 @@ To promote exploratory entries into runnable local fixtures, use the local opera
 ```bash
 python scripts/promote_nli_seeds.py \
   --seed-id nli-ms-seed-001 \
+  --max-items 10 \
   --browser-state-dir .cache/nli-playwright
 ```
 
-The script opens a persistent browser, lets you solve any Cloudflare challenge once, captures the current item into a normalized local fixture HTML plus local asset files, appends the promoted entry to `seeds.yaml`, removes it from `seed_catalog.yaml`, and writes a machine-readable promotion report.
+The script selects from `seed_catalog.yaml` by default, opens a persistent browser only for seeds without reusable local fixtures, lets you solve any Cloudflare challenge once, captures each live item into normalized local fixture HTML plus local asset files, appends promoted entries to `seeds.yaml`, removes them from `seed_catalog.yaml`, and writes a machine-readable promotion report. Use `--seed-source runnable` to audit/cache-check existing runnable seeds without live capture, or `--seed-source all` to select from both manifests. Use `--max-items` to keep every batch explicitly bounded.
 
 If Cloudflare resists Playwright-launched Chromium, the script can instead attach to a normal Chrome instance that you launch yourself with remote debugging enabled:
 

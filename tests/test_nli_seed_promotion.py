@@ -13,6 +13,7 @@ from hocrgen.core.errors import StageExecutionError
 from hocrgen.tools.nli_seed_promotion import (
     ExtractedSeedPage,
     PromotionFailure,
+    PromotionSkipped,
     _delivery_manager_asset_urls,
     _iframe_asset_urls,
     _normalize_delivery_manager_url,
@@ -32,6 +33,7 @@ from hocrgen.tools.nli_seed_promotion import (
     _wait_for_item_page_ready,
     apply_promotions,
     build_fixture_reference,
+    build_cached_promotion,
     build_promotion,
     build_report,
     infer_asset_extension,
@@ -42,6 +44,7 @@ from hocrgen.tools.nli_seed_promotion import (
     render_fixture_html,
     seed_id_to_slug,
     select_catalog_items,
+    select_seed_items,
     write_json,
     write_promotion_outputs,
     write_yaml_manifest,
@@ -279,6 +282,67 @@ def test_select_catalog_items_filters_ids_and_max_items() -> None:
     assert [item["id"] for item in select_catalog_items(catalog_manifest=catalog, seed_ids=["b", "c"], max_items=1)] == ["b"]
 
 
+def test_select_seed_items_can_use_catalog_runnable_or_all_and_reports_missing() -> None:
+    catalog = {"items": [{"id": "catalog-a"}, {"id": "shared"}]}
+    runnable = {"items": [{"id": "runnable-a", "fixture_html": "item.html"}, {"id": "shared", "fixture_html": "shared.html"}]}
+
+    all_items, missing = select_seed_items(
+        catalog_manifest=catalog,
+        runnable_manifest=runnable,
+        seed_ids=["runnable-a", "shared", "missing"],
+        max_items=None,
+        seed_source="all",
+    )
+
+    assert [item["id"] for item in all_items] == ["shared", "runnable-a"]
+    assert missing == [
+        PromotionSkipped(
+            seed_id="missing",
+            reason="seed_not_found",
+            message="Seed missing was not found in all seeds.",
+        )
+    ]
+
+    runnable_items, _ = select_seed_items(
+        catalog_manifest=catalog,
+        runnable_manifest=runnable,
+        seed_ids=None,
+        max_items=1,
+        seed_source="runnable",
+    )
+    assert [item["id"] for item in runnable_items] == ["runnable-a"]
+
+
+def test_build_cached_promotion_reads_existing_fixture_assets(tmp_path: Path) -> None:
+    fixture_dir = tmp_path / "fixtures"
+    asset_dir = fixture_dir / "assets"
+    asset_dir.mkdir(parents=True)
+    (asset_dir / "page1.svg").write_bytes(b"<svg />")
+    fixture_path = fixture_dir / "item_cached.html"
+    fixture_path.write_text(
+        render_fixture_html(
+            title="Cached Title",
+            description="Cached Description",
+            rights="Any Use Permitted",
+            asset_relative_paths=["assets/page1.svg"],
+        ),
+        encoding="utf-8",
+    )
+
+    promotion = build_cached_promotion(
+        seed={"id": "cached-seed", "url": "https://example.com/cached", "notes": "from cache"},
+        fixture_path=fixture_path,
+        require_rights="Any Use Permitted",
+        output_dir=tmp_path / "out",
+        runnable_seeds_path=tmp_path / "seeds.yaml",
+    )
+
+    assert promotion.title == "Cached Title"
+    assert promotion.rights == "Any Use Permitted"
+    assert promotion.asset_downloads[0].data == b"<svg />"
+    assert promotion.promoted_seed_entry["notes"] == "from cache"
+
+
 def test_build_report_includes_success_and_failure_details() -> None:
     promotion = build_promotion(
         seed={"id": "promote-me", "url": "https://example.com/promote", "title": "Promote", "notes": "Keep"},
@@ -296,11 +360,22 @@ def test_build_report_includes_success_and_failure_details() -> None:
         attempted_seed_ids=["promote-me", "bad-seed"],
         promotions=[promotion],
         failures=[PromotionFailure(seed_id="bad-seed", reason="rights_missing", message="rights_missing", rights=None)],
+        skipped=[
+            PromotionSkipped(
+                seed_id="skip-me",
+                reason="seed_already_runnable",
+                message="Seed already exists.",
+                rights="Any Use Permitted",
+                fixture_path="item.html",
+                asset_paths=["assets/a.svg"],
+            )
+        ],
     )
 
     assert report["attempted_seeds"] == ["promote-me", "bad-seed"]
     assert report["promoted_seeds"][0]["seed_id"] == "promote-me"
     assert report["promoted_seeds"][0]["rights"] == "Any Use Permitted"
+    assert report["skipped_seeds"][0]["fixture_path"] == "item.html"
     assert report["failed_seeds"][0]["reason"] == "rights_missing"
 
 
@@ -600,6 +675,106 @@ def test_main_writes_outputs_when_not_dry_run(monkeypatch: pytest.MonkeyPatch, t
     assert report_path.exists()
     assert load_yaml_manifest(runnable)["items"][0]["id"] == "seed-1"
     assert load_yaml_manifest(catalog)["items"] == []
+
+
+def test_main_skips_existing_runnable_seed_without_network(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    runnable = tmp_path / "seeds.yaml"
+    catalog = tmp_path / "seed_catalog.yaml"
+    fixture = tmp_path / "item_existing.html"
+    fixture.write_text(
+        render_fixture_html(
+            title="Existing",
+            description="Desc",
+            rights="Any Use Permitted",
+            asset_relative_paths=[],
+        ),
+        encoding="utf-8",
+    )
+    write_yaml_manifest(
+        runnable,
+        {"items": [{"id": "seed-1", "url": "https://example.com/seed-1", "title": "Seed 1", "fixture_html": "item_existing.html"}]},
+    )
+    write_yaml_manifest(catalog, {"items": []})
+
+    def fail_capture(**_kwargs):
+        raise AssertionError("network capture should not run")
+
+    monkeypatch.setattr("hocrgen.tools.nli_seed_promotion.capture_seed_via_browser", fail_capture)
+
+    exit_code = main(
+        [
+            "--dry-run",
+            "--seed-source",
+            "runnable",
+            "--runnable-seeds",
+            str(runnable),
+            "--seed-catalog",
+            str(catalog),
+        ]
+    )
+
+    report = json.loads(capsys.readouterr().out)
+    assert exit_code == 0
+    assert report["promoted_seeds"] == []
+    assert report["skipped_seeds"][0]["reason"] == "seed_already_runnable"
+    assert report["skipped_seeds"][0]["fixture_path"] == str(fixture)
+    assert report["skipped_seeds"][0]["rights"] == "Any Use Permitted"
+
+
+def test_main_uses_cached_fixture_when_catalog_seed_has_fixture(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    runnable = tmp_path / "seeds.yaml"
+    catalog = tmp_path / "seed_catalog.yaml"
+    output_dir = tmp_path / "out"
+    fixture_dir = tmp_path / "catalog_fixtures"
+    asset_dir = fixture_dir / "assets"
+    asset_dir.mkdir(parents=True)
+    (asset_dir / "cached.svg").write_bytes(b"<svg />")
+    (fixture_dir / "item_cached.html").write_text(
+        render_fixture_html(
+            title="Cached",
+            description="Desc",
+            rights="Any Use Permitted",
+            asset_relative_paths=["assets/cached.svg"],
+        ),
+        encoding="utf-8",
+    )
+    write_yaml_manifest(runnable, {"items": []})
+    write_yaml_manifest(
+        catalog,
+        {
+            "items": [
+                {
+                    "id": "seed-1",
+                    "url": "https://example.com/seed-1",
+                    "title": "Seed 1",
+                    "fixture_html": "catalog_fixtures/item_cached.html",
+                }
+            ]
+        },
+    )
+
+    def fail_capture(**_kwargs):
+        raise AssertionError("network capture should not run")
+
+    monkeypatch.setattr("hocrgen.tools.nli_seed_promotion.capture_seed_via_browser", fail_capture)
+
+    exit_code = main(
+        [
+            "--runnable-seeds",
+            str(runnable),
+            "--seed-catalog",
+            str(catalog),
+            "--output-dir",
+            str(output_dir),
+            "--report-path",
+            str(tmp_path / "report.json"),
+        ]
+    )
+
+    assert exit_code == 0
+    assert load_yaml_manifest(runnable)["items"][0]["id"] == "seed-1"
+    assert (output_dir / "item_seed_1.html").exists()
+    assert (output_dir / "assets" / "seed_1_page1.svg").read_bytes() == b"<svg />"
 
 
 def test_main_records_stage_execution_failure(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
