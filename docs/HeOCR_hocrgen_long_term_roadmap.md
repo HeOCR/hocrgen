@@ -123,7 +123,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |
 | D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |
 | E1 | Ecosystem maturity | E1a | Community contribution model | completed |
-| E2 | Ecosystem maturity | E2a | Baselines and evaluation utilities | completed |
+| E2 | Ecosystem maturity | E2a, E2b | Baselines/evaluation utilities, then live/cached NLI seed acquisition | completed |
 | E3 | Ecosystem maturity | E3a | Annotation subset pilots | planned |
 | E4 | Ecosystem maturity | E4a | Multi-release governance maturity | planned |
 
@@ -160,21 +160,20 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | D4b | D4 | Synthetic diversity controls and reporting hardening | no | completed | merged as PR #33 |
 | D5a | D5 | Optional transcription-ready architecture foundations | no | completed | merged as PR #34 |
 | E1a | E1 | Community contribution model and contribution safety rails | no | completed | merged as PR #35 |
-| E2a | E2 | Baselines and evaluation utilities | no | completed | current ref evaluation utilities PR |
-| E2b | E2 | Live-but-cached batch acquisition for vetted NLI seed URLs | no | planned | short-term release-scale acquisition PR |
+| E2a | E2 | Baselines and evaluation utilities | no | completed | merged as PR #36 |
+| E2b | E2 | Live-but-cached batch acquisition for vetted NLI seed URLs | no | completed | current ref release-scale acquisition PR |
 | E3a | E3 | Annotation subset pilots | no | next | future annotation PR |
 | E4a | E4 | Multi-release governance and maturity controls | no | planned | future governance PR |
 
 ## 4.3 Current critical path
 
-The immediate implementation critical path after `E2a` is:
+The immediate implementation critical path after `E2b` is:
 
-1. **E2b**: add live-but-cached batch acquisition for vetted NLI seed URLs so larger real-sample releases do not require one-by-one manual promotion
-2. **E3a**: add carefully bounded annotation subset pilots
+1. **E3a**: add carefully bounded annotation subset pilots
 
 This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` made exported release trees explainable over time through baseline-aware diffs and changelog generation. `D1a` moved routine dry-run maintenance into GitHub Actions with persisted run summaries. `D2a` adds source health, fixture-backed adapter regression coverage, and freeze/degrade reporting so source instability is visible before benchmark work depends on it. `D3a` defines the first explicitly approved `benchmark_v1` subset with benchmark manifests, selection audit, a stability policy, and usage guidance. `D4a` upgrades the synthetic generator's visual realism without new external assets by adding recipe-backed printed and handwritten-look rendering, richer document-like marks, deterministic degradation presets, and public metadata. `D4b` adds synthetic controls over that metadata and reports synthetic composition in build and alpha export outputs. `D5a` adds optional, portable annotation-reference slots and annotation manifests so future transcription work can attach to release items without making transcriptions mandatory for current alpha/public outputs. `E1a` defines source proposal, source-adapter, synthetic asset, dataset issue, external review, and release-governance contribution paths while preserving existing rights, privacy, review, and release gates. `E2a` adds benchmark example loading, JSON/JSONL text prediction evaluation, character error rate and exact-match helpers, coverage reporting, and lightweight leaderboard-ready conventions over the existing `benchmark_v1` artifacts without adding model training infrastructure.
 
-`E2b` is a deliberately narrow bridge between the current fixture-backed NLI seed flow and release-size real-source growth. It should not become broad site crawling. The target behavior is a live acquisition operator path that accepts vetted NLI seed URLs, fetches/parses item metadata and assets, writes local reusable fixtures plus a machine-readable report, and then lets the existing deterministic pipeline decide release eligibility. CI and routine release validation should continue to run against committed or locally cached fixtures rather than live network access. A release target such as `80` real samples plus `80` governed synthetic controls should wait until this batch path has produced enough release-ready real items and all rights, privacy, review, split-leakage, benchmark-stability, synthetic-cap, and export-portability gates still pass.
+`E2b` is a deliberately narrow bridge between the current fixture-backed NLI seed flow and release-size real-source growth. It does not add broad site crawling. The operator path accepts vetted NLI seed URLs from the exploratory catalog, runnable seed manifest, or both; reuses local fixture-backed seeds without network access; fetches/parses missing item metadata and assets when explicitly run; writes reusable local fixtures/assets; and emits a machine-readable report with promoted, skipped, and failed seeds. CI and routine release validation continue to run against committed or locally cached fixtures rather than live network access. A release target such as `80` real samples plus `80` governed synthetic controls should wait until this batch path has produced enough release-ready real items and all rights, privacy, review, split-leakage, benchmark-stability, synthetic-cap, and export-portability gates still pass.
 
 ## 4.4 Alpha release readiness gates
 

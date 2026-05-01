@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "E2a"
+CURRENT_COMPLETED_NOTATION = "E2b"
 NEXT_NOTATION = "E3a"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
@@ -33,7 +33,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert f"| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
     assert f"| E1 | Ecosystem maturity | E1a | Community contribution model | completed |" in roadmap
-    assert f"| E2 | Ecosystem maturity | E2a | Baselines and evaluation utilities | completed |" in roadmap
+    assert f"| E2 | Ecosystem maturity | E2a, E2b | Baselines/evaluation utilities, then live/cached NLI seed acquisition | completed |" in roadmap
     assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
     assert "The next planned milestone is `E3a`" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
@@ -90,3 +90,20 @@ def test_e2a_evaluation_docs_keep_utility_scope_visible() -> None:
         assert required in readme
 
     assert "without adding model training infrastructure" in roadmap
+
+
+def test_e2b_nli_batch_acquisition_docs_keep_seed_boundary_visible() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+    source_guide = Path("docs/source_adapter_contribution_guide.md").read_text(encoding="utf-8")
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+
+    for required in [
+        "--seed-source runnable",
+        "--seed-source all",
+        "--max-items",
+        "skipped seeds",
+    ]:
+        assert required in readme
+
+    assert "It does not add broad site crawling" in roadmap
+    assert "leaves CI/release validation network-free" in source_guide

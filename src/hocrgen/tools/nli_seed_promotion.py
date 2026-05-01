@@ -26,7 +26,9 @@ FAILURE_RIGHTS_MISSING = "rights_missing"
 FAILURE_RIGHTS_NOT_ALLOWED = "rights_not_allowed"
 FAILURE_ASSETS_MISSING = "assets_missing"
 FAILURE_DOWNLOAD = "download_failed"
+FAILURE_FIXTURE_MISSING = "fixture_missing"
 FAILURE_SEED_ALREADY_RUNNABLE = "seed_already_runnable"
+FAILURE_SEED_OUTSIDE_BATCH_LIMIT = "seed_outside_batch_limit"
 FAILURE_CHALLENGE_NOT_RESOLVED = "challenge_not_resolved"
 CHALLENGE_MARKERS = (
     "just a moment",
@@ -104,6 +106,16 @@ class PromotionFailure:
     reason: str
     message: str
     rights: str | None = None
+
+
+@dataclass(frozen=True)
+class PromotionSkipped:
+    seed_id: str
+    reason: str
+    message: str
+    rights: str | None = None
+    fixture_path: str | None = None
+    asset_paths: list[str] | None = None
 
 
 def seed_id_to_slug(seed_id: str) -> str:
@@ -290,6 +302,85 @@ def load_yaml_manifest(path: Path) -> dict[str, Any]:
     return data
 
 
+def package_data_dir() -> Path:
+    return Path(__file__).resolve().parents[1] / "data" / "nli"
+
+
+def resolve_fixture_path(fixture_reference: str, *, manifest_path: Path) -> Path:
+    if fixture_reference.startswith("package://data/nli/"):
+        return package_data_dir() / fixture_reference.removeprefix("package://data/nli/")
+    fixture_path = Path(fixture_reference)
+    if fixture_path.is_absolute():
+        return fixture_path
+    return (manifest_path.parent / fixture_path).resolve()
+
+
+def build_cached_promotion(
+    *,
+    seed: dict[str, Any],
+    fixture_path: Path,
+    require_rights: str,
+    output_dir: Path,
+    runnable_seeds_path: Path,
+) -> PromotionSuccess:
+    from hocrgen.fetchers.nli import parse_nli_fixture_html
+
+    if not fixture_path.exists():
+        raise StageExecutionError(f"{FAILURE_FIXTURE_MISSING}: cached fixture missing: {fixture_path}")
+    parsed_fixture = parse_nli_fixture_html(fixture_path)
+    downloaded_assets: list[tuple[str, str | None, bytes]] = []
+    for asset_reference in parsed_fixture.assets:
+        asset_path = (fixture_path.parent / asset_reference).resolve()
+        if not asset_path.exists():
+            raise StageExecutionError(f"{FAILURE_DOWNLOAD}: cached asset missing: {asset_path}")
+        downloaded_assets.append(
+            (
+                asset_reference,
+                mimetypes.guess_type(asset_path.name)[0],
+                asset_path.read_bytes(),
+            )
+        )
+    return build_promotion(
+        seed=seed,
+        extracted=ExtractedSeedPage(
+            title=parsed_fixture.title or str(seed.get("title") or "Untitled NLI item"),
+            description=parsed_fixture.description or "",
+            rights=parsed_fixture.rights or "",
+            asset_urls=[asset_reference for asset_reference in parsed_fixture.assets],
+        ),
+        downloaded_assets=downloaded_assets,
+        require_rights=require_rights,
+        output_dir=output_dir,
+        runnable_seeds_path=runnable_seeds_path,
+    )
+
+
+def build_cached_skip(
+    *,
+    seed: dict[str, Any],
+    fixture_reference: str | None,
+    fixture_path: Path | None,
+    reason: str,
+    message: str,
+) -> PromotionSkipped:
+    rights: str | None = None
+    asset_paths: list[str] = []
+    if fixture_path is not None and fixture_path.exists():
+        from hocrgen.fetchers.nli import parse_nli_fixture_html
+
+        parsed_fixture = parse_nli_fixture_html(fixture_path)
+        rights = parsed_fixture.rights
+        asset_paths = list(parsed_fixture.assets)
+    return PromotionSkipped(
+        seed_id=str(seed["id"]),
+        reason=reason,
+        message=message,
+        rights=rights,
+        fixture_path=fixture_reference,
+        asset_paths=asset_paths,
+    )
+
+
 def write_yaml_manifest(path: Path, data: dict[str, Any]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("w", encoding="utf-8") as handle:
@@ -346,11 +437,65 @@ def select_catalog_items(
     return selected
 
 
+def select_seed_items(
+    *,
+    catalog_manifest: dict[str, Any],
+    runnable_manifest: dict[str, Any],
+    seed_ids: list[str] | None,
+    max_items: int | None,
+    seed_source: str,
+) -> tuple[list[dict[str, Any]], list[PromotionSkipped]]:
+    source_items: list[dict[str, Any]] = []
+    if seed_source in {"runnable", "all"}:
+        source_items.extend(runnable_manifest["items"])
+    if seed_source in {"catalog", "all"}:
+        source_items.extend(catalog_manifest["items"])
+
+    candidates: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    wanted = set(seed_ids or [])
+    for item in source_items:
+        seed_id = str(item.get("id", ""))
+        if not seed_id or seed_id in seen:
+            continue
+        if wanted and seed_id not in wanted:
+            continue
+        candidates.append(item)
+        seen.add(seed_id)
+
+    skipped: list[PromotionSkipped] = []
+    selected = candidates
+    if max_items is not None:
+        selected = candidates[:max_items]
+        for item in candidates[max_items:]:
+            seed_id = str(item["id"])
+            skipped.append(
+                PromotionSkipped(
+                    seed_id=seed_id,
+                    reason=FAILURE_SEED_OUTSIDE_BATCH_LIMIT,
+                    message=f"Seed {seed_id} matched selection but was outside the --max-items batch limit.",
+                )
+            )
+    if seed_ids:
+        candidate_ids = {str(item.get("id", "")) for item in candidates}
+        for seed_id in seed_ids:
+            if seed_id not in candidate_ids:
+                skipped.append(
+                    PromotionSkipped(
+                        seed_id=seed_id,
+                        reason="seed_not_found",
+                        message=f"Seed {seed_id} was not found in {seed_source} seeds.",
+                    )
+                )
+    return selected, skipped
+
+
 def build_report(
     *,
     attempted_seed_ids: list[str],
     promotions: list[PromotionSuccess],
     failures: list[PromotionFailure],
+    skipped: list[PromotionSkipped] | None = None,
 ) -> dict[str, Any]:
     return {
         "attempted_seeds": attempted_seed_ids,
@@ -362,6 +507,17 @@ def build_report(
                 "rights": promotion.rights,
             }
             for promotion in promotions
+        ],
+        "skipped_seeds": [
+            {
+                "seed_id": item.seed_id,
+                "reason": item.reason,
+                "message": item.message,
+                "rights": item.rights,
+                "fixture_path": item.fixture_path,
+                "asset_paths": item.asset_paths or [],
+            }
+            for item in (skipped or [])
         ],
         "failed_seeds": [
             {
@@ -412,6 +568,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--connect-cdp", help="Connect to an already running Chrome instance via CDP, e.g. http://127.0.0.1:9222")
     parser.add_argument("--seed-id", action="append", dest="seed_ids")
     parser.add_argument("--max-items", type=int)
+    parser.add_argument(
+        "--seed-source",
+        choices=("catalog", "runnable", "all"),
+        default="catalog",
+        help="Select seeds from the exploratory catalog, runnable seed manifest, or both.",
+    )
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
     parser.add_argument("--report-path", type=Path, default=Path("src/hocrgen/data/nli/promotion_report.json"))
@@ -426,25 +588,63 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     runnable_manifest = load_yaml_manifest(args.runnable_seeds)
     catalog_manifest = load_yaml_manifest(args.seed_catalog)
-    selected_seeds = select_catalog_items(
+    selected_seeds, skipped = select_seed_items(
         catalog_manifest=catalog_manifest,
+        runnable_manifest=runnable_manifest,
         seed_ids=args.seed_ids,
         max_items=args.max_items,
+        seed_source=args.seed_source,
     )
     promotions: list[PromotionSuccess] = []
     failures: list[PromotionFailure] = []
+    runnable_ids = {str(item["id"]) for item in runnable_manifest["items"] if isinstance(item, dict) and "id" in item}
     for index, seed in enumerate(selected_seeds):
         try:
-            extracted, downloads = capture_seed_via_browser(
-                seed=seed,
-                browser_state_dir=args.browser_state_dir,
-                connect_cdp=args.connect_cdp,
-                pause_on_first_page=args.pause_on_first_page and index == 0,
-                pause_on_every_challenge=args.pause_on_every_challenge,
-                manual_wait_timeout_seconds=args.manual_wait_timeout,
-            )
-            promotions.append(
-                build_promotion(
+            if str(seed["id"]) in runnable_ids and not args.overwrite:
+                fixture_reference = seed.get("fixture_html")
+                fixture_path = (
+                    resolve_fixture_path(str(fixture_reference), manifest_path=args.runnable_seeds)
+                    if fixture_reference
+                    else None
+                )
+                if fixture_path is None:
+                    raise StageExecutionError(f"{FAILURE_FIXTURE_MISSING}: runnable seed {seed['id']} has no fixture_html")
+                build_cached_promotion(
+                    seed=seed,
+                    fixture_path=fixture_path,
+                    require_rights=args.require_rights,
+                    output_dir=args.output_dir,
+                    runnable_seeds_path=args.runnable_seeds,
+                )
+                skipped.append(
+                    build_cached_skip(
+                        seed=seed,
+                        fixture_reference=str(fixture_reference) if fixture_reference else None,
+                        reason=FAILURE_SEED_ALREADY_RUNNABLE,
+                        message=f"Seed {seed['id']} already exists in runnable seeds.",
+                        fixture_path=fixture_path,
+                    )
+                )
+                continue
+            if seed.get("fixture_html"):
+                fixture_manifest_path = args.runnable_seeds if str(seed["id"]) in runnable_ids else args.seed_catalog
+                promotion = build_cached_promotion(
+                    seed=seed,
+                    fixture_path=resolve_fixture_path(str(seed["fixture_html"]), manifest_path=fixture_manifest_path),
+                    require_rights=args.require_rights,
+                    output_dir=args.output_dir,
+                    runnable_seeds_path=args.runnable_seeds,
+                )
+            else:
+                extracted, downloads = capture_seed_via_browser(
+                    seed=seed,
+                    browser_state_dir=args.browser_state_dir,
+                    connect_cdp=args.connect_cdp,
+                    pause_on_first_page=args.pause_on_first_page and index == 0,
+                    pause_on_every_challenge=args.pause_on_every_challenge,
+                    manual_wait_timeout_seconds=args.manual_wait_timeout,
+                )
+                promotion = build_promotion(
                     seed=seed,
                     extracted=extracted,
                     downloaded_assets=downloads,
@@ -452,6 +652,8 @@ def main(argv: list[str] | None = None) -> int:
                     output_dir=args.output_dir,
                     runnable_seeds_path=args.runnable_seeds,
                 )
+            promotions.append(
+                promotion
             )
         except StageExecutionError as exc:
             failures.append(
@@ -474,6 +676,7 @@ def main(argv: list[str] | None = None) -> int:
         attempted_seed_ids=[str(seed["id"]) for seed in selected_seeds],
         promotions=successful_promotions,
         failures=all_failures,
+        skipped=skipped,
     )
     if not args.dry_run:
         write_promotion_outputs(
@@ -645,7 +848,9 @@ def _extract_failure_reason(message: str) -> str:
             FAILURE_RIGHTS_NOT_ALLOWED,
             FAILURE_ASSETS_MISSING,
             FAILURE_DOWNLOAD,
+            FAILURE_FIXTURE_MISSING,
             FAILURE_SEED_ALREADY_RUNNABLE,
+            FAILURE_SEED_OUTSIDE_BATCH_LIMIT,
         }:
             return prefix
     if message in {
