@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import shutil
+from importlib.resources import files
 from pathlib import Path
 
 import pytest
@@ -70,6 +71,15 @@ def test_load_benchmark_config_uses_packaged_default_without_checkout_benchmark_
         "pinkas_open:pinkas-ledger-001",
         "project_synthetic:synthetic-0",
     ]
+
+
+def test_packaged_benchmark_config_resource_is_included() -> None:
+    resource = files("hocrgen") / "data" / "benchmark" / "benchmark_v1" / "config.json"
+
+    assert resource.is_file()
+    payload = json.loads(resource.read_text(encoding="utf-8"))
+    assert payload["benchmark_id"] == "benchmark_v1"
+    assert len(payload["approved_items"]) == 3
 
 
 def test_load_benchmark_config_rejects_duplicate_approved_items(tmp_path: Path) -> None:

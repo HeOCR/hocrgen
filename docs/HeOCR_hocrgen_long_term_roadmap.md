@@ -217,7 +217,7 @@ Some completed bootstrap work predates PR-based tracking. In particular, `A1a` i
 | C6a | #23 |
 | D1a | #27 |
 | D2a | #28 |
-| D3a | #30, #31 |
+| D3a | #30 |
 | D4a | #32 |
 | D4b | #33 |
 | D5a | #34 |
