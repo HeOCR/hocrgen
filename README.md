@@ -126,7 +126,7 @@ This validates:
 - normalized license mappings under [`src/hocrgen/config/licenses.yaml`](./src/hocrgen/config/licenses.yaml)
 - technical QA thresholds under [`src/hocrgen/config/quality_thresholds.yaml`](./src/hocrgen/config/quality_thresholds.yaml)
 - privacy rules under [`src/hocrgen/config/privacy_rules.yaml`](./src/hocrgen/config/privacy_rules.yaml)
-- benchmark v1 approvals and stability policy under [`benchmark_data/benchmark_v1/config.json`](./benchmark_data/benchmark_v1/config.json)
+- packaged benchmark v1 approvals and stability policy under [`src/hocrgen/data/benchmark/benchmark_v1/config.json`](./src/hocrgen/data/benchmark/benchmark_v1/config.json)
 
 ## Run a real Milestone 5 dry-run
 
@@ -398,7 +398,7 @@ What it does not do yet:
 
 `benchmark_v1` is a small, explicitly approved benchmark-facing slice emitted by `build-release` and mirrored by `export-alpha`.
 
-The initial benchmark contains two real release-ready exemplars plus one governed synthetic control item. Every benchmark item must be named in [`benchmark_data/benchmark_v1/config.json`](./benchmark_data/benchmark_v1/config.json), must remain release-ready after review merge, and must keep its committed benchmark split. If an approved item becomes unresolved, blocked, duplicate-removed, missing from the current run, or assigned to a different split, `build-release` fails with a structured stage error.
+The initial benchmark contains two real release-ready exemplars plus one governed synthetic control item. Every benchmark item must be named in the packaged approval config at [`src/hocrgen/data/benchmark/benchmark_v1/config.json`](./src/hocrgen/data/benchmark/benchmark_v1/config.json), must remain release-ready after review merge, and must keep its committed benchmark split. If an approved item becomes unresolved, blocked, duplicate-removed, missing from the current run, or assigned to a different split, `build-release` fails with a structured stage error. Local checkout/config-root-relative `benchmark_data/` trees are still honored as explicit overrides, but non-editable installs use the packaged default.
 
 Benchmark artifacts:
 

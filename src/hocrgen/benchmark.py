@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pydantic import ValidationError
 
-from hocrgen.config.loader import default_config_root, load_json_file
+from hocrgen.config.loader import package_root, load_json_file
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.manifests.models import (
     BenchmarkConfigRecord,
@@ -44,10 +44,14 @@ def _benchmark_data_root_candidates(config_root: Path) -> list[Path]:
         candidate = parent / "benchmark_data"
         if candidate not in candidates:
             candidates.append(candidate)
-    default_candidate = default_config_root().resolve().parents[2] / "benchmark_data"
-    if default_candidate not in candidates:
-        candidates.append(default_candidate)
+    package_candidate = packaged_benchmark_data_root()
+    if package_candidate not in candidates:
+        candidates.append(package_candidate)
     return candidates
+
+
+def packaged_benchmark_data_root() -> Path:
+    return (package_root() / "data" / "benchmark").resolve()
 
 
 def _project_root_for(path: Path) -> Path | None:
@@ -57,15 +61,15 @@ def _project_root_for(path: Path) -> Path | None:
     return None
 
 
-def resolve_benchmark_data_root(config_root: Path) -> Path:
+def resolve_benchmark_data_root(config_root: Path, benchmark_id: str = BENCHMARK_ID) -> Path:
     for candidate in _benchmark_data_root_candidates(config_root):
-        if candidate.exists():
+        if (candidate / benchmark_id / "config.json").exists():
             return candidate
     return config_root.resolve().parent / "benchmark_data"
 
 
 def load_benchmark_config(config_root: Path, benchmark_id: str = BENCHMARK_ID) -> BenchmarkConfigRecord:
-    root = resolve_benchmark_data_root(config_root)
+    root = resolve_benchmark_data_root(config_root, benchmark_id)
     config_path = root / benchmark_id / "config.json"
     try:
         config = BenchmarkConfigRecord.model_validate(load_json_file(config_path))

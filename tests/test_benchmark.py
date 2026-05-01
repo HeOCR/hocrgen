@@ -7,7 +7,12 @@ from pathlib import Path
 import pytest
 
 from hocrgen.annotation_pilots import load_annotation_pilot_config, resolve_annotation_data_root, select_annotation_pilot_items
-from hocrgen.benchmark import load_benchmark_config, resolve_benchmark_data_root, select_benchmark_items
+from hocrgen.benchmark import (
+    load_benchmark_config,
+    packaged_benchmark_data_root,
+    resolve_benchmark_data_root,
+    select_benchmark_items,
+)
 from hocrgen.config.loader import default_config_root
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.manifests.models import (
@@ -53,6 +58,20 @@ def test_load_benchmark_config_accepts_valid_repo_tracked_config(tmp_path: Path)
     assert len(config.approved_items) == 1
 
 
+def test_load_benchmark_config_uses_packaged_default_without_checkout_benchmark_data(tmp_path: Path) -> None:
+    config_root = tmp_path / "config"
+    shutil.copytree(default_config_root(), config_root)
+
+    config = load_benchmark_config(config_root)
+
+    assert config.benchmark_id == "benchmark_v1"
+    assert [item.item_id for item in config.approved_items] == [
+        "nli_any_use_permitted:nli-ms-seed-006",
+        "pinkas_open:pinkas-ledger-001",
+        "project_synthetic:synthetic-0",
+    ]
+
+
 def test_load_benchmark_config_rejects_duplicate_approved_items(tmp_path: Path) -> None:
     payload = _valid_payload()
     payload["approved_items"].append(dict(payload["approved_items"][0]))
@@ -87,9 +106,16 @@ def test_resolve_benchmark_data_root_falls_back_without_unbounded_parent_search(
     config_root = tmp_path / "nested" / "project" / "config"
     config_root.mkdir(parents=True)
     missing_default = tmp_path / "missing" / "src" / "hocrgen" / "config"
-    monkeypatch.setattr("hocrgen.benchmark.default_config_root", lambda: missing_default)
+    monkeypatch.setattr("hocrgen.benchmark.package_root", lambda: missing_default.parent)
 
     assert resolve_benchmark_data_root(config_root) == config_root.parent / "benchmark_data"
+
+
+def test_resolve_benchmark_data_root_prefers_packaged_data_for_external_config_root(tmp_path: Path) -> None:
+    config_root = tmp_path / "external_config"
+    config_root.mkdir()
+
+    assert resolve_benchmark_data_root(config_root) == packaged_benchmark_data_root()
 
 
 def test_load_benchmark_config_rejects_id_mismatch(tmp_path: Path) -> None:
