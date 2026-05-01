@@ -305,8 +305,12 @@ class AnnotationPilotApprovedItemRecord(ManifestModel):
             raise ValueError(f"duplicate annotation pilot tasks for item {self.item_id}")
         if "transcription" in self.tasks and self.planned_transcription is None:
             raise ValueError(f"annotation pilot item {self.item_id} requires planned_transcription")
+        if "transcription" not in self.tasks and self.planned_transcription is not None:
+            raise ValueError(f"annotation pilot item {self.item_id} has planned_transcription without transcription task")
         if "layout_labels" in self.tasks and self.planned_layout_labels is None:
             raise ValueError(f"annotation pilot item {self.item_id} requires planned_layout_labels")
+        if "layout_labels" not in self.tasks and self.planned_layout_labels is not None:
+            raise ValueError(f"annotation pilot item {self.item_id} has planned_layout_labels without layout_labels task")
         if self.planned_transcription is not None and self.planned_transcription.schema_id != "hocrgen_transcription_v1":
             raise ValueError("planned_transcription must use hocrgen_transcription_v1")
         if self.planned_layout_labels is not None and self.planned_layout_labels.schema_id != "hocrgen_layout_labels_v1":

@@ -16,6 +16,21 @@ from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_sum
 from hocrgen.runs import load_resumed_pipeline_state
 
 
+def _is_portable_manifest_path(path: str) -> bool:
+    return (
+        path
+        and path == path.strip()
+        and not path.startswith("/")
+        and not path.startswith("file://")
+        and "://" not in path
+        and "\\" not in path
+        and ".work/" not in path
+        and ".work\\" not in path
+        and ".." not in Path(path).parts
+        and not (len(path) >= 2 and path[1] == ":")
+    )
+
+
 def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> None:
     config_root = tmp_path / "config"
     shutil.copytree(default_config_root(), config_root)
@@ -133,7 +148,14 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
         "pinkas_open:pinkas-ledger-001",
     }
     assert all(item["target_subset"] == "benchmark_v1" for item in annotation_pilot_manifest["items"])
-    assert all(not str(value).startswith("/") for item in annotation_pilot_manifest["items"] for value in item.values())
+    pilot_target_paths = [
+        target["path"]
+        for item in annotation_pilot_manifest["items"]
+        for target in (item.get("planned_transcription"), item.get("planned_layout_labels"))
+        if isinstance(target, dict)
+    ]
+    assert pilot_target_paths
+    assert all(_is_portable_manifest_path(path) for path in pilot_target_paths)
     assert {item["outcome"] for item in annotation_pilot_audit["items"]} == {"selected"}
     assert removed_duplicate_items["items"] == []
     assert len(review_required_items["items"]) == 1

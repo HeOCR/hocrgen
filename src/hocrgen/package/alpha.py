@@ -73,6 +73,12 @@ class BenchmarkExportInputs:
     card_markdown: str
 
 
+@dataclass(frozen=True)
+class AnnotationPilotExportInputs:
+    manifest: AnnotationPilotManifestRecord
+    selection_audit: list[AnnotationPilotSelectionAuditRecord]
+
+
 def export_alpha_release(
     bundle: ConfigBundle,
     run_dir: Path,
@@ -104,11 +110,7 @@ def export_alpha_release(
     removed_duplicate_items = _load_models(build_dir / "removed_duplicate_items.json", CuratedItemRecord)
     review_queue = _load_models(build_dir / "review_queue.json", ReviewQueueRecord)
     benchmark_inputs = _load_benchmark_export_inputs(build_dir)
-    annotation_pilot_manifest = _load_annotation_pilot_manifest(build_dir)
-    annotation_pilot_audit = _load_models(
-        build_dir / "annotation_pilot_selection_audit.json",
-        AnnotationPilotSelectionAuditRecord,
-    )
+    annotation_pilot_inputs = _load_annotation_pilot_export_inputs(build_dir)
     build_release_summary = _load_json(build_dir / "release_summary.json")
 
     selected_items = _select_alpha_items(release_items, profile, config)
@@ -146,10 +148,10 @@ def export_alpha_release(
     privacy_stats = _build_privacy_stats(exported_items)
     synthetic_composition = synthetic_composition_report(exported_items)
     annotation_manifest = build_annotation_manifest(exported_items, subset_id="alpha_export")
-    exported_annotation_pilot_manifest = _filter_annotation_pilot_manifest(annotation_pilot_manifest, selected_ids)
+    exported_annotation_pilot_manifest = _filter_annotation_pilot_manifest(annotation_pilot_inputs.manifest, selected_ids)
     selected_annotation_pilot_ids = {item.item_id for item in exported_annotation_pilot_manifest.items}
     selected_annotation_pilot_audit = [
-        item for item in annotation_pilot_audit if item.item_id in selected_annotation_pilot_ids
+        item for item in annotation_pilot_inputs.selection_audit if item.item_id in selected_annotation_pilot_ids
     ]
     split_counts = dict(Counter(item.split for item in exported_items if item.split))
     exported_real_items = sum(1 for item in exported_items if not item.is_synthetic)
@@ -1131,10 +1133,18 @@ def _load_benchmark_export_inputs(build_dir: Path) -> BenchmarkExportInputs:
         ) from exc
 
 
-def _load_annotation_pilot_manifest(build_dir: Path) -> AnnotationPilotManifestRecord:
+def _load_annotation_pilot_export_inputs(build_dir: Path) -> AnnotationPilotExportInputs:
     try:
-        return AnnotationPilotManifestRecord.model_validate(_load_json(build_dir / "annotation_pilot_manifest.json"))
-    except (StageExecutionError, ValidationError) as exc:
+        return AnnotationPilotExportInputs(
+            manifest=AnnotationPilotManifestRecord.model_validate(
+                _load_json(build_dir / "annotation_pilot_manifest.json")
+            ),
+            selection_audit=_load_models(
+                build_dir / "annotation_pilot_selection_audit.json",
+                AnnotationPilotSelectionAuditRecord,
+            ),
+        )
+    except (FileNotFoundError, KeyError, StageExecutionError, ValidationError) as exc:
         raise StageExecutionError(
             "alpha export requires build-release annotation pilot artifacts; "
             "rerun build-release with annotation pilot outputs before export-alpha"

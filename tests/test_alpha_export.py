@@ -1254,6 +1254,41 @@ def test_export_alpha_release_requires_benchmark_artifacts(tmp_path: Path, capsy
         export_alpha_release(bundle, run_dir, "profile_open_v1", AlphaExportConfig(version="alpha-v0"))
 
 
+@pytest.mark.parametrize(
+    "artifact_name",
+    [
+        "annotation_pilot_manifest.json",
+        "annotation_pilot_selection_audit.json",
+    ],
+)
+def test_export_alpha_release_requires_annotation_pilot_artifacts(
+    tmp_path: Path,
+    capsys,
+    artifact_name: str,
+) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    exit_code = main(
+        [
+            "build-release",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+        ]
+    )
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    run_dir = Path(payload["run_dir"])
+    (run_dir / "build_release" / artifact_name).unlink()
+    bundle = load_and_validate_bundle(config_root)
+
+    with pytest.raises(StageExecutionError, match="requires build-release annotation pilot artifacts"):
+        export_alpha_release(bundle, run_dir, "profile_open_v1", AlphaExportConfig(version="alpha-v0"))
+
+
 def test_export_alpha_release_validates_benchmark_artifacts_before_overwrite(tmp_path: Path, capsys) -> None:
     config_root = _fixture_config_root(tmp_path)
     exit_code = main(

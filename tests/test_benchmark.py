@@ -10,7 +10,13 @@ from hocrgen.annotation_pilots import load_annotation_pilot_config, resolve_anno
 from hocrgen.benchmark import load_benchmark_config, resolve_benchmark_data_root, select_benchmark_items
 from hocrgen.config.loader import default_config_root
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
-from hocrgen.manifests.models import BenchmarkConfigRecord, BenchmarkItemRecord, NormalizedAssetRecord, PrivacyScannedItemRecord
+from hocrgen.manifests.models import (
+    AnnotationPilotApprovedItemRecord,
+    BenchmarkConfigRecord,
+    BenchmarkItemRecord,
+    NormalizedAssetRecord,
+    PrivacyScannedItemRecord,
+)
 
 
 def _benchmark_config_root(tmp_path: Path, payload: dict) -> Path:
@@ -208,6 +214,38 @@ def test_select_annotation_pilot_items_requires_benchmark_membership(tmp_path: P
             release_ready_items=[release_item],
             benchmark_items=[],
         )
+
+
+@pytest.mark.parametrize(
+    ("tasks", "target_field", "expected_error"),
+    [
+        (["layout_labels"], "planned_transcription", "without transcription task"),
+        (["transcription"], "planned_layout_labels", "without layout_labels task"),
+    ],
+)
+def test_annotation_pilot_config_rejects_targets_without_matching_tasks(
+    tasks: list[str],
+    target_field: str,
+    expected_error: str,
+) -> None:
+    payload = {
+        "item_id": "fixture:item-001",
+        "planned_transcription": {
+            "path": "annotations/fixture/item-001/transcription.json",
+            "schema_id": "hocrgen_transcription_v1",
+        },
+        "planned_layout_labels": {
+            "path": "annotations/fixture/item-001/layout_labels.json",
+            "schema_id": "hocrgen_layout_labels_v1",
+        },
+        "rationale": "fixture annotation pilot item",
+        "target_subset": "release_ready",
+        "tasks": tasks,
+    }
+    assert target_field in payload
+
+    with pytest.raises(ValueError, match=expected_error):
+        AnnotationPilotApprovedItemRecord.model_validate(payload)
 
 
 def _benchmark_config() -> BenchmarkConfigRecord:
