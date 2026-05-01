@@ -1038,6 +1038,8 @@ Each release should include a small compatibility set that lets users understand
 
 Published releases should be treated as immutable records. Corrections, takedowns, source deprecations, and schema migrations should appear in later versions with release notes rather than rewriting prior release history.
 
+Current removal manifests may use coarse machine-readable reasons, but release notes and changelogs should provide a human-readable audit rationale for rights, privacy, takedown, and source-policy removals whenever disclosure is safe.
+
 ---
 
 ## 20. Publishing subsystem

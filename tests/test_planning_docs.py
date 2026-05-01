@@ -19,6 +19,20 @@ STALE_BRANCH_LOCAL_PHRASES = [
     "remains unmerged",
     "current planned PR",
 ]
+E4A_COMPATIBILITY_ANCHORS = [
+    "release_record.json",
+    "release_summary.json",
+    "item_manifest.json",
+    "release_diff.json",
+    "CHANGELOG.md",
+    "schema_version",
+]
+E4A_SCHEMA_POLICY_INVARIANTS = [
+    "additive",
+    "new schema version or schema id",
+    "release-relative",
+    "portable",
+]
 
 
 def test_planning_docs_agree_on_current_and_next_notation() -> None:
@@ -142,15 +156,27 @@ def test_e4a_governance_docs_keep_multi_release_controls_visible() -> None:
     ]:
         assert required in release_governance
 
-    for required in [
-        "release_record.json",
-        "release_summary.json",
-        "item_manifest.json",
-        "release_diff.json",
-        "schema_version",
-    ]:
+    for required in E4A_COMPATIBILITY_ANCHORS:
         assert required in readme
         assert required in release_governance
+        assert required in design
+
+    for required in E4A_SCHEMA_POLICY_INVARIANTS:
+        assert required in readme
+        assert required in release_governance
+        assert required in design
+
+    for required in [
+        "GitHub private vulnerability reporting",
+        "out-of-band private contact path",
+        "avoid asking reporters to disclose sensitive details in a public issue",
+        "human-readable audit rationale",
+        "future schema work",
+    ]:
+        assert required in release_governance
+
+    for text in [readme, release_governance, design]:
+        assert "human" in text and "audit rationale" in text
 
     assert "Current alpha/public payload selection is unchanged." in roadmap
     assert "Release compatibility contract" in design

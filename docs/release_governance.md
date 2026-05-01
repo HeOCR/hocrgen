@@ -64,7 +64,9 @@ Release history should explain removals rather than hiding them. If a correction
 
 ## Removal and takedown workflow
 
-Takedown, privacy, rights, and source-owner concerns must be routed through an issue or maintainer-private report before release changes are made. The minimum handling path is:
+Takedown, privacy, rights, and source-owner concerns must be routed through an issue or maintainer-private report before release changes are made. Non-sensitive corrections should use a public GitHub issue with the appropriate dataset label. Sensitive rights, privacy, or source-owner concerns should use GitHub private vulnerability reporting or a private security advisory when that repository feature is enabled. If no private repository channel is configured, maintainers must arrange an out-of-band private contact path before publishing broader public releases and must avoid asking reporters to disclose sensitive details in a public issue.
+
+The minimum handling path is:
 
 1. classify the concern as `rights-review`, `privacy-review`, `dataset-correction`, or `source-breakage`
 2. identify the affected source ids, item ids, release versions, and benchmark membership
@@ -72,7 +74,9 @@ Takedown, privacy, rights, and source-owner concerns must be routed through an i
 4. re-run the release validation commands for the affected profile
 5. document the removal in `release_diff.json`, `CHANGELOG.md`, release notes, and the PR body
 
-If an item must be removed from a future public payload, use the narrowest accurate removal reason available: `review_required`, `blocked`, `duplicate_removed`, `selection_limit_excluded`, or `missing_from_current_run`. Do not delete historical evidence from prior release records; explain why the item no longer appears in the next release.
+If an item must be removed from a future public payload, use the narrowest accurate machine-readable removal reason available: `review_required`, `blocked`, `duplicate_removed`, `selection_limit_excluded`, or `missing_from_current_run`. Because those current manifest reasons are intentionally coarse, every rights, privacy, takedown, or source-policy removal must also carry a human-readable audit rationale in the changelog, release notes, and PR body. When the public rationale must be limited for privacy or legal reasons, say that explicitly and keep the full evidence in the private maintainer record.
+
+More granular removal taxonomy should be treated as future schema work if removals become frequent enough that coarse machine reasons no longer support clear release-to-release audits.
 
 ## Schema migration policy
 
