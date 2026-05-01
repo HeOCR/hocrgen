@@ -3,8 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "E3a"
-NEXT_NOTATION = "E4a"
+CURRENT_COMPLETED_NOTATION = "E4a"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -20,6 +19,20 @@ STALE_BRANCH_LOCAL_PHRASES = [
     "remains unmerged",
     "current planned PR",
 ]
+E4A_COMPATIBILITY_ANCHORS = [
+    "release_record.json",
+    "release_summary.json",
+    "item_manifest.json",
+    "release_diff.json",
+    "CHANGELOG.md",
+    "schema_version",
+]
+E4A_SCHEMA_POLICY_INVARIANTS = [
+    "additive",
+    "new schema version or schema id",
+    "release-relative",
+    "portable",
+]
 
 
 def test_planning_docs_agree_on_current_and_next_notation() -> None:
@@ -28,16 +41,17 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
 
     assert f"Last completed roadmap action on the current ref: `{CURRENT_COMPLETED_NOTATION}`" in agent_plan
-    assert f"next planned work is `{NEXT_NOTATION}`" in agent_plan
+    assert "no immediate roadmap notation is selected after E4a" in agent_plan
     assert f"| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert f"| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
     assert f"| E1 | Ecosystem maturity | E1a | Community contribution model | completed |" in roadmap
     assert f"| E2 | Ecosystem maturity | E2a, E2b | Baselines/evaluation utilities, then live/cached NLI seed acquisition | completed |" in roadmap
     assert f"| E3 | Ecosystem maturity | E3a | Annotation subset pilots | completed |" in roadmap
+    assert f"| E4 | Ecosystem maturity | E4a | Multi-release governance maturity | completed |" in roadmap
     assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
-    assert "The next planned milestone is `E4a`" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
+    assert "`E4a` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
 
 
 def test_planning_docs_do_not_use_stale_branch_local_status_phrases() -> None:
@@ -125,3 +139,45 @@ def test_e3a_annotation_pilot_docs_keep_optional_scope_visible() -> None:
 
     assert "not a full annotation-production workflow" in roadmap
     assert "must not make annotation files mandatory" in design
+
+
+def test_e4a_governance_docs_keep_multi_release_controls_visible() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+    design = Path("docs/hocrgen_design_and_spec.md").read_text(encoding="utf-8")
+    release_governance = Path("docs/release_governance.md").read_text(encoding="utf-8")
+
+    for required in [
+        "Version governance and compatibility",
+        "Removal and takedown workflow",
+        "Schema migration policy",
+        "Source deprecation policy",
+        "Benchmark stability guarantees",
+    ]:
+        assert required in release_governance
+
+    for required in E4A_COMPATIBILITY_ANCHORS:
+        assert required in readme
+        assert required in release_governance
+        assert required in design
+
+    for required in E4A_SCHEMA_POLICY_INVARIANTS:
+        assert required in readme
+        assert required in release_governance
+        assert required in design
+
+    for required in [
+        "GitHub private vulnerability reporting",
+        "out-of-band private contact path",
+        "avoid asking reporters to disclose sensitive details in a public issue",
+        "human-readable audit rationale",
+        "future schema work",
+    ]:
+        assert required in release_governance
+
+    for text in [readme, release_governance, design]:
+        assert "human" in text and "audit rationale" in text
+
+    assert "Current alpha/public payload selection is unchanged." in roadmap
+    assert "Release compatibility contract" in design
+    assert "breaking serialized schema changes require a new schema version or schema id" in release_governance.casefold()
