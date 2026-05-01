@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-from hocrgen.config.loader import ConfigBundle, load_json_file, load_yaml_file
+from hocrgen.config.loader import ConfigBundle, load_json_file, load_yaml_file, package_root
 from hocrgen.config.models import SourceConfig, SourceOperationalStatus
 from hocrgen.core.errors import ConfigValidationError
 from hocrgen.fetchers.base import StageOptions
@@ -139,46 +139,74 @@ def _inspect_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[di
 def _inspect_nli_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int]:
     checks: list[dict[str, Any]] = []
     manifest_path = bundle.resolve_path(source.settings.seed_manifest or "")
-    data = _load_yaml_checked(checks, "seed_manifest", manifest_path)
+    data = _load_yaml_checked(checks, "seed_manifest", manifest_path, bundle)
     items = data.get("items", []) if isinstance(data, dict) else []
     candidate_count = len(items) if isinstance(items, list) else 0
     asset_count = 0
     if not isinstance(items, list):
-        checks.append({"name": "seed_manifest_items", "path": str(manifest_path), "status": "error", "message": "items must be a list"})
+        checks.append(
+            {
+                "name": "seed_manifest_items",
+                "path": _format_health_path(manifest_path, bundle),
+                "status": "error",
+                "message": "items must be a list",
+            }
+        )
         return checks, candidate_count, asset_count
     for item in items:
         if not isinstance(item, dict):
-            checks.append({"name": "seed_manifest_item", "path": str(manifest_path), "status": "error", "message": "item must be an object"})
+            checks.append(
+                {
+                    "name": "seed_manifest_item",
+                    "path": _format_health_path(manifest_path, bundle),
+                    "status": "error",
+                    "message": "item must be an object",
+                }
+            )
             continue
         fixture_reference = item.get("fixture_html")
         if not fixture_reference:
             continue
         fixture_path = _resolve_source_local_reference(str(fixture_reference), manifest_path, bundle)
         asset_count += 1
-        checks.append(_path_check("fixture_html", fixture_path))
+        checks.append(_path_check("fixture_html", fixture_path, bundle))
     return checks, candidate_count, asset_count
 
 
 def _inspect_records_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int]:
     checks: list[dict[str, Any]] = []
     records_path = bundle.resolve_path(source.settings.records_path or "")
-    data = _load_json_checked(checks, "records_path", records_path)
+    data = _load_json_checked(checks, "records_path", records_path, bundle)
     records = data.get("records", []) if isinstance(data, dict) else []
     candidate_count = len(records) if isinstance(records, list) else 0
     asset_count = 0
     if not isinstance(records, list):
-        checks.append({"name": "records", "path": str(records_path), "status": "error", "message": "records must be a list"})
+        checks.append(
+            {
+                "name": "records",
+                "path": _format_health_path(records_path, bundle),
+                "status": "error",
+                "message": "records must be a list",
+            }
+        )
         return checks, candidate_count, asset_count
     for record in records:
         if not isinstance(record, dict):
-            checks.append({"name": "record", "path": str(records_path), "status": "error", "message": "record must be an object"})
+            checks.append(
+                {
+                    "name": "record",
+                    "path": _format_health_path(records_path, bundle),
+                    "status": "error",
+                    "message": "record must be an object",
+                }
+            )
             continue
         asset_reference = record.get("asset_path")
         if not asset_reference:
             continue
         asset_path = _resolve_source_local_reference(str(asset_reference), records_path, bundle)
         asset_count += 1
-        checks.append(_path_check("record_asset", asset_path))
+        checks.append(_path_check("record_asset", asset_path, bundle))
     return checks, candidate_count, asset_count
 
 
@@ -186,8 +214,8 @@ def _inspect_synthetic_source(source: SourceConfig, bundle: ConfigBundle) -> tup
     checks: list[dict[str, Any]] = []
     font_manifest_path = bundle.resolve_path(source.settings.font_manifest or "")
     text_corpus_path = bundle.resolve_path(source.settings.text_corpus_path or "")
-    font_manifest = _load_yaml_checked(checks, "font_manifest", font_manifest_path)
-    checks.append(_path_check("text_corpus", text_corpus_path))
+    font_manifest = _load_yaml_checked(checks, "font_manifest", font_manifest_path, bundle)
+    checks.append(_path_check("text_corpus", text_corpus_path, bundle))
     fonts = font_manifest.get("fonts", []) if isinstance(font_manifest, dict) else []
     asset_count = 0
     if isinstance(fonts, list):
@@ -195,9 +223,16 @@ def _inspect_synthetic_source(source: SourceConfig, bundle: ConfigBundle) -> tup
             if not isinstance(font, dict) or not font.get("file"):
                 continue
             asset_count += 1
-            checks.append(_path_check("font_file", font_manifest_path.parent / str(font["file"])))
+            checks.append(_path_check("font_file", font_manifest_path.parent / str(font["file"]), bundle))
     else:
-        checks.append({"name": "fonts", "path": str(font_manifest_path), "status": "error", "message": "fonts must be a list"})
+        checks.append(
+            {
+                "name": "fonts",
+                "path": _format_health_path(font_manifest_path, bundle),
+                "status": "error",
+                "message": "fonts must be a list",
+            }
+        )
     return checks, source.settings.synthetic_batch_size or 0, asset_count
 
 
@@ -216,8 +251,22 @@ def _minimum_check(name: str, actual: int, expected: int) -> dict[str, Any]:
     return {"actual": actual, "expected": expected, "name": name, "status": status}
 
 
-def _path_check(name: str, path: Path) -> dict[str, Any]:
-    return {"name": name, "path": str(path), "status": "ok" if path.exists() else "error"}
+def _path_check(name: str, path: Path, bundle: ConfigBundle) -> dict[str, Any]:
+    return {"name": name, "path": _format_health_path(path, bundle), "status": "ok" if path.exists() else "error"}
+
+
+def _format_health_path(path: Path, bundle: ConfigBundle) -> str:
+    resolved = path.resolve()
+    package_base = package_root().resolve()
+    try:
+        return f"package://{resolved.relative_to(package_base).as_posix()}"
+    except ValueError:
+        pass
+
+    try:
+        return resolved.relative_to(bundle.config_root.resolve()).as_posix()
+    except ValueError:
+        return str(resolved)
 
 
 def _resolve_source_local_reference(reference: str, manifest_path: Path, bundle: ConfigBundle) -> Path:
@@ -226,19 +275,23 @@ def _resolve_source_local_reference(reference: str, manifest_path: Path, bundle:
     return (manifest_path.parent / reference).resolve()
 
 
-def _load_yaml_checked(checks: list[dict[str, Any]], name: str, path: Path) -> Any:
-    checks.append(_path_check(name, path))
+def _load_yaml_checked(checks: list[dict[str, Any]], name: str, path: Path, bundle: ConfigBundle) -> Any:
+    checks.append(_path_check(name, path, bundle))
     try:
         return load_yaml_file(path)
     except (ConfigValidationError, OSError) as exc:
-        checks.append({"name": f"{name}_parse", "path": str(path), "status": "error", "message": str(exc)})
+        checks.append(
+            {"name": f"{name}_parse", "path": _format_health_path(path, bundle), "status": "error", "message": str(exc)}
+        )
         return {}
 
 
-def _load_json_checked(checks: list[dict[str, Any]], name: str, path: Path) -> Any:
-    checks.append(_path_check(name, path))
+def _load_json_checked(checks: list[dict[str, Any]], name: str, path: Path, bundle: ConfigBundle) -> Any:
+    checks.append(_path_check(name, path, bundle))
     try:
         return load_json_file(path)
     except (ConfigValidationError, OSError) as exc:
-        checks.append({"name": f"{name}_parse", "path": str(path), "status": "error", "message": str(exc)})
+        checks.append(
+            {"name": f"{name}_parse", "path": _format_health_path(path, bundle), "status": "error", "message": str(exc)}
+        )
         return {}

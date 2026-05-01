@@ -154,8 +154,8 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | C5b | C5 | Review decision schema merge, operational review loop, and post-review release gating | no | completed | merged as PR #22 |
 | C6a | C6 | Release diffs and changelog generation | no | completed | merged as PR #23 |
 | D1a | D1 | Scheduled GitHub-first dry-run maintenance and reporting workflows | no | completed | merged as PR #27 |
-| D2a | D2 | Source refresh/reliability maturity and source freeze controls | no | completed | merged as PR #28 |
-| D3a | D3 | Benchmark subset v1 and benchmark-facing manifests | no | completed | merged as PR #30 |
+| D2a | D2 | Source refresh/reliability maturity and source freeze controls | no | completed | merged as PR #28; current ref source-health path follow-up |
+| D3a | D3 | Benchmark subset v1 and benchmark-facing manifests | no | completed | merged as PR #30 and PR #41 |
 | D4a | D4 | Richer synthetic generation for realism and document likeness | no | completed | merged as PR #32 |
 | D4b | D4 | Synthetic diversity controls and reporting hardening | no | completed | merged as PR #33 |
 | D5a | D5 | Optional transcription-ready architecture foundations | no | completed | merged as PR #34 |
@@ -167,11 +167,11 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 
 ## 4.3 Current critical path
 
-The immediate implementation critical path after `E4a` is:
+The immediate implementation critical path after the `D2a` source-health path follow-up is:
 
-1. Select the next roadmap notation or queued source-operations follow-up from merged `main` and open issue/PR state.
+1. Select the next roadmap notation or queued follow-up from merged `main` and open issue/PR state.
 
-This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` made exported release trees explainable over time through baseline-aware diffs and changelog generation. `D1a` moved routine dry-run maintenance into GitHub Actions with persisted run summaries. `D2a` adds source health, fixture-backed adapter regression coverage, and freeze/degrade reporting so source instability is visible before benchmark work depends on it. `D3a` defines the first explicitly approved `benchmark_v1` subset with benchmark manifests, selection audit, a stability policy, and usage guidance; the current ref also packages the benchmark approval config so non-editable installs do not depend on a checkout-root `benchmark_data/` directory. `D4a` upgrades the synthetic generator's visual realism without new external assets by adding recipe-backed printed and handwritten-look rendering, richer document-like marks, deterministic degradation presets, and public metadata. `D4b` adds synthetic controls over that metadata and reports synthetic composition in build and alpha export outputs. `D5a` adds optional, portable annotation-reference slots and annotation manifests so future transcription work can attach to release items without making transcriptions mandatory for current alpha/public outputs. `E1a` defines source proposal, source-adapter, synthetic asset, dataset issue, external review, and release-governance contribution paths while preserving existing rights, privacy, review, and release gates. `E2a` adds benchmark example loading, JSON/JSONL text prediction evaluation, character error rate and exact-match helpers, coverage reporting, and lightweight leaderboard-ready conventions over the existing `benchmark_v1` artifacts without adding model training infrastructure.
+This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` made exported release trees explainable over time through baseline-aware diffs and changelog generation. `D1a` moved routine dry-run maintenance into GitHub Actions with persisted run summaries. `D2a` adds source health, fixture-backed adapter regression coverage, freeze/degrade reporting, and portable source-health check paths where package or config-root references are available so source instability is visible without tying operator artifacts to local install paths unnecessarily. `D3a` defines the first explicitly approved `benchmark_v1` subset with benchmark manifests, selection audit, a stability policy, and usage guidance; the current ref also packages the benchmark approval config so non-editable installs do not depend on a checkout-root `benchmark_data/` directory. `D4a` upgrades the synthetic generator's visual realism without new external assets by adding recipe-backed printed and handwritten-look rendering, richer document-like marks, deterministic degradation presets, and public metadata. `D4b` adds synthetic controls over that metadata and reports synthetic composition in build and alpha export outputs. `D5a` adds optional, portable annotation-reference slots and annotation manifests so future transcription work can attach to release items without making transcriptions mandatory for current alpha/public outputs. `E1a` defines source proposal, source-adapter, synthetic asset, dataset issue, external review, and release-governance contribution paths while preserving existing rights, privacy, review, and release gates. `E2a` adds benchmark example loading, JSON/JSONL text prediction evaluation, character error rate and exact-match helpers, coverage reporting, and lightweight leaderboard-ready conventions over the existing `benchmark_v1` artifacts without adding model training infrastructure.
 
 `E2b` is a deliberately narrow bridge between the current fixture-backed NLI seed flow and release-size real-source growth. It does not add broad site crawling. The operator path accepts vetted NLI seed URLs from the exploratory catalog, runnable seed manifest, or both; reuses local fixture-backed seeds without network access; fetches/parses missing item metadata and assets when explicitly run; writes reusable local fixtures/assets; and emits a machine-readable report with promoted, skipped, and failed seeds. CI and routine release validation continue to run against committed or locally cached fixtures rather than live network access. A release target such as `80` real samples plus `80` governed synthetic controls should wait until this batch path has produced enough release-ready real items and all rights, privacy, review, split-leakage, benchmark-stability, synthetic-cap, and export-portability gates still pass.
 
@@ -217,7 +217,7 @@ Some completed bootstrap work predates PR-based tracking. In particular, `A1a` i
 | C6a | #23 |
 | D1a | #27 |
 | D2a | #28 |
-| D3a | #30 |
+| D3a | #30, #41 |
 | D4a | #32 |
 | D4b | #33 |
 | D5a | #34 |
@@ -752,6 +752,7 @@ Make supported sources operationally reliable.
 - source health status report
 - source health warnings in run summaries
 - source freeze/degrade modes
+- portable operator-facing path references for packaged and config-root source-health checks
 - planning consistency guard for current-state docs
 
 ### Exit criteria

@@ -229,6 +229,89 @@ def test_record_health_resolves_relative_assets_next_to_records_file(tmp_path: P
     assert {"name": "record_asset", "path": str(asset_path), "status": "ok"} in checks
 
 
+def test_packaged_source_health_paths_use_package_references() -> None:
+    bundle = load_and_validate_bundle()
+    source = next(source for source in bundle.source_registry.sources if source.id == "nli_any_use_permitted")
+
+    checks, _, _ = _inspect_nli_source(source, bundle)
+
+    assert {"name": "seed_manifest", "path": "package://data/nli/seeds.yaml", "status": "ok"} in checks
+    assert any(
+        check["name"] == "fixture_html"
+        and isinstance(check["path"], str)
+        and check["path"].startswith("package://data/nli/")
+        for check in checks
+    )
+
+
+def test_source_health_paths_under_config_root_are_relative(tmp_path: Path) -> None:
+    config_root = _copy_config(tmp_path)
+    records_dir = config_root / "records"
+    records_dir.mkdir()
+    asset_path = records_dir / "relative.jpg"
+    asset_path.write_bytes(b"fake")
+    records_path = records_dir / "records.json"
+    records_path.write_text(
+        json.dumps(
+            {
+                "records": [
+                    {
+                        "id": "config-relative-record",
+                        "title": "Config-relative record",
+                        "source_url": "https://example.org/config-relative",
+                        "raw_rights": "PD-IL",
+                        "asset_path": "relative.jpg",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    _update_source_settings(config_root, "pinkas_open", {"records_path": "records/records.json"})
+    bundle = load_and_validate_bundle(config_root)
+    source = next(source for source in bundle.source_registry.sources if source.id == "pinkas_open")
+
+    checks, candidate_count, asset_count = _inspect_records_source(source, bundle)
+
+    assert candidate_count == 1
+    assert asset_count == 1
+    assert {"name": "records_path", "path": "records/records.json", "status": "ok"} in checks
+    assert {"name": "record_asset", "path": "records/relative.jpg", "status": "ok"} in checks
+
+
+def test_external_source_health_paths_remain_absolute(tmp_path: Path) -> None:
+    config_root = _copy_config(tmp_path)
+    records_dir = tmp_path / "external-records"
+    records_dir.mkdir()
+    asset_path = records_dir / "external.jpg"
+    asset_path.write_bytes(b"fake")
+    records_path = records_dir / "records.json"
+    records_path.write_text(
+        json.dumps(
+            {
+                "records": [
+                    {
+                        "id": "external-record",
+                        "title": "External record",
+                        "source_url": "https://example.org/external",
+                        "raw_rights": "PD-IL",
+                        "asset_path": "external.jpg",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    _update_source_settings(config_root, "pinkas_open", {"records_path": str(records_path)})
+    bundle = load_and_validate_bundle(config_root)
+    source = next(source for source in bundle.source_registry.sources if source.id == "pinkas_open")
+
+    checks, _, _ = _inspect_records_source(source, bundle)
+
+    assert {"name": "records_path", "path": str(records_path), "status": "ok"} in checks
+    assert {"name": "record_asset", "path": str(asset_path), "status": "ok"} in checks
+
+
 def test_active_source_with_failed_health_is_skipped_at_discover_time(tmp_path: Path, capsys) -> None:
     config_root = _copy_config(tmp_path)
     broken_seed = tmp_path / "broken_seed.yaml"
