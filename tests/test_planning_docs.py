@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "E2b"
-NEXT_NOTATION = "E3a"
+CURRENT_COMPLETED_NOTATION = "E3a"
+NEXT_NOTATION = "E4a"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -34,9 +34,10 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
     assert f"| E1 | Ecosystem maturity | E1a | Community contribution model | completed |" in roadmap
     assert f"| E2 | Ecosystem maturity | E2a, E2b | Baselines/evaluation utilities, then live/cached NLI seed acquisition | completed |" in roadmap
+    assert f"| E3 | Ecosystem maturity | E3a | Annotation subset pilots | completed |" in roadmap
     assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
-    assert "The next planned milestone is `E3a`" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
+    assert "The next planned milestone is `E4a`" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
 
 
 def test_planning_docs_do_not_use_stale_branch_local_status_phrases() -> None:
@@ -107,3 +108,20 @@ def test_e2b_nli_batch_acquisition_docs_keep_seed_boundary_visible() -> None:
 
     assert "It does not add broad site crawling" in roadmap
     assert "leaves CI/release validation network-free" in source_guide
+
+
+def test_e3a_annotation_pilot_docs_keep_optional_scope_visible() -> None:
+    readme = Path("README.md").read_text(encoding="utf-8")
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+    design = Path("docs/hocrgen_design_and_spec.md").read_text(encoding="utf-8")
+
+    for required in [
+        "annotation_data/pilots/e3a_annotation_pilot/config.json",
+        "annotation_pilot_manifest.json",
+        "annotation_pilot_selection_audit.json",
+        "Current public and alpha outputs still do not require transcriptions or layout labels.",
+    ]:
+        assert required in readme
+
+    assert "not a full annotation-production workflow" in roadmap
+    assert "must not make annotation files mandatory" in design

@@ -199,6 +199,23 @@ class AlphaExportedItemRecord(PrivacyScannedItemRecord):
     exported_assets: list[ExportedAssetRecord] = Field(default_factory=list)
 
 
+def validate_release_relative_manifest_path(path: str, *, field_label: str) -> str:
+    parsed = PurePosixPath(path)
+    if (
+        not path
+        or path != path.strip()
+        or "\\" in path
+        or "://" in path
+        or re.match(r"^[A-Za-z]:", path)
+        or parsed.is_absolute()
+        or not parsed.parts
+        or any(part in {"", ".", ".."} for part in parsed.parts)
+        or ".work" in parsed.parts
+    ):
+        raise ValueError(f"{field_label} paths must be release-relative and portable")
+    return path
+
+
 class AnnotationFileReference(ManifestModel):
     path: str
     schema_id: Literal["hocrgen_transcription_v1", "hocrgen_layout_labels_v1"]
@@ -208,20 +225,7 @@ class AnnotationFileReference(ManifestModel):
     @field_validator("path")
     @classmethod
     def validate_portable_path(cls, path: str) -> str:
-        parsed = PurePosixPath(path)
-        if (
-            not path
-            or path != path.strip()
-            or "\\" in path
-            or "://" in path
-            or re.match(r"^[A-Za-z]:", path)
-            or parsed.is_absolute()
-            or not parsed.parts
-            or any(part in {"", ".", ".."} for part in parsed.parts)
-            or ".work" in parsed.parts
-        ):
-            raise ValueError("annotation reference paths must be release-relative and portable")
-        return path
+        return validate_release_relative_manifest_path(path, field_label="annotation reference")
 
 
 class TranscriptionReference(AnnotationFileReference):
@@ -273,6 +277,110 @@ class AnnotationManifestRecord(ManifestModel):
     transcription_item_count: int
     layout_label_item_count: int
     items: list[AnnotationManifestItemRecord] = Field(default_factory=list)
+    schema_version: Literal[1] = 1
+
+
+class AnnotationPilotTargetReference(ManifestModel):
+    path: str
+    schema_id: Literal["hocrgen_transcription_v1", "hocrgen_layout_labels_v1"]
+    media_type: str = "application/json"
+
+    @field_validator("path")
+    @classmethod
+    def validate_portable_path(cls, path: str) -> str:
+        return validate_release_relative_manifest_path(path, field_label="annotation pilot target")
+
+
+class AnnotationPilotApprovedItemRecord(ManifestModel):
+    item_id: str
+    target_subset: Literal["release_ready", "benchmark_v1"]
+    tasks: list[Literal["transcription", "layout_labels"]] = Field(min_length=1)
+    rationale: str = Field(min_length=1)
+    planned_transcription: AnnotationPilotTargetReference | None = None
+    planned_layout_labels: AnnotationPilotTargetReference | None = None
+
+    @model_validator(mode="after")
+    def validate_tasks_and_targets(self) -> "AnnotationPilotApprovedItemRecord":
+        if len(set(self.tasks)) != len(self.tasks):
+            raise ValueError(f"duplicate annotation pilot tasks for item {self.item_id}")
+        if "transcription" in self.tasks and self.planned_transcription is None:
+            raise ValueError(f"annotation pilot item {self.item_id} requires planned_transcription")
+        if "transcription" not in self.tasks and self.planned_transcription is not None:
+            raise ValueError(f"annotation pilot item {self.item_id} has planned_transcription without transcription task")
+        if "layout_labels" in self.tasks and self.planned_layout_labels is None:
+            raise ValueError(f"annotation pilot item {self.item_id} requires planned_layout_labels")
+        if "layout_labels" not in self.tasks and self.planned_layout_labels is not None:
+            raise ValueError(f"annotation pilot item {self.item_id} has planned_layout_labels without layout_labels task")
+        if self.planned_transcription is not None and self.planned_transcription.schema_id != "hocrgen_transcription_v1":
+            raise ValueError("planned_transcription must use hocrgen_transcription_v1")
+        if self.planned_layout_labels is not None and self.planned_layout_labels.schema_id != "hocrgen_layout_labels_v1":
+            raise ValueError("planned_layout_labels must use hocrgen_layout_labels_v1")
+        return self
+
+
+class AnnotationPilotConfigRecord(ManifestModel):
+    pilot_id: str
+    version: Literal[1] = 1
+    description: str = Field(min_length=1)
+    selection_policy: str = Field(min_length=1)
+    annotation_guidance: str = Field(min_length=1)
+    transcription_required_for_release: bool = False
+    layout_labels_required_for_release: bool = False
+    approved_items: list[AnnotationPilotApprovedItemRecord] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_approved_item_ids(self) -> "AnnotationPilotConfigRecord":
+        seen: set[str] = set()
+        duplicates: set[str] = set()
+        for item in self.approved_items:
+            if item.item_id in seen:
+                duplicates.add(item.item_id)
+            seen.add(item.item_id)
+        if duplicates:
+            joined = ", ".join(sorted(duplicates))
+            raise ValueError(f"duplicate annotation pilot item ids: {joined}")
+        if self.transcription_required_for_release or self.layout_labels_required_for_release:
+            raise ValueError("annotation pilots must not require annotations for release")
+        return self
+
+
+class AnnotationPilotItemRecord(ManifestModel):
+    pilot_id: str
+    item_id: str
+    source_id: str
+    source_item_id: str
+    source_url: str
+    title: str | None = None
+    target_subset: Literal["release_ready", "benchmark_v1"]
+    release_split: Literal["train", "validation", "test"]
+    benchmark_id: str | None = None
+    benchmark_split: Literal["train", "validation", "test"] | None = None
+    tasks: list[Literal["transcription", "layout_labels"]]
+    planned_transcription: AnnotationPilotTargetReference | None = None
+    planned_layout_labels: AnnotationPilotTargetReference | None = None
+    rationale: str
+
+
+class AnnotationPilotSelectionAuditRecord(ManifestModel):
+    pilot_id: str
+    item_id: str
+    outcome: Literal["selected"]
+    reason: str
+    target_subset: Literal["release_ready", "benchmark_v1"]
+
+
+class AnnotationPilotManifestRecord(ManifestModel):
+    pilot_id: str
+    version: Literal[1] = 1
+    description: str
+    selection_policy: str
+    annotation_guidance: str
+    transcription_required_for_release: bool = False
+    layout_labels_required_for_release: bool = False
+    pilot_item_count: int
+    transcription_task_count: int
+    layout_label_task_count: int
+    items: list[AnnotationPilotItemRecord] = Field(default_factory=list)
     schema_version: Literal[1] = 1
 
 

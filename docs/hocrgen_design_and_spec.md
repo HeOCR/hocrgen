@@ -1316,6 +1316,8 @@ The item schema should be additive-friendly for future fields like:
 - region annotations
 - OCR baseline outputs
 
+Current annotation pilots are intentionally config-driven and additive. A pilot config may name a tiny set of release-ready or benchmark-selected items and planned release-relative target files such as `annotations/<source_id>/<source_item_id>/transcription.json`, but it must not make annotation files mandatory for current public releases. Build outputs should keep the broad `annotation_manifest.json` separate from any `annotation_pilot_manifest.json` so future label work can be scoped, audited, and exported without weakening release eligibility, benchmark stability, privacy, review, split, or portability gates.
+
 ---
 
 ## 29. Recommended initial milestones for implementation

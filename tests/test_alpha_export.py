@@ -121,6 +121,8 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
     assert (output_dir / "data").exists()
     assert (output_dir / "manifests" / "item_manifest.json").exists()
     assert (output_dir / "manifests" / "annotation_manifest.json").exists()
+    assert (output_dir / "manifests" / "annotation_pilot_manifest.json").exists()
+    assert (output_dir / "manifests" / "annotation_pilot_selection_audit.json").exists()
     assert (output_dir / "manifests" / "benchmark_manifest.json").exists()
     assert (output_dir / "manifests" / "benchmark_selection_audit.json").exists()
     assert (output_dir / "manifests" / "benchmark_stability_policy.json").exists()
@@ -138,6 +140,9 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
 
     release_diff = json.loads((output_dir / "manifests" / "release_diff.json").read_text(encoding="utf-8"))
     benchmark_manifest = json.loads((output_dir / "manifests" / "benchmark_manifest.json").read_text(encoding="utf-8"))
+    annotation_pilot_manifest = json.loads(
+        (output_dir / "manifests" / "annotation_pilot_manifest.json").read_text(encoding="utf-8")
+    )
     benchmark_card = (output_dir / "docs" / "BENCHMARK_CARD.md").read_text(encoding="utf-8")
     changelog = (output_dir / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
     release_notes = (output_dir / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
@@ -149,6 +154,9 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
         "project_synthetic:synthetic-0",
     }
     assert str(output_dir.resolve()) not in json.dumps(benchmark_manifest)
+    assert annotation_pilot_manifest["pilot_id"] == "e3a_annotation_pilot"
+    assert annotation_pilot_manifest["pilot_item_count"] == 2
+    assert str(output_dir.resolve()) not in json.dumps(annotation_pilot_manifest)
     assert "Selection Policy" in benchmark_card
     assert "Review Bar" in benchmark_card
     assert "Stability Policy" in benchmark_card
@@ -434,6 +442,9 @@ def test_export_alpha_docs_and_release_record_include_metadata(
     release_summary = json.loads((export_dir / "manifests" / "release_summary.json").read_text(encoding="utf-8"))
     synthetic_composition = json.loads((export_dir / "manifests" / "synthetic_composition.json").read_text(encoding="utf-8"))
     annotation_manifest = json.loads((export_dir / "manifests" / "annotation_manifest.json").read_text(encoding="utf-8"))
+    annotation_pilot_manifest = json.loads(
+        (export_dir / "manifests" / "annotation_pilot_manifest.json").read_text(encoding="utf-8")
+    )
     dataset_card = (export_dir / "docs" / "DATASET_CARD.md").read_text(encoding="utf-8")
     changelog = (export_dir / "docs" / "CHANGELOG.md").read_text(encoding="utf-8")
     release_notes = (export_dir / "docs" / "RELEASE_NOTES.md").read_text(encoding="utf-8")
@@ -444,6 +455,9 @@ def test_export_alpha_docs_and_release_record_include_metadata(
     assert release_record["included_sources"] == ["nli_any_use_permitted", "pinkas_open", "project_synthetic"]
     assert release_summary["synthetic_composition"]["by_recipe_id"] == synthetic_composition["by_recipe_id"]
     assert release_summary["annotation_manifest"]["transcription_item_count"] == 0
+    assert release_summary["annotation_pilot"]["pilot_item_count"] == 2
+    assert release_summary["annotation_pilot"]["transcription_required_for_release"] is False
+    assert annotation_pilot_manifest["layout_labels_required_for_release"] is False
     assert annotation_manifest["subset_id"] == "alpha_export"
     assert annotation_manifest["transcription_required"] is False
     assert annotation_manifest["layout_labels_required"] is False
@@ -464,6 +478,7 @@ def test_export_alpha_docs_and_release_record_include_metadata(
     assert "## Synthetic Composition" in dataset_card
     assert "## Annotation Readiness" in dataset_card
     assert "Items with transcription references: 0" in release_notes
+    assert "Annotation pilot items: 2" in release_notes
     assert "`handwritten_note_marginalia_v1`=1" in release_notes
     exported_synthetic_items = [
         item
@@ -1236,6 +1251,41 @@ def test_export_alpha_release_requires_benchmark_artifacts(tmp_path: Path, capsy
     bundle = load_and_validate_bundle(config_root)
 
     with pytest.raises(StageExecutionError, match="requires build-release benchmark artifacts"):
+        export_alpha_release(bundle, run_dir, "profile_open_v1", AlphaExportConfig(version="alpha-v0"))
+
+
+@pytest.mark.parametrize(
+    "artifact_name",
+    [
+        "annotation_pilot_manifest.json",
+        "annotation_pilot_selection_audit.json",
+    ],
+)
+def test_export_alpha_release_requires_annotation_pilot_artifacts(
+    tmp_path: Path,
+    capsys,
+    artifact_name: str,
+) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    exit_code = main(
+        [
+            "build-release",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+        ]
+    )
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    run_dir = Path(payload["run_dir"])
+    (run_dir / "build_release" / artifact_name).unlink()
+    bundle = load_and_validate_bundle(config_root)
+
+    with pytest.raises(StageExecutionError, match="requires build-release annotation pilot artifacts"):
         export_alpha_release(bundle, run_dir, "profile_open_v1", AlphaExportConfig(version="alpha-v0"))
 
 
