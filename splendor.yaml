@@ -1,0 +1,41 @@
+schema_version: '1'
+project_name: hocrgen
+layout:
+  raw_dir: raw
+  raw_sources_dir: raw/sources
+  raw_assets_dir: raw/assets
+  raw_imports_dir: raw/imports
+  derived_dir: derived
+  derived_ocr_dir: derived/ocr
+  derived_parsed_dir: derived/parsed
+  derived_metadata_dir: derived/metadata
+  derived_summaries_dir: derived/summaries
+  wiki_dir: wiki
+  planning_dir: planning
+  state_dir: state
+  reports_dir: reports
+  source_records_dir: state/manifests/sources
+sources:
+  in_repo_storage_mode: none
+  external_storage_mode: copy
+  imported_storage_mode: copy
+  capture_source_commit: true
+  summarize_in_repo_extracts_as: excerpt
+  summarize_external_extracts_as: full
+  ocr_enabled: false
+  ocr_provider: sidecar-text
+  ocr_sidecar_suffix: .ocr.txt
+queue:
+  max_attempts: 3
+  lease_ttl_seconds: 300
+  retry_backoff_seconds:
+  - 60
+  - 300
+  - 900
+reviews:
+  contradictions:
+    enabled: false
+    provider: openai
+    model: null
+    max_candidate_pages: 20
+    review_task_priority: high

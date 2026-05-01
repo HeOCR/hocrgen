@@ -1052,7 +1052,7 @@ The default F1 trial target is `80` real items plus `80` synthetic controls. Rea
 - relaxing rights, privacy, review, dedupe, split, benchmark, synthetic-cap, or export-portability gates to hit volume
 
 ### Current-ref implementation
-`F1a` is implemented on the current ref as planning and workflow scaffolding only. It does not add acquisition code, export code, new source adapters, or publication behavior.
+`F1a` is implemented on the current ref as planning and workflow scaffolding plus a repo-native Splendor knowledge workspace. It does not add acquisition code, export code, new source adapters, or publication behavior. The Splendor workspace adds generated source summaries, source manifests, topic scaffolds, queue/run state, and agent brief/query entrypoints for future coding-agent context without changing hocrgen runtime behavior or dataset outputs.
 
 ### Exit criteria
 - the next beta-trial implementation issue can be opened from a template with concrete counts, source allocation, gates, validation, and non-goals

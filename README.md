@@ -113,6 +113,42 @@ python scripts/promote_nli_seeds.py \
 - final public beta publication to Hugging Face or the GitHub dataset repo after source-depth, uniqueness, ground-truth, review, and portability gates pass
 - full release packaging maturity
 
+## Splendor knowledge workspace
+
+This repository includes a repo-native Splendor workspace for future coding-agent context. Splendor state lives in:
+
+- [`splendor.yaml`](./splendor.yaml) for workspace layout and source policy
+- [`wiki/`](./wiki/) for generated source summaries and maintained topic pages
+- [`state/`](./state/) for source manifests, queue records, run records, and query snapshots
+- [`planning/`](./planning/) for future Splendor task, milestone, decision, and question records
+- [`reports/`](./reports/) for Splendor lint and health reports
+
+The initial workspace registers and ingests high-signal hocrgen sources: `AGENTS.md`, `README.md`, `llms.txt`, `.agent-plan.md`, core docs under `docs/`, JSON schemas under `schemas/`, GitHub workflows, config files under `src/hocrgen/config/`, source operations, pipeline/CLI, benchmark/evaluation, annotation, review, release/export, fetcher, and NLI promotion modules. It intentionally does not register binary sample assets. The current local Splendor build used for this setup does not ingest TOML yet, so `pyproject.toml` remains part of normal repo context but is not included in the committed Splendor source set.
+
+Future agents can start with:
+
+```bash
+splendor wiki status
+splendor query "release export pipeline"
+splendor brief --agent-context "continue hocrgen work" --json
+```
+
+If the installed `splendor` CLI is older than the repo workspace requires, run it from a local Splendor checkout. For the common sibling-checkout layout:
+
+```bash
+uv run --project ../splendor splendor --root . wiki status
+```
+
+After changing registered source files, refresh and check the workspace:
+
+```bash
+splendor source refresh <path-or-source-id>
+splendor ingest --pending
+splendor wiki rebuild-index
+splendor lint
+splendor health
+```
+
 ## Local setup
 
 ```bash

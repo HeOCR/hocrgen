@@ -1,0 +1,52 @@
+{
+  "added_at": "2026-05-01T20:48:06+00:00",
+  "checksum": "d76cc18a7d533e5085d4cc98c81687ebe3492ca8cf1395e4bfd781ca4b3b92f0",
+  "derived_artifacts": [],
+  "discovered_by": null,
+  "generated_by_run_ids": [
+    "run-src-d76cc18a7d533e5085d4cc98c81687ebe3492ca8cf1395e4bfd781ca4b3b92f0-20260501T204813656556Z"
+  ],
+  "kind": "source",
+  "last_run_id": "run-src-d76cc18a7d533e5085d4cc98c81687ebe3492ca8cf1395e4bfd781ca4b3b92f0-20260501T204813656556Z",
+  "linked_pages": [
+    "wiki/sources/src-d76cc18a7d533e5085d4cc98c81687ebe3492ca8cf1395e4bfd781ca4b3b92f0.md"
+  ],
+  "materialized_at": null,
+  "origin_url": null,
+  "original_path": "src/hocrgen/fetchers/nli.py",
+  "path": "src/hocrgen/fetchers/nli.py",
+  "pipeline_version": "0.1.0a0",
+  "provenance_links": [
+    {
+      "note": null,
+      "page_id": "src-d76cc18a7d533e5085d4cc98c81687ebe3492ca8cf1395e4bfd781ca4b3b92f0",
+      "path_ref": "wiki/sources/src-d76cc18a7d533e5085d4cc98c81687ebe3492ca8cf1395e4bfd781ca4b3b92f0.md",
+      "role": "generated-page",
+      "run_id": null,
+      "source_id": null
+    },
+    {
+      "note": null,
+      "page_id": null,
+      "path_ref": null,
+      "role": "output",
+      "run_id": "run-src-d76cc18a7d533e5085d4cc98c81687ebe3492ca8cf1395e4bfd781ca4b3b92f0-20260501T204813656556Z",
+      "source_id": "src-d76cc18a7d533e5085d4cc98c81687ebe3492ca8cf1395e4bfd781ca4b3b92f0"
+    }
+  ],
+  "review_state": "unreviewed",
+  "reviewed_at": null,
+  "reviewed_by": null,
+  "schema_version": "1",
+  "source_class": null,
+  "source_commit": null,
+  "source_id": "src-d76cc18a7d533e5085d4cc98c81687ebe3492ca8cf1395e4bfd781ca4b3b92f0",
+  "source_labels": [],
+  "source_ref": "src/hocrgen/fetchers/nli.py",
+  "source_ref_kind": "workspace_path",
+  "source_type": "py",
+  "status": "ingested",
+  "storage_mode": "none",
+  "storage_path": null,
+  "title": "nli"
+}

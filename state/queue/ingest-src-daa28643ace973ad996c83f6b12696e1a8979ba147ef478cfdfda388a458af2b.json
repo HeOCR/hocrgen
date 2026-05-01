@@ -1,0 +1,16 @@
+{
+  "attempt_count": 1,
+  "created_at": "2026-05-01T20:48:03+00:00",
+  "job_id": "ingest-src-daa28643ace973ad996c83f6b12696e1a8979ba147ef478cfdfda388a458af2b",
+  "job_type": "ingest_source",
+  "kind": "queue_item",
+  "last_error": null,
+  "lease_expires_at": null,
+  "lease_owner": null,
+  "max_attempts": 3,
+  "next_attempt_at": null,
+  "payload_ref": "state/manifests/sources/src-daa28643ace973ad996c83f6b12696e1a8979ba147ef478cfdfda388a458af2b.json",
+  "schema_version": "1",
+  "status": "done",
+  "updated_at": "2026-05-01T20:48:13+00:00"
+}

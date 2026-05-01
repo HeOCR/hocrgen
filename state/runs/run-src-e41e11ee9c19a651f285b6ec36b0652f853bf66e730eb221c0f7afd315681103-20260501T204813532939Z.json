@@ -1,0 +1,67 @@
+{
+  "contradiction_ids": [],
+  "errors": [],
+  "finished_at": "2026-05-01T20:48:13+00:00",
+  "input_refs": [
+    "state/manifests/sources/src-e41e11ee9c19a651f285b6ec36b0652f853bf66e730eb221c0f7afd315681103.json",
+    "docs/2026_05_01_outside_review/chatgpt_review.md"
+  ],
+  "job_id": "ingest-src-e41e11ee9c19a651f285b6ec36b0652f853bf66e730eb221c0f7afd315681103",
+  "job_type": "ingest_source",
+  "kind": "run",
+  "output_refs": [
+    "wiki/sources/src-e41e11ee9c19a651f285b6ec36b0652f853bf66e730eb221c0f7afd315681103.md",
+    "wiki/index.md",
+    "wiki/log.md"
+  ],
+  "page_ids": [
+    "src-e41e11ee9c19a651f285b6ec36b0652f853bf66e730eb221c0f7afd315681103"
+  ],
+  "page_refs": [
+    "wiki/sources/src-e41e11ee9c19a651f285b6ec36b0652f853bf66e730eb221c0f7afd315681103.md"
+  ],
+  "pipeline_version": "0.1.0a0",
+  "provenance_links": [
+    {
+      "note": null,
+      "page_id": null,
+      "path_ref": "state/manifests/sources/src-e41e11ee9c19a651f285b6ec36b0652f853bf66e730eb221c0f7afd315681103.json",
+      "role": "input",
+      "run_id": null,
+      "source_id": "src-e41e11ee9c19a651f285b6ec36b0652f853bf66e730eb221c0f7afd315681103"
+    },
+    {
+      "note": null,
+      "page_id": null,
+      "path_ref": "docs/2026_05_01_outside_review/chatgpt_review.md",
+      "role": "input",
+      "run_id": null,
+      "source_id": "src-e41e11ee9c19a651f285b6ec36b0652f853bf66e730eb221c0f7afd315681103"
+    },
+    {
+      "note": null,
+      "page_id": "src-e41e11ee9c19a651f285b6ec36b0652f853bf66e730eb221c0f7afd315681103",
+      "path_ref": "wiki/sources/src-e41e11ee9c19a651f285b6ec36b0652f853bf66e730eb221c0f7afd315681103.md",
+      "role": "generated-page",
+      "run_id": null,
+      "source_id": null
+    },
+    {
+      "note": null,
+      "page_id": "src-e41e11ee9c19a651f285b6ec36b0652f853bf66e730eb221c0f7afd315681103",
+      "path_ref": null,
+      "role": "output",
+      "run_id": "run-src-e41e11ee9c19a651f285b6ec36b0652f853bf66e730eb221c0f7afd315681103-20260501T204813532939Z",
+      "source_id": null
+    }
+  ],
+  "run_id": "run-src-e41e11ee9c19a651f285b6ec36b0652f853bf66e730eb221c0f7afd315681103-20260501T204813532939Z",
+  "schema_version": "1",
+  "source_ids": [
+    "src-e41e11ee9c19a651f285b6ec36b0652f853bf66e730eb221c0f7afd315681103"
+  ],
+  "started_at": "2026-05-01T20:48:13+00:00",
+  "status": "succeeded",
+  "task_ids": [],
+  "warnings": []
+}
