@@ -48,6 +48,7 @@ body:
         - privacy gate
         - review gate
         - dedupe gate
+        - near-duplicate/source-group leakage gate
         - split gate
         - benchmark stability gate
         - synthetic-cap gate
@@ -60,6 +61,17 @@ body:
     attributes:
       label: Pinkas/BiblIA source-depth feasibility
       description: Explain how this issue handles bounded static source expansion before treating Pinkas or BiblIA as scalable.
+    validations:
+      required: true
+  - type: textarea
+    id: uniqueness-leakage
+    attributes:
+      label: Uniqueness and leakage checks
+      description: Explain how this issue reports or preserves near-duplicate, source-group, split-leakage, and benchmark-leakage safeguards.
+      value: |
+        - exact dedupe remains enforced
+        - near-duplicate/source-group risks are reported or explicitly deferred to F1d
+        - split and benchmark leakage risks are inspected before scale beyond the operator-only trial
     validations:
       required: true
   - type: textarea

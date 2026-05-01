@@ -67,7 +67,7 @@ Near-term release-scale acquisition preserves that seed boundary while removing 
 
 This is the preferred short-term path for growing from the current small alpha exemplar set toward a bounded beta-scale trial. The `F1a` trial plan targets `80` real items plus `80` synthetic controls, with the real-source mix fixed at `27` NLI, `27` Pinkas, and `26` BiblIA. It is an operator-only acquisition trial, not a public beta export, release-candidate export, broad live-source crawler, or publication workflow.
 
-The NLI portion can build on the existing live-but-cached seed promotion path. Pinkas and BiblIA are currently bounded packaged exemplar sources, so their trial allocation requires explicit source-depth feasibility work before either source is treated as scalable beyond the committed records. Rights, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates remain mandatory before any larger public release.
+The NLI portion can build on the existing live-but-cached seed promotion path. Pinkas and BiblIA are currently bounded packaged exemplar sources, so their trial allocation requires explicit source-depth feasibility work before either source is treated as scalable beyond the committed records. Rights, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates remain mandatory before any larger public release. The post-F1 roadmap also requires near-duplicate/source-group leakage hardening, benchmark ground-truth references, rights-clean modern handwritten Hebrew acquisition, Hebrew-specific RTL/niqqud/layout synthetic quality work, and separate public beta publication gates before treating beta-scale acquisition as release or benchmark readiness.
 
 To promote exploratory entries into runnable local fixtures, use the local operator script:
 
@@ -102,11 +102,15 @@ python scripts/promote_nli_seeds.py \
 
 - beta-scale source-depth feasibility for the `27` NLI / `27` Pinkas / `26` BiblIA real-source target
 - operator-only beta acquisition trial reporting for `80` real items plus `80` synthetic controls
+- bounded beta-trial execution artifacts that preserve acquisition failures, rights outcomes, review outcomes, dedupe outcomes, and split/benchmark eligibility
 - broad live-source crawling
-- near-duplicate / perceptual deduplication
+- near-duplicate / perceptual deduplication, source-group grouping, and split-leakage hardening
+- benchmark ground-truth foundation: transcription guidelines, layout-label guidance, reference manifests, adjudication artifacts, and benchmark versioning gates
+- rights-clean modern handwritten Hebrew acquisition with consent, privacy, composition, and takedown workflows
+- RTL, bidi, niqqud, Unicode normalization, font-shaping, and layout-aware synthetic quality validation
 - OCR-aware privacy screening
 - advanced classification and model-training infrastructure
-- final publication to Hugging Face or the GitHub dataset repo
+- final public beta publication to Hugging Face or the GitHub dataset repo after source-depth, uniqueness, ground-truth, review, and portability gates pass
 - full release packaging maturity
 
 ## Local setup

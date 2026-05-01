@@ -41,7 +41,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
 
     assert f"Last completed roadmap action on the current ref: `{CURRENT_COMPLETED_NOTATION}`" in agent_plan
-    assert "next implementation should start from the `F1a` beta-scale trial plan" in agent_plan
+    assert "next implementation should start from the `F1a` beta-scale trial plan by opening `F1b`" in agent_plan
     assert f"| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert f"| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
@@ -49,7 +49,11 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert f"| E2 | Ecosystem maturity | E2a, E2b | Baselines/evaluation utilities, then live/cached NLI seed acquisition | completed |" in roadmap
     assert f"| E3 | Ecosystem maturity | E3a | Annotation subset pilots | completed |" in roadmap
     assert f"| E4 | Ecosystem maturity | E4a | Multi-release governance maturity | completed |" in roadmap
-    assert f"| F1 | Beta-scale trial preparation | {CURRENT_COMPLETED_NOTATION} | Operator-only beta-scale acquisition trial planning | completed |" in roadmap
+    assert "| F1 | Beta-scale acquisition trial | F1a, F1b, F1c, F1d |" in roadmap
+    assert "| F2 | Benchmark ground-truth foundation | F2a, F2b |" in roadmap
+    assert "| F3 | Modern handwritten acquisition program | F3a, F3b |" in roadmap
+    assert "| F4 | RTL, niqqud, and layout synthetic quality | F4a, F4b |" in roadmap
+    assert "| F5 | Public beta and publication readiness | F5a, F5b |" in roadmap
     assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
     assert "`E4a` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
@@ -78,6 +82,36 @@ def test_f1a_beta_trial_plan_is_bounded_and_source_balanced() -> None:
 
     assert "Pinkas/BiblIA source-depth feasibility" in issue_template
     assert "publication to Hugging Face or the GitHub dataset repo" in combined
+
+
+def test_post_f1_roadmap_captures_outside_review_takeaways() -> None:
+    agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+    issue_template = Path(".github/ISSUE_TEMPLATE/beta_trial.yml").read_text(encoding="utf-8")
+    combined = "\n".join([agent_plan, readme, roadmap, issue_template])
+
+    for required in [
+        "gate-driven beta-readiness program",
+        "near-duplicate/source-group leakage",
+        "Benchmark ground-truth foundation",
+        "Modern handwritten acquisition program",
+        "RTL, niqqud, and layout synthetic quality",
+        "Public beta and publication readiness",
+        "source-depth, uniqueness, ground-truth, review, and portability gates",
+    ]:
+        assert required in combined
+
+    for required in [
+        "`F1b`",
+        "`F1c`",
+        "`F1d`",
+        "`F2`",
+        "`F3`",
+        "`F4`",
+        "`F5`",
+    ]:
+        assert required in combined
 
 
 def test_planning_docs_do_not_use_stale_branch_local_status_phrases() -> None:
