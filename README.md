@@ -65,7 +65,9 @@ Near-term release-scale acquisition preserves that seed boundary while removing 
 5. Keeps CI and release builds fixture-backed and network-free after the live acquisition step.
 6. Leaves the normal rights, privacy, review, dedupe, split, benchmark, and export-portability gates in charge before any larger public release.
 
-This is the preferred short-term path for growing from the current small alpha exemplar set toward larger releases such as `80` real samples plus bounded synthetic controls. It is not a site-wide crawler and should not bypass source policy, rights checks, review decisions, benchmark stability, or public export portability.
+This is the preferred short-term path for growing from the current small alpha exemplar set toward a bounded beta-scale trial. The `F1a` trial plan targets `80` real items plus `80` synthetic controls, with the real-source mix fixed at `27` NLI, `27` Pinkas, and `26` BiblIA. It is an operator-only acquisition trial, not a public beta export, release-candidate export, broad live-source crawler, or publication workflow.
+
+The NLI portion can build on the existing live-but-cached seed promotion path. Pinkas and BiblIA are currently bounded packaged exemplar sources, so their trial allocation requires explicit source-depth feasibility work before either source is treated as scalable beyond the committed records. Rights, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates remain mandatory before any larger public release.
 
 To promote exploratory entries into runnable local fixtures, use the local operator script:
 
@@ -98,6 +100,8 @@ python scripts/promote_nli_seeds.py \
 
 ## What is still future work
 
+- beta-scale source-depth feasibility for the `27` NLI / `27` Pinkas / `26` BiblIA real-source target
+- operator-only beta acquisition trial reporting for `80` real items plus `80` synthetic controls
 - broad live-source crawling
 - near-duplicate / perceptual deduplication
 - OCR-aware privacy screening

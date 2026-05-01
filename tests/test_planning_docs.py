@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "D2a"
+CURRENT_COMPLETED_NOTATION = "F1a"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -41,7 +41,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
 
     assert f"Last completed roadmap action on the current ref: `{CURRENT_COMPLETED_NOTATION}`" in agent_plan
-    assert "no immediate roadmap notation is selected after the D2a source-ops follow-up" in agent_plan
+    assert "next implementation should start from the `F1a` beta-scale trial plan" in agent_plan
     assert f"| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert f"| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
@@ -49,9 +49,35 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert f"| E2 | Ecosystem maturity | E2a, E2b | Baselines/evaluation utilities, then live/cached NLI seed acquisition | completed |" in roadmap
     assert f"| E3 | Ecosystem maturity | E3a | Annotation subset pilots | completed |" in roadmap
     assert f"| E4 | Ecosystem maturity | E4a | Multi-release governance maturity | completed |" in roadmap
-    assert f"The immediate implementation critical path after the `{CURRENT_COMPLETED_NOTATION}` source-health path follow-up is:" in roadmap
+    assert f"| F1 | Beta-scale trial preparation | {CURRENT_COMPLETED_NOTATION} | Operator-only beta-scale acquisition trial planning | completed |" in roadmap
+    assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
     assert "`E4a` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
+
+
+def test_f1a_beta_trial_plan_is_bounded_and_source_balanced() -> None:
+    agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+    issue_template = Path(".github/ISSUE_TEMPLATE/beta_trial.yml").read_text(encoding="utf-8")
+    combined = "\n".join([agent_plan, readme, roadmap, issue_template])
+
+    for required in [
+        "80 real",
+        "80 synthetic",
+        "27 NLI",
+        "27 Pinkas",
+        "26 BiblIA",
+        "operator-only",
+        "no broad live-source crawling",
+        "no public beta export",
+        "no release-candidate export",
+        "no network-dependent CI",
+    ]:
+        assert required in combined
+
+    assert "Pinkas/BiblIA source-depth feasibility" in issue_template
+    assert "publication to Hugging Face or the GitHub dataset repo" in combined
 
 
 def test_planning_docs_do_not_use_stale_branch_local_status_phrases() -> None:

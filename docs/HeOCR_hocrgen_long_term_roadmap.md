@@ -69,6 +69,7 @@ This roadmap is organized into phases and milestones.
 - **Phase C**: Curation and operational hardening
 - **Phase D**: Expansion and benchmark formation
 - **Phase E**: Ecosystem maturity
+- **Phase F**: Beta-scale trial preparation
 
 ### Milestone types
 Each milestone includes:
@@ -126,6 +127,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | E2 | Ecosystem maturity | E2a, E2b | Baselines/evaluation utilities, then live/cached NLI seed acquisition | completed |
 | E3 | Ecosystem maturity | E3a | Annotation subset pilots | completed |
 | E4 | Ecosystem maturity | E4a | Multi-release governance maturity | completed |
+| F1 | Beta-scale trial preparation | F1a | Operator-only beta-scale acquisition trial planning | completed |
 
 ## 4.2 PR summary
 
@@ -164,14 +166,16 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | E2b | E2 | Live-but-cached batch acquisition for vetted NLI seed URLs | no | completed | merged as PR #38 |
 | E3a | E3 | Annotation subset pilots | no | completed | merged as PR #39 |
 | E4a | E4 | Multi-release governance and maturity controls | no | completed | current ref governance PR |
+| F1a | F1 | Define an operator-only beta-scale acquisition trial plan before implementation | no | completed | current ref beta trial planning PR |
 
 ## 4.3 Current critical path
 
-The immediate implementation critical path after the `D2a` source-health path follow-up is:
+The immediate implementation critical path after `F1a` is:
 
-1. Select the next roadmap notation or queued follow-up from merged `main` and open issue/PR state.
+1. Open the first beta-trial implementation issue using the beta trial issue template.
+2. Implement beta-trial source-depth feasibility and acquisition reporting before any public beta/release export work.
 
-This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` made exported release trees explainable over time through baseline-aware diffs and changelog generation. `D1a` moved routine dry-run maintenance into GitHub Actions with persisted run summaries. `D2a` adds source health, fixture-backed adapter regression coverage, freeze/degrade reporting, and portable source-health check paths where package or config-root references are available so source instability is visible without tying operator artifacts to local install paths unnecessarily. `D3a` defines the first explicitly approved `benchmark_v1` subset with benchmark manifests, selection audit, a stability policy, and usage guidance; the current ref also packages the benchmark approval config so non-editable installs do not depend on a checkout-root `benchmark_data/` directory. `D4a` upgrades the synthetic generator's visual realism without new external assets by adding recipe-backed printed and handwritten-look rendering, richer document-like marks, deterministic degradation presets, and public metadata. `D4b` adds synthetic controls over that metadata and reports synthetic composition in build and alpha export outputs. `D5a` adds optional, portable annotation-reference slots and annotation manifests so future transcription work can attach to release items without making transcriptions mandatory for current alpha/public outputs. `E1a` defines source proposal, source-adapter, synthetic asset, dataset issue, external review, and release-governance contribution paths while preserving existing rights, privacy, review, and release gates. `E2a` adds benchmark example loading, JSON/JSONL text prediction evaluation, character error rate and exact-match helpers, coverage reporting, and lightweight leaderboard-ready conventions over the existing `benchmark_v1` artifacts without adding model training infrastructure.
+This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` made exported release trees explainable over time through baseline-aware diffs and changelog generation. `D1a` moved routine dry-run maintenance into GitHub Actions with persisted run summaries. `D2a` adds source health, fixture-backed adapter regression coverage, freeze/degrade reporting, and portable source-health check paths where package or config-root references are available so source instability is visible without tying operator artifacts to local install paths unnecessarily. `D3a` defines the first explicitly approved `benchmark_v1` subset with benchmark manifests, selection audit, a stability policy, and usage guidance; the current ref also packages the benchmark approval config so non-editable installs do not depend on a checkout-root `benchmark_data/` directory. `D4a` upgrades the synthetic generator's visual realism without new external assets by adding recipe-backed printed and handwritten-look rendering, richer document-like marks, deterministic degradation presets, and public metadata. `D4b` adds synthetic controls over that metadata and reports synthetic composition in build and alpha export outputs. `D5a` adds optional, portable annotation-reference slots and annotation manifests so future transcription work can attach to release items without making transcriptions mandatory for current alpha/public outputs. `E1a` defines source proposal, source-adapter, synthetic asset, dataset issue, external review, and release-governance contribution paths while preserving existing rights, privacy, review, and release gates. `E2a` adds benchmark example loading, JSON/JSONL text prediction evaluation, character error rate and exact-match helpers, coverage reporting, and lightweight leaderboard-ready conventions over the existing `benchmark_v1` artifacts without adding model training infrastructure. `F1a` selects the next post-E4 path as an operator-only beta-scale acquisition trial rather than broad crawling, publication, or a release-candidate export.
 
 `E2b` is a deliberately narrow bridge between the current fixture-backed NLI seed flow and release-size real-source growth. It does not add broad site crawling. The operator path accepts vetted NLI seed URLs from the exploratory catalog, runnable seed manifest, or both; reuses local fixture-backed seeds without network access; fetches/parses missing item metadata and assets when explicitly run; writes reusable local fixtures/assets; and emits a machine-readable report with promoted, skipped, and failed seeds. CI and routine release validation continue to run against committed or locally cached fixtures rather than live network access. A release target such as `80` real samples plus `80` governed synthetic controls should wait until this batch path has produced enough release-ready real items and all rights, privacy, review, split-leakage, benchmark-stability, synthetic-cap, and export-portability gates still pass.
 
@@ -991,6 +995,48 @@ Handle growth in dataset history, removal events, and source-policy evolution gr
 ### Risks / dependencies
 - historical burden as versions accumulate
 - governance becoming too heavy for project size
+
+---
+
+## Milestone F1 — Beta-scale acquisition trial
+
+### Objective
+Define and then execute a bounded operator-only trial that tests whether HeOCR can grow beyond the alpha exemplar set without weakening source policy, review, privacy, benchmark, split, synthetic, or export-portability gates.
+
+### Scope
+- beta-scale acquisition targets before public beta/release export
+- per-source real-item allocation
+- source-depth feasibility gates for bounded static sources
+- operator-facing acquisition reports
+- GitHub issue template for beta-trial implementation work
+
+### Planned PRs
+- `F1a`: define the beta-scale trial plan, issue template, target counts, non-goals, and gates
+- `F1b`: implement the first operator-only beta-trial source-depth feasibility and reporting path
+
+### Trial target
+The default F1 trial target is `80` real items plus `80` synthetic controls. Real items are allocated as `27` NLI, `27` Pinkas, and `26` BiblIA. This target is intentionally source-balanced, but Pinkas and BiblIA may not proceed past feasibility until their source-depth expansion path is explicit, fixture-backed, rights-safe, and reviewable.
+
+### Non-goals
+- broad live-source crawling
+- public beta export or release-candidate export
+- publication to Hugging Face or the GitHub dataset repo
+- automatic public-profile promotion
+- network-dependent CI
+- relaxing rights, privacy, review, dedupe, split, benchmark, synthetic-cap, or export-portability gates to hit volume
+
+### Current-ref implementation
+`F1a` is implemented on the current ref as planning and workflow scaffolding only. It does not add acquisition code, export code, new source adapters, or publication behavior.
+
+### Exit criteria
+- the next beta-trial implementation issue can be opened from a template with concrete counts, source allocation, gates, validation, and non-goals
+- the roadmap distinguishes operator-only trial work from public beta/release export work
+- Pinkas/BiblIA source-depth feasibility is explicit before implementation treats them as scalable sources
+
+### Risks / dependencies
+- NLI live acquisition may remain operationally brittle
+- Pinkas/BiblIA may not have enough source-depth feasibility for the even-mix target
+- acquisition volume could outpace review and privacy capacity if gates are not enforced
 
 ---
 
