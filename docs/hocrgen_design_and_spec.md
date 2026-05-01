@@ -472,6 +472,12 @@ For release manifests and larger tables:
 - JSON for schema-level or summary metadata
 - Markdown for human-readable reports and dataset cards
 
+### 9.5 Schema evolution policy
+
+Serialized release schemas should be additive within a schema version. Optional fields with safe defaults are acceptable when validation, tests, and docs are updated. Removing fields, changing path semantics, changing controlled-vocabulary meanings, or making optional annotation/benchmark fields mandatory is breaking and requires a new schema version or schema id plus migration notes.
+
+Release consumers should use explicit `schema_version` and schema id fields to determine compatibility. Public release paths must remain release-relative and portable across schema revisions.
+
 ---
 
 ## 10. Pipeline stages
@@ -1019,6 +1025,18 @@ Packaging should compare against the previous release and produce:
 - changed metadata
 - source-wise deltas
 - split-wise deltas
+
+### 19.5 Release compatibility contract
+
+Each release should include a small compatibility set that lets users understand version semantics without reading the pipeline code:
+
+- `release_record.json` for version, profile, included sources, commit, export time, and schema version
+- `release_summary.json` for public payload counts and active export caps
+- `item_manifest.json` for exported item metadata and release-relative asset paths
+- `release_diff.json` and `CHANGELOG.md` for additions, removals, changes, and removal reasons
+- benchmark and annotation manifests with explicit schema versions or schema ids
+
+Published releases should be treated as immutable records. Corrections, takedowns, source deprecations, and schema migrations should appear in later versions with release notes rather than rewriting prior release history.
 
 ---
 

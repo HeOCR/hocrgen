@@ -2,7 +2,7 @@
 
 `hocrgen` is the open-source dataset operations toolchain for the HeOCR project.
 
-This repository now implements a conservative review-readiness, source-operations, benchmark-subset, evaluation-utility, community-contribution, and annotation-pilot policy layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, lightweight text evaluation over benchmark manifests, carefully bounded annotation pilot selection, curated dry-run release assembly, and documented contribution safety rails.
+This repository now implements a conservative review-readiness, source-operations, benchmark-subset, evaluation-utility, community-contribution, annotation-pilot, and multi-release governance policy layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, lightweight text evaluation over benchmark manifests, carefully bounded annotation pilot selection, curated dry-run release assembly, documented contribution safety rails, and release/version governance for repeated public exports.
 
 ## What `hocrgen` can do today
 
@@ -31,6 +31,7 @@ This repository now implements a conservative review-readiness, source-operation
 - load benchmark examples and score deterministic text predictions with simple evaluation metrics
 - emit curated release manifests with duplicate-cluster, review-queue, split, and leakage-report artifacts
 - document safe community contribution paths for source proposals, source adapters, synthetic assets, dataset issues, and release governance
+- document multi-release governance for version semantics, removals/takedowns, additive schema migration, source deprecation, benchmark stability, and compatibility statements
 
 ## Supported sources in the current MVP
 
@@ -281,6 +282,19 @@ When `--heocr-repo` is provided, `hocrgen` validates that the target is a git ch
 The current pre-alpha freeze sequencing and blocker list lives in [`docs/pre_alpha_freeze_plan.md`](./docs/pre_alpha_freeze_plan.md).
 
 Kaggle and Hugging Face publication remain out of scope for alpha releases.
+
+## Multi-release governance
+
+`E4a` defines the current release governance contract without changing alpha/public item inclusion behavior.
+
+- Release versions are immutable public records once published; corrections and removals are represented in the next version through `release_diff.json`, `CHANGELOG.md`, `release_record.json`, and release notes.
+- Public manifest paths remain release-relative and portable. Consumers should treat `manifests/release_record.json`, `manifests/release_summary.json`, `manifests/item_manifest.json`, `manifests/release_diff.json`, and explicit `schema_version` / schema id fields as the compatibility anchor for a release tree.
+- Serialized schema changes should be additive within the current schema version. Breaking changes require a new schema version or new schema id, migration notes, and updated tests/docs before publication.
+- Rights, privacy, source breakage, or takedown concerns should enter the issue workflow and then land as auditable config/review/source changes. Affected public items must be excluded from future dataset payloads until resolved, with the removal reason visible in release diffs and changelogs.
+- Source deprecation should prefer `degraded`, `frozen`, or review-only treatment before removal. Deprecated sources must not silently corrupt benchmark membership, split leakage, export portability, or public-profile eligibility.
+- `benchmark_v1` remains a stable, explicitly approved subset. Approved benchmark items cannot churn silently; if a benchmark item becomes blocked, unresolved, duplicate-removed, missing, or split-incompatible, release validation fails and the benchmark policy/docs must be updated deliberately.
+
+The detailed policy lives in [`docs/release_governance.md`](./docs/release_governance.md).
 
 ## Rights normalization and policy behavior
 
