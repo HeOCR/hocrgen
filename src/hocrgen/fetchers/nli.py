@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from html.parser import HTMLParser
 from pathlib import Path
 
@@ -57,6 +58,25 @@ class _NLIHTMLParser(HTMLParser):
             self.description = value
 
 
+@dataclass(frozen=True)
+class ParsedNliFixture:
+    title: str | None
+    description: str | None
+    rights: str | None
+    assets: list[str]
+
+
+def parse_nli_fixture_html(path: Path) -> ParsedNliFixture:
+    parser = _NLIHTMLParser()
+    parser.feed(read_text(path))
+    return ParsedNliFixture(
+        title=parser.title,
+        description=parser.description,
+        rights=parser.rights,
+        assets=list(parser.assets),
+    )
+
+
 class NliFetcher:
     def discover_candidates(self, source: SourceConfig, bundle: ConfigBundle, options: StageOptions) -> list[CandidateRecord]:
         seed_manifest = bundle.resolve_path(source.settings.seed_manifest or "")
@@ -107,25 +127,24 @@ class NliFetcher:
                     f"NLI seed {candidate.source_item_id} is missing fixture_html; live fetching is not implemented yet."
                 )
             fixture_path = Path(candidate.fixture_path)
-            parser = _NLIHTMLParser()
-            parser.feed(read_text(fixture_path))
+            parsed_fixture = parse_nli_fixture_html(fixture_path)
             asset_refs = [
                 AssetReference(
                     reference=reference,
                     resolved_path=str((fixture_path.parent / reference).resolve()),
                 )
-                for reference in parser.assets
+                for reference in parsed_fixture.assets
             ]
             record_data = candidate.model_dump()
             metadata = dict(record_data.pop("raw_metadata"))
             record_data.pop("title", None)
-            if parser.description:
-                metadata["description"] = parser.description
+            if parsed_fixture.description:
+                metadata["description"] = parsed_fixture.description
             enriched.append(
                 EnrichedCandidateRecord(
                     **record_data,
-                    title=parser.title or candidate.title,
-                    raw_rights_text=parser.rights,
+                    title=parsed_fixture.title or candidate.title,
+                    raw_rights_text=parsed_fixture.rights,
                     asset_references=asset_refs,
                     metadata=metadata,
                 )

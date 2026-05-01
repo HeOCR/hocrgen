@@ -323,14 +323,13 @@ def build_cached_promotion(
     output_dir: Path,
     runnable_seeds_path: Path,
 ) -> PromotionSuccess:
-    from hocrgen.fetchers.nli import _NLIHTMLParser
+    from hocrgen.fetchers.nli import parse_nli_fixture_html
 
     if not fixture_path.exists():
         raise StageExecutionError(f"{FAILURE_FIXTURE_MISSING}: cached fixture missing: {fixture_path}")
-    parser = _NLIHTMLParser()
-    parser.feed(fixture_path.read_text(encoding="utf-8"))
+    parsed_fixture = parse_nli_fixture_html(fixture_path)
     downloaded_assets: list[tuple[str, str | None, bytes]] = []
-    for asset_reference in parser.assets:
+    for asset_reference in parsed_fixture.assets:
         asset_path = (fixture_path.parent / asset_reference).resolve()
         if not asset_path.exists():
             raise StageExecutionError(f"{FAILURE_DOWNLOAD}: cached asset missing: {asset_path}")
@@ -344,10 +343,10 @@ def build_cached_promotion(
     return build_promotion(
         seed=seed,
         extracted=ExtractedSeedPage(
-            title=parser.title or str(seed.get("title") or "Untitled NLI item"),
-            description=parser.description or "",
-            rights=parser.rights or "",
-            asset_urls=[asset_reference for asset_reference in parser.assets],
+            title=parsed_fixture.title or str(seed.get("title") or "Untitled NLI item"),
+            description=parsed_fixture.description or "",
+            rights=parsed_fixture.rights or "",
+            asset_urls=[asset_reference for asset_reference in parsed_fixture.assets],
         ),
         downloaded_assets=downloaded_assets,
         require_rights=require_rights,
@@ -356,22 +355,28 @@ def build_cached_promotion(
     )
 
 
-def build_cached_skip(*, seed: dict[str, Any], fixture_path: Path | None, reason: str, message: str) -> PromotionSkipped:
+def build_cached_skip(
+    *,
+    seed: dict[str, Any],
+    fixture_reference: str | None,
+    fixture_path: Path | None,
+    reason: str,
+    message: str,
+) -> PromotionSkipped:
     rights: str | None = None
     asset_paths: list[str] = []
     if fixture_path is not None and fixture_path.exists():
-        from hocrgen.fetchers.nli import _NLIHTMLParser
+        from hocrgen.fetchers.nli import parse_nli_fixture_html
 
-        parser = _NLIHTMLParser()
-        parser.feed(fixture_path.read_text(encoding="utf-8"))
-        rights = parser.rights
-        asset_paths = list(parser.assets)
+        parsed_fixture = parse_nli_fixture_html(fixture_path)
+        rights = parsed_fixture.rights
+        asset_paths = list(parsed_fixture.assets)
     return PromotionSkipped(
         seed_id=str(seed["id"]),
         reason=reason,
         message=message,
         rights=rights,
-        fixture_path=str(fixture_path) if fixture_path is not None else None,
+        fixture_path=fixture_reference,
         asset_paths=asset_paths,
     )
 
@@ -614,6 +619,7 @@ def main(argv: list[str] | None = None) -> int:
                 skipped.append(
                     build_cached_skip(
                         seed=seed,
+                        fixture_reference=str(fixture_reference) if fixture_reference else None,
                         reason=FAILURE_SEED_ALREADY_RUNNABLE,
                         message=f"Seed {seed['id']} already exists in runnable seeds.",
                         fixture_path=fixture_path,
