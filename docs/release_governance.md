@@ -20,8 +20,6 @@ Compatibility expectations:
 - breaking serialized schema changes require a new schema version or schema id, migration notes, updated validation/tests, and explicit release notes
 - release consumers should use `schema_version` and schema ids rather than inferring compatibility from filenames alone
 
-Breaking serialized schema changes require a new schema version or schema id before publication.
-
 ## Public release rules
 
 Public releases must:

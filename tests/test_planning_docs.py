@@ -51,7 +51,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert f"| E4 | Ecosystem maturity | E4a | Multi-release governance maturity | completed |" in roadmap
     assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
-    assert "E4a` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
+    assert "`E4a` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
 
 
 def test_planning_docs_do_not_use_stale_branch_local_status_phrases() -> None:
@@ -180,4 +180,4 @@ def test_e4a_governance_docs_keep_multi_release_controls_visible() -> None:
 
     assert "Current alpha/public payload selection is unchanged." in roadmap
     assert "Release compatibility contract" in design
-    assert "Breaking serialized schema changes require a new schema version or schema id" in release_governance
+    assert "breaking serialized schema changes require a new schema version or schema id" in release_governance.casefold()
