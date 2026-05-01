@@ -21,6 +21,8 @@ from hocrgen.manifests.io import write_json
 from hocrgen.manifests.models import (
     AlphaExportedItemRecord,
     AlphaReleaseRecord,
+    AnnotationPilotManifestRecord,
+    AnnotationPilotSelectionAuditRecord,
     BenchmarkItemRecord,
     BenchmarkSelectionAuditRecord,
     CuratedItemRecord,
@@ -102,6 +104,11 @@ def export_alpha_release(
     removed_duplicate_items = _load_models(build_dir / "removed_duplicate_items.json", CuratedItemRecord)
     review_queue = _load_models(build_dir / "review_queue.json", ReviewQueueRecord)
     benchmark_inputs = _load_benchmark_export_inputs(build_dir)
+    annotation_pilot_manifest = _load_annotation_pilot_manifest(build_dir)
+    annotation_pilot_audit = _load_models(
+        build_dir / "annotation_pilot_selection_audit.json",
+        AnnotationPilotSelectionAuditRecord,
+    )
     build_release_summary = _load_json(build_dir / "release_summary.json")
 
     selected_items = _select_alpha_items(release_items, profile, config)
@@ -139,6 +146,11 @@ def export_alpha_release(
     privacy_stats = _build_privacy_stats(exported_items)
     synthetic_composition = synthetic_composition_report(exported_items)
     annotation_manifest = build_annotation_manifest(exported_items, subset_id="alpha_export")
+    exported_annotation_pilot_manifest = _filter_annotation_pilot_manifest(annotation_pilot_manifest, selected_ids)
+    selected_annotation_pilot_ids = {item.item_id for item in exported_annotation_pilot_manifest.items}
+    selected_annotation_pilot_audit = [
+        item for item in annotation_pilot_audit if item.item_id in selected_annotation_pilot_ids
+    ]
     split_counts = dict(Counter(item.split for item in exported_items if item.split))
     exported_real_items = sum(1 for item in exported_items if not item.is_synthetic)
     exported_synthetic_items = sum(1 for item in exported_items if item.is_synthetic)
@@ -183,6 +195,14 @@ def export_alpha_release(
             "transcription_required": annotation_manifest.transcription_required,
             "layout_labels_required": annotation_manifest.layout_labels_required,
         },
+        "annotation_pilot": {
+            "pilot_id": exported_annotation_pilot_manifest.pilot_id,
+            "pilot_item_count": exported_annotation_pilot_manifest.pilot_item_count,
+            "transcription_task_count": exported_annotation_pilot_manifest.transcription_task_count,
+            "layout_label_task_count": exported_annotation_pilot_manifest.layout_label_task_count,
+            "transcription_required_for_release": exported_annotation_pilot_manifest.transcription_required_for_release,
+            "layout_labels_required_for_release": exported_annotation_pilot_manifest.layout_labels_required_for_release,
+        },
         "version": config.version,
     }
     baseline_dir = _resolve_comparison_release(export_dir, config)
@@ -204,6 +224,11 @@ def export_alpha_release(
     write_json(manifests_dir / "source_stats.json", source_stats)
     write_json(manifests_dir / "synthetic_composition.json", synthetic_composition)
     write_json(manifests_dir / "annotation_manifest.json", annotation_manifest.model_dump(mode="json"))
+    write_json(manifests_dir / "annotation_pilot_manifest.json", exported_annotation_pilot_manifest.model_dump(mode="json"))
+    write_json(
+        manifests_dir / "annotation_pilot_selection_audit.json",
+        {"items": [item.model_dump(mode="json") for item in selected_annotation_pilot_audit]},
+    )
     write_json(manifests_dir / "classification_stats.json", classification_stats)
     write_json(manifests_dir / "privacy_stats.json", privacy_stats)
     write_json(manifests_dir / "release_summary.json", release_summary)
@@ -265,6 +290,8 @@ def export_alpha_release(
             "release_record": "manifests/release_record.json",
             "release_summary": "manifests/release_summary.json",
             "annotation_manifest": "manifests/annotation_manifest.json",
+            "annotation_pilot_manifest": "manifests/annotation_pilot_manifest.json",
+            "annotation_pilot_selection_audit": "manifests/annotation_pilot_selection_audit.json",
             "stage": "export-alpha",
             "synthetic_composition": "manifests/synthetic_composition.json",
             "version": config.version,
@@ -276,6 +303,8 @@ def export_alpha_release(
         manifests_dir / "source_stats.json",
         manifests_dir / "synthetic_composition.json",
         manifests_dir / "annotation_manifest.json",
+        manifests_dir / "annotation_pilot_manifest.json",
+        manifests_dir / "annotation_pilot_selection_audit.json",
         manifests_dir / "classification_stats.json",
         manifests_dir / "privacy_stats.json",
         manifests_dir / "release_summary.json",
@@ -753,6 +782,7 @@ def _dataset_card(
             "## Annotation Readiness",
             "- Transcriptions are optional and are not required for this alpha payload.",
             "- `manifests/annotation_manifest.json` defines the additive transcription and layout-label slots for future annotated subsets.",
+            "- `manifests/annotation_pilot_manifest.json` lists explicitly scoped pilot work without making annotations mandatory.",
             "",
             "## Known Limitations",
             "- This is an alpha release, not a full corpus snapshot.",
@@ -804,6 +834,9 @@ def _release_notes(
             f"- Annotated items: {release_summary['annotation_manifest']['annotated_item_count']}",
             f"- Items with transcription references: {release_summary['annotation_manifest']['transcription_item_count']}",
             f"- Items with layout-label references: {release_summary['annotation_manifest']['layout_label_item_count']}",
+            f"- Annotation pilot items: {release_summary['annotation_pilot']['pilot_item_count']}",
+            f"- Planned pilot transcription tasks: {release_summary['annotation_pilot']['transcription_task_count']}",
+            f"- Planned pilot layout-label tasks: {release_summary['annotation_pilot']['layout_label_task_count']}",
             "- Current alpha exports do not require transcriptions or layout labels.",
             "",
             "## Compared To Previous Release",
@@ -1096,6 +1129,36 @@ def _load_benchmark_export_inputs(build_dir: Path) -> BenchmarkExportInputs:
             "alpha export requires build-release benchmark artifacts; "
             "rerun build-release with benchmark outputs before export-alpha"
         ) from exc
+
+
+def _load_annotation_pilot_manifest(build_dir: Path) -> AnnotationPilotManifestRecord:
+    try:
+        return AnnotationPilotManifestRecord.model_validate(_load_json(build_dir / "annotation_pilot_manifest.json"))
+    except (StageExecutionError, ValidationError) as exc:
+        raise StageExecutionError(
+            "alpha export requires build-release annotation pilot artifacts; "
+            "rerun build-release with annotation pilot outputs before export-alpha"
+        ) from exc
+
+
+def _filter_annotation_pilot_manifest(
+    manifest: AnnotationPilotManifestRecord,
+    selected_ids: set[str],
+) -> AnnotationPilotManifestRecord:
+    items = [item for item in manifest.items if item.item_id in selected_ids]
+    return AnnotationPilotManifestRecord(
+        pilot_id=manifest.pilot_id,
+        version=manifest.version,
+        description=manifest.description,
+        selection_policy=manifest.selection_policy,
+        annotation_guidance=manifest.annotation_guidance,
+        transcription_required_for_release=manifest.transcription_required_for_release,
+        layout_labels_required_for_release=manifest.layout_labels_required_for_release,
+        pilot_item_count=len(items),
+        transcription_task_count=sum(1 for item in items if "transcription" in item.tasks),
+        layout_label_task_count=sum(1 for item in items if "layout_labels" in item.tasks),
+        items=items,
+    )
 
 
 def _benchmark_card_for_export(inputs: BenchmarkExportInputs, items: list[BenchmarkItemRecord]) -> str:

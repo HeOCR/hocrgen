@@ -6,6 +6,7 @@ from math import floor
 from pathlib import Path
 from typing import Any
 
+from hocrgen.annotation_pilots import load_annotation_pilot_config, select_annotation_pilot_items
 from hocrgen.annotations import build_annotation_manifest
 from hocrgen.benchmark import load_benchmark_config, select_benchmark_items
 from hocrgen.classify.heuristics import classify_items
@@ -22,6 +23,8 @@ from hocrgen.fetchers.synthetic import SyntheticFetcher
 from hocrgen.manifests.io import write_json
 from hocrgen.manifests.models import (
     AcquiredItemRecord,
+    AnnotationPilotManifestRecord,
+    AnnotationPilotSelectionAuditRecord,
     BenchmarkItemRecord,
     BenchmarkSelectionAuditRecord,
     CandidateRecord,
@@ -111,6 +114,8 @@ class PipelineState:
     benchmark_selection_audit: list[BenchmarkSelectionAuditRecord] = field(default_factory=list)
     benchmark_stability_policy: dict[str, Any] = field(default_factory=dict)
     benchmark_card_markdown: str = ""
+    annotation_pilot_manifest: AnnotationPilotManifestRecord | None = None
+    annotation_pilot_selection_audit: list[AnnotationPilotSelectionAuditRecord] = field(default_factory=list)
 
 
 def empty_pipeline_state() -> PipelineState:
@@ -144,6 +149,8 @@ def empty_pipeline_state() -> PipelineState:
         benchmark_selection_audit=[],
         benchmark_stability_policy={},
         benchmark_card_markdown="",
+        annotation_pilot_manifest=None,
+        annotation_pilot_selection_audit=[],
     )
 
 
@@ -596,6 +603,8 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     benchmark_selection_audit_path = stage_dir / "benchmark_selection_audit.json"
     benchmark_stability_policy_path = stage_dir / "benchmark_stability_policy.json"
     benchmark_card_path = stage_dir / "BENCHMARK_CARD.md"
+    annotation_pilot_manifest_path = stage_dir / "annotation_pilot_manifest.json"
+    annotation_pilot_selection_audit_path = stage_dir / "annotation_pilot_selection_audit.json"
     summary_path = stage_dir / "summary.json"
 
     retained_source_counts = dict(Counter(item.source_id for item in state.release_ready_items))
@@ -639,6 +648,17 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     state.benchmark_selection_audit = benchmark_outputs.audit
     state.benchmark_stability_policy = benchmark_outputs.stability_policy
     state.benchmark_card_markdown = benchmark_outputs.card_markdown
+    try:
+        annotation_pilot_config = load_annotation_pilot_config(bundle.config_root)
+    except ConfigValidationError as exc:
+        raise StageExecutionError(f"annotation pilot config validation failed: {exc}") from exc
+    annotation_pilot_outputs = select_annotation_pilot_items(
+        config=annotation_pilot_config,
+        release_ready_items=state.release_ready_items,
+        benchmark_items=state.benchmark_items,
+    )
+    state.annotation_pilot_manifest = annotation_pilot_outputs.manifest
+    state.annotation_pilot_selection_audit = annotation_pilot_outputs.audit
 
     write_json(item_manifest_path, {"items": _dump_models(state.release_ready_items)})
     write_json(removed_duplicate_items_path, {"items": _dump_models(state.duplicate_items)})
@@ -658,6 +678,8 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     write_json(benchmark_selection_audit_path, {"items": _dump_models(state.benchmark_selection_audit)})
     write_json(benchmark_stability_policy_path, state.benchmark_stability_policy)
     benchmark_card_path.write_text(state.benchmark_card_markdown, encoding="utf-8")
+    write_json(annotation_pilot_manifest_path, state.annotation_pilot_manifest.model_dump(mode="json"))
+    write_json(annotation_pilot_selection_audit_path, {"items": _dump_models(state.annotation_pilot_selection_audit)})
     write_json(
         source_stats_path,
         {
@@ -707,6 +729,14 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             },
             "benchmark_id": benchmark_outputs.config.benchmark_id,
             "benchmark_item_count": len(state.benchmark_items),
+            "annotation_pilot": {
+                "pilot_id": annotation_pilot_outputs.config.pilot_id,
+                "pilot_item_count": annotation_pilot_outputs.manifest.pilot_item_count,
+                "transcription_task_count": annotation_pilot_outputs.manifest.transcription_task_count,
+                "layout_label_task_count": annotation_pilot_outputs.manifest.layout_label_task_count,
+                "transcription_required_for_release": annotation_pilot_outputs.manifest.transcription_required_for_release,
+                "layout_labels_required_for_release": annotation_pilot_outputs.manifest.layout_labels_required_for_release,
+            },
         },
     )
     write_json(
@@ -717,6 +747,8 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             "benchmark_manifest": str(benchmark_manifest_path.relative_to(context.run_dir)),
             "benchmark_selection_audit": str(benchmark_selection_audit_path.relative_to(context.run_dir)),
             "benchmark_stability_policy": str(benchmark_stability_policy_path.relative_to(context.run_dir)),
+            "annotation_pilot_manifest": str(annotation_pilot_manifest_path.relative_to(context.run_dir)),
+            "annotation_pilot_selection_audit": str(annotation_pilot_selection_audit_path.relative_to(context.run_dir)),
             "classification_stats": str(classification_stats_path.relative_to(context.run_dir)),
             "decision_audit": str(decision_audit_path.relative_to(context.run_dir)),
             "duplicate_clusters": str(duplicate_clusters_path.relative_to(context.run_dir)),
@@ -759,6 +791,8 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             benchmark_selection_audit_path,
             benchmark_stability_policy_path,
             benchmark_card_path,
+            annotation_pilot_manifest_path,
+            annotation_pilot_selection_audit_path,
         ],
     )
 

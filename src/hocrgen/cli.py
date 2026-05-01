@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 from typing import Sequence
 
+from hocrgen.annotation_pilots import load_annotation_pilot_config
 from hocrgen.benchmark import load_benchmark_config
 from hocrgen.config.loader import ConfigBundle, load_and_validate_bundle
 from hocrgen.core.context import create_run_context
@@ -192,6 +193,7 @@ def handle_config_validate(args: argparse.Namespace) -> int:
     try:
         bundle = _load_bundle(args.config_root)
         benchmark_config = load_benchmark_config(bundle.config_root)
+        annotation_pilot_config = load_annotation_pilot_config(bundle.config_root)
         review_data = validate_review_data(bundle.config_root, args.config_root.resolve() if args.config_root else None)
     except ConfigValidationError as exc:
         _print_json({"status": "error", "error": str(exc)})
@@ -206,6 +208,11 @@ def handle_config_validate(args: argparse.Namespace) -> int:
                 "approved_item_count": len(benchmark_config.approved_items),
                 "benchmark_id": benchmark_config.benchmark_id,
                 "version": benchmark_config.version,
+            },
+            "annotation_pilot": {
+                "approved_item_count": len(annotation_pilot_config.approved_items),
+                "pilot_id": annotation_pilot_config.pilot_id,
+                "version": annotation_pilot_config.version,
             },
             "privacy_rules_version": bundle.privacy_rules.version,
             "quality_thresholds_version": bundle.quality_thresholds.version,

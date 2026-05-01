@@ -6,10 +6,11 @@ from pathlib import Path
 
 import pytest
 
+from hocrgen.annotation_pilots import load_annotation_pilot_config, resolve_annotation_data_root, select_annotation_pilot_items
 from hocrgen.benchmark import load_benchmark_config, resolve_benchmark_data_root, select_benchmark_items
 from hocrgen.config.loader import default_config_root
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
-from hocrgen.manifests.models import BenchmarkConfigRecord, NormalizedAssetRecord, PrivacyScannedItemRecord
+from hocrgen.manifests.models import BenchmarkConfigRecord, BenchmarkItemRecord, NormalizedAssetRecord, PrivacyScannedItemRecord
 
 
 def _benchmark_config_root(tmp_path: Path, payload: dict) -> Path:
@@ -146,8 +147,91 @@ def test_select_benchmark_items_reports_non_release_ready_reason(
         )
 
 
+def test_load_annotation_pilot_config_accepts_valid_repo_tracked_config() -> None:
+    config = load_annotation_pilot_config(default_config_root())
+
+    assert config.pilot_id == "e3a_annotation_pilot"
+    assert config.transcription_required_for_release is False
+    assert config.layout_labels_required_for_release is False
+    assert [item.item_id for item in config.approved_items] == [
+        "nli_any_use_permitted:nli-ms-seed-006",
+        "pinkas_open:pinkas-ledger-001",
+    ]
+
+
+def test_resolve_annotation_data_root_falls_back_without_unbounded_parent_search(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    unrelated = tmp_path / "annotation_data" / "pilots" / "e3a_annotation_pilot"
+    unrelated.mkdir(parents=True)
+    (unrelated / "config.json").write_text("{}", encoding="utf-8")
+    config_root = tmp_path / "nested" / "project" / "config"
+    config_root.mkdir(parents=True)
+    missing_default = tmp_path / "missing" / "src" / "hocrgen" / "config"
+    monkeypatch.setattr("hocrgen.annotation_pilots.default_config_root", lambda: missing_default)
+
+    assert resolve_annotation_data_root(config_root) == config_root.parent / "annotation_data"
+
+
+def test_select_annotation_pilot_items_builds_optional_pilot_manifest(tmp_path: Path) -> None:
+    release_item = _benchmark_item(tmp_path, split="train")
+    config = load_annotation_pilot_config(default_config_root()).model_copy(
+        update={"approved_items": [load_annotation_pilot_config(default_config_root()).approved_items[0]]}
+    )
+
+    outputs = select_annotation_pilot_items(
+        config=config,
+        release_ready_items=[release_item],
+        benchmark_items=[_benchmark_manifest_item(release_item)],
+    )
+
+    assert outputs.manifest.pilot_id == "e3a_annotation_pilot"
+    assert outputs.manifest.pilot_item_count == 1
+    assert outputs.manifest.transcription_task_count == 1
+    assert outputs.manifest.layout_label_task_count == 1
+    assert outputs.manifest.transcription_required_for_release is False
+    assert outputs.manifest.items[0].target_subset == "benchmark_v1"
+    assert outputs.manifest.items[0].planned_transcription is not None
+    assert outputs.audit[0].reason == "explicitly_approved_release_ready_annotation_pilot_item"
+
+
+def test_select_annotation_pilot_items_requires_benchmark_membership(tmp_path: Path) -> None:
+    release_item = _benchmark_item(tmp_path, split="train")
+    config = load_annotation_pilot_config(default_config_root()).model_copy(
+        update={"approved_items": [load_annotation_pilot_config(default_config_root()).approved_items[0]]}
+    )
+
+    with pytest.raises(StageExecutionError, match="is not in benchmark_v1"):
+        select_annotation_pilot_items(
+            config=config,
+            release_ready_items=[release_item],
+            benchmark_items=[],
+        )
+
+
 def _benchmark_config() -> BenchmarkConfigRecord:
     return BenchmarkConfigRecord.model_validate(_valid_payload())
+
+
+def _benchmark_manifest_item(item: PrivacyScannedItemRecord) -> BenchmarkItemRecord:
+    return BenchmarkItemRecord(
+        benchmark_id="benchmark_v1",
+        item_id=item.item_id,
+        source_id=item.source_id,
+        source_item_id=item.source_item_id,
+        source_url=item.source_url,
+        title=item.title,
+        benchmark_split="train",
+        release_split="train",
+        split_group_id=item.split_group_id or f"group-{item.item_id}",
+        is_synthetic=item.is_synthetic,
+        content_class=item.content_class,
+        quality_tier=item.quality_tier,
+        normalized_license=item.normalized_license,
+        rights_classification=item.rights_classification,
+        rationale="fixture benchmark item",
+    )
 
 
 def _benchmark_item(tmp_path: Path, *, split: str | None) -> PrivacyScannedItemRecord:

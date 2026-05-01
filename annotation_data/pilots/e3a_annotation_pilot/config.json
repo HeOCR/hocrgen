@@ -1,0 +1,40 @@
+{
+  "annotation_guidance": "Pilot annotations are planned as additive release-relative JSON files only. They do not gate release inclusion, alpha export, or benchmark membership.",
+  "approved_items": [
+    {
+      "item_id": "nli_any_use_permitted:nli-ms-seed-006",
+      "planned_layout_labels": {
+        "path": "annotations/nli_any_use_permitted/nli-ms-seed-006/layout_labels.json",
+        "schema_id": "hocrgen_layout_labels_v1"
+      },
+      "planned_transcription": {
+        "path": "annotations/nli_any_use_permitted/nli-ms-seed-006/transcription.json",
+        "schema_id": "hocrgen_transcription_v1"
+      },
+      "rationale": "Real handwritten NLI benchmark exemplar selected for the first transcription and layout-label pilot.",
+      "target_subset": "benchmark_v1",
+      "tasks": [
+        "transcription",
+        "layout_labels"
+      ]
+    },
+    {
+      "item_id": "pinkas_open:pinkas-ledger-001",
+      "planned_transcription": {
+        "path": "annotations/pinkas_open/pinkas-ledger-001/transcription.json",
+        "schema_id": "hocrgen_transcription_v1"
+      },
+      "rationale": "Real historical ledger benchmark exemplar selected for a narrow transcription-only pilot.",
+      "target_subset": "benchmark_v1",
+      "tasks": [
+        "transcription"
+      ]
+    }
+  ],
+  "description": "E3a micro-pilot for planned transcription and layout-label work on two explicitly approved real benchmark items.",
+  "layout_labels_required_for_release": false,
+  "pilot_id": "e3a_annotation_pilot",
+  "selection_policy": "Select only release-ready items named in this config; benchmark-targeted items must also remain selected in benchmark_v1.",
+  "transcription_required_for_release": false,
+  "version": 1
+}

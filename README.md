@@ -2,7 +2,7 @@
 
 `hocrgen` is the open-source dataset operations toolchain for the HeOCR project.
 
-This repository now implements a conservative review-readiness, source-operations, benchmark-subset, evaluation-utility, and community-contribution policy layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, lightweight text evaluation over benchmark manifests, curated dry-run release assembly, and documented contribution safety rails.
+This repository now implements a conservative review-readiness, source-operations, benchmark-subset, evaluation-utility, community-contribution, and annotation-pilot policy layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, lightweight text evaluation over benchmark manifests, carefully bounded annotation pilot selection, curated dry-run release assembly, and documented contribution safety rails.
 
 ## What `hocrgen` can do today
 
@@ -27,6 +27,7 @@ This repository now implements a conservative review-readiness, source-operation
 - assign deterministic `train` / `validation` / `test` splits over the release-ready deduped set
 - select an explicit, repo-approved `benchmark_v1` subset from release-ready items
 - carry optional transcription and layout-label reference slots without requiring annotations for release-ready items
+- select a small repo-approved annotation pilot subset without requiring transcriptions or layout labels for current public outputs
 - load benchmark examples and score deterministic text predictions with simple evaluation metrics
 - emit curated release manifests with duplicate-cluster, review-queue, split, and leakage-report artifacts
 - document safe community contribution paths for source proposals, source adapters, synthetic assets, dataset issues, and release governance
@@ -185,6 +186,8 @@ This now runs a real sample-backed pipeline and emits populated artifacts such a
       build_release/release_summary.json
       build_release/source_stats.json
       build_release/annotation_manifest.json
+      build_release/annotation_pilot_manifest.json
+      build_release/annotation_pilot_selection_audit.json
       build_release/classification_stats.json
       build_release/privacy_stats.json
       build_release/benchmark_manifest.json
@@ -254,6 +257,7 @@ The alpha exporter:
 - writes repo-ready manifests under `manifests/`
 - writes `release_diff.json` with added/removed/changed item reporting against the prior exported release when one is available
 - writes `annotation_manifest.json` as an additive, optional map for future transcription and layout-label references
+- writes `annotation_pilot_manifest.json` and `annotation_pilot_selection_audit.json` for explicitly scoped pilot annotation work
 - mirrors `benchmark_v1` manifests and `BENCHMARK_CARD.md` for the exported release-ready benchmark items
 - rewrites review preview references into release-local files under `manifests/review_previews/`
 - writes `CHANGELOG.md`, `DATASET_CARD.md`, `RELEASE_NOTES.md`, `PROVENANCE.md`, `BENCHMARK_CARD.md`, and `HANDOFF.md` under `docs/`
@@ -349,7 +353,7 @@ The review workflow is now:
 3. run `hocrgen review-merge --profile profile_open_v1 --dry-run` or `hocrgen build-release --profile profile_open_v1 --dry-run`
 4. inspect `review_merge/unresolved_items.json` until the remaining set is acceptable for the target release
 
-`hocrgen config validate` now also validates the committed `review_data/` tree and reports its item counts.
+`hocrgen config validate` now also validates the committed `review_data/` tree, benchmark config, and annotation pilot config, then reports their item counts.
 
 What it still does not do:
 
@@ -426,6 +430,17 @@ The report includes item coverage, character error rate, exact-match rate, per-i
 `hocrgen` reserves typed, optional annotation slots on item manifests so future annotated subsets can attach release-relative transcription and layout-label files without changing the core release flow.
 
 Current alpha and release builds do not require transcriptions. Items default to `annotation_status: not_available`, `transcription: null`, and `layout_labels: []`. `build-release` emits `build_release/annotation_manifest.json`; `export-alpha` mirrors it to `manifests/annotation_manifest.json`. Annotation references must remain portable and release-relative, such as `annotations/<item_id>/transcription.json`, so public exports do not depend on local `.work/` paths.
+
+## Annotation pilot subset
+
+`E3a` adds a narrow annotation pilot path driven by [`annotation_data/pilots/e3a_annotation_pilot/config.json`](./annotation_data/pilots/e3a_annotation_pilot/config.json).
+
+The pilot currently names two real `benchmark_v1` items for planned transcription work, with one also carrying planned layout-label work. `build-release` validates that every pilot item is still release-ready and, for benchmark-targeted items, still selected in `benchmark_v1`. It emits:
+
+- `build_release/annotation_pilot_manifest.json`
+- `build_release/annotation_pilot_selection_audit.json`
+
+`export-alpha` mirrors the pilot manifest and audit for the exported subset under `manifests/`. Pilot entries use release-relative planned target paths such as `annotations/<source_id>/<source_item_id>/transcription.json`; they do not assert that annotation files already exist and do not change `annotation_manifest.json` counts. Current public and alpha outputs still do not require transcriptions or layout labels.
 
 ## Synthetic generation
 

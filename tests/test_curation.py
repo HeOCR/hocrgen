@@ -259,6 +259,26 @@ def test_build_release_ignores_retained_items_without_split_in_source_split_stat
             stability_policy={},
         ),
     )
+    monkeypatch.setattr(
+        "hocrgen.pipeline.select_annotation_pilot_items",
+        lambda **kwargs: SimpleNamespace(
+            audit=[],
+            config=SimpleNamespace(pilot_id="e3a_annotation_pilot"),
+            manifest=SimpleNamespace(
+                layout_label_task_count=0,
+                layout_labels_required_for_release=False,
+                model_dump=lambda mode: {
+                    "pilot_id": "e3a_annotation_pilot",
+                    "items": [],
+                    "pilot_item_count": 0,
+                    "schema_version": 1,
+                },
+                pilot_item_count=0,
+                transcription_required_for_release=False,
+                transcription_task_count=0,
+            ),
+        ),
+    )
 
     _run_build_release(bundle, context, options=None, state=state)  # type: ignore[arg-type]
     source_stats_path = context.stage_dir("build_release") / "source_stats.json"

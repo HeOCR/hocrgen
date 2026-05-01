@@ -49,6 +49,12 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     source_stats = json.loads((run_dir / "build_release" / "source_stats.json").read_text(encoding="utf-8"))
     synthetic_composition = json.loads((run_dir / "build_release" / "synthetic_composition.json").read_text(encoding="utf-8"))
     annotation_manifest = json.loads((run_dir / "build_release" / "annotation_manifest.json").read_text(encoding="utf-8"))
+    annotation_pilot_manifest = json.loads(
+        (run_dir / "build_release" / "annotation_pilot_manifest.json").read_text(encoding="utf-8")
+    )
+    annotation_pilot_audit = json.loads(
+        (run_dir / "build_release" / "annotation_pilot_selection_audit.json").read_text(encoding="utf-8")
+    )
     item_manifest = json.loads((run_dir / "build_release" / "item_manifest.json").read_text(encoding="utf-8"))
     removed_duplicate_items = json.loads((run_dir / "build_release" / "removed_duplicate_items.json").read_text(encoding="utf-8"))
     review_required_items = json.loads((run_dir / "build_release" / "review_required_items.json").read_text(encoding="utf-8"))
@@ -85,6 +91,14 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
         "transcription_item_count": 0,
         "transcription_required": False,
     }
+    assert release_summary["annotation_pilot"] == {
+        "layout_label_task_count": 1,
+        "layout_labels_required_for_release": False,
+        "pilot_id": "e3a_annotation_pilot",
+        "pilot_item_count": 2,
+        "transcription_required_for_release": False,
+        "transcription_task_count": 2,
+    }
     assert sum(release_summary["split_counts"].values()) == 4
     assert source_stats["asset_formats"] == {"jpeg": 4}
     assert source_stats["sources"]["nli_any_use_permitted"] == 1
@@ -110,6 +124,17 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert {item["annotation_status"] for item in annotation_manifest["items"]} == {"not_available"}
     assert all(item["transcription"] is None for item in annotation_manifest["items"])
     assert all(item["layout_labels"] == [] for item in annotation_manifest["items"])
+    assert annotation_pilot_manifest["pilot_id"] == "e3a_annotation_pilot"
+    assert annotation_pilot_manifest["transcription_required_for_release"] is False
+    assert annotation_pilot_manifest["layout_labels_required_for_release"] is False
+    assert annotation_pilot_manifest["pilot_item_count"] == 2
+    assert {item["item_id"] for item in annotation_pilot_manifest["items"]} == {
+        "nli_any_use_permitted:nli-ms-seed-006",
+        "pinkas_open:pinkas-ledger-001",
+    }
+    assert all(item["target_subset"] == "benchmark_v1" for item in annotation_pilot_manifest["items"])
+    assert all(not str(value).startswith("/") for item in annotation_pilot_manifest["items"] for value in item.values())
+    assert {item["outcome"] for item in annotation_pilot_audit["items"]} == {"selected"}
     assert removed_duplicate_items["items"] == []
     assert len(review_required_items["items"]) == 1
     assert {item["source_id"] for item in review_required_items["items"]} == {"biblia_open"}

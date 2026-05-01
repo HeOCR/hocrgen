@@ -14,7 +14,7 @@ The pre-alpha blocker sequence is now complete:
 3. the Pinkas exemplar is a text-bearing historical page
 4. synthetic alpha output preserves Hebrew ordering and uses the `2x real items` cap
 
-The remaining work after this document is no longer alpha freeze. `C5b`, `C6a`, `D1a`, `D2a`, `D3a`, `D4a`, `D4b`, `D5a`, `E1a`, and `E2a` are now represented in the current-ref roadmap state: review decisions can merge back into the pipeline, release-to-release changes are explainable, scheduled dry-run maintenance exists, source-operations health/freeze reporting is available, the first explicitly approved benchmark subset exists, synthetic rendering has a richer visual realism pass, synthetic diversity controls/reporting are available, optional transcription-ready manifest foundations exist without requiring annotations, contribution safety rails are documented for community source, synthetic, review, and release-governance changes, and lightweight benchmark evaluation utilities are available. The next planned milestone is `E3a`, annotation subset pilots.
+The remaining work after this document is no longer alpha freeze. `C5b`, `C6a`, `D1a`, `D2a`, `D3a`, `D4a`, `D4b`, `D5a`, `E1a`, `E2a`, `E2b`, and `E3a` are now represented in the current-ref roadmap state: review decisions can merge back into the pipeline, release-to-release changes are explainable, scheduled dry-run maintenance exists, source-operations health/freeze reporting is available, the first explicitly approved benchmark subset exists, synthetic rendering has a richer visual realism pass, synthetic diversity controls/reporting are available, optional transcription-ready manifest foundations exist without requiring annotations, contribution safety rails are documented for community source, synthetic, review, and release-governance changes, lightweight benchmark evaluation utilities are available, live-but-cached NLI seed acquisition is available for vetted batches, and a bounded annotation pilot subset can be emitted without making annotations mandatory. The next planned milestone is `E4a`, multi-release governance maturity.
 
 ## Pre-Alpha PR Sequence
 
@@ -123,7 +123,7 @@ This milestone is now implemented in `hocrgen` via the dedicated `review-merge` 
 - evaluation utilities
 - community contribution maturity
 
-`C6a`, `D1a`, `D2a`, `D3a`, `D4a`, `D4b`, `D5a`, `E1a`, and `E2a` are complete on the current ref. The next planned milestone after this document is `E3a`.
+`C6a`, `D1a`, `D2a`, `D3a`, `D4a`, `D4b`, `D5a`, `E1a`, `E2a`, `E2b`, and `E3a` are complete on the current ref. The next planned milestone after this document is `E4a`.
 
 ## Working Rules For The Pre-Alpha Sequence
 
