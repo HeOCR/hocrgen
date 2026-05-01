@@ -1,0 +1,95 @@
+name: Beta-scale acquisition trial
+description: Plan or implement bounded operator-only beta trial work.
+title: "F1b: "
+labels:
+  - kind:planning
+  - area:docs
+  - area:fetchers
+  - area:pipeline
+  - priority:P2
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for F1 beta-trial work only. The beta trial is operator-only and must not create a public beta export, release-candidate export, broad live-source crawler, or publication workflow.
+  - type: input
+    id: target-counts
+    attributes:
+      label: Target counts
+      description: Default F1 target is 80 real items plus 80 synthetic controls.
+      value: "80 real / 80 synthetic"
+    validations:
+      required: true
+  - type: input
+    id: source-allocation
+    attributes:
+      label: Real-source allocation
+      description: Default allocation is 27 NLI, 27 Pinkas, and 26 BiblIA.
+      value: "27 NLI / 27 Pinkas / 26 BiblIA"
+    validations:
+      required: true
+  - type: dropdown
+    id: acquisition-mode
+    attributes:
+      label: Acquisition mode
+      options:
+        - Operator-only live/cached trial
+        - Source-depth feasibility only
+        - Reporting-only dry run
+    validations:
+      required: true
+  - type: textarea
+    id: gates
+    attributes:
+      label: Required gates
+      description: List the gates this work must preserve.
+      value: |
+        - rights gate
+        - privacy gate
+        - review gate
+        - dedupe gate
+        - near-duplicate/source-group leakage gate
+        - split gate
+        - benchmark stability gate
+        - synthetic-cap gate
+        - export-portability gate
+        - no network-dependent CI
+    validations:
+      required: true
+  - type: textarea
+    id: source-depth
+    attributes:
+      label: Pinkas/BiblIA source-depth feasibility
+      description: Explain how this issue handles bounded static source expansion before treating Pinkas or BiblIA as scalable.
+    validations:
+      required: true
+  - type: textarea
+    id: uniqueness-leakage
+    attributes:
+      label: Uniqueness and leakage checks
+      description: Explain how this issue reports or preserves near-duplicate, source-group, split-leakage, and benchmark-leakage safeguards.
+      value: |
+        - exact dedupe remains enforced
+        - near-duplicate/source-group risks are reported or explicitly deferred to F1d
+        - split and benchmark leakage risks are inspected before scale beyond the operator-only trial
+    validations:
+      required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation plan
+      description: Include planned local commands, dry-run checks, and artifact inspection.
+    validations:
+      required: true
+  - type: textarea
+    id: non-goals
+    attributes:
+      label: Non-goals
+      value: |
+        - no broad live-source crawling
+        - no public beta export
+        - no release-candidate export
+        - no publication to Hugging Face or the GitHub dataset repo
+        - no automatic public-profile promotion
+    validations:
+      required: true

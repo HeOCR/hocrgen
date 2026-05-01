@@ -65,7 +65,9 @@ Near-term release-scale acquisition preserves that seed boundary while removing 
 5. Keeps CI and release builds fixture-backed and network-free after the live acquisition step.
 6. Leaves the normal rights, privacy, review, dedupe, split, benchmark, and export-portability gates in charge before any larger public release.
 
-This is the preferred short-term path for growing from the current small alpha exemplar set toward larger releases such as `80` real samples plus bounded synthetic controls. It is not a site-wide crawler and should not bypass source policy, rights checks, review decisions, benchmark stability, or public export portability.
+This is the preferred short-term path for growing from the current small alpha exemplar set toward a bounded beta-scale trial. The `F1a` trial plan targets `80` real items plus `80` synthetic controls, with the real-source mix fixed at `27` NLI, `27` Pinkas, and `26` BiblIA. It is an operator-only acquisition trial, not a public beta export, release-candidate export, broad live-source crawler, or publication workflow.
+
+The NLI portion can build on the existing live-but-cached seed promotion path. Pinkas and BiblIA are currently bounded packaged exemplar sources, so their trial allocation requires explicit source-depth feasibility work before either source is treated as scalable beyond the committed records. Rights, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates remain mandatory before any larger public release. The post-F1 roadmap also requires near-duplicate/source-group leakage hardening, benchmark ground-truth references, rights-clean modern handwritten Hebrew acquisition, Hebrew-specific RTL/niqqud/layout synthetic quality work, and separate public beta publication gates before treating beta-scale acquisition as release or benchmark readiness.
 
 To promote exploratory entries into runnable local fixtures, use the local operator script:
 
@@ -98,12 +100,56 @@ python scripts/promote_nli_seeds.py \
 
 ## What is still future work
 
+- beta-scale source-depth feasibility for the `27` NLI / `27` Pinkas / `26` BiblIA real-source target
+- operator-only beta acquisition trial reporting for `80` real items plus `80` synthetic controls
+- bounded beta-trial execution artifacts that preserve acquisition failures, rights outcomes, review outcomes, dedupe outcomes, and split/benchmark eligibility
 - broad live-source crawling
-- near-duplicate / perceptual deduplication
+- near-duplicate / perceptual deduplication, source-group grouping, and split-leakage hardening
+- benchmark ground-truth foundation: transcription guidelines, layout-label guidance, reference manifests, adjudication artifacts, and benchmark versioning gates
+- rights-clean modern handwritten Hebrew acquisition with consent, privacy, composition, and takedown workflows
+- RTL, bidi, niqqud, Unicode normalization, font-shaping, and layout-aware synthetic quality validation
 - OCR-aware privacy screening
 - advanced classification and model-training infrastructure
-- final publication to Hugging Face or the GitHub dataset repo
+- final public beta publication to Hugging Face or the GitHub dataset repo after source-depth, uniqueness, ground-truth, review, and portability gates pass
 - full release packaging maturity
+
+## Splendor knowledge workspace
+
+This repository includes a repo-native Splendor workspace for future coding-agent context. Splendor state lives in:
+
+- [`splendor.yaml`](./splendor.yaml) for workspace layout and source policy
+- [`wiki/`](./wiki/) for generated source summaries and maintained topic pages
+- [`state/`](./state/) for source manifests, queue records, run records, and query snapshots
+- [`planning/`](./planning/) for future Splendor task, milestone, decision, and question records
+- [`reports/`](./reports/) for Splendor lint and health reports
+
+The initial workspace registers and ingests high-signal hocrgen sources: `AGENTS.md`, `README.md`, `llms.txt`, `.agent-plan.md`, core docs under `docs/`, JSON schemas under `schemas/`, GitHub workflows, config files under `src/hocrgen/config/`, source operations, pipeline/CLI, benchmark/evaluation, annotation, review, release/export, fetcher, and NLI promotion modules. It intentionally does not register binary sample assets. The current local Splendor build used for this setup does not ingest TOML yet, so `pyproject.toml` remains part of normal repo context but is not included in the committed Splendor source set.
+
+Treat `state/`, `wiki/sources/`, and `reports/` as generated Splendor artifacts. Do not hand-edit generated source summaries, manifests, queue/run records, or reports; update registered sources and regenerate the workspace through Splendor instead.
+
+Future agents can start with:
+
+```bash
+splendor wiki status
+splendor query "release export pipeline"
+splendor brief --agent-context "continue hocrgen work" --json
+```
+
+If the installed `splendor` CLI is older than the repo workspace requires, run it from a local Splendor checkout. For the common sibling-checkout layout:
+
+```bash
+uv run --project ../splendor splendor --root . wiki status
+```
+
+After changing registered source files, refresh and check the workspace:
+
+```bash
+splendor source refresh <path-or-source-id>
+splendor ingest --pending
+splendor wiki rebuild-index
+splendor lint
+splendor health
+```
 
 ## Local setup
 

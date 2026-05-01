@@ -69,6 +69,7 @@ This roadmap is organized into phases and milestones.
 - **Phase C**: Curation and operational hardening
 - **Phase D**: Expansion and benchmark formation
 - **Phase E**: Ecosystem maturity
+- **Phase F**: Beta-scale trial preparation
 
 ### Milestone types
 Each milestone includes:
@@ -126,6 +127,11 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | E2 | Ecosystem maturity | E2a, E2b | Baselines/evaluation utilities, then live/cached NLI seed acquisition | completed |
 | E3 | Ecosystem maturity | E3a | Annotation subset pilots | completed |
 | E4 | Ecosystem maturity | E4a | Multi-release governance maturity | completed |
+| F1 | Beta-scale acquisition trial | F1a, F1b, F1c, F1d | Operator-only beta-scale plan, source-depth feasibility/reporting, bounded trial artifacts, and near-duplicate/leakage hardening | in progress |
+| F2 | Benchmark ground-truth foundation | F2a, F2b | Transcription/layout guidelines, reference manifests, benchmark references, and adjudication workflow | planned |
+| F3 | Modern handwritten acquisition program | F3a, F3b | Rights-clean modern Hebrew handwriting collection policy and operator acquisition workflow | planned |
+| F4 | RTL, niqqud, and layout synthetic quality | F4a, F4b | Hebrew shaping validation, mixed-direction/niqqud coverage, and document-layout realism upgrades | planned |
+| F5 | Public beta and publication readiness | F5a, F5b | Public beta gates, publication packaging, dataset-card, and takedown-ready export handoff | planned |
 
 ## 4.2 PR summary
 
@@ -164,14 +170,31 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | E2b | E2 | Live-but-cached batch acquisition for vetted NLI seed URLs | no | completed | merged as PR #38 |
 | E3a | E3 | Annotation subset pilots | no | completed | merged as PR #39 |
 | E4a | E4 | Multi-release governance and maturity controls | no | completed | current ref governance PR |
+| F1a | F1 | Define an operator-only beta-scale acquisition trial plan before implementation | no | completed | current ref beta trial planning PR |
+| F1b | F1 | Implement operator-only beta-trial source-depth feasibility and reporting | no | planned | next beta-trial implementation issue |
+| F1c | F1 | Execute bounded beta-trial acquisition artifacts for `80` real items and `80` synthetic controls | no | planned | after F1b gates pass |
+| F1d | F1 | Add near-duplicate, source-group, and split-leakage hardening before scale beyond the trial | no | planned | before public beta/export promotion |
+| F2a | F2 | Define transcription, layout-label, and reference-manifest guidelines for benchmark ground truth | no | planned | after F1 trial readiness is understood |
+| F2b | F2 | Implement benchmark-reference ingestion, adjudication artifacts, and benchmark versioning gates | no | planned | after F2a |
+| F3a | F3 | Define rights-clean modern handwritten Hebrew collection policy, consent, privacy, and takedown workflow | no | planned | post-F1/F2 content gap |
+| F3b | F3 | Implement operator workflow for bounded modern handwriting acquisition and review | no | planned | after F3a |
+| F4a | F4 | Validate RTL, bidi, niqqud, Unicode normalization, and font-shaping behavior for synthetic samples | no | planned | synthetic quality hardening |
+| F4b | F4 | Expand layout-aware synthetic generation for document-like Hebrew pages and mixed-direction content | no | planned | after F4a |
+| F5a | F5 | Define public beta readiness gates over source depth, uniqueness, ground truth, review, and portability | no | planned | after F1-F4 foundations |
+| F5b | F5 | Implement public beta publication packaging and handoff workflow | no | planned | after F5a |
 
 ## 4.3 Current critical path
 
-The immediate implementation critical path after the `D2a` source-health path follow-up is:
+The immediate implementation critical path after `F1a` is:
 
-1. Select the next roadmap notation or queued follow-up from merged `main` and open issue/PR state.
+1. Open the first beta-trial implementation issue using the beta trial issue template.
+2. Implement `F1b` beta-trial source-depth feasibility and acquisition reporting before any public beta/release export work.
+3. Execute `F1c` only after source-depth, rights, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates remain enforceable at the target scale.
+4. Add `F1d` near-duplicate, source-group, and split-leakage hardening before treating the trial as a path toward larger public beta or release-candidate export work.
 
-This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` made exported release trees explainable over time through baseline-aware diffs and changelog generation. `D1a` moved routine dry-run maintenance into GitHub Actions with persisted run summaries. `D2a` adds source health, fixture-backed adapter regression coverage, freeze/degrade reporting, and portable source-health check paths where package or config-root references are available so source instability is visible without tying operator artifacts to local install paths unnecessarily. `D3a` defines the first explicitly approved `benchmark_v1` subset with benchmark manifests, selection audit, a stability policy, and usage guidance; the current ref also packages the benchmark approval config so non-editable installs do not depend on a checkout-root `benchmark_data/` directory. `D4a` upgrades the synthetic generator's visual realism without new external assets by adding recipe-backed printed and handwritten-look rendering, richer document-like marks, deterministic degradation presets, and public metadata. `D4b` adds synthetic controls over that metadata and reports synthetic composition in build and alpha export outputs. `D5a` adds optional, portable annotation-reference slots and annotation manifests so future transcription work can attach to release items without making transcriptions mandatory for current alpha/public outputs. `E1a` defines source proposal, source-adapter, synthetic asset, dataset issue, external review, and release-governance contribution paths while preserving existing rights, privacy, review, and release gates. `E2a` adds benchmark example loading, JSON/JSONL text prediction evaluation, character error rate and exact-match helpers, coverage reporting, and lightweight leaderboard-ready conventions over the existing `benchmark_v1` artifacts without adding model training infrastructure.
+This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` made exported release trees explainable over time through baseline-aware diffs and changelog generation. `D1a` moved routine dry-run maintenance into GitHub Actions with persisted run summaries. `D2a` adds source health, fixture-backed adapter regression coverage, freeze/degrade reporting, and portable source-health check paths where package or config-root references are available so source instability is visible without tying operator artifacts to local install paths unnecessarily. `D3a` defines the first explicitly approved `benchmark_v1` subset with benchmark manifests, selection audit, a stability policy, and usage guidance; the current ref also packages the benchmark approval config so non-editable installs do not depend on a checkout-root `benchmark_data/` directory. `D4a` upgrades the synthetic generator's visual realism without new external assets by adding recipe-backed printed and handwritten-look rendering, richer document-like marks, deterministic degradation presets, and public metadata. `D4b` adds synthetic controls over that metadata and reports synthetic composition in build and alpha export outputs. `D5a` adds optional, portable annotation-reference slots and annotation manifests so future transcription work can attach to release items without making transcriptions mandatory for current alpha/public outputs. `E1a` defines source proposal, source-adapter, synthetic asset, dataset issue, external review, and release-governance contribution paths while preserving existing rights, privacy, review, and release gates. `E2a` adds benchmark example loading, JSON/JSONL text prediction evaluation, character error rate and exact-match helpers, coverage reporting, and lightweight leaderboard-ready conventions over the existing `benchmark_v1` artifacts without adding model training infrastructure. `F1a` selects the next post-E4 path as an operator-only beta-scale acquisition trial rather than broad crawling, publication, or a release-candidate export.
+
+The outside reviews under `docs/2026_05_01_outside_review/` reinforce that the repo is pipeline-mature but not yet large-dataset or benchmark-mature. The post-F1 roadmap therefore treats acquisition scale as only one gate. It also elevates uniqueness/leakage control, benchmark ground truth, rights-clean modern handwritten Hebrew acquisition, RTL/niqqud/layout-aware synthetic quality, and publication readiness as separate follow-on milestones rather than hidden assumptions inside the `80` real / `80` synthetic trial target.
 
 `E2b` is a deliberately narrow bridge between the current fixture-backed NLI seed flow and release-size real-source growth. It does not add broad site crawling. The operator path accepts vetted NLI seed URLs from the exploratory catalog, runnable seed manifest, or both; reuses local fixture-backed seeds without network access; fetches/parses missing item metadata and assets when explicitly run; writes reusable local fixtures/assets; and emits a machine-readable report with promoted, skipped, and failed seeds. CI and routine release validation continue to run against committed or locally cached fixtures rather than live network access. A release target such as `80` real samples plus `80` governed synthetic controls should wait until this batch path has produced enough release-ready real items and all rights, privacy, review, split-leakage, benchmark-stability, synthetic-cap, and export-portability gates still pass.
 
@@ -994,6 +1017,166 @@ Handle growth in dataset history, removal events, and source-policy evolution gr
 
 ---
 
+# Phase F — Beta readiness and benchmark foundation
+
+Phase F turns the post-E4 pipeline into a credible beta-readiness program. Its purpose is not to chase volume by relaxing gates. It tests whether real-source growth, uniqueness controls, benchmark references, modern handwritten coverage, synthetic quality, and publication packaging can mature in the right order.
+
+## Milestone F1 — Beta-scale acquisition trial
+
+### Objective
+Define and then execute a bounded operator-only trial that tests whether HeOCR can grow beyond the alpha exemplar set without weakening source policy, review, privacy, benchmark, split, synthetic, uniqueness, or export-portability gates.
+
+### Scope
+- beta-scale acquisition targets before public beta/release export
+- per-source real-item allocation
+- source-depth feasibility gates for bounded static sources
+- operator-facing acquisition reports
+- near-duplicate, source-group, and split-leakage hardening before scale beyond the trial
+- GitHub issue template for beta-trial implementation work
+
+### Planned PRs
+- `F1a`: define the beta-scale trial plan, issue template, target counts, non-goals, and gates
+- `F1b`: implement the first operator-only beta-trial source-depth feasibility and reporting path
+- `F1c`: execute bounded beta-trial acquisition artifacts for the `80` real / `80` synthetic target only after feasibility gates pass
+- `F1d`: add near-duplicate, source-group, and split-leakage hardening before larger public-beta or release-candidate work
+
+### Trial target
+The default F1 trial target is `80` real items plus `80` synthetic controls. Real items are allocated as `27` NLI, `27` Pinkas, and `26` BiblIA. This target is intentionally source-balanced, but Pinkas and BiblIA may not proceed past feasibility until their source-depth expansion path is explicit, fixture-backed, rights-safe, and reviewable.
+
+### Non-goals
+- broad live-source crawling
+- public beta export or release-candidate export
+- publication to Hugging Face or the GitHub dataset repo
+- automatic public-profile promotion
+- network-dependent CI
+- relaxing rights, privacy, review, dedupe, split, benchmark, synthetic-cap, or export-portability gates to hit volume
+
+### Current-ref implementation
+`F1a` is implemented on the current ref as planning and workflow scaffolding plus a repo-native Splendor knowledge workspace. It does not add acquisition code, export code, new source adapters, or publication behavior. The Splendor workspace adds generated source summaries, source manifests, topic scaffolds, queue/run state, and agent brief/query entrypoints for future coding-agent context without changing hocrgen runtime behavior or dataset outputs.
+
+### Exit criteria
+- the next beta-trial implementation issue can be opened from a template with concrete counts, source allocation, gates, validation, and non-goals
+- the roadmap distinguishes operator-only trial work from public beta/release export work
+- Pinkas/BiblIA source-depth feasibility is explicit before implementation treats them as scalable sources
+- beta-trial artifacts preserve enough reporting to explain rights, acquisition failures, missing assets, review outcomes, dedupe outcomes, and split/benchmark eligibility
+- near-duplicate and source-group leakage risks are surfaced before scale beyond the operator-only trial
+
+### Risks / dependencies
+- NLI live acquisition may remain operationally brittle
+- Pinkas/BiblIA may not have enough source-depth feasibility for the even-mix target
+- acquisition volume could outpace review and privacy capacity if gates are not enforced
+
+---
+
+## Milestone F2 — Benchmark ground-truth foundation
+
+### Objective
+Turn the existing benchmark and annotation scaffolding into a credible benchmark path with explicit references, guidelines, and adjudication artifacts.
+
+### Scope
+- Hebrew transcription guidelines covering niqqud, punctuation, numerals, Latin fragments, abbreviations, and bidi edge cases
+- layout-label guidelines for line, region, and page-level references
+- reference-manifest contracts tied to release-relative annotation paths
+- review/adjudication workflow for benchmark references
+- benchmark versioning gates for adding, correcting, or removing referenced items
+
+### Planned PRs
+- `F2a`: define transcription, layout-label, and reference-manifest guidelines for benchmark ground truth
+- `F2b`: implement benchmark-reference ingestion, adjudication artifacts, and benchmark versioning gates
+
+### Exit criteria
+- benchmark examples can be tied to stable references rather than only image/manifests
+- annotation/reference corrections have an auditable process
+- benchmark versioning distinguishes fixed public examples from corrected or retired examples
+
+### Risks / dependencies
+- annotation quality and adjudication capacity may become the main bottleneck
+- benchmark scope may expand faster than the number of trustworthy references
+
+---
+
+## Milestone F3 — Modern handwritten acquisition program
+
+### Objective
+Address the largest content gap: rights-clean modern handwritten Hebrew that matches the intended dataset identity more directly than historical public-source exemplars.
+
+### Scope
+- consent and contributor-release workflow
+- institutional or project-owned collection policy
+- scanning/upload standards for handwritten pages
+- contemporary privacy and takedown handling
+- demographic, script-style, page-type, and mixed-language composition targets
+- bounded operator acquisition and review workflow
+
+### Planned PRs
+- `F3a`: define rights-clean modern handwritten Hebrew collection policy, consent, privacy, and takedown workflow
+- `F3b`: implement operator workflow for bounded modern handwriting acquisition and review
+
+### Exit criteria
+- modern handwritten samples can be collected without weakening privacy or rights posture
+- collection targets are explicit enough to avoid drifting into a mostly historical dataset
+- public-profile promotion remains gated separately from acquisition
+
+### Risks / dependencies
+- consent, privacy, and takedown obligations are heavier for contemporary material
+- source diversity may be hard to achieve without institutional partnerships
+
+---
+
+## Milestone F4 — RTL, niqqud, and layout synthetic quality
+
+### Objective
+Harden synthetic generation around Hebrew-specific rendering and document-layout risks before relying on synthetic volume for benchmark or training claims.
+
+### Scope
+- RTL, bidi, Unicode normalization, and niqqud placement validation
+- font-shaping and rendering audit for supported Hebrew fonts
+- mixed Hebrew/Latin/numeric content fixtures
+- document-layout families beyond isolated text blocks
+- synthetic metadata that reports shaping/layout coverage and known limitations
+
+### Planned PRs
+- `F4a`: validate RTL, bidi, niqqud, Unicode normalization, and font-shaping behavior for synthetic samples
+- `F4b`: expand layout-aware synthetic generation for document-like Hebrew pages and mixed-direction content
+
+### Exit criteria
+- synthetic examples have explicit Hebrew rendering coverage, not just visual degradation metadata
+- mixed-direction and diacritized samples can be inspected and tested deterministically
+- layout upgrades remain deterministic and do not introduce network or heavyweight model dependencies into CI
+
+### Risks / dependencies
+- high-quality shaping may require optional system libraries or carefully bounded fallbacks
+- layout realism can grow complex quickly if it tries to mimic full document understanding datasets too early
+
+---
+
+## Milestone F5 — Public beta and publication readiness
+
+### Objective
+Only after F1-F4 gates are credible, define and implement the public beta/export path for a larger real+synthetic dataset and benchmark handoff.
+
+### Scope
+- public beta readiness gates over source depth, uniqueness, ground truth, review, privacy, and portability
+- dataset-card and license/rights summaries
+- release-relative checksums, archives, and manifest packaging
+- publication handoff to the separate `HeOCR` dataset repo or external dataset host
+- rollback, takedown, and changelog workflow for public beta versions
+
+### Planned PRs
+- `F5a`: define public beta readiness gates over source depth, uniqueness, ground truth, review, and portability
+- `F5b`: implement public beta publication packaging and handoff workflow
+
+### Exit criteria
+- public beta export is a deliberate release decision, not an accidental side effect of operator acquisition
+- publication artifacts include enough rights, provenance, checksum, benchmark, and takedown context for external users
+- final publication does not introduce local-path leakage or network-dependent reproducibility assumptions
+
+### Risks / dependencies
+- publication pressure could arrive before benchmark references and uniqueness controls are credible
+- storage, hosting, and takedown workflows may need decisions outside this repository
+
+---
+
 # Cross-cutting workstreams
 
 ## Workstream 1 — Documentation
@@ -1136,12 +1319,32 @@ Focus:
 - baselines
 - annotated subsets
 - mature governance
+- beta-readiness gates for larger real+synthetic acquisition
 
 Likely milestones:
 - E1, E2, E3, E4
+- F1, F2
+- early F3/F4 planning
 
 Outcome:
 - the project becomes a durable ecosystem asset rather than only an internal pipeline
+- larger beta-scale work has source-depth, uniqueness, and benchmark-reference gates
+
+---
+
+## Version line 1.x+ — Public beta and broader publication posture
+Focus:
+- modern handwritten collection maturity
+- Hebrew-specific synthetic rendering/layout quality
+- public beta publication packaging
+- durable dataset hosting and takedown readiness
+
+Likely milestones:
+- F3, F4, F5
+
+Outcome:
+- the project can publish a larger real+synthetic dataset and benchmark without confusing operator trial artifacts with public release payloads
+- public benchmark claims are backed by references, leakage controls, and documented composition limits
 
 ---
 
@@ -1169,6 +1372,11 @@ If implementation resources are limited, the order should be:
 18. D4 — richer synthetic generation
 19. D5 — annotation-ready architecture
 20. E1 / E2 / E3 / E4 — ecosystem maturity work
+21. F1 — operator-only beta-scale acquisition trial and uniqueness gates
+22. F2 — benchmark ground-truth foundation
+23. F3 — rights-clean modern handwritten acquisition program
+24. F4 — RTL, niqqud, and layout-aware synthetic quality
+25. F5 — public beta/export publication readiness
 
 This order emphasizes public-release safety before scale and polish before aggressive expansion.
 
@@ -1182,11 +1390,16 @@ This order emphasizes public-release safety before scale and polish before aggre
 - D1 depends on a stable enough B5/C1-C2 foundation
 - D3 depends on C2, C3, C4, C5, C6
 - E3 depends on D5
+- F1 depends on E2b, D2, D3, D4b, D5, E3, and E4 remaining intact
+- F2 depends on D5, E2a, E3, and F1 composition/eligibility evidence
+- F3 depends on rights, privacy, review, and takedown governance from B4/C4/C5/E4
+- F5 depends on credible F1-F4 gates, not just successful item acquisition
 
 ## Soft dependencies
 - C3 can start before C5, but review hooks become more valuable once C5 exists
 - D4 can progress in parallel with D1/D2 once synthetic asset governance is stable
 - E2 can begin once D3 exists, even before E1 is fully mature
+- F4 can begin in parallel with F1/F2 if it stays deterministic and does not weaken release/export gates
 
 ---
 
@@ -1216,6 +1429,14 @@ Use modular adapters, parser fixtures, and source-health reporting.
 ### Mitigation
 Enforce synthetic fraction caps and real-data minimum targets in public releases.
 
+## Risk 7 — Beta-scale acquisition is mistaken for benchmark readiness
+### Mitigation
+Keep F1 operator-only and require F2 benchmark ground truth, F1d leakage controls, and F5 publication gates before public beta claims.
+
+## Risk 8 — Historical/open sources crowd out modern handwritten identity
+### Mitigation
+Treat F3 modern handwritten acquisition as a separate milestone with consent, privacy, composition, and takedown requirements.
+
 ---
 
 # Recommended success criteria by phase
@@ -1243,6 +1464,13 @@ Enforce synthetic fraction caps and real-data minimum targets in public releases
 - the project supports community use and contribution
 - annotated subsets and baselines increase practical value
 - governance can handle long-term maintenance
+
+## End of Phase F
+- beta-scale acquisition has been tested as operator-only artifacts before public export
+- near-duplicate and split-leakage risks are surfaced before scaling
+- benchmark references have guidelines and an adjudication path
+- modern handwritten acquisition has a rights-clean route
+- public beta publication waits for source-depth, uniqueness, ground-truth, review, and portability gates
 
 ---
 
@@ -1278,6 +1506,9 @@ The roadmap should prioritize:
 2. strong rights and provenance infrastructure
 3. operational hardening before aggressive source expansion
 4. benchmark and annotation value once the dataset core is stable
-5. governance and documentation as first-class project outputs
+5. source-depth, uniqueness, and leakage controls before beta-scale claims
+6. rights-clean modern handwritten Hebrew acquisition as a first-class content stream
+7. Hebrew-specific synthetic rendering/layout quality before synthetic volume claims
+8. governance and documentation as first-class project outputs
 
 The project reaches maturity when it can repeatedly and transparently produce useful public Hebrew OCR dataset releases while maintaining a conservative legal posture, a clear dataset identity, and sustainable maintenance practices.

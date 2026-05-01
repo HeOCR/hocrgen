@@ -1,0 +1,52 @@
+{
+  "added_at": "2026-05-01T20:48:03+00:00",
+  "checksum": "daa28643ace973ad996c83f6b12696e1a8979ba147ef478cfdfda388a458af2b",
+  "derived_artifacts": [],
+  "discovered_by": null,
+  "generated_by_run_ids": [
+    "run-src-daa28643ace973ad996c83f6b12696e1a8979ba147ef478cfdfda388a458af2b-20260501T204813583945Z"
+  ],
+  "kind": "source",
+  "last_run_id": "run-src-daa28643ace973ad996c83f6b12696e1a8979ba147ef478cfdfda388a458af2b-20260501T204813583945Z",
+  "linked_pages": [
+    "wiki/sources/src-daa28643ace973ad996c83f6b12696e1a8979ba147ef478cfdfda388a458af2b.md"
+  ],
+  "materialized_at": null,
+  "origin_url": null,
+  "original_path": "src/hocrgen/config/privacy_rules.yaml",
+  "path": "src/hocrgen/config/privacy_rules.yaml",
+  "pipeline_version": "0.1.0a0",
+  "provenance_links": [
+    {
+      "note": null,
+      "page_id": "src-daa28643ace973ad996c83f6b12696e1a8979ba147ef478cfdfda388a458af2b",
+      "path_ref": "wiki/sources/src-daa28643ace973ad996c83f6b12696e1a8979ba147ef478cfdfda388a458af2b.md",
+      "role": "generated-page",
+      "run_id": null,
+      "source_id": null
+    },
+    {
+      "note": null,
+      "page_id": null,
+      "path_ref": null,
+      "role": "output",
+      "run_id": "run-src-daa28643ace973ad996c83f6b12696e1a8979ba147ef478cfdfda388a458af2b-20260501T204813583945Z",
+      "source_id": "src-daa28643ace973ad996c83f6b12696e1a8979ba147ef478cfdfda388a458af2b"
+    }
+  ],
+  "review_state": "unreviewed",
+  "reviewed_at": null,
+  "reviewed_by": null,
+  "schema_version": "1",
+  "source_class": null,
+  "source_commit": null,
+  "source_id": "src-daa28643ace973ad996c83f6b12696e1a8979ba147ef478cfdfda388a458af2b",
+  "source_labels": [],
+  "source_ref": "src/hocrgen/config/privacy_rules.yaml",
+  "source_ref_kind": "workspace_path",
+  "source_type": "yaml",
+  "status": "ingested",
+  "storage_mode": "none",
+  "storage_path": null,
+  "title": "privacy rules"
+}

@@ -1,0 +1,67 @@
+{
+  "contradiction_ids": [],
+  "errors": [],
+  "finished_at": "2026-05-01T20:48:13+00:00",
+  "input_refs": [
+    "state/manifests/sources/src-2a426a9848b5f52dbe77701d7ee18f5c515f3d6093ed8f18c0b02c8cb8ce8e13.json",
+    "docs/2026_05_01_outside_review/gemini_review.md"
+  ],
+  "job_id": "ingest-src-2a426a9848b5f52dbe77701d7ee18f5c515f3d6093ed8f18c0b02c8cb8ce8e13",
+  "job_type": "ingest_source",
+  "kind": "run",
+  "output_refs": [
+    "wiki/sources/src-2a426a9848b5f52dbe77701d7ee18f5c515f3d6093ed8f18c0b02c8cb8ce8e13.md",
+    "wiki/index.md",
+    "wiki/log.md"
+  ],
+  "page_ids": [
+    "src-2a426a9848b5f52dbe77701d7ee18f5c515f3d6093ed8f18c0b02c8cb8ce8e13"
+  ],
+  "page_refs": [
+    "wiki/sources/src-2a426a9848b5f52dbe77701d7ee18f5c515f3d6093ed8f18c0b02c8cb8ce8e13.md"
+  ],
+  "pipeline_version": "0.1.0a0",
+  "provenance_links": [
+    {
+      "note": null,
+      "page_id": null,
+      "path_ref": "state/manifests/sources/src-2a426a9848b5f52dbe77701d7ee18f5c515f3d6093ed8f18c0b02c8cb8ce8e13.json",
+      "role": "input",
+      "run_id": null,
+      "source_id": "src-2a426a9848b5f52dbe77701d7ee18f5c515f3d6093ed8f18c0b02c8cb8ce8e13"
+    },
+    {
+      "note": null,
+      "page_id": null,
+      "path_ref": "docs/2026_05_01_outside_review/gemini_review.md",
+      "role": "input",
+      "run_id": null,
+      "source_id": "src-2a426a9848b5f52dbe77701d7ee18f5c515f3d6093ed8f18c0b02c8cb8ce8e13"
+    },
+    {
+      "note": null,
+      "page_id": "src-2a426a9848b5f52dbe77701d7ee18f5c515f3d6093ed8f18c0b02c8cb8ce8e13",
+      "path_ref": "wiki/sources/src-2a426a9848b5f52dbe77701d7ee18f5c515f3d6093ed8f18c0b02c8cb8ce8e13.md",
+      "role": "generated-page",
+      "run_id": null,
+      "source_id": null
+    },
+    {
+      "note": null,
+      "page_id": "src-2a426a9848b5f52dbe77701d7ee18f5c515f3d6093ed8f18c0b02c8cb8ce8e13",
+      "path_ref": null,
+      "role": "output",
+      "run_id": "run-src-2a426a9848b5f52dbe77701d7ee18f5c515f3d6093ed8f18c0b02c8cb8ce8e13-20260501T204813513788Z",
+      "source_id": null
+    }
+  ],
+  "run_id": "run-src-2a426a9848b5f52dbe77701d7ee18f5c515f3d6093ed8f18c0b02c8cb8ce8e13-20260501T204813513788Z",
+  "schema_version": "1",
+  "source_ids": [
+    "src-2a426a9848b5f52dbe77701d7ee18f5c515f3d6093ed8f18c0b02c8cb8ce8e13"
+  ],
+  "started_at": "2026-05-01T20:48:13+00:00",
+  "status": "succeeded",
+  "task_ids": [],
+  "warnings": []
+}
