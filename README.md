@@ -125,6 +125,8 @@ This repository includes a repo-native Splendor workspace for future coding-agen
 
 The initial workspace registers and ingests high-signal hocrgen sources: `AGENTS.md`, `README.md`, `llms.txt`, `.agent-plan.md`, core docs under `docs/`, JSON schemas under `schemas/`, GitHub workflows, config files under `src/hocrgen/config/`, source operations, pipeline/CLI, benchmark/evaluation, annotation, review, release/export, fetcher, and NLI promotion modules. It intentionally does not register binary sample assets. The current local Splendor build used for this setup does not ingest TOML yet, so `pyproject.toml` remains part of normal repo context but is not included in the committed Splendor source set.
 
+Treat `state/`, `wiki/sources/`, and `reports/` as generated Splendor artifacts. Do not hand-edit generated source summaries, manifests, queue/run records, or reports; update registered sources and regenerate the workspace through Splendor instead.
+
 Future agents can start with:
 
 ```bash
