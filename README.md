@@ -553,6 +553,10 @@ synthetic font/text assets, and configured minimum counts. The run emits
 `discover/source_health.json`, includes a source-health rollup in `discover/summary.json`, and carries
 the same rollup into `build_release/source_stats.json`.
 
+Source-health check paths are operator-facing references, not public release payload fields. Packaged
+resources are reported as `package://...`, files under the active config root are reported relative to
+that root, and truly external local files remain absolute so operators can locate the configured input.
+
 Frozen and degraded sources are skipped conservatively with explicit reporting. Publication remains
 manual, and D2a does not introduce live crawling, network health checks, retry/backoff automation, or
 last-good snapshot reuse.
