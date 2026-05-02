@@ -1,0 +1,67 @@
+{
+  "contradiction_ids": [],
+  "errors": [],
+  "finished_at": "2026-05-02T09:09:20+00:00",
+  "input_refs": [
+    "state/manifests/sources/src-e185635b13b3c908dfbaa711ed6afa334f354ead32d827fb68cab2e561c19a25.json",
+    "docs/2026_05_02_heocrsyn_spinout/hocrgen_synthetic_spinout_plan_amendment_by_chatgpt.md"
+  ],
+  "job_id": "ingest-src-e185635b13b3c908dfbaa711ed6afa334f354ead32d827fb68cab2e561c19a25",
+  "job_type": "ingest_source",
+  "kind": "run",
+  "output_refs": [
+    "wiki/sources/src-e185635b13b3c908dfbaa711ed6afa334f354ead32d827fb68cab2e561c19a25.md",
+    "wiki/index.md",
+    "wiki/log.md"
+  ],
+  "page_ids": [
+    "src-e185635b13b3c908dfbaa711ed6afa334f354ead32d827fb68cab2e561c19a25"
+  ],
+  "page_refs": [
+    "wiki/sources/src-e185635b13b3c908dfbaa711ed6afa334f354ead32d827fb68cab2e561c19a25.md"
+  ],
+  "pipeline_version": "0.1.0a0",
+  "provenance_links": [
+    {
+      "note": null,
+      "page_id": null,
+      "path_ref": "state/manifests/sources/src-e185635b13b3c908dfbaa711ed6afa334f354ead32d827fb68cab2e561c19a25.json",
+      "role": "input",
+      "run_id": null,
+      "source_id": "src-e185635b13b3c908dfbaa711ed6afa334f354ead32d827fb68cab2e561c19a25"
+    },
+    {
+      "note": null,
+      "page_id": null,
+      "path_ref": "docs/2026_05_02_heocrsyn_spinout/hocrgen_synthetic_spinout_plan_amendment_by_chatgpt.md",
+      "role": "input",
+      "run_id": null,
+      "source_id": "src-e185635b13b3c908dfbaa711ed6afa334f354ead32d827fb68cab2e561c19a25"
+    },
+    {
+      "note": null,
+      "page_id": "src-e185635b13b3c908dfbaa711ed6afa334f354ead32d827fb68cab2e561c19a25",
+      "path_ref": "wiki/sources/src-e185635b13b3c908dfbaa711ed6afa334f354ead32d827fb68cab2e561c19a25.md",
+      "role": "generated-page",
+      "run_id": null,
+      "source_id": null
+    },
+    {
+      "note": null,
+      "page_id": "src-e185635b13b3c908dfbaa711ed6afa334f354ead32d827fb68cab2e561c19a25",
+      "path_ref": null,
+      "role": "output",
+      "run_id": "run-src-e185635b13b3c908dfbaa711ed6afa334f354ead32d827fb68cab2e561c19a25-20260502T090920654438Z",
+      "source_id": null
+    }
+  ],
+  "run_id": "run-src-e185635b13b3c908dfbaa711ed6afa334f354ead32d827fb68cab2e561c19a25-20260502T090920654438Z",
+  "schema_version": "1",
+  "source_ids": [
+    "src-e185635b13b3c908dfbaa711ed6afa334f354ead32d827fb68cab2e561c19a25"
+  ],
+  "started_at": "2026-05-02T09:09:20+00:00",
+  "status": "succeeded",
+  "task_ids": [],
+  "warnings": []
+}
