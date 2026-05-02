@@ -1,5 +1,7 @@
 # Proposed Amendment to the HeOCR/hocrgen Long-Term Plan: Decoupled Persona-Driven Synthetic Handwriting API
 
+> Note: This document is preserved as external review input, not as the authoritative hocrgen provider-boundary plan. Its REST/API service, LLM, diffusion, GPU, and live-service recommendations are future research proposals unless separately accepted; the adopted baseline keeps hocrgen dependency-light with fixture-backed manifests and no required network, GPU, or LLM dependency.
+
 ## Executive Summary
 
 This document outlines a strategic amendment to the HeOCR/hocrgen long-term development roadmap. The core proposition is to decouple the physical and generative synthesis of handwritten documents from the primary dataset orchestration pipeline. We propose spinning out the synthetic generation engine into a dedicated, standalone API repository.

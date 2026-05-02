@@ -1,5 +1,7 @@
 # Amendment suggestion: spin out synthetic Hebrew OCR/HTR document generation into a separate project
 
+> Note: This document is preserved as external review input, not as the authoritative hocrgen roadmap. Where it uses `heocrsynth` or `HeOCR-Synth` as a working title for the generator repository, read that as the generator package now named `hocrsyngen`. The synthetic-only dataset repository is `HeOCRsynth`; hocrgen remains the orchestration, governance, and export pipeline.
+
 **Prepared for:** HeOCR / hocrgen planning
 
 **Date:** 2026-05-02
