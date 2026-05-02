@@ -2,14 +2,14 @@
 schema_version: '1'
 kind: source-summary
 title: HeOCR hocrgen long term roadmap
-page_id: src-27f4ae1b06166bc0ca23b5bd50171c1f70bbc15763abadc50c7895f196f79207
+page_id: src-7aea0aa1cc931e04bbab650bd3dad677e4ee1ecffd6f2a2db16c26872a937f32
 status: active
 review_state: machine-generated
 source_refs:
-- src-27f4ae1b06166bc0ca23b5bd50171c1f70bbc15763abadc50c7895f196f79207
+- src-7aea0aa1cc931e04bbab650bd3dad677e4ee1ecffd6f2a2db16c26872a937f32
 generated_by_run_ids:
-- run-src-27f4ae1b06166bc0ca23b5bd50171c1f70bbc15763abadc50c7895f196f79207-20260501T204813489272Z
-last_generated_at: '2026-05-01T20:48:13+00:00'
+- run-src-7aea0aa1cc931e04bbab650bd3dad677e4ee1ecffd6f2a2db16c26872a937f32-20260502T090920671975Z
+last_generated_at: '2026-05-02T09:09:20+00:00'
 last_reviewed_at: null
 confidence: 1.0
 related_pages: []
@@ -17,15 +17,15 @@ tags:
 - source-summary
 - md
 provenance_links:
-- source_id: src-27f4ae1b06166bc0ca23b5bd50171c1f70bbc15763abadc50c7895f196f79207
+- source_id: src-7aea0aa1cc931e04bbab650bd3dad677e4ee1ecffd6f2a2db16c26872a937f32
   page_id: null
   run_id: null
-  path_ref: state/manifests/sources/src-27f4ae1b06166bc0ca23b5bd50171c1f70bbc15763abadc50c7895f196f79207.json
+  path_ref: state/manifests/sources/src-7aea0aa1cc931e04bbab650bd3dad677e4ee1ecffd6f2a2db16c26872a937f32.json
   role: generated-from
   note: null
 - source_id: null
   page_id: null
-  run_id: run-src-27f4ae1b06166bc0ca23b5bd50171c1f70bbc15763abadc50c7895f196f79207-20260501T204813489272Z
+  run_id: run-src-7aea0aa1cc931e04bbab650bd3dad677e4ee1ecffd6f2a2db16c26872a937f32-20260502T090920671975Z
   path_ref: null
   role: generated-from
   note: null
@@ -42,7 +42,7 @@ contradictions: []
 
 ## Source
 
-- Source ID: `src-27f4ae1b06166bc0ca23b5bd50171c1f70bbc15763abadc50c7895f196f79207`
+- Source ID: `src-7aea0aa1cc931e04bbab650bd3dad677e4ee1ecffd6f2a2db16c26872a937f32`
 - Source type: `md`
 - Registered path: `docs/HeOCR_hocrgen_long_term_roadmap.md`
 - Source file: `docs/HeOCR_hocrgen_long_term_roadmap.md`
@@ -53,12 +53,12 @@ HeOCR / hocrgen Long-Term Roadmap and Milestone Plan. This document provides a l
 
 ## Key Facts
 
-- Source ID: `src-27f4ae1b06166bc0ca23b5bd50171c1f70bbc15763abadc50c7895f196f79207`
+- Source ID: `src-7aea0aa1cc931e04bbab650bd3dad677e4ee1ecffd6f2a2db16c26872a937f32`
 - Source type: `md`
-- Checksum: `27f4ae1b06166bc0ca23b5bd50171c1f70bbc15763abadc50c7895f196f79207`
+- Checksum: `7aea0aa1cc931e04bbab650bd3dad677e4ee1ecffd6f2a2db16c26872a937f32`
 - Source ref: `docs/HeOCR_hocrgen_long_term_roadmap.md`
-- Added at: `2026-05-01T20:48:00+00:00`
-- Ingested at: `2026-05-01T20:48:13+00:00`
+- Added at: `2026-05-02T09:09:16+00:00`
+- Ingested at: `2026-05-02T09:09:20+00:00`
 
 ## Extract
 
@@ -82,7 +82,9 @@ It is intended to guide:
 The roadmap assumes the following product split:
 
 - **HeOCR**: the public dataset
-- **hocrgen**: the open-source toolchain that generates, curates, versions, and publishes HeOCR
+- **hocrgen**: the open-source orchestration/governance/export toolchain that curates, versions, and publishes governed dataset releases
+- **hocrsyngen**: the synthetic Hebrew OCR/HTR generation package that emits candidate generated sample units and manifests
+- **HeOCRsynth**: the synthetic-only dataset repository that receives versioned synthetic releases from `hocrgen`
 
 The roadmap is deliberately staged. The early goal is not maximal scale. The early goal is to establish a **clean, defensible, reproducible public pipeline** that can expand safely over time.
 
@@ -135,19 +137,17 @@ This roadmap is organized into phases and milestones.
 - **Phase D**: Expansion and benchmark formation
 - **Phase E**: Ecosystem maturity
 - **Phase F**: Beta-scale trial preparation
+- **Phase G**: Synthetic generation spinout and synthetic-only dataset stream
 
 ### Milestone types
 Each milestone includes:
 - objective
 - scope
-- key deliverables
-- exit criteria
-- risks / dependencies
 ```
 
 ## Provenance
 
-- Manifest: `state/manifests/sources/src-27f4ae1b06166bc0ca23b5bd50171c1f70bbc15763abadc50c7895f196f79207.json`
+- Manifest: `state/manifests/sources/src-7aea0aa1cc931e04bbab650bd3dad677e4ee1ecffd6f2a2db16c26872a937f32.json`
 - Workspace source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
-- Run ID: `run-src-27f4ae1b06166bc0ca23b5bd50171c1f70bbc15763abadc50c7895f196f79207-20260501T204813489272Z`
+- Run ID: `run-src-7aea0aa1cc931e04bbab650bd3dad677e4ee1ecffd6f2a2db16c26872a937f32-20260502T090920671975Z`
 - Pipeline version: `0.1.0a0`

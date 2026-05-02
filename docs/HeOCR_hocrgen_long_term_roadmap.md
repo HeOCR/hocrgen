@@ -17,7 +17,9 @@ It is intended to guide:
 The roadmap assumes the following product split:
 
 - **HeOCR**: the public dataset
-- **hocrgen**: the open-source toolchain that generates, curates, versions, and publishes HeOCR
+- **hocrgen**: the open-source orchestration/governance/export toolchain that curates, versions, and publishes governed dataset releases
+- **hocrsyngen**: the synthetic Hebrew OCR/HTR generation package that emits candidate generated sample units and manifests
+- **HeOCRsynth**: the synthetic-only dataset repository that receives versioned synthetic releases from `hocrgen`
 
 The roadmap is deliberately staged. The early goal is not maximal scale. The early goal is to establish a **clean, defensible, reproducible public pipeline** that can expand safely over time.
 
@@ -70,6 +72,7 @@ This roadmap is organized into phases and milestones.
 - **Phase D**: Expansion and benchmark formation
 - **Phase E**: Ecosystem maturity
 - **Phase F**: Beta-scale trial preparation
+- **Phase G**: Synthetic generation spinout and synthetic-only dataset stream
 
 ### Milestone types
 Each milestone includes:
@@ -130,7 +133,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | F1 | Beta-scale acquisition trial | F1a, F1b, F1c, F1d | Operator-only beta-scale plan, source-depth feasibility/reporting, bounded trial artifacts, and near-duplicate/leakage hardening | in progress |
 | F2 | Benchmark ground-truth foundation | F2a, F2b | Transcription/layout guidelines, reference manifests, benchmark references, and adjudication workflow | planned |
 | F3 | Modern handwritten acquisition program | F3a, F3b | Rights-clean modern Hebrew handwriting collection policy and operator acquisition workflow | planned |
-| F4 | RTL, niqqud, and layout synthetic quality | F4a, F4b | Hebrew shaping validation, mixed-direction/niqqud coverage, and document-layout realism upgrades | planned |
+| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d | Synthetic spinout architecture, provider manifest contract, fixture-backed adapter, Hebrew rendering/provider gates, and HeOCRsynth export handoff | in progress |
 | F5 | Public beta and publication readiness | F5a, F5b | Public beta gates, publication packaging, dataset-card, and takedown-ready export handoff | planned |
 
 ## 4.2 PR summary
@@ -178,23 +181,25 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | F2b | F2 | Implement benchmark-reference ingestion, adjudication artifacts, and benchmark versioning gates | no | planned | after F2a |
 | F3a | F3 | Define rights-clean modern handwritten Hebrew collection policy, consent, privacy, and takedown workflow | no | planned | post-F1/F2 content gap |
 | F3b | F3 | Implement operator workflow for bounded modern handwriting acquisition and review | no | planned | after F3a |
-| F4a | F4 | Validate RTL, bidi, niqqud, Unicode normalization, and font-shaping behavior for synthetic samples | no | planned | synthetic quality hardening |
-| F4b | F4 | Expand layout-aware synthetic generation for document-like Hebrew pages and mixed-direction content | no | planned | after F4a |
+| F4a | F4 | Record the four-repository synthetic spinout architecture and provider-boundary plan | no | completed | current ref synthetic spinout planning PR |
+| F4b | F4 | Define the external `hocrsyngen` generated-sample manifest contract and fixture validation | no | planned | after F4a |
+| F4c | F4 | Add fixture-backed `hocrsyngen` provider ingestion and Hebrew rendering/provider metadata gates | no | planned | after F4b and `hocrsyngen` manifest fixtures |
+| F4d | F4 | Add synthetic-only export handoff for `HeOCRsynth` | no | planned | after F4c |
 | F5a | F5 | Define public beta readiness gates over source depth, uniqueness, ground truth, review, and portability | no | planned | after F1-F4 foundations |
 | F5b | F5 | Implement public beta publication packaging and handoff workflow | no | planned | after F5a |
 
 ## 4.3 Current critical path
 
-The immediate implementation critical path after `F1a` is:
+The immediate acquisition implementation critical path after `F4a` remains:
 
 1. Open the first beta-trial implementation issue using the beta trial issue template.
 2. Implement `F1b` beta-trial source-depth feasibility and acquisition reporting before any public beta/release export work.
 3. Execute `F1c` only after source-depth, rights, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates remain enforceable at the target scale.
 4. Add `F1d` near-duplicate, source-group, and split-leakage hardening before treating the trial as a path toward larger public beta or release-candidate export work.
 
-This prioritization is intentional. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` made exported release trees explainable over time through baseline-aware diffs and changelog generation. `D1a` moved routine dry-run maintenance into GitHub Actions with persisted run summaries. `D2a` adds source health, fixture-backed adapter regression coverage, freeze/degrade reporting, and portable source-health check paths where package or config-root references are available so source instability is visible without tying operator artifacts to local install paths unnecessarily. `D3a` defines the first explicitly approved `benchmark_v1` subset with benchmark manifests, selection audit, a stability policy, and usage guidance; the current ref also packages the benchmark approval config so non-editable installs do not depend on a checkout-root `benchmark_data/` directory. `D4a` upgrades the synthetic generator's visual realism without new external assets by adding recipe-backed printed and handwritten-look rendering, richer document-like marks, deterministic degradation presets, and public metadata. `D4b` adds synthetic controls over that metadata and reports synthetic composition in build and alpha export outputs. `D5a` adds optional, portable annotation-reference slots and annotation manifests so future transcription work can attach to release items without making transcriptions mandatory for current alpha/public outputs. `E1a` defines source proposal, source-adapter, synthetic asset, dataset issue, external review, and release-governance contribution paths while preserving existing rights, privacy, review, and release gates. `E2a` adds benchmark example loading, JSON/JSONL text prediction evaluation, character error rate and exact-match helpers, coverage reporting, and lightweight leaderboard-ready conventions over the existing `benchmark_v1` artifacts without adding model training infrastructure. `F1a` selects the next post-E4 path as an operator-only beta-scale acquisition trial rather than broad crawling, publication, or a release-candidate export.
+This prioritization is intentional. `F4a` records the synthetic spinout architecture, but it is planning-only and does not displace `F1b` source-depth feasibility as the next acquisition implementation path. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` made exported release trees explainable over time through baseline-aware diffs and changelog generation. `D1a` moved routine dry-run maintenance into GitHub Actions with persisted run summaries. `D2a` adds source health, fixture-backed adapter regression coverage, freeze/degrade reporting, and portable source-health check paths where package or config-root references are available so source instability is visible without tying operator artifacts to local install paths unnecessarily. `D3a` defines the first explicitly approved `benchmark_v1` subset with benchmark manifests, selection audit, a stability policy, and usage guidance; the current ref also packages the benchmark approval config so non-editable installs do not depend on a checkout-root `benchmark_data/` directory. `D4a` upgrades the synthetic generator's visual realism without new external assets by adding recipe-backed printed and handwritten-look rendering, richer document-like marks, deterministic degradation presets, and public metadata. `D4b` adds synthetic controls over that metadata and reports synthetic composition in build and alpha export outputs. `D5a` adds optional, portable annotation-reference slots and annotation manifests so future transcription work can attach to release items without making transcriptions mandatory for current alpha/public outputs. `E1a` defines source proposal, source-adapter, synthetic asset, dataset issue, external review, and release-governance contribution paths while preserving existing rights, privacy, review, and release gates. `E2a` adds benchmark example loading, JSON/JSONL text prediction evaluation, character error rate and exact-match helpers, coverage reporting, and lightweight leaderboard-ready conventions over the existing `benchmark_v1` artifacts without adding model training infrastructure. `F1a` selects the next post-E4 path as an operator-only beta-scale acquisition trial rather than broad crawling, publication, or a release-candidate export.
 
-The outside reviews under `docs/2026_05_01_outside_review/` reinforce that the repo is pipeline-mature but not yet large-dataset or benchmark-mature. The post-F1 roadmap therefore treats acquisition scale as only one gate. It also elevates uniqueness/leakage control, benchmark ground truth, rights-clean modern handwritten Hebrew acquisition, RTL/niqqud/layout-aware synthetic quality, and publication readiness as separate follow-on milestones rather than hidden assumptions inside the `80` real / `80` synthetic trial target.
+The outside reviews under `docs/2026_05_01_outside_review/` reinforce that the repo is pipeline-mature but not yet large-dataset or benchmark-mature. The spinout reviews under `docs/2026_05_02_heocrsyn_spinout/` reinforce a second boundary: advanced synthetic OCR/HTR generation should be its own package and dataset stream, while `hocrgen` remains dependency-light and gate-driven. The post-F1 roadmap therefore treats acquisition scale as only one gate. It also elevates uniqueness/leakage control, benchmark ground truth, rights-clean modern handwritten Hebrew acquisition, external synthetic-provider contracts, Hebrew rendering gates, and publication readiness as separate follow-on milestones rather than hidden assumptions inside the `80` real / `80` synthetic trial target.
 
 `E2b` is a deliberately narrow bridge between the current fixture-backed NLI seed flow and release-size real-source growth. It does not add broad site crawling. The operator path accepts vetted NLI seed URLs from the exploratory catalog, runnable seed manifest, or both; reuses local fixture-backed seeds without network access; fetches/parses missing item metadata and assets when explicitly run; writes reusable local fixtures/assets; and emits a machine-readable report with promoted, skipped, and failed seeds. CI and routine release validation continue to run against committed or locally cached fixtures rather than live network access. A release target such as `80` real samples plus `80` governed synthetic controls should wait until this batch path has produced enough release-ready real items and all rights, privacy, review, split-leakage, benchmark-stability, synthetic-cap, and export-portability gates still pass.
 
@@ -1123,29 +1128,41 @@ Address the largest content gap: rights-clean modern handwritten Hebrew that mat
 
 ---
 
-## Milestone F4 — RTL, niqqud, and layout synthetic quality
+## Milestone F4 — External synthetic provider integration
 
 ### Objective
-Harden synthetic generation around Hebrew-specific rendering and document-layout risks before relying on synthetic volume for benchmark or training claims.
+Record and then integrate the synthetic spinout boundary without turning `hocrgen` into a generation engine. `hocrsyngen` owns synthetic Hebrew OCR/HTR generation. `hocrgen` consumes governed generated-sample manifests as candidate synthetic inputs, applies existing release gates, and exports either mixed real+synthetic releases to `HeOCR` or synthetic-only releases to `HeOCRsynth`.
 
 ### Scope
-- RTL, bidi, Unicode normalization, and niqqud placement validation
-- font-shaping and rendering audit for supported Hebrew fonts
-- mixed Hebrew/Latin/numeric content fixtures
-- document-layout families beyond isolated text blocks
-- synthetic metadata that reports shaping/layout coverage and known limitations
+- four-repository ownership boundary across `hocrsyngen`, `hocrgen`, `HeOCR`, and `HeOCRsynth`
+- narrow `hocrsyngen` `generation_manifest.json` contract with relative page assets
+- fixture-backed provider ingestion before any live service, GPU, LLM, diffusion, or heavyweight generator dependency is allowed in `hocrgen`
+- Hebrew logical-order text, RTL/bidi, Unicode normalization, niqqud, final-letter, numeral, punctuation, font-shaping, and layout-coverage validation gates
+- synthetic provider metadata for generator version, recipe id, seed/provenance, license `PROJECT-SYNTHETIC`, synthetic disclosure, and optional persona/condition controls
+- synthetic-only export handoff conventions for `HeOCRsynth`
+- continued support for the internal `project_synthetic` source as a legacy deterministic smoke/CI source until external provider gates pass
+
+Persona and condition fields are generator controls only. They must not claim psychological truth, real-writer identity, or demographic authority.
 
 ### Planned PRs
-- `F4a`: validate RTL, bidi, niqqud, Unicode normalization, and font-shaping behavior for synthetic samples
-- `F4b`: expand layout-aware synthetic generation for document-like Hebrew pages and mixed-direction content
+- `F4a`: record the four-repository synthetic spinout architecture and provider-boundary plan
+- `F4b`: define the external `hocrsyngen` generated-sample manifest contract and fixture validation
+- `F4c`: add fixture-backed `hocrsyngen` provider ingestion and Hebrew rendering/provider metadata gates
+- `F4d`: add synthetic-only export handoff for `HeOCRsynth`
+
+### Current-ref implementation
+`F4a` is implemented on the current ref as planning and documentation only. It does not add acquisition code, synthetic-provider adapter code, export code, new hocrgen runtime dependencies, or changes to current public/alpha payload behavior.
 
 ### Exit criteria
-- synthetic examples have explicit Hebrew rendering coverage, not just visual degradation metadata
-- mixed-direction and diacritized samples can be inspected and tested deterministically
-- layout upgrades remain deterministic and do not introduce network or heavyweight model dependencies into CI
+- `hocrsyngen` output is treated as candidate synthetic input, not release-ready data by itself
+- `hocrgen` can validate generated-sample fixtures without importing heavy generator dependencies or calling a live service
+- synthetic caps, rights/provenance disclosure, review gates, benchmark gates, split/dedupe behavior, and export portability still apply before any mixed or synthetic-only publication
+- `HeOCR` and `HeOCRsynth` release streams are distinguishable and do not confuse synthetic-only data with real-source provenance
 
 ### Risks / dependencies
-- high-quality shaping may require optional system libraries or carefully bounded fallbacks
+- hocrgen could inherit generator complexity unless the manifest boundary stays narrow and fixture-backed
+- high-quality Hebrew rendering may require optional system libraries or carefully bounded fallbacks in `hocrsyngen`, but baseline hocrgen CI must stay no-GPU and network-free
+- synthetic-only publication could be mistaken for mixed-dataset readiness unless `HeOCRsynth` release cards and hocrgen export gates keep provenance explicit
 - layout realism can grow complex quickly if it tries to mimic full document understanding datasets too early
 
 ---
@@ -1320,6 +1337,7 @@ Focus:
 - annotated subsets
 - mature governance
 - beta-readiness gates for larger real+synthetic acquisition
+- synthetic generation package boundary and provider-contract planning
 
 Likely milestones:
 - E1, E2, E3, E4
@@ -1335,16 +1353,45 @@ Outcome:
 ## Version line 1.x+ — Public beta and broader publication posture
 Focus:
 - modern handwritten collection maturity
-- Hebrew-specific synthetic rendering/layout quality
+- external synthetic-provider integration and Hebrew rendering/layout quality
 - public beta publication packaging
 - durable dataset hosting and takedown readiness
+- synthetic-only publication stream for `HeOCRsynth`
 
 Likely milestones:
 - F3, F4, F5
+- cross-repository `hocrsyngen` and `HeOCRsynth` milestones
 
 Outcome:
 - the project can publish a larger real+synthetic dataset and benchmark without confusing operator trial artifacts with public release payloads
 - public benchmark claims are backed by references, leakage controls, and documented composition limits
+- synthetic-only releases are published as synthetic-only artifacts from `hocrgen` export handoffs, not ad hoc generator dumps
+
+---
+
+## Cross-repository synthetic generation stream
+
+`F4a` intentionally names work that will happen outside `hocrgen` so future implementation threads do not collapse all synthetic work back into this repository.
+
+### `hocrsyngen` generator package
+- `G0a`: bootstrap the Python package, CLI, typed models, JSON schema, deterministic seed policy, no-GPU CI, and tiny fixture batch
+- `G1a`: define and validate the `generation_manifest.json` contract with relative assets and stable sample identifiers
+- `G2a`: add deterministic Hebrew renderer fixtures for logical-order UTF-8 text, RTL/bidi behavior, final letters, numerals, punctuation, and sparse niqqud
+- `G3a`: add document-layout families and generator metadata coverage without requiring a REST service
+- `G4a`: add persona/condition controls as generator controls only, without claims about real writer identity or psychological truth
+- `G5a`: add handwriting/allograph-style generation and evaluation fixtures
+- later optional work: ML, diffusion, LLM-assisted text generation, Arabic support, or service deployment only after the baseline manifest/API contract is stable
+
+### `hocrgen` provider integration
+- `F4b`: codify the expected generated-sample contract before consuming external outputs
+- `F4c`: ingest fixture-backed `hocrsyngen` manifests and convert them into existing hocrgen acquisition/release records under the same gates as `project_synthetic`
+- `F4d`: add synthetic-only export handoff behavior for `HeOCRsynth`
+
+### `HeOCRsynth` dataset repository
+- `S0a`: bootstrap release layout, dataset-card/provenance conventions, and publication non-goals for synthetic-only releases
+- `S1a`: accept the first dry-run synthetic-only release tree from `hocrgen`
+
+`HeOCRsynth` must accept hocrgen-exported release trees, not raw generator directories. `HeOCR` remains the mixed real+synthetic public dataset repository.
 
 ---
 
@@ -1375,8 +1422,11 @@ If implementation resources are limited, the order should be:
 21. F1 — operator-only beta-scale acquisition trial and uniqueness gates
 22. F2 — benchmark ground-truth foundation
 23. F3 — rights-clean modern handwritten acquisition program
-24. F4 — RTL, niqqud, and layout-aware synthetic quality
-25. F5 — public beta/export publication readiness
+24. F4a — record synthetic spinout architecture and provider boundaries
+25. hocrsyngen G0/G1 — bootstrap generator package and manifest contract fixtures
+26. F4b/F4c — define and ingest fixture-backed synthetic provider manifests
+27. HeOCRsynth S0/S1 and F4d — bootstrap synthetic-only release stream and hocrgen handoff
+28. F5 — public beta/export publication readiness
 
 This order emphasizes public-release safety before scale and polish before aggressive expansion.
 
@@ -1393,13 +1443,17 @@ This order emphasizes public-release safety before scale and polish before aggre
 - F1 depends on E2b, D2, D3, D4b, D5, E3, and E4 remaining intact
 - F2 depends on D5, E2a, E3, and F1 composition/eligibility evidence
 - F3 depends on rights, privacy, review, and takedown governance from B4/C4/C5/E4
+- F4b depends on F4a and a stable `hocrsyngen` manifest-contract decision
+- F4c depends on F4b plus fixture-backed `hocrsyngen` manifests that can be validated without network, GPU, REST, LLM, diffusion, or heavyweight generator dependencies
+- F4d depends on F4c and an initialized `HeOCRsynth` release-repository layout
 - F5 depends on credible F1-F4 gates, not just successful item acquisition
 
 ## Soft dependencies
 - C3 can start before C5, but review hooks become more valuable once C5 exists
 - D4 can progress in parallel with D1/D2 once synthetic asset governance is stable
 - E2 can begin once D3 exists, even before E1 is fully mature
-- F4 can begin in parallel with F1/F2 if it stays deterministic and does not weaken release/export gates
+- F4 planning and provider-contract work can begin in parallel with F1/F2 if it stays deterministic and does not weaken release/export gates
+- hocrsyngen generator work can proceed independently, but hocrgen should not consume it until the manifest contract and fixtures are stable
 
 ---
 
@@ -1429,6 +1483,10 @@ Use modular adapters, parser fixtures, and source-health reporting.
 ### Mitigation
 Enforce synthetic fraction caps and real-data minimum targets in public releases.
 
+## Risk 6b — hocrgen absorbs generator complexity through the spinout
+### Mitigation
+Keep hocrgen dependency-light. The first integration reads fixture-backed `hocrsyngen` manifests and relative assets; it does not call a REST service or require GPU, LLM, diffusion, or heavyweight generator dependencies.
+
 ## Risk 7 — Beta-scale acquisition is mistaken for benchmark readiness
 ### Mitigation
 Keep F1 operator-only and require F2 benchmark ground truth, F1d leakage controls, and F5 publication gates before public beta claims.
@@ -1436,6 +1494,10 @@ Keep F1 operator-only and require F2 benchmark ground truth, F1d leakage control
 ## Risk 8 — Historical/open sources crowd out modern handwritten identity
 ### Mitigation
 Treat F3 modern handwritten acquisition as a separate milestone with consent, privacy, composition, and takedown requirements.
+
+## Risk 9 — Synthetic-only releases are mistaken for real-source provenance
+### Mitigation
+Publish synthetic-only data through `HeOCRsynth` with explicit generator provenance, `PROJECT-SYNTHETIC` licensing, synthetic disclosure, and hocrgen export metadata. Mixed releases in `HeOCR` must continue to distinguish real items from synthetic controls.
 
 ---
 
@@ -1470,6 +1532,8 @@ Treat F3 modern handwritten acquisition as a separate milestone with consent, pr
 - near-duplicate and split-leakage risks are surfaced before scaling
 - benchmark references have guidelines and an adjudication path
 - modern handwritten acquisition has a rights-clean route
+- external synthetic-provider work has a manifest contract, fixture-backed ingestion path, and Hebrew rendering/provider metadata gates
+- synthetic-only publication through `HeOCRsynth` is separated from mixed real+synthetic `HeOCR` readiness
 - public beta publication waits for source-depth, uniqueness, ground-truth, review, and portability gates
 
 ---

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F1a"
+CURRENT_COMPLETED_NOTATION = "F4a"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -52,9 +52,9 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "| F1 | Beta-scale acquisition trial | F1a, F1b, F1c, F1d |" in roadmap
     assert "| F2 | Benchmark ground-truth foundation | F2a, F2b |" in roadmap
     assert "| F3 | Modern handwritten acquisition program | F3a, F3b |" in roadmap
-    assert "| F4 | RTL, niqqud, and layout synthetic quality | F4a, F4b |" in roadmap
+    assert "| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d |" in roadmap
     assert "| F5 | Public beta and publication readiness | F5a, F5b |" in roadmap
-    assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
+    assert f"The immediate acquisition implementation critical path after `{CURRENT_COMPLETED_NOTATION}` remains:" in roadmap
     assert "Roadmap notation is location-based" in readme
     assert "`E4a` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
 
@@ -96,7 +96,7 @@ def test_post_f1_roadmap_captures_outside_review_takeaways() -> None:
         "near-duplicate/source-group leakage",
         "Benchmark ground-truth foundation",
         "Modern handwritten acquisition program",
-        "RTL, niqqud, and layout synthetic quality",
+        "External synthetic provider integration",
         "Public beta and publication readiness",
         "source-depth, uniqueness, ground-truth, review, and portability gates",
     ]:
@@ -108,10 +108,48 @@ def test_post_f1_roadmap_captures_outside_review_takeaways() -> None:
         "`F1d`",
         "`F2`",
         "`F3`",
-        "`F4`",
+        "`F4a`",
+        "`F4b`",
+        "`F4c`",
+        "`F4d`",
         "`F5`",
     ]:
         assert required in combined
+
+
+def test_f4a_synthetic_spinout_docs_keep_four_repo_boundary_visible() -> None:
+    agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+    synthetic_guide = Path("docs/synthetic_asset_contribution_guide.md").read_text(encoding="utf-8")
+    combined = "\n".join([agent_plan, readme, roadmap, synthetic_guide])
+
+    for required in [
+        "hocrsyngen",
+        "HeOCRsynth",
+        "generation_manifest.json",
+        "candidate synthetic inputs",
+        "PROJECT-SYNTHETIC",
+        "synthetic disclosure",
+        "fixture-backed",
+        "no-GPU",
+        "REST",
+        "GPU",
+        "LLM",
+        "diffusion",
+        "persona",
+        "generator controls",
+        "mixed real+synthetic",
+        "synthetic-only",
+    ]:
+        assert required in combined
+
+    for path in [
+        Path("docs/2026_05_02_heocrsyn_spinout/hocrgen_synthetic_spinout_plan_amendment_by_chatgpt.md"),
+        Path("docs/2026_05_02_heocrsyn_spinout/hocrgen_synthetic_spinout_plan_amendment_by_gemini_1.md"),
+        Path("docs/2026_05_02_heocrsyn_spinout/hocrgen_synthetic_spinout_plan_amendment_by_gemini_2.md"),
+    ]:
+        assert path.exists()
 
 
 def test_planning_docs_do_not_use_stale_branch_local_status_phrases() -> None:

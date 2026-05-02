@@ -2,7 +2,7 @@
 
 `hocrgen` is the open-source dataset operations toolchain for the HeOCR project.
 
-This repository now implements a conservative review-readiness, source-operations, benchmark-subset, evaluation-utility, community-contribution, annotation-pilot, and multi-release governance policy layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, lightweight text evaluation over benchmark manifests, carefully bounded annotation pilot selection, curated dry-run release assembly, documented contribution safety rails, and release/version governance for repeated public exports.
+This repository now implements a conservative review-readiness, source-operations, benchmark-subset, evaluation-utility, community-contribution, annotation-pilot, multi-release governance, and synthetic-provider planning layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, lightweight text evaluation over benchmark manifests, carefully bounded annotation pilot selection, curated dry-run release assembly, documented contribution safety rails, release/version governance for repeated public exports, and roadmap planning for a separate synthetic generator package and synthetic-only dataset stream.
 
 ## What `hocrgen` can do today
 
@@ -32,6 +32,7 @@ This repository now implements a conservative review-readiness, source-operation
 - emit curated release manifests with duplicate-cluster, review-queue, split, and leakage-report artifacts
 - document safe community contribution paths for source proposals, source adapters, synthetic assets, dataset issues, and release governance
 - document multi-release governance for version semantics, removals/takedowns, additive schema migration, source deprecation, benchmark stability, and compatibility statements
+- document the four-repository synthetic spinout boundary: `hocrsyngen` for generation, `hocrgen` for gates/orchestration/export, `HeOCR` for mixed releases, and `HeOCRsynth` for synthetic-only releases
 
 ## Supported sources in the current MVP
 
@@ -107,7 +108,7 @@ python scripts/promote_nli_seeds.py \
 - near-duplicate / perceptual deduplication, source-group grouping, and split-leakage hardening
 - benchmark ground-truth foundation: transcription guidelines, layout-label guidance, reference manifests, adjudication artifacts, and benchmark versioning gates
 - rights-clean modern handwritten Hebrew acquisition with consent, privacy, composition, and takedown workflows
-- RTL, bidi, niqqud, Unicode normalization, font-shaping, and layout-aware synthetic quality validation
+- external synthetic-provider contract work for `hocrsyngen` manifests, Hebrew rendering/provider metadata gates, and synthetic-only export handoff to `HeOCRsynth`
 - OCR-aware privacy screening
 - advanced classification and model-training infrastructure
 - final public beta publication to Hugging Face or the GitHub dataset repo after source-depth, uniqueness, ground-truth, review, and portability gates pass
@@ -504,7 +505,7 @@ The pilot currently names two real `benchmark_v1` items for planned transcriptio
 
 ## Synthetic generation
 
-The synthetic subsystem is modest but real:
+The current in-repo synthetic subsystem is modest but real:
 
 - deterministic from seed
 - outputs degraded JPEG page assets plus reproducibility metadata
@@ -517,6 +518,12 @@ The synthetic subsystem is modest but real:
 - can limit generation by existing synthetic metadata with `--synthetic-template`, `--synthetic-recipe`, and `--synthetic-degradation-preset`
 - emits `synthetic_composition.json` during `build-release` and `export-alpha`, with template, recipe, degradation preset, font, split, and synthetic fraction counts
 - keeps synthetic release inclusion bounded by profile and alpha export caps while allowing both default D4a recipes into the conservative public profile
+
+Synthetic generation is now planned as a conservative spinout. `hocrsyngen` owns advanced synthetic Hebrew OCR/HTR sample generation; `hocrgen` remains the orchestration, governance, review, benchmark, split, cap, and export pipeline; `HeOCR` receives mixed real+synthetic releases; and `HeOCRsynth` receives synthetic-only releases. The existing `project_synthetic` source remains a legacy deterministic smoke/CI source until external provider gates pass.
+
+The first external-provider integration should be fixture-backed and dependency-light. `hocrsyngen` is expected to emit `generation_manifest.json` plus relative page assets. Manifest v1 should include sample id, page assets, logical-order UTF-8 text, script/language/direction metadata, generator version, recipe id, seed/provenance, license `PROJECT-SYNTHETIC`, synthetic disclosure, and optional persona/condition controls. Persona and condition fields are generator controls only; they must not claim psychological truth, real-writer identity, or demographic authority.
+
+`hocrsyngen` outputs are candidate synthetic inputs, not release-ready data by themselves. `hocrgen` should first read committed fixture manifests rather than call a live service, GPU model, LLM, diffusion model, or other heavyweight generator dependency. The normal rights/provenance disclosure, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates decide whether generated samples appear in mixed `HeOCR` releases or synthetic-only `HeOCRsynth` releases.
 
 ## Community contribution model
 
