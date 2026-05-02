@@ -18,6 +18,8 @@ from hocrgen.fetchers.synthetic import SyntheticFetcher
 from hocrgen.manifests.models import EnrichedCandidateRecord, ItemRecord
 from hocrgen.source_ops import (
     SourceHealthResult,
+    evaluate_f1_source_depth_feasibility,
+    evaluate_source_health,
     _inspect_nli_source,
     _inspect_records_source,
     _inspect_source,
@@ -140,11 +142,14 @@ def test_active_source_health_is_emitted_in_discover_and_build_release(tmp_path:
     run_dir = Path(payload["run_dir"])
     discover_summary = json.loads((run_dir / "discover" / "summary.json").read_text(encoding="utf-8"))
     source_health = json.loads((run_dir / "discover" / "source_health.json").read_text(encoding="utf-8"))
+    source_depth = json.loads((run_dir / "discover" / "source_depth_feasibility.json").read_text(encoding="utf-8"))
     source_stats = json.loads((run_dir / "build_release" / "source_stats.json").read_text(encoding="utf-8"))
 
     assert exit_code == 0
     assert discover_summary["source_health"]["selected_source_count"] == 4
+    assert discover_summary["source_depth_feasibility_report"] == "discover/source_depth_feasibility.json"
     assert source_health["summary"]["active_source_count"] == 4
+    assert source_depth["artifact_scope"] == "operator_only"
     assert source_stats["source_health"]["skipped_source_count"] == 0
 
 
@@ -365,6 +370,40 @@ def test_source_health_summary_accepts_result_models() -> None:
     )
 
     assert summary["selected_source_count"] == 1
+
+
+def test_f1_source_depth_feasibility_reports_current_fixture_backed_gaps() -> None:
+    bundle = load_and_validate_bundle()
+    source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
+
+    report = evaluate_f1_source_depth_feasibility(bundle, source_health)
+    sources = {source["source_id"]: source for source in report["sources"]}
+
+    assert report["real_target_count"] == 80
+    assert report["synthetic_target_count"] == 80
+    assert report["summary"]["overall_feasibility_status"] == "not_feasible"
+    assert report["summary"]["not_ready_sources"] == [
+        "nli_any_use_permitted",
+        "pinkas_open",
+        "biblia_open",
+        "project_synthetic",
+    ]
+    assert report["summary"]["not_feasible_sources"] == ["pinkas_open", "biblia_open"]
+    assert sources["nli_any_use_permitted"]["target_count"] == 27
+    assert sources["nli_any_use_permitted"]["runnable_cached_candidate_count"] == 7
+    assert sources["nli_any_use_permitted"]["exploratory_live_candidate_count"] == 14
+    assert sources["nli_any_use_permitted"]["gap"] == 20
+    assert sources["nli_any_use_permitted"]["feasibility_status"] == "needs_promotion"
+    assert sources["pinkas_open"]["target_count"] == 27
+    assert sources["pinkas_open"]["runnable_cached_candidate_count"] == 1
+    assert sources["pinkas_open"]["gap"] == 26
+    assert sources["pinkas_open"]["feasibility_status"] == "not_feasible"
+    assert "fixture-backed, rights-safe, and reviewable" in " ".join(sources["pinkas_open"]["operator_notes"])
+    assert sources["biblia_open"]["target_count"] == 26
+    assert sources["biblia_open"]["runnable_cached_candidate_count"] == 1
+    assert sources["biblia_open"]["gap"] == 25
+    assert sources["biblia_open"]["feasibility_status"] == "not_feasible"
+    assert "public beta export" in report["non_goals"]
 
 
 def test_source_health_reports_unknown_fetcher_without_selection() -> None:

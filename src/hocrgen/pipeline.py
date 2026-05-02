@@ -47,7 +47,7 @@ from hocrgen.normalize.metadata import normalize_items
 from hocrgen.parsers.rights import classify_eligibility, normalize_rights
 from hocrgen.privacy.rules import apply_privacy_rules
 from hocrgen.review.queue import export_review_queue
-from hocrgen.source_ops import evaluate_source_health, source_health_summary
+from hocrgen.source_ops import evaluate_f1_source_depth_feasibility, evaluate_source_health, source_health_summary
 from hocrgen.split.assign import assign_splits
 from hocrgen.synthetic.reporting import synthetic_composition_report
 
@@ -268,6 +268,7 @@ def _run_discover(bundle: ConfigBundle, context: RunContext, options: StageOptio
     stage_dir = context.stage_dir("discover")
     stage_dir.mkdir(parents=True, exist_ok=True)
     source_health = [result.model_dump() for result in evaluate_source_health(bundle, context.profile_id, options)]
+    source_depth_feasibility = evaluate_f1_source_depth_feasibility(bundle, source_health)
     state.source_health = source_health
     selected_sources = _selected_sources(bundle, context.profile_id, options, source_health)
     candidates: list[CandidateRecord] = []
@@ -275,20 +276,28 @@ def _run_discover(bundle: ConfigBundle, context: RunContext, options: StageOptio
         candidates.extend(FETCHERS[source.fetcher].discover_candidates(source, bundle, options))
 
     manifest_path = stage_dir / "candidates.json"
+    source_depth_feasibility_path = stage_dir / "source_depth_feasibility.json"
     source_health_path = stage_dir / "source_health.json"
     summary_path = stage_dir / "summary.json"
     write_json(manifest_path, {"items": _dump_models(candidates)})
+    write_json(source_depth_feasibility_path, source_depth_feasibility)
     write_json(source_health_path, {"sources": source_health, "summary": source_health_summary(source_health)})
     write_json(
         summary_path,
         {
             "candidate_count": len(candidates),
             "included_sources": [source.id for source in selected_sources],
+            "source_depth_feasibility": source_depth_feasibility["summary"],
+            "source_depth_feasibility_report": str(source_depth_feasibility_path.relative_to(context.run_dir)),
             "source_health": source_health_summary(source_health),
             "stage": "discover",
         },
     )
-    return StageResult(stage="discover", summary_path=summary_path, extra_artifacts=[manifest_path, source_health_path])
+    return StageResult(
+        stage="discover",
+        summary_path=summary_path,
+        extra_artifacts=[manifest_path, source_health_path, source_depth_feasibility_path],
+    )
 
 
 def _run_fetch_metadata(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
