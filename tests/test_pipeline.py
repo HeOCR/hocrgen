@@ -124,6 +124,15 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     benchmark_manifest = json.loads((run_dir / "build_release" / "benchmark_manifest.json").read_text(encoding="utf-8"))
     benchmark_audit = json.loads((run_dir / "build_release" / "benchmark_selection_audit.json").read_text(encoding="utf-8"))
     benchmark_policy = json.loads((run_dir / "build_release" / "benchmark_stability_policy.json").read_text(encoding="utf-8"))
+    benchmark_reference_manifest = json.loads(
+        (run_dir / "build_release" / "benchmark_reference_manifest.json").read_text(encoding="utf-8")
+    )
+    benchmark_reference_status = json.loads(
+        (run_dir / "build_release" / "benchmark_reference_status.json").read_text(encoding="utf-8")
+    )
+    benchmark_reference_versioning = json.loads(
+        (run_dir / "build_release" / "benchmark_reference_versioning.json").read_text(encoding="utf-8")
+    )
     benchmark_card = (run_dir / "build_release" / "BENCHMARK_CARD.md").read_text(encoding="utf-8")
 
     assert len(normalized_items["items"]) == 5
@@ -142,6 +151,12 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert release_summary["blocked_count"] == 0
     assert release_summary["benchmark_id"] == "benchmark_v1"
     assert release_summary["benchmark_item_count"] == 3
+    assert release_summary["benchmark_references"] == {
+        "draft_or_blocked_count": 2,
+        "reference_manifest_id": "benchmark_v1_refs_0001",
+        "reference_ready_count": 1,
+        "versioning_status": "ok",
+    }
     assert release_summary["real_items"] == 2
     assert release_summary["synthetic_items"] == 2
     assert release_summary["annotation_manifest"] == {
@@ -236,6 +251,19 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert {item["benchmark_split"] for item in benchmark_manifest["items"]} == {"train"}
     assert {item["outcome"] for item in benchmark_audit["items"]} == {"selected"}
     assert benchmark_policy["benchmark_id"] == "benchmark_v1"
+    assert benchmark_reference_manifest["reference_manifest_id"] == "benchmark_v1_refs_0001"
+    reference_paths = [
+        reference["path"]
+        for item in benchmark_reference_manifest["items"]
+        for reference in [item.get("transcription_reference"), *item.get("layout_label_references", [])]
+        if reference is not None
+    ]
+    assert reference_paths
+    assert all((run_dir / "build_release" / path).is_file() for path in reference_paths)
+    assert benchmark_reference_status["counts"]["reference_ready"] == 1
+    assert benchmark_reference_status["counts"]["draft"] == 1
+    assert benchmark_reference_status["counts"]["not_available"] == 1
+    assert benchmark_reference_versioning["status"] == "ok"
     assert "Review Bar" in benchmark_card
     assert "Stability Policy" in benchmark_card
 

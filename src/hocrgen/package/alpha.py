@@ -24,6 +24,8 @@ from hocrgen.manifests.models import (
     AnnotationPilotManifestRecord,
     AnnotationPilotSelectionAuditRecord,
     BenchmarkItemRecord,
+    BenchmarkReferenceManifestRecord,
+    BenchmarkReferenceStatusArtifactRecord,
     BenchmarkSelectionAuditRecord,
     CuratedItemRecord,
     DuplicateClusterRecord,
@@ -71,6 +73,9 @@ class BenchmarkExportInputs:
     selection_audit: list[BenchmarkSelectionAuditRecord]
     stability_policy: dict[str, Any]
     card_markdown: str
+    reference_manifest: BenchmarkReferenceManifestRecord | None = None
+    reference_status: BenchmarkReferenceStatusArtifactRecord | None = None
+    reference_versioning: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -129,6 +134,14 @@ def export_alpha_release(
         item for item in benchmark_inputs.selection_audit if item.item_id in selected_benchmark_ids
     ]
     benchmark_card = _benchmark_card_for_export(benchmark_inputs, selected_benchmark_items)
+    selected_benchmark_reference_manifest = _filter_benchmark_reference_manifest(
+        benchmark_inputs.reference_manifest,
+        selected_ids,
+    )
+    selected_benchmark_reference_status = _filter_benchmark_reference_status(
+        benchmark_inputs.reference_status,
+        selected_ids,
+    )
     included_sources = _ordered_sources(profile, {item.source_id for item in selected_items})
     selected_split_manifest = [assignment for assignment in split_manifest if assignment.item_id in selected_ids]
     review_required_ids = {item.item_id for item in review_required_items}
@@ -148,6 +161,11 @@ def export_alpha_release(
     if export_dir.exists():
         shutil.rmtree(export_dir)
     exported_items = _copy_export_assets(selected_items, export_dir / "data")
+    exported_benchmark_reference_files = _copy_benchmark_reference_files(
+        selected_benchmark_reference_manifest,
+        build_dir,
+        export_dir,
+    )
     source_stats = _build_source_stats(exported_items, selected_duplicate_relations)
     classification_stats = _build_classification_stats(exported_items)
     privacy_stats = _build_privacy_stats(exported_items)
@@ -210,6 +228,26 @@ def export_alpha_release(
             "transcription_required_for_release": exported_annotation_pilot_manifest.transcription_required_for_release,
             "layout_labels_required_for_release": exported_annotation_pilot_manifest.layout_labels_required_for_release,
         },
+        "benchmark_references": {
+            "reference_manifest_id": (
+                selected_benchmark_reference_manifest.reference_manifest_id
+                if selected_benchmark_reference_manifest is not None
+                else None
+            ),
+            "reference_ready_count": (
+                selected_benchmark_reference_status.counts.get("reference_ready", 0)
+                if selected_benchmark_reference_status is not None
+                else 0
+            ),
+            "draft_or_blocked_count": (
+                selected_benchmark_reference_status.counts.get("blocked_or_draft", 0)
+                if selected_benchmark_reference_status is not None
+                else 0
+            ),
+            "versioning_status": (
+                benchmark_inputs.reference_versioning or {}
+            ).get("status", "not_available"),
+        },
         "version": config.version,
     }
     baseline_dir = _resolve_comparison_release(export_dir, config)
@@ -255,6 +293,18 @@ def export_alpha_release(
         {"items": [item.model_dump(mode="json") for item in selected_benchmark_audit]},
     )
     write_json(manifests_dir / "benchmark_stability_policy.json", benchmark_inputs.stability_policy)
+    if selected_benchmark_reference_manifest is not None:
+        write_json(
+            manifests_dir / "benchmark_reference_manifest.json",
+            selected_benchmark_reference_manifest.model_dump(mode="json"),
+        )
+    if selected_benchmark_reference_status is not None:
+        write_json(
+            manifests_dir / "benchmark_reference_status.json",
+            selected_benchmark_reference_status.model_dump(mode="json"),
+        )
+    if benchmark_inputs.reference_versioning is not None:
+        write_json(manifests_dir / "benchmark_reference_versioning.json", benchmark_inputs.reference_versioning)
 
     _write_markdown(
         docs_dir / "DATASET_CARD.md",
@@ -299,6 +349,21 @@ def export_alpha_release(
             "annotation_manifest": "manifests/annotation_manifest.json",
             "annotation_pilot_manifest": "manifests/annotation_pilot_manifest.json",
             "annotation_pilot_selection_audit": "manifests/annotation_pilot_selection_audit.json",
+            "benchmark_reference_manifest": (
+                "manifests/benchmark_reference_manifest.json"
+                if selected_benchmark_reference_manifest is not None
+                else None
+            ),
+            "benchmark_reference_status": (
+                "manifests/benchmark_reference_status.json"
+                if selected_benchmark_reference_status is not None
+                else None
+            ),
+            "benchmark_reference_versioning": (
+                "manifests/benchmark_reference_versioning.json"
+                if benchmark_inputs.reference_versioning is not None
+                else None
+            ),
             "stage": "export-alpha",
             "synthetic_composition": "manifests/synthetic_composition.json",
             "version": config.version,
@@ -325,6 +390,22 @@ def export_alpha_release(
         manifests_dir / "benchmark_manifest.json",
         manifests_dir / "benchmark_selection_audit.json",
         manifests_dir / "benchmark_stability_policy.json",
+        *(
+            [manifests_dir / "benchmark_reference_manifest.json"]
+            if selected_benchmark_reference_manifest is not None
+            else []
+        ),
+        *(
+            [manifests_dir / "benchmark_reference_status.json"]
+            if selected_benchmark_reference_status is not None
+            else []
+        ),
+        *(
+            [manifests_dir / "benchmark_reference_versioning.json"]
+            if benchmark_inputs.reference_versioning is not None
+            else []
+        ),
+        *exported_benchmark_reference_files,
         docs_dir / "DATASET_CARD.md",
         docs_dir / "CHANGELOG.md",
         docs_dir / "RELEASE_NOTES.md",
@@ -1122,6 +1203,9 @@ def _load_models(path: Path, model_type: type[Any]) -> list[Any]:
 
 def _load_benchmark_export_inputs(build_dir: Path) -> BenchmarkExportInputs:
     try:
+        reference_manifest_path = build_dir / "benchmark_reference_manifest.json"
+        reference_status_path = build_dir / "benchmark_reference_status.json"
+        reference_versioning_path = build_dir / "benchmark_reference_versioning.json"
         return BenchmarkExportInputs(
             items=_load_models(build_dir / "benchmark_manifest.json", BenchmarkItemRecord),
             selection_audit=_load_models(
@@ -1130,12 +1214,84 @@ def _load_benchmark_export_inputs(build_dir: Path) -> BenchmarkExportInputs:
             ),
             stability_policy=_load_json(build_dir / "benchmark_stability_policy.json"),
             card_markdown=(build_dir / "BENCHMARK_CARD.md").read_text(encoding="utf-8"),
+            reference_manifest=(
+                BenchmarkReferenceManifestRecord.model_validate(_load_json(reference_manifest_path))
+                if reference_manifest_path.exists()
+                else None
+            ),
+            reference_status=(
+                BenchmarkReferenceStatusArtifactRecord.model_validate(_load_json(reference_status_path))
+                if reference_status_path.exists()
+                else None
+            ),
+            reference_versioning=(
+                _load_json(reference_versioning_path)
+                if reference_versioning_path.exists()
+                else None
+            ),
         )
     except (FileNotFoundError, KeyError, StageExecutionError, ValidationError) as exc:
         raise StageExecutionError(
             "alpha export requires build-release benchmark artifacts; "
             "rerun build-release with benchmark outputs before export-alpha"
         ) from exc
+
+
+def _filter_benchmark_reference_manifest(
+    manifest: BenchmarkReferenceManifestRecord | None,
+    selected_ids: set[str],
+) -> BenchmarkReferenceManifestRecord | None:
+    if manifest is None:
+        return None
+    items = [item for item in manifest.items if item.item_id in selected_ids]
+    return manifest.model_copy(update={"items": items})
+
+
+def _filter_benchmark_reference_status(
+    status: BenchmarkReferenceStatusArtifactRecord | None,
+    selected_ids: set[str],
+) -> BenchmarkReferenceStatusArtifactRecord | None:
+    if status is None:
+        return None
+    items = [item for item in status.items if item.item_id in selected_ids]
+    counts = Counter(item.public_reference_status for item in items)
+    for item in items:
+        counts[f"adjudication_{item.adjudication_status}"] += 1
+    counts["reference_ready"] = sum(
+        1
+        for item in items
+        if item.public_reference_status in {"reviewed", "adjudicated"} and item.adjudication_status == "adjudicated"
+    )
+    counts["blocked_or_draft"] = sum(
+        1
+        for item in items
+        if item.public_reference_status in {"draft", "not_available"} or item.adjudication_status == "blocked"
+    )
+    return status.model_copy(update={"counts": dict(counts), "items": items})
+
+
+def _copy_benchmark_reference_files(
+    manifest: BenchmarkReferenceManifestRecord | None,
+    build_dir: Path,
+    export_dir: Path,
+) -> list[Path]:
+    if manifest is None:
+        return []
+    copied: list[Path] = []
+    for item in manifest.items:
+        paths = []
+        if item.transcription_reference is not None:
+            paths.append(item.transcription_reference.path)
+        paths.extend(reference.path for reference in item.layout_label_references)
+        for relative_path in paths:
+            source = build_dir / relative_path
+            if not source.is_file():
+                raise StageExecutionError(f"alpha export benchmark reference file is missing: {source}")
+            target = export_dir / relative_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+            copied.append(target)
+    return copied
 
 
 def _load_annotation_pilot_export_inputs(build_dir: Path) -> AnnotationPilotExportInputs:

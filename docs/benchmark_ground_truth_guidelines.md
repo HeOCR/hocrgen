@@ -1,6 +1,6 @@
 # Benchmark Ground-Truth Guidelines
 
-These guidelines define the human-facing convention for future benchmark references in `hocrgen`. They do not make transcriptions or layout labels mandatory for current public or alpha exports. F2b remains planned for runtime ingestion, adjudication artifacts, and benchmark versioning gates.
+These guidelines define the human-facing convention for benchmark references in `hocrgen`. They do not make transcriptions or layout labels mandatory for current public or alpha exports. F2b implements the first runtime ingestion, adjudication artifact, and benchmark versioning gate layer for these contracts.
 
 ## Scope
 
@@ -146,7 +146,7 @@ Geometry should be reproducible from exported release assets and manifests alone
 
 ## Transcription Reference Contract
 
-The first documented transcription reference shape is `benchmark_transcription_reference.v1`. `F2b` should validate this shape before a reference can be treated as benchmark-ready.
+The first documented transcription reference shape is `benchmark_transcription_reference.v1`. `F2b` validates this shape before a reference can be treated as benchmark-ready.
 
 A transcription reference should contain:
 
@@ -223,7 +223,7 @@ Example shape:
 
 ## Layout Reference Contract
 
-The first documented layout reference shape is `benchmark_layout_reference.v1`. `F2b` should validate this shape before a layout reference can be treated as benchmark-ready.
+The first documented layout reference shape is `benchmark_layout_reference.v1`. `F2b` validates this shape before a layout reference can be treated as benchmark-ready.
 
 A layout reference should contain:
 
@@ -308,7 +308,7 @@ Example shape:
 
 ## Reference-Manifest Contract
 
-The documented contract name for the first benchmark reference manifest is `benchmark_reference_manifest.v1`. `F2a` defines the contract at the documentation level; `F2b` should implement ingestion, validation, adjudication artifacts, and versioning gates.
+The documented contract name for the first benchmark reference manifest is `benchmark_reference_manifest.v1`. `F2a` defines the contract at the documentation level; `F2b` implements ingestion, validation, adjudication artifacts, and versioning gates.
 
 A manifest should contain:
 
@@ -321,6 +321,7 @@ A manifest should contain:
 
 Each item entry should contain:
 
+- `reference_id`: stable reference id used by correction and supersession records
 - `item_id`: hocrgen item id, matching benchmark and item manifests
 - `source_id` and `source_item_id`: source identity linkage
 - `benchmark_split`: the committed benchmark split when applicable
@@ -338,7 +339,7 @@ Example shape:
 
 ```json
 {
-  "schema_version": "benchmark_reference_manifest.v1",
+      "schema_version": "benchmark_reference_manifest.v1",
   "benchmark_id": "benchmark_v1",
   "reference_manifest_id": "benchmark_v1_refs_0001",
   "reference_contracts": {
@@ -347,6 +348,7 @@ Example shape:
   },
   "items": [
     {
+      "reference_id": "benchmark_v1_refs_0001:nli-ms-001",
       "item_id": "nli_any_use_permitted:nli-ms-001",
       "source_id": "nli_any_use_permitted",
       "source_item_id": "nli-ms-001",
@@ -384,7 +386,19 @@ Public references can ship with benchmark examples and may be used by downstream
 
 Published reference corrections must be auditable. A corrected reference should keep the old reference addressable, record `correction_of`, explain `change_reason`, and update `superseded_by` on the old reference when available.
 
-Removing or retiring a benchmark reference is a benchmark-versioning event. It should not silently change benchmark scores, benchmark membership, or release portability. `F2b` should add the runtime gates that enforce these expectations.
+Removing or retiring a benchmark reference is a benchmark-versioning event. It should not silently change benchmark scores, benchmark membership, or release portability. `F2b` adds the runtime gates that enforce these expectations.
+
+## Runtime Ingestion
+
+`F2b` implements the first runtime layer for these contracts. `build-release` loads a packaged or config-root override `benchmark_reference_manifest.v1`, validates child `benchmark_transcription_reference.v1` and `benchmark_layout_reference.v1` files, enforces release-relative reference paths, checks benchmark `item_id` / `source_id` / `source_item_id` / split linkage, copies validated child reference files under their manifest paths, verifies layout asset path, checksum, and dimensions against current normalized assets, and emits:
+
+- `benchmark_reference_manifest.json`
+- `benchmark_reference_status.json`
+- `benchmark_reference_versioning.json`
+
+The status artifact summarizes `not_available`, `draft`, `reviewed`, `adjudicated`, `corrected`, `retired`, blocked/draft, reference-ready, reviewer, adjudication, correction, and supersession fields. The versioning artifact rejects incoherent `correction_of` / `superseded_by` relationships over stable `reference_id` values, requires change reasons for corrected or retired references, and exposes a previous-manifest comparison hook for detecting silent public reference removals or changes. `export-alpha` mirrors selected reference artifacts and child reference files so public release-relative paths resolve inside the exported tree.
+
+This ingestion path remains optional for current public and alpha exports. It does not make references mandatory, does not change `benchmark_v1` membership, does not add OCR/HTR model training or annotation tooling, and does not resolve the separate F1d benchmark/holdout leakage risk.
 
 ## Non-Goals for F2a
 

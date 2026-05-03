@@ -126,6 +126,9 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
     assert (output_dir / "manifests" / "benchmark_manifest.json").exists()
     assert (output_dir / "manifests" / "benchmark_selection_audit.json").exists()
     assert (output_dir / "manifests" / "benchmark_stability_policy.json").exists()
+    assert (output_dir / "manifests" / "benchmark_reference_manifest.json").exists()
+    assert (output_dir / "manifests" / "benchmark_reference_status.json").exists()
+    assert (output_dir / "manifests" / "benchmark_reference_versioning.json").exists()
     assert (output_dir / "manifests" / "release_diff.json").exists()
     assert (output_dir / "docs" / "BENCHMARK_CARD.md").exists()
     assert (output_dir / "docs" / "CHANGELOG.md").exists()
@@ -140,6 +143,12 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
 
     release_diff = json.loads((output_dir / "manifests" / "release_diff.json").read_text(encoding="utf-8"))
     benchmark_manifest = json.loads((output_dir / "manifests" / "benchmark_manifest.json").read_text(encoding="utf-8"))
+    benchmark_reference_manifest = json.loads(
+        (output_dir / "manifests" / "benchmark_reference_manifest.json").read_text(encoding="utf-8")
+    )
+    benchmark_reference_status = json.loads(
+        (output_dir / "manifests" / "benchmark_reference_status.json").read_text(encoding="utf-8")
+    )
     annotation_pilot_manifest = json.loads(
         (output_dir / "manifests" / "annotation_pilot_manifest.json").read_text(encoding="utf-8")
     )
@@ -154,6 +163,24 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
         "project_synthetic:synthetic-0",
     }
     assert str(output_dir.resolve()) not in json.dumps(benchmark_manifest)
+    assert benchmark_reference_manifest["reference_manifest_id"] == "benchmark_v1_refs_0001"
+    assert benchmark_reference_status["counts"]["reference_ready"] == 1
+    reference_paths = [
+        reference["path"]
+        for item in benchmark_reference_manifest["items"]
+        for reference in [item.get("transcription_reference"), *item.get("layout_label_references", [])]
+        if reference is not None
+    ]
+    layout_asset_paths = [
+        asset["path"]
+        for path in reference_paths
+        if "layout.json" in path
+        for asset in json.loads((output_dir / path).read_text(encoding="utf-8"))["assets"]
+    ]
+    assert reference_paths
+    assert all((output_dir / path).is_file() for path in reference_paths)
+    assert all((output_dir / path).is_file() for path in layout_asset_paths)
+    assert str(output_dir.resolve()) not in json.dumps(benchmark_reference_manifest)
     assert annotation_pilot_manifest["pilot_id"] == "e3a_annotation_pilot"
     assert annotation_pilot_manifest["pilot_item_count"] == 2
     assert str(output_dir.resolve()) not in json.dumps(annotation_pilot_manifest)

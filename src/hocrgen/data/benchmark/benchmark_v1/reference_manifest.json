@@ -1,0 +1,72 @@
+{
+  "schema_version": "benchmark_reference_manifest.v1",
+  "benchmark_id": "benchmark_v1",
+  "reference_manifest_id": "benchmark_v1_refs_0001",
+  "release_id": null,
+  "reference_contracts": {
+    "transcription": "benchmark_transcription_reference.v1",
+    "layout": "benchmark_layout_reference.v1"
+  },
+  "items": [
+    {
+      "reference_id": "benchmark_v1_refs_0001:nli-ms-seed-006",
+      "item_id": "nli_any_use_permitted:nli-ms-seed-006",
+      "source_id": "nli_any_use_permitted",
+      "source_item_id": "nli-ms-seed-006",
+      "benchmark_split": "train",
+      "visibility": "public",
+      "public_reference_status": "reviewed",
+      "transcription_reference": {
+        "path": "references/benchmark_v1/nli-ms-seed-006/transcription.json",
+        "schema_version": "benchmark_transcription_reference.v1"
+      },
+      "layout_label_references": [
+        {
+          "path": "references/benchmark_v1/nli-ms-seed-006/layout.json",
+          "schema_version": "benchmark_layout_reference.v1",
+          "page_ids": ["page-1"]
+        }
+      ],
+      "reviewers": ["fixture-reviewer"],
+      "adjudication_status": "adjudicated",
+      "correction_of": null,
+      "superseded_by": null,
+      "change_reason": "initial reviewed reference fixture"
+    },
+    {
+      "reference_id": "benchmark_v1_refs_0001:pinkas-ledger-001",
+      "item_id": "pinkas_open:pinkas-ledger-001",
+      "source_id": "pinkas_open",
+      "source_item_id": "pinkas-ledger-001",
+      "benchmark_split": "train",
+      "visibility": "public",
+      "public_reference_status": "draft",
+      "transcription_reference": {
+        "path": "references/benchmark_v1/pinkas-ledger-001/transcription.json",
+        "schema_version": "benchmark_transcription_reference.v1"
+      },
+      "layout_label_references": [],
+      "reviewers": ["fixture-reviewer"],
+      "adjudication_status": "in_review",
+      "correction_of": null,
+      "superseded_by": null,
+      "change_reason": "draft fixture keeps references optional until adjudication completes"
+    },
+    {
+      "reference_id": "benchmark_v1_refs_0001:synthetic-0",
+      "item_id": "project_synthetic:synthetic-0",
+      "source_id": "project_synthetic",
+      "source_item_id": "synthetic-0",
+      "benchmark_split": "train",
+      "visibility": "public",
+      "public_reference_status": "not_available",
+      "transcription_reference": null,
+      "layout_label_references": [],
+      "reviewers": [],
+      "adjudication_status": "not_started",
+      "correction_of": null,
+      "superseded_by": null,
+      "change_reason": null
+    }
+  ]
+}

@@ -1,0 +1,70 @@
+{
+  "schema_version": "benchmark_layout_reference.v1",
+  "item_id": "nli_any_use_permitted:nli-ms-seed-006",
+  "source_id": "nli_any_use_permitted",
+  "source_item_id": "nli-ms-seed-006",
+  "coordinate_system": {
+    "units": "px",
+    "origin": "top_left",
+    "x_axis": "right",
+    "y_axis": "down"
+  },
+  "assets": [
+    {
+      "asset_id": "page-1-image",
+      "page_id": "page-1",
+      "path": "data/train/nli_any_use_permitted:nli-ms-seed-006/asset_01.jpg",
+      "sha256": "9472983324fa55a471d7b5c4245e187cf9147bd6daa74ec6878e253661dac77d",
+      "width": 3800,
+      "height": 4888
+    }
+  ],
+  "regions": [
+    {
+      "region_id": "region-1",
+      "page_id": "page-1",
+      "label": "body",
+      "reading_order": 1,
+      "geometry": {
+        "type": "bbox",
+        "bbox": {
+          "x": 900,
+          "y": 900,
+          "width": 1600,
+          "height": 900
+        }
+      },
+      "flags": ["estimated"]
+    }
+  ],
+  "lines": [
+    {
+      "line_id": "layout-line-1",
+      "page_id": "page-1",
+      "region_id": "region-1",
+      "reading_order": 1,
+      "transcription_line_id": "line-1",
+      "geometry": {
+        "type": "bbox",
+        "bbox": {
+          "x": 980,
+          "y": 1040,
+          "width": 900,
+          "height": 120
+        }
+      },
+      "flags": ["estimated"]
+    }
+  ],
+  "words": [],
+  "references": [],
+  "review": {
+    "status": "adjudicated",
+    "reviewers": ["fixture-reviewer"],
+    "adjudicator": "fixture-adjudicator",
+    "adjudicated_at": "2026-05-03T00:00:00Z",
+    "correction_of": null,
+    "superseded_by": null,
+    "change_reason": "initial reviewed reference fixture"
+  }
+}
