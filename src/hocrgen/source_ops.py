@@ -9,6 +9,7 @@ from hocrgen.config.loader import ConfigBundle, load_json_file, load_yaml_file, 
 from hocrgen.config.models import SourceConfig, SourceOperationalStatus
 from hocrgen.core.errors import ConfigValidationError
 from hocrgen.fetchers.base import StageOptions
+from hocrgen.fetchers.nli import parse_nli_fixture_html
 
 F1_SOURCE_TARGETS = {
     "nli_any_use_permitted": 27,
@@ -67,9 +68,10 @@ class SourceHealthResult:
     candidate_count: int
     asset_count: int
     checks: list[dict[str, Any]]
+    extra: dict[str, Any] | None = None
 
     def model_dump(self) -> dict[str, Any]:
-        return {
+        record = {
             "asset_count": self.asset_count,
             "candidate_count": self.candidate_count,
             "checks": self.checks,
@@ -84,6 +86,9 @@ class SourceHealthResult:
             "skipped": self.skipped,
             "source_id": self.source_id,
         }
+        if self.extra:
+            record["extra"] = self.extra
+        return record
 
 
 @dataclass(frozen=True)
@@ -134,7 +139,12 @@ def evaluate_source_health(bundle: ConfigBundle, profile_id: str, options: Stage
     for source in bundle.source_registry.sources:
         profile_included = source.id in included_source_ids
         selection_requested = profile_included and (requested_source_ids is None or source.id in requested_source_ids)
-        checks, candidate_count, asset_count = _inspect_source(source, bundle)
+        source_inspection = _inspect_source(source, bundle)
+        if len(source_inspection) == 4:
+            checks, candidate_count, asset_count, extra = source_inspection
+        else:
+            checks, candidate_count, asset_count = source_inspection
+            extra = {}
         expectation_checks = _check_expectations(source, candidate_count, asset_count)
         all_checks = [*checks, *expectation_checks]
         health_status = "ok" if all(check["status"] == "ok" for check in all_checks) else "error"
@@ -154,6 +164,7 @@ def evaluate_source_health(bundle: ConfigBundle, profile_id: str, options: Stage
                 candidate_count=candidate_count,
                 asset_count=asset_count,
                 checks=all_checks,
+                extra=extra,
             )
         )
     return results
@@ -177,8 +188,8 @@ def evaluate_f1_source_depth_feasibility(
             continue
         exploratory_count = _exploratory_candidate_count(source, bundle)
         expansion_path_status, expansion_path_checks = _source_depth_expansion_path(source, bundle)
-        observed_candidate_count = int(health["candidate_count"])
-        asset_count = int(health["asset_count"])
+        observed_candidate_count = _source_depth_observed_candidate_count(source, health)
+        asset_count = _source_depth_asset_count(source, health)
         runnable_cached_count = _runnable_cached_candidate_count(source, health, observed_candidate_count, asset_count)
         target_scale_candidate_count = _target_scale_candidate_count(
             source=source,
@@ -343,6 +354,24 @@ def _exploratory_candidate_count(source: SourceConfig, bundle: ConfigBundle) -> 
     data = load_yaml_file(catalog_path)
     items = data.get("items", []) if isinstance(data, dict) else []
     return len(items) if isinstance(items, list) else 0
+
+
+def _source_depth_observed_candidate_count(source: SourceConfig, health: dict[str, Any]) -> int:
+    if source.fetcher == "nli":
+        extra = health.get("extra") if isinstance(health.get("extra"), dict) else {}
+        source_depth_count = extra.get("source_depth_candidate_count")
+        if isinstance(source_depth_count, int):
+            return source_depth_count
+    return int(health["candidate_count"])
+
+
+def _source_depth_asset_count(source: SourceConfig, health: dict[str, Any]) -> int:
+    if source.fetcher == "nli":
+        extra = health.get("extra") if isinstance(health.get("extra"), dict) else {}
+        source_depth_asset_count = extra.get("source_depth_asset_count")
+        if isinstance(source_depth_asset_count, int):
+            return source_depth_asset_count
+    return int(health["asset_count"])
 
 
 def _missing_source_depth_result(
@@ -512,7 +541,7 @@ def _skip_reason(source: SourceConfig, selection_requested: bool, health_status:
 
 def _inspect_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int]:
     if source.fetcher == "nli":
-        return _inspect_nli_source(source, bundle)
+        return _inspect_nli_source_with_extra(source, bundle)
     if source.fetcher in {"pinkas", "biblia"}:
         return _inspect_records_source(source, bundle)
     if source.fetcher == "synthetic":
@@ -521,12 +550,23 @@ def _inspect_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[di
 
 
 def _inspect_nli_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int]:
+    checks, candidate_count, asset_count, _ = _inspect_nli_source_with_extra(source, bundle)
+    return checks, candidate_count, asset_count
+
+
+def _inspect_nli_source_with_extra(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int, dict[str, Any]]:
     checks: list[dict[str, Any]] = []
     manifest_path = bundle.resolve_path(source.settings.seed_manifest or "")
     data = _load_yaml_checked(checks, "seed_manifest", manifest_path, bundle)
     items = data.get("items", []) if isinstance(data, dict) else []
-    candidate_count = len(items) if isinstance(items, list) else 0
+    candidate_count = (
+        sum(1 for item in items if not (isinstance(item, dict) and item.get("f1_source_depth_only") is True))
+        if isinstance(items, list)
+        else 0
+    )
     asset_count = 0
+    source_depth_candidate_count = len(items) if isinstance(items, list) else 0
+    source_depth_asset_count = 0
     if not isinstance(items, list):
         checks.append(
             {
@@ -536,7 +576,10 @@ def _inspect_nli_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[lis
                 "message": "items must be a list",
             }
         )
-        return checks, candidate_count, asset_count
+        return checks, candidate_count, asset_count, {
+            "source_depth_asset_count": source_depth_asset_count,
+            "source_depth_candidate_count": source_depth_candidate_count,
+        }
     for item in items:
         if not isinstance(item, dict):
             checks.append(
@@ -552,9 +595,19 @@ def _inspect_nli_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[lis
         if not fixture_reference:
             continue
         fixture_path = _resolve_source_local_reference(str(fixture_reference), manifest_path, bundle)
-        asset_count += 1
+        if item.get("f1_source_depth_only") is not True:
+            asset_count += 1
+        source_depth_asset_count += 1
         checks.append(_path_check("fixture_html", fixture_path, bundle))
-    return checks, candidate_count, asset_count
+        if fixture_path.exists():
+            parsed_fixture = parse_nli_fixture_html(fixture_path)
+            for asset_reference in parsed_fixture.assets:
+                asset_path = (fixture_path.parent / asset_reference).resolve()
+                checks.append(_path_check("fixture_asset", asset_path, bundle))
+    return checks, candidate_count, asset_count, {
+        "source_depth_asset_count": source_depth_asset_count,
+        "source_depth_candidate_count": source_depth_candidate_count,
+    }
 
 
 def _inspect_records_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int]:

@@ -82,8 +82,10 @@ class NliFetcher:
         seed_manifest = bundle.resolve_path(source.settings.seed_manifest or "")
         seeds = load_yaml_file(seed_manifest)["items"]
         candidates: list[CandidateRecord] = []
-        for index, item in enumerate(seeds):
-            if options.max_items is not None and index >= options.max_items:
+        for item in seeds:
+            if item.get("f1_source_depth_only") is True:
+                continue
+            if options.max_items is not None and len(candidates) >= options.max_items:
                 break
             fixture_reference = item.get("fixture_html")
             fixture_path: Path | None = None

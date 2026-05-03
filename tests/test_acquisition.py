@@ -34,7 +34,9 @@ def test_nli_fetcher_parses_fixture_metadata() -> None:
     candidates = fetcher.discover_candidates(source, bundle, StageOptions())
     enriched = fetcher.fetch_candidate_metadata(source, bundle, candidates, StageOptions())
 
+    assert len(candidates) == 7
     assert candidates[0].source_item_id == "nli-ms-001"
+    assert "nli-ms-seed-005" not in {candidate.source_item_id for candidate in candidates}
     assert enriched[0].raw_rights_text == "Any Use Permitted"
     assert len(enriched[0].asset_references) == 2
     assert enriched[0].title == "מכתב קהילתי, ירושלים 1936"
