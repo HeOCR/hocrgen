@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.cli import main
 
 
@@ -65,7 +66,9 @@ def test_f1_beta_trial_command_creates_operator_report(tmp_path: Path, capsys) -
     assert len(candidates["items"]) == 160
     assert report["artifact_scope"] == "operator_only"
     assert report["planning_notation"] == "F1c"
-    assert report["status"] == "complete"
+    assert report["status"] == "complete_with_gate_blockers"
+    assert report["target_scale_execution_status"] == "complete"
+    assert report["gate_status"] == "blocked"
     assert report["target_scale_exercised"]["candidate_count"] == 160
     assert report["target_scale_exercised"]["acquired_count"] == 160
     assert report["target_counts"] == {"real": 80, "synthetic": 80, "total": 160}
@@ -77,7 +80,48 @@ def test_f1_beta_trial_command_creates_operator_report(tmp_path: Path, capsys) -
     }
     assert report["rights_outcomes"]["accepted_count"] == 160
     assert report["dedupe_outcomes"]["duplicate_removed_count"] == 0
+    assert report["gate_outcomes"]["synthetic_cap"] == {
+        "allowed_synthetic_count": 30,
+        "real_release_ready_count": 30,
+        "status": "blocked",
+        "synthetic_fraction_max": 0.5,
+        "synthetic_release_ready_count": 80,
+    }
+    assert report["gate_blockers"] == [
+        "synthetic-cap is blocked after review: 80 synthetic release-ready item(s) exceed 30 allowed for 30 real item(s)"
+    ]
     assert report["next_step"] == "F1d near-duplicate/source-group/split-leakage hardening"
+
+
+def test_f1_beta_trial_reports_unknown_profile(capsys) -> None:
+    exit_code = main(["f1-beta-trial", "--profile", "missing_profile", "--dry-run"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload == {"error": "unknown profile: missing_profile", "status": "error"}
+
+
+def test_f1_beta_trial_reports_config_validation_errors(monkeypatch, capsys) -> None:
+    monkeypatch.setattr("hocrgen.cli._load_bundle", lambda _config_root: (_ for _ in ()).throw(ConfigValidationError("bad config")))
+
+    exit_code = main(["f1-beta-trial", "--profile", "profile_open_v1", "--dry-run"])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload == {"error": "bad config", "status": "error"}
+
+
+def test_f1_beta_trial_reports_stage_errors(monkeypatch, tmp_path: Path, capsys) -> None:
+    def raise_stage_error(*_args, **_kwargs):
+        raise StageExecutionError("trial failed")
+
+    monkeypatch.setattr("hocrgen.cli.execute_pipeline", raise_stage_error)
+
+    exit_code = main(["f1-beta-trial", "--profile", "profile_open_v1", "--dry-run", "--workdir", str(tmp_path)])
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload == {"error": "trial failed", "status": "error"}
 
 
 def test_normalize_command_creates_qa_artifacts(tmp_path: Path, capsys) -> None:

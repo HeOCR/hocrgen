@@ -11,12 +11,12 @@ import hocrgen.source_ops as source_ops
 from hocrgen.cli import main
 from hocrgen.config.loader import default_config_root, load_and_validate_bundle
 from hocrgen.config.models import SourceOperationalStatus
-from hocrgen.core.errors import ConfigValidationError
+from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.fetchers.biblia import BibliaImporter
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.nli import NliFetcher
 from hocrgen.fetchers.pinkas import PinkasImporter
-from hocrgen.fetchers.synthetic import SyntheticFetcher
+from hocrgen.fetchers.synthetic import SyntheticFetcher, f1_target_scale_candidate_count
 from hocrgen.manifests.models import EnrichedCandidateRecord, ItemRecord
 from hocrgen.source_ops import (
     SourceHealthResult,
@@ -924,6 +924,25 @@ def test_synthetic_health_reports_non_list_fonts(tmp_path: Path) -> None:
     checks, _, _ = _inspect_synthetic_source(source, bundle)
 
     assert any(check["name"] == "fonts" and check["status"] == "error" for check in checks)
+
+
+def test_synthetic_f1_target_scale_count_must_be_positive_integer(tmp_path: Path) -> None:
+    config_root = _copy_config(tmp_path)
+    _update_source_settings(config_root, "project_synthetic", {"extra": {"f1_source_depth_candidate_count": "80"}})
+    bundle = load_and_validate_bundle(config_root)
+    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+
+    checks, _, _ = _inspect_synthetic_source(source, bundle)
+    source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
+    synthetic_health = next(result for result in source_health if result.source_id == "project_synthetic")
+
+    assert any(
+        check["name"] == "f1_source_depth_candidate_count" and check["status"] == "error"
+        for check in checks
+    )
+    assert synthetic_health.health_status == "error"
+    with pytest.raises(StageExecutionError, match="must be a positive integer"):
+        f1_target_scale_candidate_count(source)
 
 
 def test_source_health_records_yaml_and_json_parse_errors(tmp_path: Path) -> None:

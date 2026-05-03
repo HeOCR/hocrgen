@@ -599,13 +599,29 @@ def _count_by_source(items: list[Any]) -> dict[str, int]:
     return dict(Counter(item.source_id for item in items))
 
 
+def _synthetic_cap_outcome(real_count: int, synthetic_count: int, synthetic_fraction_max: float) -> dict[str, Any]:
+    if synthetic_fraction_max >= 1:
+        allowed_synthetic_count = synthetic_count
+    else:
+        allowed_synthetic_count = floor((synthetic_fraction_max * real_count) / (1 - synthetic_fraction_max)) if real_count else 0
+    return {
+        "allowed_synthetic_count": allowed_synthetic_count,
+        "real_release_ready_count": real_count,
+        "status": "ok" if synthetic_count <= allowed_synthetic_count else "blocked",
+        "synthetic_fraction_max": synthetic_fraction_max,
+        "synthetic_release_ready_count": synthetic_count,
+    }
+
+
 def _build_f1_target_scale_trial_report(
+    bundle: ConfigBundle,
     context: RunContext,
     state: PipelineState,
     source_health: dict[str, Any],
     release_summary: dict[str, Any],
     source_stats: dict[str, Any],
 ) -> dict[str, Any]:
+    profile = bundle.profiles[context.profile_id]
     source_rows: list[dict[str, Any]] = []
     candidate_counts = _count_by_source(state.candidates)
     accepted_counts = _count_by_source(state.accepted_items)
@@ -623,7 +639,7 @@ def _build_f1_target_scale_trial_report(
     split_counts_by_source = source_stats["sources_by_split"]
     source_health_by_id = {record["source_id"]: record for record in state.source_health}
 
-    remaining_blockers: list[str] = []
+    target_execution_blockers: list[str] = []
     for source_id, target_count in F1_SOURCE_TARGETS.items():
         source_release_ready_count = release_ready_counts.get(source_id, 0)
         source_row = {
@@ -647,11 +663,13 @@ def _build_f1_target_scale_trial_report(
             "source_skip_reason": source_health_by_id.get(source_id, {}).get("skip_reason"),
         }
         if source_row["candidate_count"] < target_count:
-            remaining_blockers.append(f"{source_id} discovered {source_row['candidate_count']} / {target_count} target candidates")
+            target_execution_blockers.append(
+                f"{source_id} discovered {source_row['candidate_count']} / {target_count} target candidates"
+            )
         if source_row["acquired_count"] < target_count:
-            remaining_blockers.append(f"{source_id} acquired {source_row['acquired_count']} / {target_count} target items")
+            target_execution_blockers.append(f"{source_id} acquired {source_row['acquired_count']} / {target_count} target items")
         if source_row["normalized_count"] + source_row["qa_failed_count"] < source_row["acquired_count"]:
-            remaining_blockers.append(f"{source_id} did not account for all acquired items during normalization")
+            target_execution_blockers.append(f"{source_id} did not account for all acquired items during normalization")
         source_rows.append(source_row)
 
     real_release_ready_count = sum(row["release_ready_count"] for row in source_rows if row["source_id"] != "project_synthetic")
@@ -660,13 +678,35 @@ def _build_f1_target_scale_trial_report(
     acquired_target_count = sum(row["acquired_count"] for row in source_rows)
     normalized_target_count = sum(row["normalized_count"] for row in source_rows)
     target_candidate_count = F1_REAL_TARGET_COUNT + F1_SYNTHETIC_TARGET_COUNT
+    synthetic_cap = _synthetic_cap_outcome(real_release_ready_count, synthetic_release_ready_count, profile.synthetic_fraction_max)
+    gate_blockers: list[str] = []
+    failed_source_health = [
+        source_id
+        for source_id in F1_SOURCE_TARGETS
+        if source_health_by_id.get(source_id, {}).get("health_status") != "ok"
+        or source_health_by_id.get(source_id, {}).get("skip_reason") is not None
+    ]
+    if failed_source_health:
+        gate_blockers.append(f"source-health is not ok for: {', '.join(failed_source_health)}")
+    if state.rejected_items:
+        gate_blockers.append(f"rights rejected {len(state.rejected_items)} item(s)")
+    if state.blocked_items:
+        gate_blockers.append(f"privacy/review blocked {len(state.blocked_items)} item(s)")
+    if synthetic_cap["status"] != "ok":
+        gate_blockers.append(
+            "synthetic-cap is blocked after review: "
+            f"{synthetic_release_ready_count} synthetic release-ready item(s) exceed "
+            f"{synthetic_cap['allowed_synthetic_count']} allowed for {real_release_ready_count} real item(s)"
+        )
 
     near_duplicate_blocker = (
         "F1d remains the next planned hardening step for near-duplicate, source-group, and split-leakage controls "
         "before scale beyond this operator-only trial."
     )
-    status = "complete" if not remaining_blockers else "blocked"
-    if status == "complete":
+    target_scale_execution_status = "complete" if not target_execution_blockers else "blocked"
+    gate_status = "ok" if not gate_blockers else "blocked"
+    remaining_blockers = [*target_execution_blockers, *gate_blockers]
+    if target_scale_execution_status == "complete":
         remaining_blockers.append(near_duplicate_blocker)
 
     return {
@@ -675,7 +715,13 @@ def _build_f1_target_scale_trial_report(
         "profile_id": context.profile_id,
         "run_id": context.run_id,
         "dry_run": context.dry_run,
-        "status": status,
+        "gate_status": gate_status,
+        "status": (
+            target_scale_execution_status
+            if gate_status == "ok" or target_scale_execution_status == "blocked"
+            else "complete_with_gate_blockers"
+        ),
+        "target_scale_execution_status": target_scale_execution_status,
         "target_counts": {
             "real": F1_REAL_TARGET_COUNT,
             "synthetic": F1_SYNTHETIC_TARGET_COUNT,
@@ -719,6 +765,46 @@ def _build_f1_target_scale_trial_report(
             "benchmark_item_count": release_summary["benchmark_item_count"],
             "benchmark_note": "F1c exercises benchmark selection eligibility; F2 remains responsible for benchmark ground-truth foundations.",
         },
+        "gate_outcomes": {
+            "benchmark": {
+                "benchmark_id": release_summary["benchmark_id"],
+                "benchmark_item_count": release_summary["benchmark_item_count"],
+                "status": "ok",
+            },
+            "dedupe": {
+                "duplicate_removed_count": release_summary["duplicate_removed_count"],
+                "status": "ok",
+            },
+            "export_portability": {
+                "status": "ok",
+                "note": "F1c uses build-release artifacts only and does not publish or export a public beta payload.",
+            },
+            "privacy": {
+                "blocked_count": release_summary["blocked_count"],
+                "review_required_count": release_summary["review_required_count"],
+                "status": "ok" if release_summary["blocked_count"] == 0 else "blocked",
+            },
+            "review": {
+                "release_ready_count": release_summary["release_ready_count"],
+                "review_required_count": release_summary["review_required_count"],
+                "review_rejected_count": release_summary["review_rejected_count"],
+                "status": "ok" if release_summary["blocked_count"] == 0 else "blocked",
+            },
+            "rights": {
+                "accepted_count": release_summary["accepted_count"],
+                "rejected_count": len(state.rejected_items),
+                "status": "ok" if not state.rejected_items else "blocked",
+            },
+            "source_health": {
+                "failed_sources": failed_source_health,
+                "status": "ok" if not failed_source_health else "blocked",
+            },
+            "split": {
+                "split_counts": release_summary["split_counts"],
+                "status": "ok",
+            },
+            "synthetic_cap": synthetic_cap,
+        },
         "source_health": source_health,
         "source_depth_feasibility": {
             "report": "discover/source_depth_feasibility.json",
@@ -745,7 +831,13 @@ def _build_f1_target_scale_trial_report(
             "automatic promotion of source-depth-only records into normal public release inputs",
         ],
         "remaining_blockers": remaining_blockers,
-        "next_step": "F1d near-duplicate/source-group/split-leakage hardening" if status == "complete" else "Resolve F1c blockers before F1d",
+        "target_execution_blockers": target_execution_blockers,
+        "gate_blockers": gate_blockers,
+        "next_step": (
+            "F1d near-duplicate/source-group/split-leakage hardening"
+            if target_scale_execution_status == "complete"
+            else "Resolve F1c target execution blockers before F1d"
+        ),
     }
 
 
@@ -932,6 +1024,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     summary_extra: dict[str, Any] = {}
     if options and options.f1_target_scale_trial:
         f1_trial_report = _build_f1_target_scale_trial_report(
+            bundle,
             context,
             state,
             source_stats["source_health"],
