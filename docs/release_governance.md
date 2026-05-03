@@ -34,6 +34,8 @@ Public releases must:
 
 Unknown rights, restricted review-only rights, blocked sources, unresolved privacy flags, and unresolved review decisions must not be promoted into `profile_open_v1`.
 
+Modern handwritten contributor material must additionally satisfy the F3a policy before public-profile use: explicit contributor consent, compatible public-use release terms, rights provenance, contemporary privacy clearance, operator review, and a documented takedown/removal path. No modern contributor samples are collected or exported by F3a.
+
 ## External contribution review policy
 
 External PRs that touch source config, source adapters, review policy, synthetic assets, release profiles, benchmark approvals, or export packaging require maintainer review focused on:
@@ -63,6 +65,8 @@ Release history should explain removals rather than hiding them. If a correction
 ## Removal and takedown workflow
 
 Takedown, privacy, rights, and source-owner concerns must be routed through an issue or maintainer-private report before release changes are made. Non-sensitive corrections should use a public GitHub issue with the appropriate dataset label. Sensitive rights, privacy, or source-owner concerns should use GitHub private vulnerability reporting or a private security advisory when that repository feature is enabled. If no private repository channel is configured, maintainers must arrange an out-of-band private contact path before publishing broader public releases and must avoid asking reporters to disclose sensitive details in a public issue.
+
+For modern handwritten contributor material, takedown handling must also check contributor consent artifact ids, institutional batch agreement ids, and any affected aggregate composition metadata. Public release notes should avoid exposing private contributor evidence while still documenting the dataset-visible removal where disclosure is safe.
 
 The minimum handling path is:
 
@@ -126,6 +130,12 @@ For E4a, the required planning notation is:
 
 - notation: `E4a`
 - parent milestone: `E4`
+- source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
+
+For F3a, the required planning notation is:
+
+- notation: `F3a`
+- parent milestone: `F3`
 - source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
 
 Feature and PR work is incomplete until a non-draft PR is open with appropriate labels, a detailed body, and a relevant milestone assignment when one exists.

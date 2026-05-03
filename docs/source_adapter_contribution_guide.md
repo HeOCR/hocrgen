@@ -56,6 +56,8 @@ Do not add broad live crawling, live network crawling, scheduled ingestion, auto
 
 The NLI release-scale path is a narrow exception: live-but-cached acquisition of vetted seed URLs is allowed when the implementation keeps the seed boundary explicit, reuses existing local fixtures before live capture, writes reusable local fixtures/assets, emits an audit report, and leaves CI/release validation network-free. That path must still run through normal source policy, rights, privacy, review, dedupe, split, benchmark, and export-portability gates before any public release.
 
+Modern handwritten Hebrew intake is a separate high-risk source family. Follow [Modern Handwritten Acquisition Policy](./modern_handwritten_acquisition_policy.md) before proposing an adapter or workflow: contributor consent, public-use release terms, rights provenance, contemporary privacy screening, takedown/removal handling, scan/upload standards, operator review, and composition metadata must exist before any sample collection. Historical public-source rights and synthetic-provider manifests do not satisfy modern contributor-consent requirements.
+
 ## Review and release gates
 
 Before a source adapter can affect public outputs, the source must pass:

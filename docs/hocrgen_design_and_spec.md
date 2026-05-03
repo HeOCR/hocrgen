@@ -73,6 +73,8 @@ Every dataset release should be reconstructible or at least auditable from confi
 ### 3.3 Conservative rights posture
 Anything unclear should be blocked or routed to review, not silently included.
 
+Modern contributor-supplied handwriting is always high-risk until consent, release terms, provenance, privacy screening, and takedown handling are explicit.
+
 ### 3.4 Metadata is first-class
 The system should treat metadata and provenance as core outputs, not byproducts.
 
@@ -128,6 +130,7 @@ It should not be responsible for training OCR models, though it may later emit b
    - rights parsing
    - metadata extraction
    - file download
+   - future modern handwriting intake manifests governed by the F3a policy
 
 3. **Processing layer**
    - normalization
@@ -203,7 +206,10 @@ An item is a normalized dataset unit with assigned metadata and eligibility stat
 ### 6.5 Review decision
 A review decision is a persisted human or policy-driven judgment about a candidate or item.
 
-### 6.6 Release
+### 6.6 Modern handwriting intake
+Modern handwriting intake is a future contributor-supplied acquisition path governed by the F3a policy in [`modern_handwritten_acquisition_policy.md`](./modern_handwritten_acquisition_policy.md). It should stay separate from historical public sources and synthetic-provider inputs, require consent/provenance/privacy records before review, and use typed source-relative manifests before any public-profile eligibility.
+
+### 6.7 Release
 A release is a versioned packaged dataset output, including assets, metadata, and changelog.
 
 ---
@@ -736,6 +742,8 @@ A public release profile must fail validation if any included item has:
 - `UNKNOWN`
 
 unless the profile explicitly allows that, which `profile_open_v1` should not.
+
+Modern handwritten contributor items add stricter requirements: public-profile eligibility also requires explicit contributor consent, compatible release terms, rights provenance, privacy clearance, operator review, and a takedown/removal path. Historical public-domain source evidence and synthetic-provider metadata are not substitutes for modern contributor consent.
 
 ---
 

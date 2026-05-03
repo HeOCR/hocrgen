@@ -15,6 +15,7 @@ Use the path that matches the change:
 | Code-only pipeline or CLI fix | an issue or pull request explaining the behavior change | deterministic tests, no weakening of config/profile/review validation |
 | Source proposal | a dataset source proposal issue | no code or public-profile change until rights, provenance, privacy, source stability, and fixture strategy are accepted |
 | Source adapter | source proposal approval plus a focused adapter PR | typed `sources.yaml` entry, fixture-backed tests, source-health expectations, release-profile review |
+| Modern handwriting intake | F3a-compatible policy proposal before any sample collection | contributor consent, public-use release terms, contemporary privacy review, takedown path, composition metadata, and bounded operator workflow |
 | Synthetic asset | synthetic asset proposal issue | license proof, manifest entry, deterministic output checks, synthetic cap compatibility |
 | Review data update | focused review-decision or override PR | one-record-per-file JSON under `review_data/`, reviewer/rationale/timestamp, no broad allowlists |
 | Documentation or policy fix | focused PR | keep README, roadmap, and planning tests aligned when workflow expectations change |
@@ -33,6 +34,8 @@ Open an issue before adding source code or changing release profiles. A source p
 - sample items that can pass current normalization, QA, dedupe, privacy, review, and release checks
 
 Acceptance of a proposal does not approve broad ingestion. It only authorizes a bounded follow-up PR that keeps the existing pipeline safeguards in place.
+
+Modern handwritten Hebrew proposals must also follow the `F3a` policy in [Modern Handwritten Acquisition Policy](./docs/modern_handwritten_acquisition_policy.md). Do not collect contributor samples, add upload forms, or place modern handwriting in `profile_open_v1` until a bounded F3b-style operator workflow records consent/provenance, privacy-screening status, source-relative assets, composition metadata, and review decisions in typed repo-tracked artifacts.
 
 ## Source adapter rules
 
