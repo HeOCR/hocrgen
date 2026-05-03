@@ -555,13 +555,16 @@ Outputs:
 
 Actions:
 - exact duplicate detection
-- perceptual-hash duplicate detection
-- optional embedding-based near-duplicate clustering
+- deterministic near-duplicate candidate surfacing from normalized asset metadata
+- source-work group derivation for split safety
+- optional future perceptual-hash or embedding-based near-duplicate clustering
 
 Outputs:
 - dedupe manifest
 - retained-item set
 - duplicate clusters
+- near-duplicate candidate clusters
+- source groups
 
 ### 10.7 Stage 7 — classify
 
@@ -820,15 +823,18 @@ The dedupe subsystem should prevent duplication both within and across sources.
 ### 14.1 Required capabilities
 
 - exact duplicate detection by hash
-- perceptual duplicate detection for resized/recompressed images
-- clustering of near-duplicates
+- deterministic near-duplicate candidate surfacing for fixture-backed CI
+- source-group clustering for related source-work records
+- future perceptual duplicate detection for resized/recompressed images
+- future clustering of semantic near-duplicates
 - lineage-aware handling of crops vs full pages
 
 ### 14.2 Preferred approach
 
 1. exact hash pass
-2. perceptual hash pass
-3. optional embedding or OCR-text similarity for edge cases
+2. deterministic asset-metadata signature pass for conservative near-duplicate candidate surfacing
+3. source-work grouping from explicit metadata or stable source URL/item keys
+4. optional future perceptual hash, embedding, or OCR-text similarity for edge cases
 
 ### 14.3 Dedupe outputs
 
@@ -836,6 +842,8 @@ The dedupe subsystem should prevent duplication both within and across sources.
 - duplicate relation table
 - cluster ids
 - duplicate reason code
+- near-duplicate candidate cluster table
+- source-group table
 
 ### 14.4 Public release rule
 
@@ -966,7 +974,11 @@ Avoid placing:
 
 - pages from the same document bundle across different splits
 - duplicate clusters across different splits
+- deterministic near-duplicate candidate clusters across different splits
+- source groups across different splits
 - synthetic siblings across different splits if they are too similar
+
+Benchmark or holdout members that share an exact duplicate cluster, near-duplicate cluster, or source group should be reported as leakage risk before public beta/release-candidate export.
 
 ### 18.3 Benchmark subset
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F1c"
+CURRENT_COMPLETED_NOTATION = "F1d"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -41,7 +41,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
 
     assert f"Last completed roadmap action on the current ref: `{CURRENT_COMPLETED_NOTATION}`" in agent_plan
-    assert "next implementation should move to `F1d` near-duplicate, source-group, and split-leakage hardening" in agent_plan
+    assert "next planned critical-path implementation should move to `F2` benchmark ground-truth foundations" in agent_plan
     assert f"| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert f"| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap

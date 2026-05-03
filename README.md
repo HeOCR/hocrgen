@@ -68,7 +68,7 @@ Near-term release-scale acquisition preserves that seed boundary while removing 
 
 This is the preferred short-term path for growing from the current small alpha exemplar set toward a bounded beta-scale trial. The `F1a` trial plan targets `80` real items plus `80` synthetic controls, with the real-source mix fixed at `27` NLI, `27` Pinkas, and `26` BiblIA. It is an operator-only acquisition trial, not a public beta export, release-candidate export, broad live-source crawler, or publication workflow.
 
-The NLI portion can build on the existing live-but-cached seed promotion path. Pinkas and BiblIA are bounded packaged exemplar sources with explicit source-depth expansion manifests under `src/hocrgen/data/pinkas/` and `src/hocrgen/data/biblia/`; added records only count when they are committed as packaged fixtures with stable provenance, PD-IL-compatible rights, source-health-visible assets, and reviewable operator notes. Rights, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates remain mandatory before any larger public release. The post-F1 roadmap also requires near-duplicate/source-group leakage hardening, benchmark ground-truth references, rights-clean modern handwritten Hebrew acquisition, Hebrew-specific RTL/niqqud/layout synthetic quality work, and separate public beta publication gates before treating beta-scale acquisition as release or benchmark readiness.
+The NLI portion can build on the existing live-but-cached seed promotion path. Pinkas and BiblIA are bounded packaged exemplar sources with explicit source-depth expansion manifests under `src/hocrgen/data/pinkas/` and `src/hocrgen/data/biblia/`; added records only count when they are committed as packaged fixtures with stable provenance, PD-IL-compatible rights, source-health-visible assets, and reviewable operator notes. Rights, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates remain mandatory before any larger public release. F1d now adds deterministic near-duplicate/source-group leakage hardening before scale beyond the operator-only trial; near-duplicates are surfaced as manual-review risks and grouped for split safety, not automatically removed. The post-F1 roadmap still requires benchmark ground-truth references, rights-clean modern handwritten Hebrew acquisition, Hebrew-specific RTL/niqqud/layout synthetic quality work, and separate public beta publication gates before treating beta-scale acquisition as release or benchmark readiness.
 
 Every `discover` run emits an operator-only `discover/source_depth_feasibility.json` artifact for the F1 target. The report records per-source target count, observed candidate count, health-eligible runnable/cached candidate count, target-scale candidate count, asset count, exploratory catalog count where applicable, static-source expansion-path status, runnable/cached gap, target-scale gap, feasibility status, report-scoped warnings, and operator notes. On the current fixture-backed data, NLI reports `27` runnable/cached real source-cached seeds against a target of `27`; the newly promoted F1b4 NLI fixtures are marked source-depth-only and do not automatically enter normal release/export discovery. Pinkas reports `1` normally discoverable record plus `27` packaged source-depth inventory records against `27`; BiblIA reports `1` normally discoverable record plus `26` packaged source-depth inventory records against `26`; and the synthetic source reports `2` normally runnable synthetic controls plus `80` configured target-scale candidates against the `80` synthetic-control target. Pinkas/BiblIA expansion records marked for F1 source depth remain operator-only and do not automatically enter normal release/export discovery.
 
@@ -78,7 +78,7 @@ To execute the bounded F1c target-scale trial, use the explicit operator command
 hocrgen f1-beta-trial --profile profile_open_v1 --dry-run
 ```
 
-This command opts into source-depth-only NLI seeds, packaged Pinkas/BiblIA expansion records, and `80` synthetic controls, then runs them through the existing build-release gate sequence without broad crawling, publication, public beta export, release-candidate export, or automatic public-profile promotion. It writes `build_release/f1_target_scale_trial_report.json` with acquisition counts, rights outcomes, review outcomes, dedupe outcomes, split and benchmark eligibility, post-review synthetic-cap status, source allocation, source-health status, non-goals, and remaining blockers. Normal `discover`, `build-release`, and `export-alpha` behavior remains bounded unless the operator explicitly runs this trial command. On the current data, target-scale execution completes, while the report marks the post-review synthetic-cap gate blocked because many real items remain review-required; that blocker is evidence that the gate remains enforceable, not permission to publish.
+This command opts into source-depth-only NLI seeds, packaged Pinkas/BiblIA expansion records, and `80` synthetic controls, then runs them through the existing build-release gate sequence without broad crawling, publication, public beta export, release-candidate export, or automatic public-profile promotion. It writes `build_release/f1_target_scale_trial_report.json` with acquisition counts, rights outcomes, review outcomes, exact duplicate outcomes, near-duplicate/source-group outcomes, split and benchmark eligibility, benchmark/holdout leakage risk, post-review synthetic-cap status, source allocation, source-health status, non-goals, and remaining blockers. Normal `discover`, `build-release`, and `export-alpha` behavior remains bounded unless the operator explicitly runs this trial command. On the current data, target-scale execution completes, while the report marks the post-review synthetic-cap gate blocked because many real items remain review-required and surfaces a benchmark/holdout source-group risk; those blockers are evidence that the gates remain enforceable, not permission to publish.
 
 To promote exploratory entries into runnable local fixtures, use the local operator script:
 
@@ -112,7 +112,7 @@ python scripts/promote_nli_seeds.py \
 ## What is still future work
 
 - broad live-source crawling
-- near-duplicate / perceptual deduplication, source-group grouping, and split-leakage hardening
+- stronger perceptual/semantic duplicate review beyond the current deterministic near-duplicate/source-group split-safety gates
 - benchmark ground-truth foundation: transcription guidelines, layout-label guidance, reference manifests, adjudication artifacts, and benchmark versioning gates
 - rights-clean modern handwritten Hebrew acquisition with consent, privacy, composition, and takedown workflows
 - external synthetic-provider contract work for `hocrsyngen` manifests, Hebrew rendering/provider metadata gates, and synthetic-only export handoff to `HeOCRsynth`
@@ -438,13 +438,15 @@ What it does today:
 - detects exact duplicate items when those ordered asset sequences match exactly
 - retains a deterministic canonical item using source priority, then non-synthetic preference, then `item_id`
 - emits duplicate-cluster and duplicate-relation manifests
+- surfaces deterministic near-duplicate candidates from normalized asset metadata signatures as manual-review risks without auto-removing them
+- emits source-group manifests for related source-work records, including multi-page static source records, and keeps those groups split-safe
 - assigns deterministic `train` / `validation` / `test` splits using the profile `split_policy`
-- keeps duplicate clusters and source-item groups together by using stable split-group ids
-- emits a leakage report confirming that release-ready items do not cross split boundaries incorrectly
+- keeps exact duplicate clusters, near-duplicate clusters, and source groups together by using stable split-group ids
+- emits a leakage report confirming that release-ready items do not cross split boundaries incorrectly, plus build-release benchmark/holdout leakage risk
 
 What it does not do yet:
 
-- perceptual or semantic near-duplicate detection
+- heavy perceptual hashing, embeddings, or OCR-semantic near-duplicate detection
 - OCR-aware grouping
 - content-quality ranking beyond technical QA
 

@@ -80,6 +80,9 @@ def test_f1_beta_trial_command_creates_operator_report(tmp_path: Path, capsys) -
     }
     assert report["rights_outcomes"]["accepted_count"] == 160
     assert report["dedupe_outcomes"]["duplicate_removed_count"] == 0
+    assert report["dedupe_outcomes"]["near_duplicate_policy"] == "surface candidates and keep clusters split-safe; do not auto-remove without review"
+    assert report["dedupe_outcomes"]["source_group_count"] >= 1
+    assert report["split_and_benchmark_eligibility"]["benchmark_holdout_leakage"]["status"] == "review_required"
     assert report["gate_outcomes"]["synthetic_cap"] == {
         "allowed_synthetic_count": 30,
         "real_release_ready_count": 30,
@@ -88,9 +91,10 @@ def test_f1_beta_trial_command_creates_operator_report(tmp_path: Path, capsys) -
         "synthetic_release_ready_count": 80,
     }
     assert report["gate_blockers"] == [
-        "synthetic-cap is blocked after review: 80 synthetic release-ready item(s) exceed 30 allowed for 30 real item(s)"
+        "synthetic-cap is blocked after review: 80 synthetic release-ready item(s) exceed 30 allowed for 30 real item(s)",
+        "benchmark/holdout leakage has 1 group risk(s)",
     ]
-    assert report["next_step"] == "F1d near-duplicate/source-group/split-leakage hardening"
+    assert report["next_step"] == "F2 benchmark ground-truth foundation"
 
 
 def test_f1_beta_trial_reports_unknown_profile(capsys) -> None:

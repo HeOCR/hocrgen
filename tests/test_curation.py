@@ -19,6 +19,8 @@ def _normalized_item(
     source_item_id: str,
     asset_hashes: list[str],
     is_synthetic: bool = False,
+    file_size_bytes: int = 128,
+    source_url: str | None = None,
 ) -> NormalizedItemRecord:
     acquired_assets = [
         AcquiredAsset(item_id=item_id, path=f"/tmp/{item_id}_{index}.svg", sha256=asset_hash)
@@ -33,7 +35,7 @@ def _normalized_item(
             media_type="image/svg+xml",
             width=100,
             height=50,
-            file_size_bytes=128,
+            file_size_bytes=file_size_bytes,
             sha256=asset_hash,
             is_vector=True,
             normalization_action="copied",
@@ -47,7 +49,7 @@ def _normalized_item(
         candidate_id=f"candidate-{item_id}",
         source_id=source_id,
         source_item_id=source_item_id,
-        source_url=f"https://example.org/{item_id}",
+        source_url=source_url or f"https://example.org/{item_id}",
         discovery_method="fixture",
         item_id=item_id,
         normalized_license="PD-IL",
@@ -77,6 +79,75 @@ def test_exact_dedupe_detects_item_level_duplicates() -> None:
     assert outputs.retained_items[0].canonical_item_id == "pinkas_open:item-a"
     assert outputs.duplicate_relations[0].reason == "exact_asset_sequence_match"
     assert outputs.duplicate_clusters[0].member_item_ids == ["pinkas_open:item-a", "biblia_open:item-b"]
+    assert outputs.report["near_duplicate_evaluation"]["status"] == "implemented"
+    assert outputs.near_duplicate_clusters == []
+
+
+def test_near_duplicate_candidates_are_split_grouped_without_auto_removal() -> None:
+    profile = load_and_validate_bundle().profiles["profile_open_v1"]
+    outputs = deduplicate_items(
+        [
+            _normalized_item(
+                item_id="pinkas_open:item-a",
+                source_id="pinkas_open",
+                source_item_id="folio-1",
+                asset_hashes=["near-a"],
+                file_size_bytes=2048,
+            ),
+            _normalized_item(
+                item_id="biblia_open:item-b",
+                source_id="biblia_open",
+                source_item_id="fragment-1",
+                asset_hashes=["near-b"],
+                file_size_bytes=2048,
+            ),
+        ],
+        profile,
+    )
+
+    assert len(outputs.retained_items) == 2
+    assert outputs.duplicate_items == []
+    assert len(outputs.near_duplicate_clusters) == 1
+    assert outputs.near_duplicate_clusters[0].status == "manual_review_required"
+
+    split_outputs = assign_splits(outputs.retained_items, outputs.duplicate_items, profile.split_policy)
+
+    assert len({item.split for item in split_outputs.retained_items}) == 1
+    assert split_outputs.leakage_report["near_duplicate_cluster_count"] == 1
+    assert split_outputs.leakage_report["near_duplicate_cluster_leaks"] == []
+
+
+def test_source_group_candidates_are_kept_in_one_split() -> None:
+    profile = load_and_validate_bundle().profiles["profile_open_v1"]
+    outputs = deduplicate_items(
+        [
+            _normalized_item(
+                item_id="pinkas_open:page-1",
+                source_id="pinkas_open",
+                source_item_id="page-1",
+                asset_hashes=["page-1"],
+                file_size_bytes=1001,
+                source_url="https://commons.wikimedia.org/wiki/File:Pinkas_WDL11806_page_1.jpg",
+            ),
+            _normalized_item(
+                item_id="pinkas_open:page-2",
+                source_id="pinkas_open",
+                source_item_id="page-2",
+                asset_hashes=["page-2"],
+                file_size_bytes=1002,
+                source_url="https://commons.wikimedia.org/wiki/File:Pinkas_WDL11806_page_2.jpg",
+            ),
+        ],
+        profile,
+    )
+
+    assert len(outputs.source_groups) == 1
+
+    split_outputs = assign_splits(outputs.retained_items, outputs.duplicate_items, profile.split_policy)
+
+    assert len({item.split for item in split_outputs.retained_items}) == 1
+    assert split_outputs.leakage_report["source_group_count"] == 1
+    assert split_outputs.leakage_report["source_group_leaks"] == []
 
 
 def test_canonical_selection_prefers_source_order_then_non_synthetic_then_item_id() -> None:

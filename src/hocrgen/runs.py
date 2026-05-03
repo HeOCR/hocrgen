@@ -17,10 +17,12 @@ from hocrgen.manifests.models import (
     DuplicateRelationRecord,
     EnrichedCandidateRecord,
     ItemRecord,
+    NearDuplicateClusterRecord,
     NormalizedItemRecord,
     PrivacyScannedItemRecord,
     ReviewDecisionAuditRecord,
     ReviewQueueRecord,
+    SourceGroupRecord,
     SplitAssignmentRecord,
 )
 from hocrgen.pipeline import PIPELINE_STAGES, PipelineState, empty_pipeline_state
@@ -266,6 +268,8 @@ def _load_stage_state(stage: str, run_dir: Path, state: PipelineState) -> None:
         state.duplicate_items = _load_items(stage_dir / "duplicate_items.json", CuratedItemRecord)
         state.duplicate_relations = _load_items(stage_dir / "duplicate_relations.json", DuplicateRelationRecord)
         state.duplicate_clusters = _load_items(stage_dir / "duplicate_clusters.json", DuplicateClusterRecord)
+        state.near_duplicate_clusters = _load_items(stage_dir / "near_duplicate_clusters.json", NearDuplicateClusterRecord)
+        state.source_groups = _load_items(stage_dir / "source_groups.json", SourceGroupRecord)
         return
     if stage == "classify":
         state.classified_items = _load_items(stage_dir / "classified_items.json", ClassifiedItemRecord)
@@ -294,6 +298,8 @@ def _load_stage_state(stage: str, run_dir: Path, state: PipelineState) -> None:
         state.duplicate_items = _load_items(stage_dir / "removed_duplicate_items.json", CuratedItemRecord)
         state.duplicate_relations = _load_items(stage_dir / "duplicate_relations.json", DuplicateRelationRecord)
         state.duplicate_clusters = _load_items(stage_dir / "duplicate_clusters.json", DuplicateClusterRecord)
+        state.near_duplicate_clusters = _load_items(stage_dir / "near_duplicate_clusters.json", NearDuplicateClusterRecord)
+        state.source_groups = _load_items(stage_dir / "source_groups.json", SourceGroupRecord)
         state.review_queue = _load_items(stage_dir / "review_queue.json", ReviewQueueRecord)
         state.review_required_items = _load_items(stage_dir / "review_required_items.json", PrivacyScannedItemRecord)
         state.blocked_items = _load_items(stage_dir / "blocked_items.json", PrivacyScannedItemRecord)
