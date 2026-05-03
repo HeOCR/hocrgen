@@ -451,6 +451,57 @@ class BenchmarkApprovedItemRecord(ManifestModel):
     rationale: str = Field(min_length=1)
 
 
+BenchmarkLeakageGroupKind = Literal["exact_duplicate", "near_duplicate", "source_group"]
+BenchmarkLeakageResolutionAction = Literal[
+    "exclude_related_group_from_holdout_public_beta_claims",
+    "benchmark_membership_changed_with_reason",
+    "accepted_for_operator_only_trial",
+]
+
+
+class BenchmarkLeakageResolutionRecord(ManifestModel):
+    resolution_id: str = Field(min_length=1)
+    group_id: str = Field(min_length=1)
+    group_kind: BenchmarkLeakageGroupKind
+    benchmark_item_ids: list[str] = Field(min_length=1)
+    non_benchmark_item_ids: list[str] = Field(min_length=1)
+    action: BenchmarkLeakageResolutionAction
+    rationale: str = Field(min_length=1)
+    accepted_by: str = Field(min_length=1)
+    accepted_at: str = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_unique_members(self) -> "BenchmarkLeakageResolutionRecord":
+        if len(set(self.benchmark_item_ids)) != len(self.benchmark_item_ids):
+            raise ValueError(f"duplicate benchmark item ids in leakage resolution {self.resolution_id}")
+        if len(set(self.non_benchmark_item_ids)) != len(self.non_benchmark_item_ids):
+            raise ValueError(f"duplicate non-benchmark item ids in leakage resolution {self.resolution_id}")
+        if set(self.benchmark_item_ids) & set(self.non_benchmark_item_ids):
+            raise ValueError(f"leakage resolution {self.resolution_id} overlaps benchmark and non-benchmark item ids")
+        return self
+
+
+class BenchmarkLeakagePolicyRecord(ManifestModel):
+    schema_version: Literal[1] = 1
+    default_action: Literal["block_unresolved"] = "block_unresolved"
+    policy: str = Field(min_length=1)
+    accepted_resolutions: list[BenchmarkLeakageResolutionRecord] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_unique_resolutions(self) -> "BenchmarkLeakagePolicyRecord":
+        seen: set[tuple[str, str]] = set()
+        duplicates: set[str] = set()
+        for resolution in self.accepted_resolutions:
+            key = (resolution.group_kind, resolution.group_id)
+            if key in seen:
+                duplicates.add(f"{resolution.group_kind}:{resolution.group_id}")
+            seen.add(key)
+        if duplicates:
+            joined = ", ".join(sorted(duplicates))
+            raise ValueError(f"duplicate benchmark leakage resolutions: {joined}")
+        return self
+
+
 class BenchmarkConfigRecord(ManifestModel):
     benchmark_id: str
     version: Literal[1] = 1
@@ -458,6 +509,15 @@ class BenchmarkConfigRecord(ManifestModel):
     selection_policy: str = Field(min_length=1)
     review_bar: str = Field(min_length=1)
     stability_policy: dict[str, str] = Field(default_factory=dict)
+    benchmark_holdout_leakage_policy: BenchmarkLeakagePolicyRecord = Field(
+        default_factory=lambda: BenchmarkLeakagePolicyRecord(
+            policy=(
+                "Benchmark members must not share exact duplicate, near-duplicate, or source-group membership "
+                "with non-benchmark holdout/public-beta candidates unless a repo-tracked accepted resolution "
+                "matches the detected group and member sets."
+            )
+        )
+    )
     approved_items: list[BenchmarkApprovedItemRecord] = Field(min_length=1)
 
     @model_validator(mode="after")

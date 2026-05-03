@@ -10,6 +10,8 @@ from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.manifests.models import (
     BenchmarkConfigRecord,
     BenchmarkItemRecord,
+    BenchmarkLeakagePolicyRecord,
+    BenchmarkLeakageResolutionRecord,
     BenchmarkSelectionAuditRecord,
     CuratedItemRecord,
     PrivacyScannedItemRecord,
@@ -166,6 +168,122 @@ def select_benchmark_items(
         audit=audit,
         stability_policy=stability_policy,
         card_markdown=render_benchmark_card(config, selected),
+    )
+
+
+def benchmark_holdout_leakage_artifact(
+    *,
+    benchmark_items: list[BenchmarkItemRecord],
+    release_ready_items: list[PrivacyScannedItemRecord],
+    removed_duplicate_items: list[CuratedItemRecord],
+    policy: BenchmarkLeakagePolicyRecord,
+) -> dict[str, object]:
+    benchmark_ids = {item.item_id for item in benchmark_items}
+    benchmark_splits = {
+        item.item_id: item.split
+        for item in release_ready_items
+        if item.item_id in benchmark_ids and item.split is not None
+    }
+    candidate_items = sorted(
+        [*release_ready_items, *removed_duplicate_items],
+        key=lambda item: item.item_id,
+    )
+
+    groups: dict[tuple[str, str], set[str]] = {}
+    for item in candidate_items:
+        if item.dedupe_cluster_id:
+            groups.setdefault(("exact_duplicate", item.dedupe_cluster_id), set()).add(item.item_id)
+        if item.near_duplicate_cluster_id:
+            groups.setdefault(("near_duplicate", item.near_duplicate_cluster_id), set()).add(item.item_id)
+        if item.source_group_id:
+            groups.setdefault(("source_group", item.source_group_id), set()).add(item.item_id)
+
+    resolutions = {
+        (resolution.group_kind, resolution.group_id): resolution
+        for resolution in policy.accepted_resolutions
+    }
+    risks: list[dict[str, object]] = []
+    resolved_risks: list[dict[str, object]] = []
+    unresolved_risks: list[dict[str, object]] = []
+    stale_resolutions: list[dict[str, object]] = []
+    matched_resolution_ids: set[str] = set()
+    for (group_kind, group_id), member_ids in sorted(groups.items()):
+        benchmark_members = sorted(member_ids & benchmark_ids)
+        non_benchmark_members = sorted(member_ids - benchmark_ids)
+        if not benchmark_members or not non_benchmark_members:
+            continue
+        risk = {
+            "benchmark_item_ids": benchmark_members,
+            "group_id": group_id,
+            "group_kind": group_kind,
+            "non_benchmark_item_ids": non_benchmark_members,
+            "holdout_item_ids": non_benchmark_members,
+            "splits": sorted(
+                {
+                    split
+                    for item_id, split in benchmark_splits.items()
+                    if item_id in benchmark_members and split
+                }
+            ),
+        }
+        resolution = resolutions.get((group_kind, group_id))
+        if resolution is not None and _resolution_matches_risk(resolution, risk):
+            matched_resolution_ids.add(resolution.resolution_id)
+            resolved = {
+                **risk,
+                "resolution": resolution.model_dump(mode="json"),
+                "resolution_status": "accepted",
+            }
+            risks.append(resolved)
+            resolved_risks.append(resolved)
+            continue
+        if resolution is not None:
+            stale_resolutions.append(
+                {
+                    "benchmark_item_ids": benchmark_members,
+                    "expected_benchmark_item_ids": resolution.benchmark_item_ids,
+                    "expected_non_benchmark_item_ids": resolution.non_benchmark_item_ids,
+                    "group_id": group_id,
+                    "group_kind": group_kind,
+                    "non_benchmark_item_ids": non_benchmark_members,
+                    "resolution_id": resolution.resolution_id,
+                    "status": "stale",
+                }
+            )
+        unresolved = {**risk, "resolution_status": "unresolved"}
+        risks.append(unresolved)
+        unresolved_risks.append(unresolved)
+
+    unused_resolutions = [
+        resolution.model_dump(mode="json")
+        for resolution in policy.accepted_resolutions
+        if resolution.resolution_id not in matched_resolution_ids
+        and (resolution.group_kind, resolution.group_id) not in {
+            (stale["group_kind"], stale["group_id"]) for stale in stale_resolutions
+        }
+    ]
+    status = "ok" if not unresolved_risks and not stale_resolutions else "blocked"
+    return {
+        "accepted_resolution_count": len(resolved_risks),
+        "policy": policy.model_dump(mode="json"),
+        "risk_count": len(risks),
+        "risks": risks,
+        "resolved_risks": resolved_risks,
+        "stale_resolutions": stale_resolutions,
+        "status": status,
+        "unresolved_count": len(unresolved_risks),
+        "unresolved_risks": unresolved_risks,
+        "unused_resolutions": unused_resolutions,
+    }
+
+
+def _resolution_matches_risk(
+    resolution: BenchmarkLeakageResolutionRecord,
+    risk: dict[str, object],
+) -> bool:
+    return (
+        resolution.benchmark_item_ids == risk["benchmark_item_ids"]
+        and resolution.non_benchmark_item_ids == risk["non_benchmark_item_ids"]
     )
 
 

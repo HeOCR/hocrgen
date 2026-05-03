@@ -104,6 +104,8 @@ Deprecating a source must preserve deterministic release behavior: no benchmark 
 
 `benchmark_v1` is intentionally small and stable. Approved benchmark items must remain explicitly named in the packaged approval config at `package://data/benchmark/benchmark_v1/config.json` (repository source path: `src/hocrgen/data/benchmark/benchmark_v1/config.json`), release-ready after review merge, present in the current run, and assigned to their committed benchmark split. Config-root-relative `benchmark_data/` trees may override this for deliberate local validation, but default and non-editable installs must not depend on a checkout-root `benchmark_data/` directory. If any of those invariants fail, `build-release` should fail instead of silently changing the benchmark.
 
+Benchmark members also must not share exact duplicate, near-duplicate, or source-group membership with non-benchmark holdout/public-beta candidates unless the benchmark config contains a typed accepted resolution that matches the current detected group and member set. Missing or stale benchmark/holdout leakage resolutions should block F1 trial/report readiness. Accepted resolutions may exclude related non-benchmark items from holdout/public-beta claims without changing benchmark membership, but they must be explicit, reviewed, and auditable.
+
 Benchmark removals or replacements require a deliberate PR that updates the benchmark config, benchmark card, release notes, and planning docs. The PR must explain why the change is necessary and how consumers should compare results across the affected release versions.
 
 ## Planning and PR metadata

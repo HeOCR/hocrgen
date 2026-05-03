@@ -612,12 +612,15 @@ Outputs:
 - split manifest
 - leakage report
 
+Benchmark/holdout leakage is enforced after benchmark selection during release assembly. The gate checks whether benchmark items share exact duplicate, near-duplicate, or source-group membership with non-benchmark holdout/public-beta candidates. Such overlap is blocked unless the benchmark config carries a typed accepted resolution that exactly matches the detected group kind, group id, benchmark item ids, and non-benchmark item ids. This keeps benchmark stability separate from public-beta readiness: accepted resolutions can preserve `benchmark_v1` membership while excluding related non-benchmark items from holdout/public-beta claims.
+
 ### 10.11 Stage 11 — package
 
 Actions:
 - construct release folder layout
 - generate manifests
 - generate stats
+- generate benchmark leakage-risk and resolution artifacts
 - generate changelog diff from prior release
 - generate dataset card draft
 
@@ -978,7 +981,7 @@ Avoid placing:
 - source groups across different splits
 - synthetic siblings across different splits if they are too similar
 
-Benchmark or holdout members that share an exact duplicate cluster, near-duplicate cluster, or source group should be reported as leakage risk before public beta/release-candidate export.
+Benchmark or holdout members that share an exact duplicate cluster, near-duplicate cluster, or source group must be resolved through a typed benchmark policy before public beta/release-candidate export. Missing or stale accepted resolutions keep the risk blocked.
 
 ### 18.3 Benchmark subset
 
@@ -1355,7 +1358,7 @@ Benchmark ground-truth references are a benchmark-specific layer, not a general 
 
 Runtime ingestion should validate only portable release-relative reference paths, reject absolute paths, `file://` paths, `.work` paths, backslashes, and traversal, copy selected child reference files into build/export artifacts, and check item/source/split linkage against the selected benchmark manifest. Layout references must also carry asset path, checksum, width, and height so stale labels are detected when normalized or exported assets change. Adjudication/status output should keep `not_available`, `draft`, `reviewed`, `adjudicated`, `corrected`, and `retired` states explicit, and versioning gates should use stable `reference_id` values for coherent `correction_of` / `superseded_by` relationships plus `change_reason` for corrected or retired references.
 
-This benchmark-reference layer must not relax rights, privacy, review, dedupe, split, synthetic-cap, benchmark membership, or export-portability gates. It also does not resolve benchmark/holdout leakage risks surfaced by split hardening.
+This benchmark-reference layer must not relax rights, privacy, review, dedupe, split, synthetic-cap, benchmark membership, or export-portability gates. Benchmark/holdout leakage is handled by the separate F1e policy gate, which records accepted overlap resolutions and blocks unresolved or stale risks.
 
 ---
 

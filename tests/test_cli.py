@@ -71,7 +71,7 @@ def test_f1_beta_trial_command_creates_operator_report(tmp_path: Path, capsys) -
     assert report["planning_notation"] == "F1c"
     assert report["status"] == "blocked"
     assert report["target_scale_execution_status"] == "blocked"
-    assert report["gate_status"] == "blocked"
+    assert report["gate_status"] == "ok"
     assert report["target_scale_exercised"]["candidate_count"] == 82
     assert report["target_scale_exercised"]["acquired_count"] == 82
     assert report["target_counts"] == {"real": 80, "synthetic": 80, "total": 160}
@@ -88,7 +88,8 @@ def test_f1_beta_trial_command_creates_operator_report(tmp_path: Path, capsys) -
         == "block release readiness until candidate clusters are manually reviewed; do not auto-remove"
     )
     assert report["dedupe_outcomes"]["source_group_count"] >= 1
-    assert report["split_and_benchmark_eligibility"]["benchmark_holdout_leakage"]["status"] == "review_required"
+    assert report["split_and_benchmark_eligibility"]["benchmark_holdout_leakage"]["status"] == "ok"
+    assert report["split_and_benchmark_eligibility"]["benchmark_holdout_leakage"]["accepted_resolution_count"] == 1
     assert report["gate_outcomes"]["synthetic_cap"] == {
         "allowed_synthetic_count": 30,
         "real_release_ready_count": 30,
@@ -96,9 +97,7 @@ def test_f1_beta_trial_command_creates_operator_report(tmp_path: Path, capsys) -
         "synthetic_fraction_max": 0.5,
         "synthetic_release_ready_count": 2,
     }
-    assert report["gate_blockers"] == [
-        "benchmark/holdout leakage has 1 group risk(s)",
-    ]
+    assert report["gate_blockers"] == []
     assert report["target_execution_blockers"] == [
         "project_synthetic discovered 2 / 80 target candidates",
         "project_synthetic acquired 2 / 80 target items",

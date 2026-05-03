@@ -124,6 +124,7 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
     assert (output_dir / "manifests" / "annotation_pilot_manifest.json").exists()
     assert (output_dir / "manifests" / "annotation_pilot_selection_audit.json").exists()
     assert (output_dir / "manifests" / "benchmark_manifest.json").exists()
+    assert (output_dir / "manifests" / "benchmark_leakage_risk.json").exists()
     assert (output_dir / "manifests" / "benchmark_selection_audit.json").exists()
     assert (output_dir / "manifests" / "benchmark_stability_policy.json").exists()
     assert (output_dir / "manifests" / "benchmark_reference_manifest.json").exists()
@@ -143,6 +144,7 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
 
     release_diff = json.loads((output_dir / "manifests" / "release_diff.json").read_text(encoding="utf-8"))
     benchmark_manifest = json.loads((output_dir / "manifests" / "benchmark_manifest.json").read_text(encoding="utf-8"))
+    benchmark_leakage_risk = json.loads((output_dir / "manifests" / "benchmark_leakage_risk.json").read_text(encoding="utf-8"))
     benchmark_reference_manifest = json.loads(
         (output_dir / "manifests" / "benchmark_reference_manifest.json").read_text(encoding="utf-8")
     )
@@ -163,6 +165,8 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
         "project_synthetic:synthetic-0",
     }
     assert str(output_dir.resolve()) not in json.dumps(benchmark_manifest)
+    assert benchmark_leakage_risk["status"] == "ok"
+    assert str(output_dir.resolve()) not in json.dumps(benchmark_leakage_risk)
     assert benchmark_reference_manifest["reference_manifest_id"] == "benchmark_v1_refs_0001"
     assert benchmark_reference_status["counts"]["reference_ready"] == 1
     reference_paths = [

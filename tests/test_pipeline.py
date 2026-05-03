@@ -13,6 +13,7 @@ from hocrgen.config.loader import default_config_root
 from hocrgen.core.context import create_run_context
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.base import StageOptions
+from hocrgen.manifests.models import BenchmarkLeakagePolicyRecord
 from hocrgen.pipeline import PipelineState, _build_f1_target_scale_trial_report, execute_pipeline, write_run_metadata, write_run_summary
 from hocrgen.runs import load_resumed_pipeline_state
 
@@ -76,6 +77,63 @@ def test_f1_trial_report_records_target_execution_blockers(tmp_path: Path) -> No
     assert report["next_step"] == "Configure validated hocrsyngen synthetic target batch before public beta readiness"
 
 
+def test_f1_trial_report_blocks_unresolved_benchmark_holdout_leakage(tmp_path: Path) -> None:
+    bundle = load_and_validate_bundle()
+    context = create_run_context(profile_id="profile_open_v1", dry_run=True, workdir=tmp_path)
+    state = PipelineState(
+        benchmark_items=[SimpleNamespace(item_id="fixture:benchmark", source_id="fixture")],
+        benchmark_leakage_policy=BenchmarkLeakagePolicyRecord(policy="fixture policy"),
+        release_ready_items=[
+            SimpleNamespace(
+                dedupe_cluster_id=None,
+                item_id="fixture:benchmark",
+                near_duplicate_cluster_id=None,
+                source_group_id="source-group:fixture",
+                source_id="fixture",
+                split="train",
+            ),
+            SimpleNamespace(
+                dedupe_cluster_id=None,
+                item_id="fixture:holdout",
+                near_duplicate_cluster_id=None,
+                source_group_id="source-group:fixture",
+                source_id="fixture",
+                split="train",
+            ),
+        ],
+        source_health=[
+            {"health_status": "ok", "skip_reason": None, "source_id": "nli_any_use_permitted"},
+            {"health_status": "ok", "skip_reason": None, "source_id": "pinkas_open"},
+            {"health_status": "ok", "skip_reason": None, "source_id": "biblia_open"},
+            {"health_status": "ok", "skip_reason": None, "source_id": "project_synthetic"},
+        ],
+    )
+
+    report = _build_f1_target_scale_trial_report(
+        bundle,
+        context,
+        state,
+        {"active_source_count": 4},
+        {
+            "accepted_count": 0,
+            "benchmark_id": "benchmark_v1",
+            "benchmark_item_count": 1,
+            "blocked_count": 0,
+            "duplicate_removed_count": 0,
+            "release_ready_count": 2,
+            "retained_count": 2,
+            "review_rejected_count": 0,
+            "review_required_count": 0,
+            "split_counts": {"train": 2},
+        },
+        {"duplicate_sources": {}, "rights_classifications": {}, "sources_by_split": {"fixture": {"train": 2}}},
+    )
+
+    assert "benchmark/holdout leakage has 1 unresolved group risk(s)" in report["gate_blockers"]
+    assert report["gate_outcomes"]["benchmark_holdout_leakage"]["status"] == "blocked"
+    assert report["gate_outcomes"]["benchmark_holdout_leakage"]["unresolved_count"] == 1
+
+
 def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> None:
     config_root = tmp_path / "config"
     shutil.copytree(default_config_root(), config_root)
@@ -133,6 +191,7 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     benchmark_reference_versioning = json.loads(
         (run_dir / "build_release" / "benchmark_reference_versioning.json").read_text(encoding="utf-8")
     )
+    benchmark_leakage_risk = json.loads((run_dir / "build_release" / "benchmark_leakage_risk.json").read_text(encoding="utf-8"))
     benchmark_card = (run_dir / "build_release" / "BENCHMARK_CARD.md").read_text(encoding="utf-8")
 
     assert len(normalized_items["items"]) == 5
@@ -151,6 +210,7 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert release_summary["blocked_count"] == 0
     assert release_summary["benchmark_id"] == "benchmark_v1"
     assert release_summary["benchmark_item_count"] == 3
+    assert release_summary["benchmark_holdout_leakage_status"] == "ok"
     assert release_summary["benchmark_references"] == {
         "draft_or_blocked_count": 2,
         "reference_manifest_id": "benchmark_v1_refs_0001",
@@ -264,6 +324,8 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert benchmark_reference_status["counts"]["draft"] == 1
     assert benchmark_reference_status["counts"]["not_available"] == 1
     assert benchmark_reference_versioning["status"] == "ok"
+    assert benchmark_leakage_risk["status"] == "ok"
+    assert benchmark_leakage_risk["accepted_resolution_count"] == 0
     assert "Review Bar" in benchmark_card
     assert "Stability Policy" in benchmark_card
 
