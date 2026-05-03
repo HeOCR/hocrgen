@@ -10,6 +10,7 @@ import yaml
 import hocrgen.source_ops as source_ops
 from hocrgen.cli import main
 from hocrgen.config.loader import default_config_root, load_and_validate_bundle
+from hocrgen.config.models import SourceOperationalStatus
 from hocrgen.core.errors import ConfigValidationError
 from hocrgen.fetchers.biblia import BibliaImporter
 from hocrgen.fetchers.base import StageOptions
@@ -438,6 +439,82 @@ def test_f1_source_depth_counts_only_health_eligible_cached_candidates(tmp_path:
     assert nli["source_skip_reason"] == "source_health_failed"
     assert nli["gap"] == 27
     assert any("Source health is error" in note for note in nli["operator_notes"])
+
+
+def test_f1_source_depth_excludes_non_active_source_operations(tmp_path: Path) -> None:
+    config_root = _copy_config(tmp_path)
+    _update_source_operations(config_root, "nli_any_use_permitted", status="frozen", reason="operator freeze")
+    bundle = load_and_validate_bundle(config_root)
+    source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
+
+    report = evaluate_f1_source_depth_feasibility(bundle, source_health)
+    nli = next(source for source in report["sources"] if source["source_id"] == "nli_any_use_permitted")
+
+    assert nli["observed_candidate_count"] == 7
+    assert nli["runnable_cached_candidate_count"] == 0
+    assert nli["source_skip_reason"] == "source_frozen"
+    assert any("Source is skipped for source_frozen" in note for note in nli["operator_notes"])
+
+
+def test_f1_source_depth_excludes_real_sources_with_missing_cached_assets(tmp_path: Path) -> None:
+    config_root = _copy_config(tmp_path)
+    seed_path = tmp_path / "under_asseted_seed.yaml"
+    fixture_path = tmp_path / "fixture.html"
+    fixture_path.write_text("<html></html>", encoding="utf-8")
+    seed_path.write_text(
+        "items:\n"
+        f"  - id: cached\n    url: https://example.org/cached\n    fixture_html: {fixture_path}\n"
+        "  - id: no-fixture\n    url: https://example.org/no-fixture\n",
+        encoding="utf-8",
+    )
+    _update_source_settings(config_root, "nli_any_use_permitted", {"seed_manifest": str(seed_path)})
+    bundle = load_and_validate_bundle(config_root)
+    source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
+
+    report = evaluate_f1_source_depth_feasibility(bundle, source_health)
+    nli = next(source for source in report["sources"] if source["source_id"] == "nli_any_use_permitted")
+
+    assert nli["observed_candidate_count"] == 2
+    assert nli["asset_count"] == 1
+    assert nli["runnable_cached_candidate_count"] == 0
+    assert any("not have enough validated cached assets" in note for note in nli["operator_notes"])
+
+
+def test_f1_source_depth_excludes_synthetic_source_without_assets() -> None:
+    bundle = load_and_validate_bundle()
+    synthetic_source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    health = {"health_status": "ok", "skip_reason": None}
+
+    count = source_ops._runnable_cached_candidate_count(
+        synthetic_source,
+        health,
+        observed_candidate_count=2,
+        asset_count=0,
+    )
+
+    assert count == 0
+
+
+def test_f1_source_depth_excludes_source_with_non_active_status_even_when_not_skipped() -> None:
+    bundle = load_and_validate_bundle()
+    nli_source = next(source for source in bundle.source_registry.sources if source.id == "nli_any_use_permitted")
+    frozen_nli = nli_source.model_copy(
+        update={
+            "source_operations": nli_source.source_operations.model_copy(
+                update={"operational_status": SourceOperationalStatus.frozen}
+            )
+        }
+    )
+    health = {"health_status": "ok", "skip_reason": None}
+
+    count = source_ops._runnable_cached_candidate_count(
+        frozen_nli,
+        health,
+        observed_candidate_count=7,
+        asset_count=7,
+    )
+
+    assert count == 0
 
 
 def test_f1_source_depth_reports_missing_health_as_not_feasible() -> None:
