@@ -17,7 +17,7 @@ class PinkasImporter:
         candidates: list[CandidateRecord] = []
         selected_count = 0
         for record in records:
-            if record.get("f1_source_depth_only"):
+            if record.get("f1_source_depth_only") is True:
                 continue
             if options.max_items is not None and selected_count >= options.max_items:
                 break

@@ -93,6 +93,7 @@ class SourceDepthFeasibilityResult:
     target_count: int
     observed_candidate_count: int
     runnable_cached_candidate_count: int
+    target_scale_candidate_count: int
     asset_count: int
     exploratory_catalog_count: int
     source_health_status: str
@@ -100,6 +101,7 @@ class SourceDepthFeasibilityResult:
     expansion_path_status: str
     expansion_path_checks: list[dict[str, Any]]
     gap: int
+    target_scale_gap: int
     feasibility_status: str
     operator_notes: list[str]
 
@@ -118,6 +120,8 @@ class SourceDepthFeasibilityResult:
             "source_health_status": self.source_health_status,
             "source_id": self.source_id,
             "source_skip_reason": self.source_skip_reason,
+            "target_scale_candidate_count": self.target_scale_candidate_count,
+            "target_scale_gap": self.target_scale_gap,
             "target_count": self.target_count,
         }
 
@@ -176,16 +180,26 @@ def evaluate_f1_source_depth_feasibility(
         observed_candidate_count = int(health["candidate_count"])
         asset_count = int(health["asset_count"])
         runnable_cached_count = _runnable_cached_candidate_count(source, health, observed_candidate_count, asset_count)
+        target_scale_candidate_count = _target_scale_candidate_count(
+            source=source,
+            bundle=bundle,
+            health=health,
+            expansion_path_status=expansion_path_status,
+            runnable_cached_count=runnable_cached_count,
+        )
         gap = max(target_count - runnable_cached_count, 0)
+        target_scale_gap = max(target_count - target_scale_candidate_count, 0)
         status, notes = _source_depth_status_and_notes(
             source_id=source_id,
             fetcher=source.fetcher,
             target_count=target_count,
             runnable_cached_count=runnable_cached_count,
+            target_scale_candidate_count=target_scale_candidate_count,
             observed_candidate_count=observed_candidate_count,
             asset_count=asset_count,
             exploratory_count=exploratory_count,
             gap=gap,
+            target_scale_gap=target_scale_gap,
             health_status=str(health["health_status"]),
             skip_reason=health.get("skip_reason"),
             expansion_path_status=expansion_path_status,
@@ -197,6 +211,7 @@ def evaluate_f1_source_depth_feasibility(
                 target_count=target_count,
                 observed_candidate_count=observed_candidate_count,
                 runnable_cached_candidate_count=runnable_cached_count,
+                target_scale_candidate_count=target_scale_candidate_count,
                 asset_count=asset_count,
                 exploratory_catalog_count=exploratory_count,
                 source_health_status=str(health["health_status"]),
@@ -204,6 +219,7 @@ def evaluate_f1_source_depth_feasibility(
                 expansion_path_status=expansion_path_status,
                 expansion_path_checks=expansion_path_checks,
                 gap=gap,
+                target_scale_gap=target_scale_gap,
                 feasibility_status=status,
                 operator_notes=notes,
             )
@@ -240,9 +256,11 @@ def source_depth_feasibility_report(
             "real_target_count": sum(source["target_count"] for source in sources if source["source_id"] in real_source_ids),
             "observed_candidate_count": sum(source["observed_candidate_count"] for source in sources),
             "runnable_cached_candidate_count": sum(source["runnable_cached_candidate_count"] for source in sources),
+            "target_scale_candidate_count": sum(source["target_scale_candidate_count"] for source in sources),
             "asset_count": sum(source["asset_count"] for source in sources),
             "exploratory_catalog_count": sum(source["exploratory_catalog_count"] for source in sources),
             "gap": sum(source["gap"] for source in sources),
+            "target_scale_gap": sum(source["target_scale_gap"] for source in sources),
             "not_ready_source_count": len(not_ready),
             "not_ready_sources": [source["source_id"] for source in not_ready],
             "f1c_blocking_source_count": len(f1c_blocking),
@@ -313,6 +331,8 @@ def _source_depth_record(result: SourceDepthFeasibilityResult | dict[str, Any]) 
         return result.model_dump()
     result.setdefault("expansion_path_status", "not_applicable")
     result.setdefault("expansion_path_checks", [])
+    result.setdefault("target_scale_candidate_count", result.get("runnable_cached_candidate_count", 0))
+    result.setdefault("target_scale_gap", result.get("gap", 0))
     return result
 
 
@@ -342,6 +362,7 @@ def _missing_source_depth_result(
         target_count=target_count,
         observed_candidate_count=int(health.get("candidate_count", 0)) if health else 0,
         runnable_cached_candidate_count=0,
+        target_scale_candidate_count=0,
         asset_count=int(health.get("asset_count", 0)) if health else 0,
         exploratory_catalog_count=0,
         source_health_status=str(health.get("health_status", "missing")) if health else "missing",
@@ -349,6 +370,7 @@ def _missing_source_depth_result(
         expansion_path_status="missing",
         expansion_path_checks=[],
         gap=target_count,
+        target_scale_gap=target_count,
         feasibility_status="not_feasible",
         operator_notes=[
             f"Missing required F1 {' and '.join(missing)} for {source_id}.",
@@ -374,6 +396,32 @@ def _runnable_cached_candidate_count(
     return observed_candidate_count
 
 
+def _target_scale_candidate_count(
+    *,
+    source: SourceConfig,
+    bundle: ConfigBundle,
+    health: dict[str, Any],
+    expansion_path_status: str,
+    runnable_cached_count: int,
+) -> int:
+    if health["health_status"] != "ok" or health.get("skip_reason") is not None:
+        return 0
+    if source.source_operations.operational_status != SourceOperationalStatus.active:
+        return 0
+    if source.id in STATIC_EXPANSION_SOURCE_IDS:
+        if expansion_path_status != "ok":
+            return runnable_cached_count
+        records_path = bundle.resolve_path(source.settings.records_path or "")
+        data = load_json_file(records_path)
+        records = data.get("records", []) if isinstance(data, dict) else []
+        return len(records) if isinstance(records, list) else runnable_cached_count
+    if source.fetcher == "synthetic":
+        configured_count = source.settings.extra.get("f1_source_depth_candidate_count")
+        if isinstance(configured_count, int) and configured_count > 0:
+            return configured_count
+    return runnable_cached_count
+
+
 def _source_depth_status_and_notes(
     *,
     source_id: str,
@@ -387,7 +435,13 @@ def _source_depth_status_and_notes(
     health_status: str,
     skip_reason: str | None,
     expansion_path_status: str = "not_applicable",
+    target_scale_candidate_count: int | None = None,
+    target_scale_gap: int | None = None,
 ) -> tuple[str, list[str]]:
+    if target_scale_candidate_count is None:
+        target_scale_candidate_count = runnable_cached_count
+    if target_scale_gap is None:
+        target_scale_gap = gap
     health_notes = []
     if health_status != "ok":
         health_notes.append(f"Source health is {health_status}; observed candidates do not count as runnable/cached depth.")
@@ -399,11 +453,14 @@ def _source_depth_status_and_notes(
         if expansion_path_status == "ok":
             notes = [
                 f"Only {runnable_cached_count} runnable/cached record(s) qualify for a target of {target_count}.",
+                f"{target_scale_candidate_count} packaged source-depth inventory record(s) are validated by source health.",
                 *health_notes,
                 "Source-depth expansion path is defined, fixture-backed, rights-safe, and reviewable.",
-                "F1c remains blocked until enough packaged records and cached assets qualify for the target.",
+                "F1c remains blocked until target-scale operator trial artifacts exercise the packaged inventory through the pipeline gates.",
             ]
-            return ("needs_fixture_expansion" if gap else "feasible", notes)
+            if gap == 0:
+                return "feasible", notes
+            return ("needs_target_scale_trial" if target_scale_gap == 0 else "needs_fixture_expansion", notes)
         return (
             "not_feasible",
             [
@@ -422,11 +479,15 @@ def _source_depth_status_and_notes(
         return ("needs_promotion" if gap else "feasible", notes)
     if fetcher == "synthetic":
         notes = [
-            f"{runnable_cached_count} configured synthetic candidate(s) qualify for a target of {target_count}.",
+            f"{runnable_cached_count} runnable synthetic candidate(s) qualify for a target of {target_count}.",
+            f"{target_scale_candidate_count} synthetic candidate(s) are configured for target-scale operator reporting.",
             *health_notes,
             "Synthetic scale remains bounded by the existing synthetic-cap and quality/reporting gates.",
+            "F1c remains blocked until target-scale operator trial artifacts exercise the configured controls through the pipeline gates.",
         ]
-        return ("needs_configuration" if gap else "feasible", notes)
+        if gap == 0:
+            return "feasible", notes
+        return ("needs_target_scale_trial" if target_scale_gap == 0 else "needs_configuration", notes)
     return (
         "not_feasible" if gap else "feasible",
         [
@@ -501,7 +562,11 @@ def _inspect_records_source(source: SourceConfig, bundle: ConfigBundle) -> tuple
     records_path = bundle.resolve_path(source.settings.records_path or "")
     data = _load_json_checked(checks, "records_path", records_path, bundle)
     records = data.get("records", []) if isinstance(data, dict) else []
-    candidate_count = len(records) if isinstance(records, list) else 0
+    candidate_count = (
+        sum(1 for record in records if not (isinstance(record, dict) and record.get("f1_source_depth_only") is True))
+        if isinstance(records, list)
+        else 0
+    )
     asset_count = 0
     if not isinstance(records, list):
         checks.append(
@@ -524,11 +589,23 @@ def _inspect_records_source(source: SourceConfig, bundle: ConfigBundle) -> tuple
                 }
             )
             continue
+        record_id = str(record.get("id", "record"))
+        if "f1_source_depth_only" in record:
+            checks.append(
+                {
+                    "actual": record.get("f1_source_depth_only"),
+                    "expected": "boolean",
+                    "name": "source_depth_expansion_record_source_depth_only",
+                    "record_id": record_id,
+                    "status": "ok" if isinstance(record.get("f1_source_depth_only"), bool) else "error",
+                }
+            )
         asset_reference = record.get("asset_path")
         if not asset_reference:
             continue
         asset_path = _resolve_source_local_reference(str(asset_reference), records_path, bundle)
-        asset_count += 1
+        if record.get("f1_source_depth_only") is not True:
+            asset_count += 1
         checks.append(_path_check("record_asset", asset_path, bundle))
     checks.extend(_expansion_manifest_checks(source, bundle, records_path=records_path, records=records))
     return checks, candidate_count, asset_count
@@ -798,12 +875,7 @@ def _inspect_synthetic_source(source: SourceConfig, bundle: ConfigBundle) -> tup
                 "message": "fonts must be a list",
             }
         )
-    source_depth_count = source.settings.extra.get("f1_source_depth_candidate_count")
-    if source.settings.synthetic_batch_size is None:
-        candidate_count = 0
-    else:
-        candidate_count = source_depth_count if isinstance(source_depth_count, int) else source.settings.synthetic_batch_size
-    return checks, candidate_count, asset_count
+    return checks, source.settings.synthetic_batch_size or 0, asset_count
 
 
 def _check_expectations(source: SourceConfig, candidate_count: int, asset_count: int) -> list[dict[str, Any]]:
