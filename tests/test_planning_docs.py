@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F1b4"
+CURRENT_COMPLETED_NOTATION = "F1b3"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -42,7 +42,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
 
     assert f"Last completed roadmap action on the current ref: `{CURRENT_COMPLETED_NOTATION}`" in agent_plan
     assert (
-        "next implementation should wait for `F1c` until target-scale inventory is exercised through the pipeline gates"
+        "next implementation should wait for `F1c` until the remaining `F1b4` NLI promotion gap is resolved"
         in agent_plan
     )
     assert f"| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap

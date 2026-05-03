@@ -376,7 +376,7 @@ def test_source_health_summary_accepts_result_models() -> None:
     assert summary["selected_source_count"] == 1
 
 
-def test_f1_source_depth_feasibility_reports_f1b4_nli_promotion_and_remaining_trial_gap() -> None:
+def test_f1_source_depth_feasibility_reports_remaining_nli_gap_after_f1b3_expansion() -> None:
     bundle = load_and_validate_bundle()
     source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
 
@@ -387,22 +387,23 @@ def test_f1_source_depth_feasibility_reports_f1b4_nli_promotion_and_remaining_tr
     assert report["synthetic_target_count"] == 80
     assert report["summary"]["overall_feasibility_status"] == "not_feasible"
     assert report["summary"]["not_ready_sources"] == [
+        "nli_any_use_permitted",
         "pinkas_open",
         "biblia_open",
         "project_synthetic",
     ]
     assert report["summary"]["f1c_blocking_sources"] == report["summary"]["not_ready_sources"]
     assert report["summary"]["not_feasible_sources"] == []
-    assert report["summary"]["target_scale_gap"] == 0
+    assert report["summary"]["target_scale_gap"] == 20
     assert sources["nli_any_use_permitted"]["target_count"] == 27
-    assert sources["nli_any_use_permitted"]["observed_candidate_count"] == 27
-    assert sources["nli_any_use_permitted"]["runnable_cached_candidate_count"] == 27
-    assert sources["nli_any_use_permitted"]["target_scale_candidate_count"] == 27
-    assert sources["nli_any_use_permitted"]["exploratory_catalog_count"] == 0
+    assert sources["nli_any_use_permitted"]["observed_candidate_count"] == 7
+    assert sources["nli_any_use_permitted"]["runnable_cached_candidate_count"] == 7
+    assert sources["nli_any_use_permitted"]["target_scale_candidate_count"] == 7
+    assert sources["nli_any_use_permitted"]["exploratory_catalog_count"] == 20
     assert sources["nli_any_use_permitted"]["source_health_status"] == "ok"
-    assert sources["nli_any_use_permitted"]["gap"] == 0
-    assert sources["nli_any_use_permitted"]["target_scale_gap"] == 0
-    assert sources["nli_any_use_permitted"]["feasibility_status"] == "feasible"
+    assert sources["nli_any_use_permitted"]["gap"] == 20
+    assert sources["nli_any_use_permitted"]["target_scale_gap"] == 20
+    assert sources["nli_any_use_permitted"]["feasibility_status"] == "needs_promotion"
     assert sources["pinkas_open"]["target_count"] == 27
     assert sources["pinkas_open"]["runnable_cached_candidate_count"] == 1
     assert sources["pinkas_open"]["target_scale_candidate_count"] == 27
@@ -424,7 +425,7 @@ def test_f1_source_depth_feasibility_reports_f1b4_nli_promotion_and_remaining_tr
     assert sources["project_synthetic"]["target_scale_gap"] == 0
     assert sources["project_synthetic"]["feasibility_status"] == "needs_target_scale_trial"
     assert report["summary"]["warnings"] == [
-        "F1 source-depth feasibility is not met for: pinkas_open, biblia_open, project_synthetic."
+        "F1 source-depth feasibility is not met for: nli_any_use_permitted, pinkas_open, biblia_open, project_synthetic."
     ]
     assert "public beta export" in report["non_goals"]
 
@@ -624,7 +625,7 @@ def test_f1_source_depth_excludes_non_active_source_operations(tmp_path: Path) -
     report = evaluate_f1_source_depth_feasibility(bundle, source_health)
     nli = next(source for source in report["sources"] if source["source_id"] == "nli_any_use_permitted")
 
-    assert nli["observed_candidate_count"] == 27
+    assert nli["observed_candidate_count"] == 7
     assert nli["runnable_cached_candidate_count"] == 0
     assert nli["source_skip_reason"] == "source_frozen"
     assert any("Source is skipped for source_frozen" in note for note in nli["operator_notes"])
