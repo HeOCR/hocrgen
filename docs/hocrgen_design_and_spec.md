@@ -1350,6 +1350,13 @@ The item schema should be additive-friendly for future fields like:
 
 Current annotation pilots are intentionally config-driven and additive. A pilot config may name a tiny set of release-ready or benchmark-selected items and planned release-relative target files such as `annotations/<source_id>/<source_item_id>/transcription.json`, but it must not make annotation files mandatory for current public releases. Build outputs should keep the broad `annotation_manifest.json` separate from any `annotation_pilot_manifest.json` so future label work can be scoped, audited, and exported without weakening release eligibility, benchmark stability, privacy, review, split, or portability gates.
 
+### 28.5 Benchmark references
+Benchmark ground-truth references are a benchmark-specific layer, not a general release eligibility requirement. A `benchmark_reference_manifest.v1` may link selected benchmark items to `benchmark_transcription_reference.v1` and `benchmark_layout_reference.v1` files, but current public and alpha exports must continue to work when references are missing or draft.
+
+Runtime ingestion should validate only portable release-relative reference paths, reject absolute paths, `file://` paths, `.work` paths, backslashes, and traversal, and check item/source/split linkage against the selected benchmark manifest. Layout references must also carry asset checksum, width, and height so stale labels are detected when normalized assets change. Adjudication/status output should keep `not_available`, `draft`, `reviewed`, `adjudicated`, `corrected`, and `retired` states explicit, and versioning gates should require coherent `correction_of` / `superseded_by` relationships plus `change_reason` for corrected or retired references.
+
+This benchmark-reference layer must not relax rights, privacy, review, dedupe, split, synthetic-cap, benchmark membership, or export-portability gates. It also does not resolve benchmark/holdout leakage risks surfaced by split hardening.
+
 ---
 
 ## 29. Recommended initial milestones for implementation

@@ -7,6 +7,7 @@ from typing import Sequence
 
 from hocrgen.annotation_pilots import load_annotation_pilot_config
 from hocrgen.benchmark import load_benchmark_config
+from hocrgen.benchmark_references import load_benchmark_reference_manifest
 from hocrgen.config.loader import ConfigBundle, load_and_validate_bundle
 from hocrgen.core.context import create_run_context
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
@@ -199,6 +200,7 @@ def handle_config_validate(args: argparse.Namespace) -> int:
     try:
         bundle = _load_bundle(args.config_root)
         benchmark_config = load_benchmark_config(bundle.config_root)
+        benchmark_reference_manifest, benchmark_reference_manifest_path = load_benchmark_reference_manifest(bundle.config_root)
         annotation_pilot_config = load_annotation_pilot_config(bundle.config_root)
         review_data = validate_review_data(bundle.config_root, args.config_root.resolve() if args.config_root else None)
     except ConfigValidationError as exc:
@@ -214,6 +216,13 @@ def handle_config_validate(args: argparse.Namespace) -> int:
                 "approved_item_count": len(benchmark_config.approved_items),
                 "benchmark_id": benchmark_config.benchmark_id,
                 "version": benchmark_config.version,
+            },
+            "benchmark_references": {
+                "item_count": len(benchmark_reference_manifest.items) if benchmark_reference_manifest else 0,
+                "reference_manifest_id": (
+                    benchmark_reference_manifest.reference_manifest_id if benchmark_reference_manifest else None
+                ),
+                "path": str(benchmark_reference_manifest_path) if benchmark_reference_manifest_path else None,
             },
             "annotation_pilot": {
                 "approved_item_count": len(annotation_pilot_config.approved_items),

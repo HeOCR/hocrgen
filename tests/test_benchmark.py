@@ -14,11 +14,15 @@ from hocrgen.benchmark import (
     resolve_benchmark_data_root,
     select_benchmark_items,
 )
+from hocrgen.benchmark_references import ingest_benchmark_references, load_benchmark_reference_manifest
 from hocrgen.config.loader import default_config_root
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.manifests.models import (
     AnnotationPilotApprovedItemRecord,
+    BenchmarkLayoutReferenceRecord,
     BenchmarkConfigRecord,
+    BenchmarkReferenceFileReference,
+    BenchmarkReferenceManifestRecord,
     BenchmarkItemRecord,
     NormalizedAssetRecord,
     PrivacyScannedItemRecord,
@@ -80,6 +84,165 @@ def test_packaged_benchmark_config_resource_is_included() -> None:
     payload = json.loads(resource.read_text(encoding="utf-8"))
     assert payload["benchmark_id"] == "benchmark_v1"
     assert len(payload["approved_items"]) == 3
+
+
+def test_load_packaged_benchmark_reference_manifest() -> None:
+    manifest, path = load_benchmark_reference_manifest(default_config_root())
+
+    assert path is not None
+    assert manifest is not None
+    assert manifest.reference_manifest_id == "benchmark_v1_refs_0001"
+    assert {item.item_id for item in manifest.items} == {
+        "nli_any_use_permitted:nli-ms-seed-006",
+        "pinkas_open:pinkas-ledger-001",
+        "project_synthetic:synthetic-0",
+    }
+
+
+@pytest.mark.parametrize(
+    "path",
+    [
+        "/tmp/reference.json",
+        "file:///tmp/reference.json",
+        ".work/reference.json",
+        "references/../../private.json",
+        r"references\item.json",
+    ],
+)
+def test_benchmark_reference_paths_reject_nonportable_values(path: str) -> None:
+    with pytest.raises(ValueError, match="release-relative and portable"):
+        BenchmarkReferenceFileReference(
+            path=path,
+            schema_version="benchmark_transcription_reference.v1",
+        )
+
+
+def test_benchmark_layout_reference_rejects_bad_asset_path() -> None:
+    payload = _layout_reference_payload()
+    payload["assets"][0]["path"] = "file:///tmp/page.jpg"
+
+    with pytest.raises(ValueError, match="release-relative and portable"):
+        BenchmarkLayoutReferenceRecord.model_validate(payload)
+
+
+def test_ingest_benchmark_references_validates_packaged_fixture(tmp_path: Path) -> None:
+    nli_item = _benchmark_item(tmp_path, split="train")
+    pinkas_item = _benchmark_item(tmp_path, split="train").model_copy(
+        update={
+            "item_id": "pinkas_open:pinkas-ledger-001",
+            "candidate_id": "pinkas_open:pinkas-ledger-001",
+            "source_id": "pinkas_open",
+            "source_item_id": "pinkas-ledger-001",
+            "source_url": "https://example.org/pinkas-ledger-001",
+        }
+    )
+    synthetic_item = _benchmark_item(tmp_path, split="train").model_copy(
+        update={
+            "item_id": "project_synthetic:synthetic-0",
+            "candidate_id": "project_synthetic:synthetic-0",
+            "source_id": "project_synthetic",
+            "source_item_id": "synthetic-0",
+            "source_url": "https://example.org/synthetic-0",
+            "is_synthetic": True,
+        }
+    )
+    nli_item = nli_item.model_copy(
+        update={
+            "normalized_assets": [
+                nli_item.normalized_assets[0].model_copy(
+                    update={
+                        "sha256": "9472983324fa55a471d7b5c4245e187cf9147bd6daa74ec6878e253661dac77d",
+                        "width": 3800,
+                        "height": 4888,
+                    }
+                )
+            ]
+        }
+    )
+    outputs = ingest_benchmark_references(
+        config_root=default_config_root(),
+        benchmark_items=[
+            _benchmark_manifest_item(nli_item),
+            _benchmark_manifest_item(pinkas_item),
+            _benchmark_manifest_item(synthetic_item),
+        ],
+        release_ready_items=[nli_item, pinkas_item, synthetic_item],
+    )
+
+    assert outputs.manifest is not None
+    assert outputs.status_artifact.counts["reference_ready"] == 1
+    assert outputs.status_artifact.counts["draft"] == 1
+    assert outputs.status_artifact.counts["not_available"] == 1
+    assert outputs.versioning_report["status"] == "ok"
+
+
+def test_ingest_benchmark_references_rejects_layout_asset_mismatch(tmp_path: Path) -> None:
+    nli_item = _benchmark_item(tmp_path, split="train")
+    pinkas_item = _benchmark_item(tmp_path, split="train").model_copy(
+        update={
+            "item_id": "pinkas_open:pinkas-ledger-001",
+            "candidate_id": "pinkas_open:pinkas-ledger-001",
+            "source_id": "pinkas_open",
+            "source_item_id": "pinkas-ledger-001",
+            "source_url": "https://example.org/pinkas-ledger-001",
+        }
+    )
+    synthetic_item = _benchmark_item(tmp_path, split="train").model_copy(
+        update={
+            "item_id": "project_synthetic:synthetic-0",
+            "candidate_id": "project_synthetic:synthetic-0",
+            "source_id": "project_synthetic",
+            "source_item_id": "synthetic-0",
+            "source_url": "https://example.org/synthetic-0",
+            "is_synthetic": True,
+        }
+    )
+
+    with pytest.raises(StageExecutionError, match="sha256/dimensions do not match"):
+        ingest_benchmark_references(
+            config_root=default_config_root(),
+            benchmark_items=[
+                _benchmark_manifest_item(nli_item),
+                _benchmark_manifest_item(pinkas_item),
+                _benchmark_manifest_item(synthetic_item),
+            ],
+            release_ready_items=[nli_item, pinkas_item, synthetic_item],
+        )
+
+
+def test_benchmark_reference_manifest_rejects_bad_versioning() -> None:
+    payload = {
+        "schema_version": "benchmark_reference_manifest.v1",
+        "benchmark_id": "benchmark_v1",
+        "reference_manifest_id": "fixture_refs",
+        "reference_contracts": {
+            "transcription": "benchmark_transcription_reference.v1",
+            "layout": "benchmark_layout_reference.v1",
+        },
+        "items": [
+            {
+                "item_id": "fixture:item-001",
+                "source_id": "fixture",
+                "source_item_id": "item-001",
+                "benchmark_split": "train",
+                "visibility": "public",
+                "public_reference_status": "corrected",
+                "transcription_reference": {
+                    "path": "references/benchmark_v1/fixture/transcription.json",
+                    "schema_version": "benchmark_transcription_reference.v1",
+                },
+                "layout_label_references": [],
+                "reviewers": [],
+                "adjudication_status": "adjudicated",
+                "correction_of": "fixture:item-000",
+                "superseded_by": None,
+                "change_reason": None,
+            }
+        ],
+    }
+
+    with pytest.raises(ValueError, match="requires change_reason"):
+        BenchmarkReferenceManifestRecord.model_validate(payload)
 
 
 def test_load_benchmark_config_rejects_duplicate_approved_items(tmp_path: Path) -> None:
@@ -306,6 +469,37 @@ def _benchmark_manifest_item(item: PrivacyScannedItemRecord) -> BenchmarkItemRec
         rights_classification=item.rights_classification,
         rationale="fixture benchmark item",
     )
+
+
+def _layout_reference_payload() -> dict:
+    return {
+        "schema_version": "benchmark_layout_reference.v1",
+        "item_id": "fixture:item-001",
+        "source_id": "fixture",
+        "source_item_id": "item-001",
+        "coordinate_system": {
+            "units": "px",
+            "origin": "top_left",
+            "x_axis": "right",
+            "y_axis": "down",
+        },
+        "assets": [
+            {
+                "asset_id": "page-1-image",
+                "page_id": "page-1",
+                "path": "data/train/fixture:item-001/page-1.jpg",
+                "sha256": "abc123",
+                "width": 100,
+                "height": 200,
+            }
+        ],
+        "regions": [],
+        "lines": [],
+        "review": {
+            "status": "in_review",
+            "reviewers": ["fixture-reviewer"],
+        },
+    }
 
 
 def _benchmark_item(tmp_path: Path, *, split: str | None) -> PrivacyScannedItemRecord:

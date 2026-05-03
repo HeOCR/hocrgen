@@ -9,6 +9,7 @@ from typing import Any
 from hocrgen.annotation_pilots import load_annotation_pilot_config, select_annotation_pilot_items
 from hocrgen.annotations import build_annotation_manifest
 from hocrgen.benchmark import load_benchmark_config, select_benchmark_items
+from hocrgen.benchmark_references import ingest_benchmark_references
 from hocrgen.classify.heuristics import classify_items
 from hocrgen.config.loader import ConfigBundle
 from hocrgen.config.models import LicenseEntry, SourceConfig
@@ -27,6 +28,8 @@ from hocrgen.manifests.models import (
     AnnotationPilotManifestRecord,
     AnnotationPilotSelectionAuditRecord,
     BenchmarkItemRecord,
+    BenchmarkReferenceManifestRecord,
+    BenchmarkReferenceStatusArtifactRecord,
     BenchmarkSelectionAuditRecord,
     CandidateRecord,
     ClassifiedItemRecord,
@@ -130,6 +133,9 @@ class PipelineState:
     benchmark_selection_audit: list[BenchmarkSelectionAuditRecord] = field(default_factory=list)
     benchmark_stability_policy: dict[str, Any] = field(default_factory=dict)
     benchmark_card_markdown: str = ""
+    benchmark_reference_manifest: BenchmarkReferenceManifestRecord | None = None
+    benchmark_reference_status: BenchmarkReferenceStatusArtifactRecord | None = None
+    benchmark_reference_versioning: dict[str, Any] = field(default_factory=dict)
     annotation_pilot_manifest: AnnotationPilotManifestRecord | None = None
     annotation_pilot_selection_audit: list[AnnotationPilotSelectionAuditRecord] = field(default_factory=list)
 
@@ -167,6 +173,9 @@ def empty_pipeline_state() -> PipelineState:
         benchmark_selection_audit=[],
         benchmark_stability_policy={},
         benchmark_card_markdown="",
+        benchmark_reference_manifest=None,
+        benchmark_reference_status=None,
+        benchmark_reference_versioning={},
         annotation_pilot_manifest=None,
         annotation_pilot_selection_audit=[],
     )
@@ -942,6 +951,9 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     benchmark_selection_audit_path = stage_dir / "benchmark_selection_audit.json"
     benchmark_stability_policy_path = stage_dir / "benchmark_stability_policy.json"
     benchmark_card_path = stage_dir / "BENCHMARK_CARD.md"
+    benchmark_reference_manifest_path = stage_dir / "benchmark_reference_manifest.json"
+    benchmark_reference_status_path = stage_dir / "benchmark_reference_status.json"
+    benchmark_reference_versioning_path = stage_dir / "benchmark_reference_versioning.json"
     annotation_pilot_manifest_path = stage_dir / "annotation_pilot_manifest.json"
     annotation_pilot_selection_audit_path = stage_dir / "annotation_pilot_selection_audit.json"
     benchmark_leakage_risk_path = stage_dir / "benchmark_leakage_risk.json"
@@ -989,6 +1001,15 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     state.benchmark_selection_audit = benchmark_outputs.audit
     state.benchmark_stability_policy = benchmark_outputs.stability_policy
     state.benchmark_card_markdown = benchmark_outputs.card_markdown
+    benchmark_reference_outputs = ingest_benchmark_references(
+        config_root=bundle.config_root,
+        benchmark_items=state.benchmark_items,
+        release_ready_items=state.release_ready_items,
+        benchmark_id=benchmark_outputs.config.benchmark_id,
+    )
+    state.benchmark_reference_manifest = benchmark_reference_outputs.manifest
+    state.benchmark_reference_status = benchmark_reference_outputs.status_artifact
+    state.benchmark_reference_versioning = benchmark_reference_outputs.versioning_report
     try:
         annotation_pilot_config = load_annotation_pilot_config(bundle.config_root)
     except ConfigValidationError as exc:
@@ -1036,6 +1057,23 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     write_json(benchmark_stability_policy_path, state.benchmark_stability_policy)
     write_json(benchmark_leakage_risk_path, benchmark_leakage_risk)
     benchmark_card_path.write_text(state.benchmark_card_markdown, encoding="utf-8")
+    write_json(
+        benchmark_reference_manifest_path,
+        state.benchmark_reference_manifest.model_dump(mode="json")
+        if state.benchmark_reference_manifest is not None
+        else {
+            "benchmark_id": benchmark_outputs.config.benchmark_id,
+            "items": [],
+            "reference_contracts": {
+                "transcription": "benchmark_transcription_reference.v1",
+                "layout": "benchmark_layout_reference.v1",
+            },
+            "reference_manifest_id": None,
+            "schema_version": "benchmark_reference_manifest.v1",
+        },
+    )
+    write_json(benchmark_reference_status_path, state.benchmark_reference_status.model_dump(mode="json"))
+    write_json(benchmark_reference_versioning_path, state.benchmark_reference_versioning)
     write_json(annotation_pilot_manifest_path, state.annotation_pilot_manifest.model_dump(mode="json"))
     write_json(annotation_pilot_selection_audit_path, {"items": _dump_models(state.annotation_pilot_selection_audit)})
     source_stats = {
@@ -1088,6 +1126,16 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         "benchmark_id": benchmark_outputs.config.benchmark_id,
         "benchmark_item_count": len(state.benchmark_items),
         "benchmark_holdout_leakage_status": benchmark_leakage_risk["status"],
+        "benchmark_references": {
+            "reference_manifest_id": (
+                state.benchmark_reference_manifest.reference_manifest_id
+                if state.benchmark_reference_manifest is not None
+                else None
+            ),
+            "reference_ready_count": state.benchmark_reference_status.counts.get("reference_ready", 0),
+            "draft_or_blocked_count": state.benchmark_reference_status.counts.get("blocked_or_draft", 0),
+            "versioning_status": state.benchmark_reference_versioning.get("status", "unknown"),
+        },
         "annotation_pilot": {
             "pilot_id": annotation_pilot_outputs.config.pilot_id,
             "pilot_item_count": annotation_pilot_outputs.manifest.pilot_item_count,
@@ -1121,6 +1169,9 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         benchmark_manifest_path,
         benchmark_selection_audit_path,
         benchmark_stability_policy_path,
+        benchmark_reference_manifest_path,
+        benchmark_reference_status_path,
+        benchmark_reference_versioning_path,
         benchmark_leakage_risk_path,
         benchmark_card_path,
         annotation_pilot_manifest_path,
@@ -1148,6 +1199,9 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             "benchmark_leakage_risk": str(benchmark_leakage_risk_path.relative_to(context.run_dir)),
             "benchmark_selection_audit": str(benchmark_selection_audit_path.relative_to(context.run_dir)),
             "benchmark_stability_policy": str(benchmark_stability_policy_path.relative_to(context.run_dir)),
+            "benchmark_reference_manifest": str(benchmark_reference_manifest_path.relative_to(context.run_dir)),
+            "benchmark_reference_status": str(benchmark_reference_status_path.relative_to(context.run_dir)),
+            "benchmark_reference_versioning": str(benchmark_reference_versioning_path.relative_to(context.run_dir)),
             "annotation_pilot_manifest": str(annotation_pilot_manifest_path.relative_to(context.run_dir)),
             "annotation_pilot_selection_audit": str(annotation_pilot_selection_audit_path.relative_to(context.run_dir)),
             "classification_stats": str(classification_stats_path.relative_to(context.run_dir)),

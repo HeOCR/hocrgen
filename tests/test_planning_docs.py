@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F2a"
+CURRENT_COMPLETED_NOTATION = "F2b"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -41,7 +41,8 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
 
     assert f"Last completed roadmap action on the current ref: `{CURRENT_COMPLETED_NOTATION}`" in agent_plan
-    assert "next planned critical-path implementation should move to `F2b` benchmark-reference ingestion" in agent_plan
+    assert "`F2b` benchmark-reference ingestion is implemented on the current ref" in agent_plan
+    assert "next planned critical-path implementation should move to `F3` modern handwritten acquisition" in agent_plan
     assert f"| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert f"| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
@@ -284,7 +285,7 @@ def test_e4a_governance_docs_keep_multi_release_controls_visible() -> None:
     assert "breaking serialized schema changes require a new schema version or schema id" in release_governance.casefold()
 
 
-def test_f2a_benchmark_ground_truth_guidelines_keep_scope_visible() -> None:
+def test_f2_benchmark_ground_truth_references_keep_scope_visible() -> None:
     guidelines = Path("docs/benchmark_ground_truth_guidelines.md").read_text(encoding="utf-8")
     readme = Path("README.md").read_text(encoding="utf-8")
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
@@ -309,7 +310,10 @@ def test_f2a_benchmark_ground_truth_guidelines_keep_scope_visible() -> None:
         "public_reference_status",
         "private_adjudication",
         "hidden_reference",
-        "F2b remains planned",
+        "F2b implements",
+        "benchmark_reference_status.json",
+        "benchmark_reference_versioning.json",
+        "F1d benchmark/holdout leakage risk",
     ]:
         assert required in combined
 
@@ -354,3 +358,12 @@ def test_f2a_benchmark_ground_truth_guidelines_keep_scope_visible() -> None:
         "\"page_ids\": [\"page-1\"]",
     ]:
         assert required in guidelines
+
+    for required in [
+        "rejects non-portable absolute",
+        "checks benchmark item/source/split linkage",
+        "verifies layout asset checksum/dimension linkage",
+        "does not make references mandatory",
+        "does not change `benchmark_v1` membership",
+    ]:
+        assert required in combined

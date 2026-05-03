@@ -498,3 +498,306 @@ class BenchmarkSelectionAuditRecord(ManifestModel):
     outcome: Literal["selected"]
     reason: str
     review_bar: str
+
+
+ReferenceStatus = Literal["not_available", "draft", "reviewed", "adjudicated", "corrected", "retired"]
+ReferenceVisibility = Literal["public", "private_adjudication", "hidden_reference"]
+ReferenceAdjudicationStatus = Literal["not_started", "in_review", "needs_adjudication", "adjudicated", "blocked"]
+ReferenceReviewStatus = Literal["draft", "in_review", "reviewed", "adjudicated", "blocked", "corrected", "retired"]
+ReferenceFlag = Literal[
+    "uncertain",
+    "illegible",
+    "damaged",
+    "deleted",
+    "marginal",
+    "partial",
+    "estimated",
+    "overlap",
+    "needs_adjudication",
+]
+
+
+class BenchmarkReferenceFileReference(ManifestModel):
+    path: str
+    schema_version: Literal["benchmark_transcription_reference.v1", "benchmark_layout_reference.v1"]
+    sha256: str | None = None
+
+    @field_validator("path")
+    @classmethod
+    def validate_portable_path(cls, path: str) -> str:
+        return validate_release_relative_manifest_path(path, field_label="benchmark reference")
+
+
+class BenchmarkLayoutReferenceFileReference(BenchmarkReferenceFileReference):
+    schema_version: Literal["benchmark_layout_reference.v1"] = "benchmark_layout_reference.v1"
+    page_ids: list[str] = Field(default_factory=list)
+
+
+class BenchmarkReferenceManifestItemRecord(ManifestModel):
+    item_id: str
+    source_id: str
+    source_item_id: str
+    benchmark_split: Literal["train", "validation", "test"] | None = None
+    visibility: ReferenceVisibility
+    public_reference_status: ReferenceStatus
+    transcription_reference: BenchmarkReferenceFileReference | None = None
+    layout_label_references: list[BenchmarkLayoutReferenceFileReference] = Field(default_factory=list)
+    reviewers: list[str] = Field(default_factory=list)
+    adjudication_status: ReferenceAdjudicationStatus
+    correction_of: str | None = None
+    superseded_by: str | None = None
+    change_reason: str | None = None
+
+    @model_validator(mode="after")
+    def validate_reference_status(self) -> "BenchmarkReferenceManifestItemRecord":
+        has_reference = self.transcription_reference is not None or bool(self.layout_label_references)
+        if self.public_reference_status == "not_available" and has_reference:
+            raise ValueError(f"benchmark reference item {self.item_id} is not_available but includes reference files")
+        if self.public_reference_status in {"reviewed", "adjudicated", "corrected"} and not has_reference:
+            raise ValueError(f"benchmark reference item {self.item_id} status requires at least one reference file")
+        if self.public_reference_status in {"corrected", "retired"} and not self.change_reason:
+            raise ValueError(f"benchmark reference item {self.item_id} {self.public_reference_status} requires change_reason")
+        if self.public_reference_status == "corrected" and not self.correction_of:
+            raise ValueError(f"benchmark reference item {self.item_id} corrected requires correction_of")
+        if self.correction_of and self.superseded_by:
+            raise ValueError(f"benchmark reference item {self.item_id} cannot set both correction_of and superseded_by")
+        return self
+
+
+class BenchmarkReferenceContractsRecord(ManifestModel):
+    transcription: Literal["benchmark_transcription_reference.v1"]
+    layout: Literal["benchmark_layout_reference.v1"]
+
+
+class BenchmarkReferenceManifestRecord(ManifestModel):
+    schema_version: Literal["benchmark_reference_manifest.v1"]
+    benchmark_id: str
+    reference_manifest_id: str | None
+    release_id: str | None = None
+    reference_contracts: BenchmarkReferenceContractsRecord
+    items: list[BenchmarkReferenceManifestItemRecord] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_item_ids(self) -> "BenchmarkReferenceManifestRecord":
+        seen: set[str] = set()
+        duplicates: set[str] = set()
+        for item in self.items:
+            if item.item_id in seen:
+                duplicates.add(item.item_id)
+            seen.add(item.item_id)
+        if duplicates:
+            joined = ", ".join(sorted(duplicates))
+            raise ValueError(f"duplicate benchmark reference item ids: {joined}")
+        return self
+
+
+class ReferenceNormalizationRecord(ManifestModel):
+    unicode: Literal["NFC"]
+    text_order: Literal["logical"]
+
+
+class ReferenceLanguageScriptRecord(ManifestModel):
+    language: str
+    script: str
+    direction: Literal["rtl", "ltr", "mixed"]
+
+
+class BenchmarkTranscriptionPageRecord(ManifestModel):
+    page_id: str
+    reading_order: int = Field(ge=1)
+    text: str | None = None
+
+
+class BenchmarkTranscriptionLineRecord(ManifestModel):
+    line_id: str
+    page_id: str
+    reading_order: int = Field(ge=1)
+    text: str
+    layout_line_id: str | None = None
+
+
+class BenchmarkTranscriptionSpanRecord(ManifestModel):
+    span_id: str
+    line_id: str
+    start: int = Field(ge=0)
+    end: int = Field(ge=0)
+    status: ReferenceFlag
+    scoring: str
+    note: str | None = None
+
+    @model_validator(mode="after")
+    def validate_offsets(self) -> "BenchmarkTranscriptionSpanRecord":
+        if self.end < self.start:
+            raise ValueError(f"span {self.span_id} end must be greater than or equal to start")
+        return self
+
+
+class BenchmarkReferenceReviewRecord(ManifestModel):
+    status: ReferenceReviewStatus
+    reviewers: list[str] = Field(default_factory=list)
+    adjudicator: str | None = None
+    adjudicated_at: str | None = None
+    correction_of: str | None = None
+    superseded_by: str | None = None
+    change_reason: str | None = None
+
+
+class BenchmarkTranscriptionReferenceRecord(ManifestModel):
+    schema_version: Literal["benchmark_transcription_reference.v1"]
+    item_id: str
+    source_id: str
+    source_item_id: str
+    normalization: ReferenceNormalizationRecord
+    language_scripts: list[ReferenceLanguageScriptRecord] = Field(min_length=1)
+    scoring_policy: dict[Literal["uncertain", "illegible", "damaged", "deleted", "marginal"], str]
+    pages: list[BenchmarkTranscriptionPageRecord] = Field(min_length=1)
+    lines: list[BenchmarkTranscriptionLineRecord] = Field(default_factory=list)
+    spans: list[BenchmarkTranscriptionSpanRecord] = Field(default_factory=list)
+    review: BenchmarkReferenceReviewRecord
+
+    @model_validator(mode="after")
+    def validate_links_and_offsets(self) -> "BenchmarkTranscriptionReferenceRecord":
+        page_ids = {page.page_id for page in self.pages}
+        line_ids: set[str] = set()
+        line_text_by_id: dict[str, str] = {}
+        for line in self.lines:
+            if line.page_id not in page_ids:
+                raise ValueError(f"transcription line {line.line_id} references unknown page_id {line.page_id}")
+            if line.line_id in line_ids:
+                raise ValueError(f"duplicate transcription line id: {line.line_id}")
+            line_ids.add(line.line_id)
+            line_text_by_id[line.line_id] = line.text
+        for span in self.spans:
+            if span.line_id not in line_ids:
+                raise ValueError(f"span {span.span_id} references unknown line_id {span.line_id}")
+            if span.end > len(line_text_by_id[span.line_id]):
+                raise ValueError(f"span {span.span_id} offsets exceed line text length")
+        return self
+
+
+class BenchmarkCoordinateSystemRecord(ManifestModel):
+    units: Literal["px"]
+    origin: Literal["top_left"]
+    x_axis: Literal["right"]
+    y_axis: Literal["down"]
+
+
+class BenchmarkLayoutAssetRecord(ManifestModel):
+    asset_id: str
+    page_id: str
+    path: str
+    sha256: str
+    width: int = Field(gt=0)
+    height: int = Field(gt=0)
+
+    @field_validator("path")
+    @classmethod
+    def validate_portable_path(cls, path: str) -> str:
+        return validate_release_relative_manifest_path(path, field_label="benchmark layout asset")
+
+
+class BenchmarkBBoxRecord(ManifestModel):
+    x: float = Field(ge=0)
+    y: float = Field(ge=0)
+    width: float = Field(gt=0)
+    height: float = Field(gt=0)
+
+
+class BenchmarkPointRecord(ManifestModel):
+    x: float = Field(ge=0)
+    y: float = Field(ge=0)
+
+
+class BenchmarkGeometryRecord(ManifestModel):
+    type: Literal["bbox", "polygon", "baseline", "bbox_polygon", "bbox_baseline", "polygon_baseline"]
+    bbox: BenchmarkBBoxRecord | None = None
+    polygon: list[BenchmarkPointRecord] = Field(default_factory=list)
+    baseline: list[BenchmarkPointRecord] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_declared_geometry(self) -> "BenchmarkGeometryRecord":
+        if "bbox" in self.type and self.bbox is None:
+            raise ValueError(f"geometry type {self.type} requires bbox")
+        if "polygon" in self.type and len(self.polygon) < 3:
+            raise ValueError(f"geometry type {self.type} requires at least three polygon points")
+        if "baseline" in self.type and len(self.baseline) < 2:
+            raise ValueError(f"geometry type {self.type} requires at least two baseline points")
+        return self
+
+
+class BenchmarkLayoutRegionRecord(ManifestModel):
+    region_id: str
+    page_id: str
+    label: str
+    reading_order: int = Field(ge=1)
+    geometry: BenchmarkGeometryRecord
+    flags: list[ReferenceFlag] = Field(default_factory=list)
+
+
+class BenchmarkLayoutLineRecord(ManifestModel):
+    line_id: str
+    page_id: str
+    region_id: str | None = None
+    reading_order: int = Field(ge=1)
+    geometry: BenchmarkGeometryRecord
+    transcription_line_id: str | None = None
+    flags: list[ReferenceFlag] = Field(default_factory=list)
+
+
+class BenchmarkLayoutReferenceRecord(ManifestModel):
+    schema_version: Literal["benchmark_layout_reference.v1"]
+    item_id: str
+    source_id: str
+    source_item_id: str
+    coordinate_system: BenchmarkCoordinateSystemRecord
+    assets: list[BenchmarkLayoutAssetRecord] = Field(min_length=1)
+    regions: list[BenchmarkLayoutRegionRecord] = Field(default_factory=list)
+    lines: list[BenchmarkLayoutLineRecord] = Field(default_factory=list)
+    words: list[dict[str, Any]] = Field(default_factory=list)
+    references: list[dict[str, Any]] = Field(default_factory=list)
+    review: BenchmarkReferenceReviewRecord
+
+    @model_validator(mode="after")
+    def validate_links(self) -> "BenchmarkLayoutReferenceRecord":
+        page_ids = {asset.page_id for asset in self.assets}
+        region_ids: set[str] = set()
+        for region in self.regions:
+            if region.page_id not in page_ids:
+                raise ValueError(f"layout region {region.region_id} references unknown page_id {region.page_id}")
+            if region.region_id in region_ids:
+                raise ValueError(f"duplicate layout region id: {region.region_id}")
+            region_ids.add(region.region_id)
+        line_ids: set[str] = set()
+        for line in self.lines:
+            if line.page_id not in page_ids:
+                raise ValueError(f"layout line {line.line_id} references unknown page_id {line.page_id}")
+            if line.region_id is not None and line.region_id not in region_ids:
+                raise ValueError(f"layout line {line.line_id} references unknown region_id {line.region_id}")
+            if line.line_id in line_ids:
+                raise ValueError(f"duplicate layout line id: {line.line_id}")
+            line_ids.add(line.line_id)
+        return self
+
+
+class BenchmarkReferenceStatusItemRecord(ManifestModel):
+    item_id: str
+    source_id: str
+    source_item_id: str
+    benchmark_split: Literal["train", "validation", "test"]
+    visibility: ReferenceVisibility | None = None
+    public_reference_status: ReferenceStatus
+    adjudication_status: ReferenceAdjudicationStatus
+    has_transcription_reference: bool
+    layout_reference_count: int
+    reviewer_count: int
+    correction_of: str | None = None
+    superseded_by: str | None = None
+    change_reason: str | None = None
+
+
+class BenchmarkReferenceStatusArtifactRecord(ManifestModel):
+    benchmark_id: str
+    reference_manifest_id: str | None = None
+    counts: dict[str, int] = Field(default_factory=dict)
+    items: list[BenchmarkReferenceStatusItemRecord] = Field(default_factory=list)
+    schema_version: Literal[1] = 1

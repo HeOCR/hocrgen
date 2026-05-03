@@ -1,0 +1,49 @@
+{
+  "schema_version": "benchmark_transcription_reference.v1",
+  "item_id": "pinkas_open:pinkas-ledger-001",
+  "source_id": "pinkas_open",
+  "source_item_id": "pinkas-ledger-001",
+  "normalization": {
+    "unicode": "NFC",
+    "text_order": "logical"
+  },
+  "language_scripts": [
+    {
+      "language": "he",
+      "script": "Hebr",
+      "direction": "rtl"
+    }
+  ],
+  "scoring_policy": {
+    "uncertain": "include_primary_and_report",
+    "illegible": "exclude_primary",
+    "damaged": "include_readable_and_report",
+    "deleted": "exclude_primary",
+    "marginal": "include_when_ordered_else_separate"
+  },
+  "pages": [
+    {
+      "page_id": "page-1",
+      "reading_order": 1
+    }
+  ],
+  "lines": [
+    {
+      "line_id": "line-1",
+      "page_id": "page-1",
+      "reading_order": 1,
+      "text": "פנקס",
+      "layout_line_id": null
+    }
+  ],
+  "spans": [],
+  "review": {
+    "status": "in_review",
+    "reviewers": ["fixture-reviewer"],
+    "adjudicator": null,
+    "adjudicated_at": null,
+    "correction_of": null,
+    "superseded_by": null,
+    "change_reason": "draft fixture keeps references optional until adjudication completes"
+  }
+}
