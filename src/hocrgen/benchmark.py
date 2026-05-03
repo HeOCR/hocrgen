@@ -10,8 +10,10 @@ from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.manifests.models import (
     BenchmarkConfigRecord,
     BenchmarkItemRecord,
+    BenchmarkLeakageEnforcementContext,
     BenchmarkLeakagePolicyRecord,
     BenchmarkLeakageResolutionRecord,
+    BenchmarkLeakageResolutionAction,
     BenchmarkSelectionAuditRecord,
     CuratedItemRecord,
     PrivacyScannedItemRecord,
@@ -19,6 +21,11 @@ from hocrgen.manifests.models import (
 
 
 BENCHMARK_ID = "benchmark_v1"
+_RESOLUTION_ACTION_CONTEXTS: dict[BenchmarkLeakageResolutionAction, set[BenchmarkLeakageEnforcementContext]] = {
+    "accepted_for_operator_only_trial": {"f1_trial"},
+    "benchmark_membership_changed_with_reason": {"build_release", "f1_trial", "alpha_export"},
+    "exclude_related_group_from_holdout_public_beta_claims": {"build_release", "f1_trial", "alpha_export"},
+}
 
 
 @dataclass(frozen=True)
@@ -177,6 +184,7 @@ def benchmark_holdout_leakage_artifact(
     release_ready_items: list[PrivacyScannedItemRecord],
     removed_duplicate_items: list[CuratedItemRecord],
     policy: BenchmarkLeakagePolicyRecord,
+    enforcement_context: BenchmarkLeakageEnforcementContext,
 ) -> dict[str, object]:
     benchmark_ids = {item.item_id for item in benchmark_items}
     benchmark_splits = {
@@ -206,6 +214,7 @@ def benchmark_holdout_leakage_artifact(
     resolved_risks: list[dict[str, object]] = []
     unresolved_risks: list[dict[str, object]] = []
     stale_resolutions: list[dict[str, object]] = []
+    rejected_resolutions: list[dict[str, object]] = []
     matched_resolution_ids: set[str] = set()
     for (group_kind, group_id), member_ids in sorted(groups.items()):
         benchmark_members = sorted(member_ids & benchmark_ids)
@@ -227,7 +236,11 @@ def benchmark_holdout_leakage_artifact(
             ),
         }
         resolution = resolutions.get((group_kind, group_id))
-        if resolution is not None and _resolution_matches_risk(resolution, risk):
+        if (
+            resolution is not None
+            and _resolution_matches_risk(resolution, risk)
+            and _resolution_action_allowed(resolution, enforcement_context)
+        ):
             matched_resolution_ids.add(resolution.resolution_id)
             resolved = {
                 **risk,
@@ -237,6 +250,15 @@ def benchmark_holdout_leakage_artifact(
             risks.append(resolved)
             resolved_risks.append(resolved)
             continue
+        if resolution is not None and _resolution_matches_risk(resolution, risk):
+            rejected_resolutions.append(
+                {
+                    **risk,
+                    "resolution": resolution.model_dump(mode="json"),
+                    "resolution_status": "action_not_allowed",
+                    "status": "rejected",
+                }
+            )
         if resolution is not None:
             stale_resolutions.append(
                 {
@@ -247,7 +269,11 @@ def benchmark_holdout_leakage_artifact(
                     "group_kind": group_kind,
                     "non_benchmark_item_ids": non_benchmark_members,
                     "resolution_id": resolution.resolution_id,
-                    "status": "stale",
+                    "status": (
+                        "stale"
+                        if not _resolution_matches_risk(resolution, risk)
+                        else "action_not_allowed"
+                    ),
                 }
             )
         unresolved = {**risk, "resolution_status": "unresolved"}
@@ -265,7 +291,9 @@ def benchmark_holdout_leakage_artifact(
     status = "ok" if not unresolved_risks and not stale_resolutions else "blocked"
     return {
         "accepted_resolution_count": len(resolved_risks),
+        "enforcement_context": enforcement_context,
         "policy": policy.model_dump(mode="json"),
+        "rejected_resolutions": rejected_resolutions,
         "risk_count": len(risks),
         "risks": risks,
         "resolved_risks": resolved_risks,
@@ -285,6 +313,13 @@ def _resolution_matches_risk(
         resolution.benchmark_item_ids == risk["benchmark_item_ids"]
         and resolution.non_benchmark_item_ids == risk["non_benchmark_item_ids"]
     )
+
+
+def _resolution_action_allowed(
+    resolution: BenchmarkLeakageResolutionRecord,
+    enforcement_context: BenchmarkLeakageEnforcementContext,
+) -> bool:
+    return enforcement_context in _RESOLUTION_ACTION_CONTEXTS[resolution.action]
 
 
 def _missing_benchmark_item_reason(

@@ -476,7 +476,7 @@ def test_build_release_removes_exact_duplicates(tmp_path: Path, capsys) -> None:
                         "collection": "BiblIA Open Packaged Subset",
                         "period": "historical",
                         "raw_rights": "PD-IL",
-                        "asset_path": "package://data/pinkas/assets/pinkas_001.jpg",
+                        "asset_path": "package://data/hocrsyngen/contracts/generation_manifest_v1/fixture-batch/assets/hocrsyngen-s00000017-000001/page_0001.jpg",
                     }
                 ]
             },
@@ -494,7 +494,7 @@ planning_notation: F1b2
 target_count: 26
 expansion_mode: operator_packaged_records
 records_path: {duplicate_records_path}
-asset_root: package://data/pinkas/assets/
+asset_root: package://data/hocrsyngen/contracts/generation_manifest_v1/fixture-batch/assets/hocrsyngen-s00000017-000001/
 required_record_fields:
   - id
   - title
@@ -569,17 +569,17 @@ non_goals:
     assert release_summary["normalized_count"] == 5
     assert release_summary["retained_count"] == 4
     assert release_summary["duplicate_removed_count"] == 1
-    assert release_summary["release_ready_count"] == 4
+    assert release_summary["release_ready_count"] == 3
     assert release_summary["review_approved_count"] == 0
-    assert release_summary["review_required_count"] == 0
-    assert release_summary["review_unresolved_count"] == 0
+    assert release_summary["review_required_count"] == 1
+    assert release_summary["review_unresolved_count"] == 1
     assert len(duplicate_relations["items"]) == 1
     assert duplicate_relations["items"][0]["reason"] == "exact_asset_sequence_match"
     assert len(duplicate_clusters["items"]) == 1
     assert len(removed_duplicate_items["items"]) == 1
-    assert len(split_manifest["items"]) == 4
-    assert len(item_manifest["items"]) == 4
-    assert review_required_items["items"] == []
+    assert len(split_manifest["items"]) == 3
+    assert len(item_manifest["items"]) == 3
+    assert {item["item_id"] for item in review_required_items["items"]} == {"biblia_open:biblia-duplicate-001"}
 
 
 def test_execute_pipeline_can_resume_from_policy_filter_run(tmp_path: Path) -> None:

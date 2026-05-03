@@ -28,6 +28,7 @@ from hocrgen.manifests.models import (
     AnnotationPilotManifestRecord,
     AnnotationPilotSelectionAuditRecord,
     BenchmarkItemRecord,
+    BenchmarkLeakageEnforcementContext,
     BenchmarkLeakagePolicyRecord,
     BenchmarkReferenceManifestRecord,
     BenchmarkReferenceStatusArtifactRecord,
@@ -652,7 +653,10 @@ def _synthetic_cap_outcome(real_count: int, synthetic_count: int, synthetic_frac
     }
 
 
-def _benchmark_leakage_risk(state: PipelineState) -> dict[str, Any]:
+def _benchmark_leakage_risk(
+    state: PipelineState,
+    enforcement_context: BenchmarkLeakageEnforcementContext,
+) -> dict[str, Any]:
     policy = state.benchmark_leakage_policy or BenchmarkLeakagePolicyRecord(
         policy=(
             "Benchmark members must not share exact duplicate, near-duplicate, or source-group membership "
@@ -665,6 +669,7 @@ def _benchmark_leakage_risk(state: PipelineState) -> dict[str, Any]:
         release_ready_items=state.release_ready_items,
         removed_duplicate_items=state.duplicate_items,
         policy=policy,
+        enforcement_context=enforcement_context,
     )
 
 
@@ -734,7 +739,7 @@ def _build_f1_target_scale_trial_report(
     normalized_target_count = sum(row["normalized_count"] for row in source_rows)
     target_candidate_count = F1_REAL_TARGET_COUNT + F1_SYNTHETIC_TARGET_COUNT
     synthetic_cap = _synthetic_cap_outcome(real_release_ready_count, synthetic_release_ready_count, profile.synthetic_fraction_max)
-    benchmark_leakage = _benchmark_leakage_risk(state)
+    benchmark_leakage = _benchmark_leakage_risk(state, "f1_trial")
     gate_blockers: list[str] = []
     failed_source_health = [
         source_id
@@ -1023,7 +1028,15 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     )
     state.annotation_pilot_manifest = annotation_pilot_outputs.manifest
     state.annotation_pilot_selection_audit = annotation_pilot_outputs.audit
-    benchmark_leakage_risk = _benchmark_leakage_risk(state)
+    benchmark_leakage_context: BenchmarkLeakageEnforcementContext = (
+        "f1_trial" if options and options.f1_target_scale_trial else "build_release"
+    )
+    benchmark_leakage_risk = _benchmark_leakage_risk(state, benchmark_leakage_context)
+    if benchmark_leakage_risk["status"] != "ok" and benchmark_leakage_context == "build_release":
+        raise StageExecutionError(
+            "benchmark/holdout leakage unresolved: "
+            f"{benchmark_leakage_risk['unresolved_count']} unresolved group risk(s)"
+        )
     near_duplicate_review_status = "blocked" if state.near_duplicate_clusters else "ok"
     enriched_leakage_report = {
         **state.leakage_report,

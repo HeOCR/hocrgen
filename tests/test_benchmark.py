@@ -437,6 +437,7 @@ def test_benchmark_holdout_leakage_detects_unresolved_source_group(tmp_path: Pat
         release_ready_items=[benchmark_item, holdout_item],
         removed_duplicate_items=[],
         policy=BenchmarkLeakagePolicyRecord(policy="fixture policy"),
+        enforcement_context="build_release",
     )
 
     assert artifact["status"] == "blocked"
@@ -478,6 +479,7 @@ def test_benchmark_holdout_leakage_accepts_recorded_resolution(tmp_path: Path) -
         release_ready_items=[benchmark_item, holdout_item],
         removed_duplicate_items=[],
         policy=policy,
+        enforcement_context="build_release",
     )
 
     assert artifact["status"] == "ok"
@@ -518,6 +520,7 @@ def test_benchmark_holdout_leakage_blocks_stale_resolution(tmp_path: Path) -> No
         release_ready_items=[benchmark_item, holdout_item],
         removed_duplicate_items=[],
         policy=policy,
+        enforcement_context="build_release",
     )
 
     assert artifact["status"] == "blocked"
@@ -544,10 +547,59 @@ def test_benchmark_holdout_leakage_checks_exact_duplicate_membership(tmp_path: P
         release_ready_items=[benchmark_item],
         removed_duplicate_items=[removed_duplicate],
         policy=BenchmarkLeakagePolicyRecord(policy="fixture policy"),
+        enforcement_context="build_release",
     )
 
     assert artifact["status"] == "blocked"
     assert artifact["unresolved_risks"][0]["group_kind"] == "exact_duplicate"
+
+
+def test_benchmark_holdout_leakage_rejects_operator_only_resolution_for_release_context(tmp_path: Path) -> None:
+    benchmark_item = _benchmark_item(tmp_path, split="train").model_copy(update={"source_group_id": "source-group:fixture"})
+    holdout_item = _benchmark_item(tmp_path, split="train").model_copy(
+        update={
+            "candidate_id": "fixture:holdout",
+            "item_id": "fixture:holdout",
+            "source_id": "fixture",
+            "source_item_id": "holdout",
+            "source_group_id": "source-group:fixture",
+        }
+    )
+    policy = BenchmarkLeakagePolicyRecord(
+        policy="fixture policy",
+        accepted_resolutions=[
+            BenchmarkLeakageResolutionRecord(
+                resolution_id="fixture-operator-only",
+                group_id="source-group:fixture",
+                group_kind="source_group",
+                benchmark_item_ids=[benchmark_item.item_id],
+                non_benchmark_item_ids=[holdout_item.item_id],
+                action="accepted_for_operator_only_trial",
+                rationale="fixture operator-only resolution",
+                accepted_by="test",
+                accepted_at="2026-05-04",
+            )
+        ],
+    )
+
+    release_artifact = benchmark_holdout_leakage_artifact(
+        benchmark_items=[_benchmark_manifest_item(benchmark_item)],
+        release_ready_items=[benchmark_item, holdout_item],
+        removed_duplicate_items=[],
+        policy=policy,
+        enforcement_context="build_release",
+    )
+    trial_artifact = benchmark_holdout_leakage_artifact(
+        benchmark_items=[_benchmark_manifest_item(benchmark_item)],
+        release_ready_items=[benchmark_item, holdout_item],
+        removed_duplicate_items=[],
+        policy=policy,
+        enforcement_context="f1_trial",
+    )
+
+    assert release_artifact["status"] == "blocked"
+    assert release_artifact["rejected_resolutions"][0]["resolution_status"] == "action_not_allowed"
+    assert trial_artifact["status"] == "ok"
 
 
 def test_load_annotation_pilot_config_accepts_valid_repo_tracked_config() -> None:

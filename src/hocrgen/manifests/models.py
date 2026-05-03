@@ -452,6 +452,7 @@ class BenchmarkApprovedItemRecord(ManifestModel):
 
 
 BenchmarkLeakageGroupKind = Literal["exact_duplicate", "near_duplicate", "source_group"]
+BenchmarkLeakageEnforcementContext = Literal["build_release", "f1_trial", "alpha_export"]
 BenchmarkLeakageResolutionAction = Literal[
     "exclude_related_group_from_holdout_public_beta_claims",
     "benchmark_membership_changed_with_reason",
