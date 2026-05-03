@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F4b"
+CURRENT_COMPLETED_NOTATION = "F2a"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -41,7 +41,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
 
     assert f"Last completed roadmap action on the current ref: `{CURRENT_COMPLETED_NOTATION}`" in agent_plan
-    assert "next planned critical-path implementation should move to `F2` benchmark ground-truth foundations" in agent_plan
+    assert "next planned critical-path implementation should move to `F2b` benchmark-reference ingestion" in agent_plan
     assert f"| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert f"| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
@@ -282,3 +282,75 @@ def test_e4a_governance_docs_keep_multi_release_controls_visible() -> None:
     assert "Current alpha/public payload selection is unchanged." in roadmap
     assert "Release compatibility contract" in design
     assert "breaking serialized schema changes require a new schema version or schema id" in release_governance.casefold()
+
+
+def test_f2a_benchmark_ground_truth_guidelines_keep_scope_visible() -> None:
+    guidelines = Path("docs/benchmark_ground_truth_guidelines.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+    combined = "\n".join([guidelines, readme, roadmap])
+
+    for required in [
+        "Unicode logical order",
+        "Unicode NFC",
+        "right-to-left and bidi behavior",
+        "niqqud",
+        "Hebrew/Arabic/Latin numerals",
+        "Latin fragments",
+        "abbreviations",
+        "uncertain or damaged text",
+        "line/page boundaries",
+        "page, region, line, and optional word/reference levels",
+        "source-image pixel units",
+        "release-relative paths",
+        "benchmark_reference_manifest.v1",
+        "benchmark_transcription_reference.v1",
+        "benchmark_layout_reference.v1",
+        "public_reference_status",
+        "private_adjudication",
+        "hidden_reference",
+        "F2b remains planned",
+    ]:
+        assert required in combined
+
+    for required_non_goal in [
+        "make annotations mandatory",
+        "change `benchmark_v1` membership",
+        "relax rights, privacy, review, dedupe, split, benchmark, synthetic-cap, or export-portability gates",
+    ]:
+        assert required_non_goal in guidelines
+
+    for required in [
+        "`schema_version`: `benchmark_transcription_reference.v1`",
+        "`normalization`: at minimum",
+        "`scoring_policy`: explicit include/exclude behavior",
+        "`pages`: ordered page records",
+        "`lines`: page-local or item-global line records",
+        "`spans`: structured annotations anchored by line id and character offsets",
+        "Character offsets are counted over the NFC-normalized canonical line text.",
+        "`illegible`: exclude the span from primary scoring",
+        "`deleted`: exclude from primary OCR/HTR scoring by default",
+    ]:
+        assert required in guidelines
+
+    for required in [
+        "`schema_version`: `benchmark_layout_reference.v1`",
+        "`coordinate_system`: pixel units, top-left origin, and axis direction declarations",
+        "`assets`: one record per annotated release asset, with release-relative path, checksum, width, height, and page id",
+        "`regions`: optional page-local region records",
+        "`lines`: line records with stable ids",
+        "Bounding boxes use `{ \"x\", \"y\", \"width\", \"height\" }` in pixel units.",
+        "referenced asset checksum and dimensions are part of the reference contract",
+    ]:
+        assert required in guidelines
+
+    for required in [
+        "`reference_contracts`: the expected transcription and layout reference schema versions",
+        "`transcription_reference`: nullable object with release-relative `path`, `schema_version`, and optional checksum",
+        "`layout_label_references`: objects with release-relative `path`, `schema_version`, optional checksum, and declared page ids",
+        "\"reference_contracts\"",
+        "\"schema_version\": \"benchmark_transcription_reference.v1\"",
+        "\"schema_version\": \"benchmark_layout_reference.v1\"",
+        "\"page_ids\": [\"page-1\"]",
+    ]:
+        assert required in guidelines
