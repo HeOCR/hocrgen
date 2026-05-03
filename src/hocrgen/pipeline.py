@@ -34,12 +34,14 @@ from hocrgen.manifests.models import (
     DuplicateRelationRecord,
     EnrichedCandidateRecord,
     ItemRecord,
+    NearDuplicateClusterRecord,
     NormalizedItemRecord,
     PrivacyScannedItemRecord,
     ReviewDecisionAuditRecord,
     ReviewQueueRecord,
     ReviewOverrideRecord,
     ReviewDecisionRecord,
+    SourceGroupRecord,
     SplitAssignmentRecord,
 )
 from hocrgen.review.merge import load_review_data, merge_review_decisions
@@ -103,6 +105,8 @@ class PipelineState:
     duplicate_items: list[CuratedItemRecord] = field(default_factory=list)
     duplicate_relations: list[DuplicateRelationRecord] = field(default_factory=list)
     duplicate_clusters: list[DuplicateClusterRecord] = field(default_factory=list)
+    near_duplicate_clusters: list[NearDuplicateClusterRecord] = field(default_factory=list)
+    source_groups: list[SourceGroupRecord] = field(default_factory=list)
     classified_items: list[ClassifiedItemRecord] = field(default_factory=list)
     privacy_scanned_items: list[PrivacyScannedItemRecord] = field(default_factory=list)
     release_ready_items: list[PrivacyScannedItemRecord] = field(default_factory=list)
@@ -138,6 +142,8 @@ def empty_pipeline_state() -> PipelineState:
         duplicate_items=[],
         duplicate_relations=[],
         duplicate_clusters=[],
+        near_duplicate_clusters=[],
+        source_groups=[],
         classified_items=[],
         privacy_scanned_items=[],
         release_ready_items=[],
@@ -445,6 +451,8 @@ def _run_dedupe(bundle: ConfigBundle, context: RunContext, options: StageOptions
     duplicate_path = stage_dir / "duplicate_items.json"
     relations_path = stage_dir / "duplicate_relations.json"
     clusters_path = stage_dir / "duplicate_clusters.json"
+    near_duplicate_clusters_path = stage_dir / "near_duplicate_clusters.json"
+    source_groups_path = stage_dir / "source_groups.json"
     report_path = stage_dir / "report.json"
     summary_path = stage_dir / "summary.json"
 
@@ -452,14 +460,18 @@ def _run_dedupe(bundle: ConfigBundle, context: RunContext, options: StageOptions
     write_json(duplicate_path, {"items": _dump_models(outputs.duplicate_items)})
     write_json(relations_path, {"items": _dump_models(outputs.duplicate_relations)})
     write_json(clusters_path, {"items": _dump_models(outputs.duplicate_clusters)})
+    write_json(near_duplicate_clusters_path, {"items": _dump_models(outputs.near_duplicate_clusters)})
+    write_json(source_groups_path, {"items": _dump_models(outputs.source_groups)})
     write_json(report_path, outputs.report)
     write_json(
         summary_path,
         {
             "duplicate_cluster_count": len(outputs.duplicate_clusters),
             "duplicate_item_count": len(outputs.duplicate_items),
+            "near_duplicate_cluster_count": len(outputs.near_duplicate_clusters),
             "report": str(report_path.relative_to(context.run_dir)),
             "retained_count": len(outputs.retained_items),
+            "source_group_count": len(outputs.source_groups),
             "stage": "dedupe",
         },
     )
@@ -467,10 +479,20 @@ def _run_dedupe(bundle: ConfigBundle, context: RunContext, options: StageOptions
     state.duplicate_items = outputs.duplicate_items
     state.duplicate_relations = outputs.duplicate_relations
     state.duplicate_clusters = outputs.duplicate_clusters
+    state.near_duplicate_clusters = outputs.near_duplicate_clusters
+    state.source_groups = outputs.source_groups
     return StageResult(
         stage="dedupe",
         summary_path=summary_path,
-        extra_artifacts=[retained_path, duplicate_path, relations_path, clusters_path, report_path],
+        extra_artifacts=[
+            retained_path,
+            duplicate_path,
+            relations_path,
+            clusters_path,
+            near_duplicate_clusters_path,
+            source_groups_path,
+            report_path,
+        ],
     )
 
 
@@ -613,6 +635,35 @@ def _synthetic_cap_outcome(real_count: int, synthetic_count: int, synthetic_frac
     }
 
 
+def _benchmark_leakage_risk(state: PipelineState) -> dict[str, Any]:
+    benchmark_ids = {item.item_id for item in state.benchmark_items}
+    benchmark_splits = {item.item_id: item.split for item in state.release_ready_items if item.item_id in benchmark_ids}
+    group_members: dict[str, set[str]] = {}
+    for item in state.release_ready_items:
+        for group_id in [item.dedupe_cluster_id, item.near_duplicate_cluster_id, item.source_group_id]:
+            if group_id:
+                group_members.setdefault(group_id, set()).add(item.item_id)
+
+    risks = []
+    for group_id, member_ids in sorted(group_members.items()):
+        benchmark_members = sorted(member_ids & benchmark_ids)
+        holdout_members = sorted(member_ids - benchmark_ids)
+        if benchmark_members and holdout_members:
+            risks.append(
+                {
+                    "benchmark_item_ids": benchmark_members,
+                    "group_id": group_id,
+                    "holdout_item_ids": holdout_members,
+                    "splits": sorted({split for item_id, split in benchmark_splits.items() if item_id in benchmark_members and split}),
+                }
+            )
+    return {
+        "risk_count": len(risks),
+        "risks": risks,
+        "status": "ok" if not risks else "review_required",
+    }
+
+
 def _build_f1_target_scale_trial_report(
     bundle: ConfigBundle,
     context: RunContext,
@@ -679,6 +730,7 @@ def _build_f1_target_scale_trial_report(
     normalized_target_count = sum(row["normalized_count"] for row in source_rows)
     target_candidate_count = F1_REAL_TARGET_COUNT + F1_SYNTHETIC_TARGET_COUNT
     synthetic_cap = _synthetic_cap_outcome(real_release_ready_count, synthetic_release_ready_count, profile.synthetic_fraction_max)
+    benchmark_leakage = _benchmark_leakage_risk(state)
     gate_blockers: list[str] = []
     failed_source_health = [
         source_id
@@ -698,16 +750,16 @@ def _build_f1_target_scale_trial_report(
             f"{synthetic_release_ready_count} synthetic release-ready item(s) exceed "
             f"{synthetic_cap['allowed_synthetic_count']} allowed for {real_release_ready_count} real item(s)"
         )
+    if state.near_duplicate_clusters:
+        gate_blockers.append(
+            f"near-duplicate review is blocked: {len(state.near_duplicate_clusters)} cluster(s) require manual review"
+        )
+    if benchmark_leakage["status"] != "ok":
+        gate_blockers.append(f"benchmark/holdout leakage has {benchmark_leakage['risk_count']} group risk(s)")
 
-    near_duplicate_blocker = (
-        "F1d remains the next planned hardening step for near-duplicate, source-group, and split-leakage controls "
-        "before scale beyond this operator-only trial."
-    )
     target_scale_execution_status = "complete" if not target_execution_blockers else "blocked"
     gate_status = "ok" if not gate_blockers else "blocked"
     remaining_blockers = [*target_execution_blockers, *gate_blockers]
-    if target_scale_execution_status == "complete":
-        remaining_blockers.append(near_duplicate_blocker)
 
     return {
         "artifact_scope": "operator_only",
@@ -756,6 +808,10 @@ def _build_f1_target_scale_trial_report(
             "retained_count": release_summary["retained_count"],
             "duplicate_removed_count": release_summary["duplicate_removed_count"],
             "duplicate_sources": source_stats["duplicate_sources"],
+            "exact_duplicate_cluster_count": len(state.duplicate_clusters),
+            "near_duplicate_cluster_count": len(state.near_duplicate_clusters),
+            "near_duplicate_policy": "block release readiness until candidate clusters are manually reviewed; do not auto-remove",
+            "source_group_count": len(state.source_groups),
         },
         "split_and_benchmark_eligibility": {
             "real_release_ready_count": real_release_ready_count,
@@ -764,6 +820,8 @@ def _build_f1_target_scale_trial_report(
             "benchmark_id": release_summary["benchmark_id"],
             "benchmark_item_count": release_summary["benchmark_item_count"],
             "benchmark_note": "F1c exercises benchmark selection eligibility; F2 remains responsible for benchmark ground-truth foundations.",
+            "benchmark_holdout_leakage": benchmark_leakage,
+            "leakage_report": state.leakage_report,
         },
         "gate_outcomes": {
             "benchmark": {
@@ -773,7 +831,18 @@ def _build_f1_target_scale_trial_report(
             },
             "dedupe": {
                 "duplicate_removed_count": release_summary["duplicate_removed_count"],
-                "status": "ok",
+                "near_duplicate_cluster_count": len(state.near_duplicate_clusters),
+                "near_duplicate_review_status": release_summary.get(
+                    "near_duplicate_review_status",
+                    "blocked" if state.near_duplicate_clusters else "ok",
+                ),
+                "source_group_count": len(state.source_groups),
+                "status": (
+                    "ok"
+                    if release_summary.get("near_duplicate_review_status", "blocked" if state.near_duplicate_clusters else "ok")
+                    == "ok"
+                    else "blocked"
+                ),
             },
             "export_portability": {
                 "status": "ok",
@@ -801,8 +870,9 @@ def _build_f1_target_scale_trial_report(
             },
             "split": {
                 "split_counts": release_summary["split_counts"],
-                "status": "ok",
+                "status": state.leakage_report.get("status", "unknown"),
             },
+            "benchmark_holdout_leakage": benchmark_leakage,
             "synthetic_cap": synthetic_cap,
         },
         "source_health": source_health,
@@ -816,6 +886,7 @@ def _build_f1_target_scale_trial_report(
             "privacy",
             "review",
             "dedupe",
+            "near-duplicate-review",
             "split",
             "benchmark",
             "synthetic-cap",
@@ -834,7 +905,7 @@ def _build_f1_target_scale_trial_report(
         "target_execution_blockers": target_execution_blockers,
         "gate_blockers": gate_blockers,
         "next_step": (
-            "F1d near-duplicate/source-group/split-leakage hardening"
+            "F2 benchmark ground-truth foundation"
             if target_scale_execution_status == "complete"
             else "Resolve F1c target execution blockers before F1d"
         ),
@@ -848,6 +919,8 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     removed_duplicate_items_path = stage_dir / "removed_duplicate_items.json"
     duplicate_relations_path = stage_dir / "duplicate_relations.json"
     duplicate_clusters_path = stage_dir / "duplicate_clusters.json"
+    near_duplicate_clusters_path = stage_dir / "near_duplicate_clusters.json"
+    source_groups_path = stage_dir / "source_groups.json"
     review_queue_path = stage_dir / "review_queue.json"
     review_required_items_path = stage_dir / "review_required_items.json"
     blocked_items_path = stage_dir / "blocked_items.json"
@@ -866,6 +939,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     benchmark_card_path = stage_dir / "BENCHMARK_CARD.md"
     annotation_pilot_manifest_path = stage_dir / "annotation_pilot_manifest.json"
     annotation_pilot_selection_audit_path = stage_dir / "annotation_pilot_selection_audit.json"
+    benchmark_leakage_risk_path = stage_dir / "benchmark_leakage_risk.json"
     f1_trial_report_path = stage_dir / "f1_target_scale_trial_report.json"
     summary_path = stage_dir / "summary.json"
 
@@ -921,17 +995,33 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     )
     state.annotation_pilot_manifest = annotation_pilot_outputs.manifest
     state.annotation_pilot_selection_audit = annotation_pilot_outputs.audit
+    benchmark_leakage_risk = _benchmark_leakage_risk(state)
+    near_duplicate_review_status = "blocked" if state.near_duplicate_clusters else "ok"
+    enriched_leakage_report = {
+        **state.leakage_report,
+        "benchmark_holdout_leakage": benchmark_leakage_risk,
+        "near_duplicate_review": {
+            "cluster_count": len(state.near_duplicate_clusters),
+            "status": near_duplicate_review_status,
+        },
+        "policy": {
+            "near_duplicates": "block release readiness until candidate clusters are manually reviewed; do not auto-remove",
+            "source_groups": "keep related source-work groups in the same split",
+        },
+    }
 
     write_json(item_manifest_path, {"items": _dump_models(state.release_ready_items)})
     write_json(removed_duplicate_items_path, {"items": _dump_models(state.duplicate_items)})
     write_json(duplicate_relations_path, {"items": _dump_models(state.duplicate_relations)})
     write_json(duplicate_clusters_path, {"items": _dump_models(state.duplicate_clusters)})
+    write_json(near_duplicate_clusters_path, {"items": _dump_models(state.near_duplicate_clusters)})
+    write_json(source_groups_path, {"items": _dump_models(state.source_groups)})
     write_json(review_queue_path, {"items": _dump_models(state.review_queue)})
     write_json(review_required_items_path, {"items": _dump_models(state.review_required_items)})
     write_json(blocked_items_path, {"items": _dump_models(state.blocked_items)})
     write_json(decision_audit_path, {"items": _dump_models(state.decision_audit)})
     write_json(split_manifest_path, {"items": _dump_models(state.split_assignments)})
-    write_json(leakage_report_path, state.leakage_report)
+    write_json(leakage_report_path, enriched_leakage_report)
     write_json(classification_stats_path, classification_stats)
     write_json(privacy_stats_path, privacy_stats)
     write_json(synthetic_composition_path, synthetic_composition)
@@ -939,6 +1029,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     write_json(benchmark_manifest_path, {"items": _dump_models(state.benchmark_items)})
     write_json(benchmark_selection_audit_path, {"items": _dump_models(state.benchmark_selection_audit)})
     write_json(benchmark_stability_policy_path, state.benchmark_stability_policy)
+    write_json(benchmark_leakage_risk_path, benchmark_leakage_risk)
     benchmark_card_path.write_text(state.benchmark_card_markdown, encoding="utf-8")
     write_json(annotation_pilot_manifest_path, state.annotation_pilot_manifest.model_dump(mode="json"))
     write_json(annotation_pilot_selection_audit_path, {"items": _dump_models(state.annotation_pilot_selection_audit)})
@@ -948,8 +1039,10 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         "qa_fail_reasons": qa_fail_reasons,
         "rights_classifications": rights_counts,
         "source_health": source_health_summary(state.source_health),
+        "near_duplicate_clusters": len(state.near_duplicate_clusters),
         "sources": retained_source_counts,
         "sources_by_split": source_split_counts,
+        "source_groups": len(state.source_groups),
         "splits": split_counts,
         "synthetic_composition": synthetic_composition,
     }
@@ -958,6 +1051,8 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         "acquired_count": len(state.acquired_items),
         "blocked_count": len(state.blocked_items),
         "duplicate_removed_count": len(state.duplicate_items),
+        "near_duplicate_cluster_count": len(state.near_duplicate_clusters),
+        "near_duplicate_review_status": near_duplicate_review_status,
         "is_dry_run": context.dry_run,
         "normalized_count": len(state.normalized_items),
         "profile_id": context.profile_id,
@@ -975,6 +1070,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         "review_required_count": len(state.review_required_items),
         "review_unresolved_count": len(state.review_required_items),
         "split_counts": split_counts,
+        "source_group_count": len(state.source_groups),
         "synthetic_items": sum(1 for item in state.release_ready_items if item.is_synthetic),
         "synthetic_composition": synthetic_composition,
         "annotation_manifest": {
@@ -986,6 +1082,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         },
         "benchmark_id": benchmark_outputs.config.benchmark_id,
         "benchmark_item_count": len(state.benchmark_items),
+        "benchmark_holdout_leakage_status": benchmark_leakage_risk["status"],
         "annotation_pilot": {
             "pilot_id": annotation_pilot_outputs.config.pilot_id,
             "pilot_item_count": annotation_pilot_outputs.manifest.pilot_item_count,
@@ -1002,6 +1099,8 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         removed_duplicate_items_path,
         duplicate_relations_path,
         duplicate_clusters_path,
+        near_duplicate_clusters_path,
+        source_groups_path,
         review_queue_path,
         review_required_items_path,
         blocked_items_path,
@@ -1017,6 +1116,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         benchmark_manifest_path,
         benchmark_selection_audit_path,
         benchmark_stability_policy_path,
+        benchmark_leakage_risk_path,
         benchmark_card_path,
         annotation_pilot_manifest_path,
         annotation_pilot_selection_audit_path,
@@ -1040,6 +1140,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             "blocked_items": str(blocked_items_path.relative_to(context.run_dir)),
             "benchmark_card": str(benchmark_card_path.relative_to(context.run_dir)),
             "benchmark_manifest": str(benchmark_manifest_path.relative_to(context.run_dir)),
+            "benchmark_leakage_risk": str(benchmark_leakage_risk_path.relative_to(context.run_dir)),
             "benchmark_selection_audit": str(benchmark_selection_audit_path.relative_to(context.run_dir)),
             "benchmark_stability_policy": str(benchmark_stability_policy_path.relative_to(context.run_dir)),
             "annotation_pilot_manifest": str(annotation_pilot_manifest_path.relative_to(context.run_dir)),
@@ -1050,12 +1151,14 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             "duplicate_relations": str(duplicate_relations_path.relative_to(context.run_dir)),
             "item_manifest": str(item_manifest_path.relative_to(context.run_dir)),
             "leakage_report": str(leakage_report_path.relative_to(context.run_dir)),
+            "near_duplicate_clusters": str(near_duplicate_clusters_path.relative_to(context.run_dir)),
             "privacy_stats": str(privacy_stats_path.relative_to(context.run_dir)),
             "removed_duplicate_items": str(removed_duplicate_items_path.relative_to(context.run_dir)),
             "release_summary": str(release_summary_path.relative_to(context.run_dir)),
             "review_queue": str(review_queue_path.relative_to(context.run_dir)),
             "review_required_items": str(review_required_items_path.relative_to(context.run_dir)),
             "split_manifest": str(split_manifest_path.relative_to(context.run_dir)),
+            "source_groups": str(source_groups_path.relative_to(context.run_dir)),
             "source_stats": str(source_stats_path.relative_to(context.run_dir)),
             "synthetic_composition": str(synthetic_composition_path.relative_to(context.run_dir)),
             "annotation_manifest": str(annotation_manifest_path.relative_to(context.run_dir)),

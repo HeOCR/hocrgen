@@ -96,6 +96,8 @@ class NormalizedItemRecord(AcquiredItemRecord):
 class CuratedItemRecord(NormalizedItemRecord):
     content_fingerprint: str
     dedupe_cluster_id: str | None = None
+    near_duplicate_cluster_id: str | None = None
+    source_group_id: str | None = None
     dedupe_status: Literal["retained", "duplicate"]
     canonical_item_id: str
     split: Literal["train", "validation", "test"] | None = None
@@ -117,11 +119,29 @@ class DuplicateClusterRecord(ManifestModel):
     method: Literal["exact"] = "exact"
 
 
+class NearDuplicateClusterRecord(ManifestModel):
+    cluster_id: str
+    member_item_ids: list[str] = Field(min_length=2)
+    method: Literal["quantized_thumbnail_hash"] = "quantized_thumbnail_hash"
+    status: Literal["manual_review_required"] = "manual_review_required"
+    rationale: str
+
+
+class SourceGroupRecord(ManifestModel):
+    group_id: str
+    member_item_ids: list[str] = Field(min_length=2)
+    source_ids: list[str] = Field(min_length=1)
+    status: Literal["split_grouped"] = "split_grouped"
+    rationale: str
+
+
 class SplitAssignmentRecord(ManifestModel):
     item_id: str
     split: Literal["train", "validation", "test"]
     split_group_id: str
     dedupe_cluster_id: str | None = None
+    near_duplicate_cluster_id: str | None = None
+    source_group_id: str | None = None
 
 
 class ClassifiedItemRecord(CuratedItemRecord):

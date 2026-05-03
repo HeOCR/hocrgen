@@ -32,18 +32,26 @@ def _pick_split(split_group_id: str, split_policy: SplitPolicy) -> str:
 def _split_group_id(item: CuratedItemRecord) -> str:
     if item.dedupe_cluster_id:
         return item.dedupe_cluster_id
+    if item.source_group_id:
+        return item.source_group_id
     return f"{item.source_id}:{item.source_item_id}"
 
 
 def _validate_leakage(items: list[CuratedItemRecord]) -> dict[str, object]:
     split_group_splits: dict[str, set[str]] = {}
     duplicate_cluster_splits: dict[str, set[str]] = {}
+    near_duplicate_cluster_splits: dict[str, set[str]] = {}
+    source_group_splits: dict[str, set[str]] = {}
     for item in items:
         if item.split is None or item.split_group_id is None:
             continue
         split_group_splits.setdefault(item.split_group_id, set()).add(item.split)
         if item.dedupe_cluster_id:
             duplicate_cluster_splits.setdefault(item.dedupe_cluster_id, set()).add(item.split)
+        if item.near_duplicate_cluster_id:
+            near_duplicate_cluster_splits.setdefault(item.near_duplicate_cluster_id, set()).add(item.split)
+        if item.source_group_id:
+            source_group_splits.setdefault(item.source_group_id, set()).add(item.split)
 
     split_group_leaks = [
         {"split_group_id": split_group_id, "splits": sorted(splits)}
@@ -55,10 +63,28 @@ def _validate_leakage(items: list[CuratedItemRecord]) -> dict[str, object]:
         for cluster_id, splits in sorted(duplicate_cluster_splits.items())
         if len(splits) > 1
     ]
-    status = "ok" if not split_group_leaks and not duplicate_cluster_leaks else "error"
+    near_duplicate_cluster_leaks = [
+        {"cluster_id": cluster_id, "splits": sorted(splits)}
+        for cluster_id, splits in sorted(near_duplicate_cluster_splits.items())
+        if len(splits) > 1
+    ]
+    source_group_leaks = [
+        {"group_id": group_id, "splits": sorted(splits)}
+        for group_id, splits in sorted(source_group_splits.items())
+        if len(splits) > 1
+    ]
+    status = (
+        "ok"
+        if not split_group_leaks and not duplicate_cluster_leaks and not near_duplicate_cluster_leaks and not source_group_leaks
+        else "error"
+    )
     return {
         "duplicate_cluster_leaks": duplicate_cluster_leaks,
         "group_count": len(split_group_splits),
+        "near_duplicate_cluster_leaks": near_duplicate_cluster_leaks,
+        "near_duplicate_cluster_count": len(near_duplicate_cluster_splits),
+        "source_group_count": len(source_group_splits),
+        "source_group_leaks": source_group_leaks,
         "split_group_leaks": split_group_leaks,
         "status": status,
     }
@@ -84,6 +110,8 @@ def assign_splits(
                 split=split,
                 split_group_id=split_group_id,
                 dedupe_cluster_id=item.dedupe_cluster_id,
+                near_duplicate_cluster_id=item.near_duplicate_cluster_id,
+                source_group_id=item.source_group_id,
             )
         )
 
