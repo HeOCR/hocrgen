@@ -2,7 +2,7 @@
 
 `hocrgen` is the open-source dataset operations toolchain for the HeOCR project.
 
-This repository now implements a conservative review-readiness, source-operations, benchmark-subset, evaluation-utility, community-contribution, annotation-pilot, multi-release governance, and synthetic-provider planning layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, lightweight text evaluation over benchmark manifests, carefully bounded annotation pilot selection, curated dry-run release assembly, documented contribution safety rails, release/version governance for repeated public exports, and roadmap planning for a separate synthetic generator package and synthetic-only dataset stream.
+This repository now implements a conservative review-readiness, source-operations, benchmark-subset, evaluation-utility, community-contribution, annotation-pilot, multi-release governance, benchmark ground-truth guideline, and synthetic-provider planning layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, lightweight text evaluation over benchmark manifests, carefully bounded annotation pilot selection, curated dry-run release assembly, documented contribution safety rails, release/version governance for repeated public exports, and roadmap planning for benchmark references, a separate synthetic generator package, and synthetic-only dataset stream.
 
 ## What `hocrgen` can do today
 
@@ -32,6 +32,7 @@ This repository now implements a conservative review-readiness, source-operation
 - emit curated release manifests with duplicate-cluster, review-queue, split, and leakage-report artifacts
 - document safe community contribution paths for source proposals, source adapters, synthetic assets, dataset issues, and release governance
 - document multi-release governance for version semantics, removals/takedowns, additive schema migration, source deprecation, benchmark stability, and compatibility statements
+- document benchmark ground-truth guidance for Hebrew transcription, layout labels, and `benchmark_reference_manifest.v1` reference manifests
 - document the four-repository synthetic spinout boundary: `hocrsyngen` for generation, `hocrgen` for gates/orchestration/export, `HeOCR` for mixed releases, and `HeOCRsynth` for synthetic-only releases
 
 ## Supported sources in the current MVP
@@ -113,7 +114,7 @@ python scripts/promote_nli_seeds.py \
 
 - broad live-source crawling
 - stronger perceptual/semantic duplicate review beyond the current deterministic near-duplicate/source-group split-safety gates
-- benchmark ground-truth foundation: transcription guidelines, layout-label guidance, reference manifests, adjudication artifacts, and benchmark versioning gates
+- benchmark-reference ingestion, adjudication artifacts, and benchmark versioning gates
 - rights-clean modern handwritten Hebrew acquisition with consent, privacy, composition, and takedown workflows
 - external synthetic-provider contract work for `hocrsyngen` manifests, Hebrew rendering/provider metadata gates, and synthetic-only export handoff to `HeOCRsynth`
 - OCR-aware privacy screening
@@ -511,6 +512,14 @@ The pilot currently names two real `benchmark_v1` items for planned transcriptio
 - `build_release/annotation_pilot_selection_audit.json`
 
 `export-alpha` mirrors the pilot manifest and audit for the exported subset under `manifests/`. Pilot entries use release-relative planned target paths such as `annotations/<source_id>/<source_item_id>/transcription.json`; they do not assert that annotation files already exist and do not change `annotation_manifest.json` counts. Current public and alpha outputs still do not require transcriptions or layout labels.
+
+## Benchmark ground-truth guidelines
+
+`F2a` defines the human-facing benchmark ground-truth conventions in [`docs/benchmark_ground_truth_guidelines.md`](./docs/benchmark_ground_truth_guidelines.md). The guidelines cover Hebrew transcription policy for logical text order, Unicode NFC normalization, right-to-left and bidi behavior, niqqud, punctuation, Hebrew/Arabic/Latin numerals, Latin fragments, abbreviations, uncertain or damaged text, marginal and deleted text, and line/page boundaries.
+
+The same document defines layout-label guidance for page, region, line, and optional word/reference levels; pixel-based coordinate systems over normalized release assets; reading-order indexes; multi-page item handling; uncertainty/review flags; and release-relative portability constraints. It also documents the future `benchmark_reference_manifest.v1` contract for linking benchmark item ids and source identity to transcription references, layout-label references, reviewer/adjudication status, correction/versioning fields, and explicit `public`, `private_adjudication`, and `hidden_reference` visibility classes.
+
+This is definition work only. It does not implement benchmark-reference ingestion, adjudication artifacts, benchmark versioning gates, OCR/HTR model training, or mandatory transcription/layout-label requirements for current public and alpha outputs. `F2b` remains planned for runtime ingestion, adjudication artifacts, and benchmark versioning enforcement.
 
 ## Synthetic generation
 
