@@ -798,7 +798,12 @@ def _inspect_synthetic_source(source: SourceConfig, bundle: ConfigBundle) -> tup
                 "message": "fonts must be a list",
             }
         )
-    return checks, source.settings.synthetic_batch_size or 0, asset_count
+    source_depth_count = source.settings.extra.get("f1_source_depth_candidate_count")
+    if source.settings.synthetic_batch_size is None:
+        candidate_count = 0
+    else:
+        candidate_count = source_depth_count if isinstance(source_depth_count, int) else source.settings.synthetic_batch_size
+    return checks, candidate_count, asset_count
 
 
 def _check_expectations(source: SourceConfig, candidate_count: int, asset_count: int) -> list[dict[str, Any]]:

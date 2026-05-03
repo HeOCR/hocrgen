@@ -92,6 +92,8 @@ sources:
         min_assets: 1
     settings:
       synthetic_batch_size: 2
+      extra:
+        f1_source_depth_candidate_count: 80
       synthetic_seed: 17
       template_ids:
         - printed_letter

@@ -15,9 +15,13 @@ class BibliaImporter:
         records_path = bundle.resolve_path(source.settings.records_path or "")
         records = load_json_file(records_path)["records"]
         candidates: list[CandidateRecord] = []
-        for index, record in enumerate(records):
-            if options.max_items is not None and index >= options.max_items:
+        selected_count = 0
+        for record in records:
+            if record.get("f1_source_depth_only"):
+                continue
+            if options.max_items is not None and selected_count >= options.max_items:
                 break
+            selected_count += 1
             candidates.append(
                 CandidateRecord(
                     candidate_id=f"{source.id}:{record['id']}",

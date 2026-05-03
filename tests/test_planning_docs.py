@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F1b2"
+CURRENT_COMPLETED_NOTATION = "F1b3"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -41,7 +41,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
 
     assert f"Last completed roadmap action on the current ref: `{CURRENT_COMPLETED_NOTATION}`" in agent_plan
-    assert "next implementation should wait for `F1c` until the remaining `F1b2` source-depth count gaps are resolved" in agent_plan
+    assert "next implementation should wait for `F1c` until the remaining `F1b3` NLI source-depth count gap is resolved" in agent_plan
     assert f"| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert f"| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
@@ -49,7 +49,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert f"| E2 | Ecosystem maturity | E2a, E2b | Baselines/evaluation utilities, then live/cached NLI seed acquisition | completed |" in roadmap
     assert f"| E3 | Ecosystem maturity | E3a | Annotation subset pilots | completed |" in roadmap
     assert f"| E4 | Ecosystem maturity | E4a | Multi-release governance maturity | completed |" in roadmap
-    assert "| F1 | Beta-scale acquisition trial | F1a, F1b, F1b2, F1c, F1d |" in roadmap
+    assert "| F1 | Beta-scale acquisition trial | F1a, F1b, F1b2, F1b3, F1c, F1d |" in roadmap
     assert "| F2 | Benchmark ground-truth foundation | F2a, F2b |" in roadmap
     assert "| F3 | Modern handwritten acquisition program | F3a, F3b |" in roadmap
     assert "| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d |" in roadmap
@@ -105,6 +105,7 @@ def test_post_f1_roadmap_captures_outside_review_takeaways() -> None:
     for required in [
         "`F1b`",
         "`F1b2`",
+        "`F1b3`",
         "`F1c`",
         "`F1d`",
         "`F2`",

@@ -376,7 +376,7 @@ def test_source_health_summary_accepts_result_models() -> None:
     assert summary["selected_source_count"] == 1
 
 
-def test_f1_source_depth_feasibility_reports_current_fixture_backed_gaps() -> None:
+def test_f1_source_depth_feasibility_reports_remaining_nli_gap_after_f1b3_expansion() -> None:
     bundle = load_and_validate_bundle()
     source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
 
@@ -388,9 +388,6 @@ def test_f1_source_depth_feasibility_reports_current_fixture_backed_gaps() -> No
     assert report["summary"]["overall_feasibility_status"] == "not_feasible"
     assert report["summary"]["not_ready_sources"] == [
         "nli_any_use_permitted",
-        "pinkas_open",
-        "biblia_open",
-        "project_synthetic",
     ]
     assert report["summary"]["f1c_blocking_sources"] == report["summary"]["not_ready_sources"]
     assert report["summary"]["not_feasible_sources"] == []
@@ -402,18 +399,21 @@ def test_f1_source_depth_feasibility_reports_current_fixture_backed_gaps() -> No
     assert sources["nli_any_use_permitted"]["gap"] == 20
     assert sources["nli_any_use_permitted"]["feasibility_status"] == "needs_promotion"
     assert sources["pinkas_open"]["target_count"] == 27
-    assert sources["pinkas_open"]["runnable_cached_candidate_count"] == 1
-    assert sources["pinkas_open"]["gap"] == 26
-    assert sources["pinkas_open"]["feasibility_status"] == "needs_fixture_expansion"
+    assert sources["pinkas_open"]["runnable_cached_candidate_count"] == 27
+    assert sources["pinkas_open"]["gap"] == 0
+    assert sources["pinkas_open"]["feasibility_status"] == "feasible"
     assert sources["pinkas_open"]["expansion_path_status"] == "ok"
-    assert "F1c remains blocked" in " ".join(sources["pinkas_open"]["operator_notes"])
     assert sources["biblia_open"]["target_count"] == 26
-    assert sources["biblia_open"]["runnable_cached_candidate_count"] == 1
-    assert sources["biblia_open"]["gap"] == 25
-    assert sources["biblia_open"]["feasibility_status"] == "needs_fixture_expansion"
+    assert sources["biblia_open"]["runnable_cached_candidate_count"] == 26
+    assert sources["biblia_open"]["gap"] == 0
+    assert sources["biblia_open"]["feasibility_status"] == "feasible"
     assert sources["biblia_open"]["expansion_path_status"] == "ok"
+    assert sources["project_synthetic"]["target_count"] == 80
+    assert sources["project_synthetic"]["runnable_cached_candidate_count"] == 80
+    assert sources["project_synthetic"]["gap"] == 0
+    assert sources["project_synthetic"]["feasibility_status"] == "feasible"
     assert report["summary"]["warnings"] == [
-        "F1 source-depth feasibility is not met for: nli_any_use_permitted, pinkas_open, biblia_open, project_synthetic."
+        "F1 source-depth feasibility is not met for: nli_any_use_permitted."
     ]
     assert "public beta export" in report["non_goals"]
 
@@ -461,6 +461,18 @@ def test_record_source_health_covers_static_expansion_manifest() -> None:
         and check["status"] == "ok"
         for check in checks
     )
+
+
+def test_static_source_depth_only_records_do_not_enter_normal_discovery() -> None:
+    bundle = load_and_validate_bundle()
+    pinkas_source = next(source for source in bundle.source_registry.sources if source.id == "pinkas_open")
+    biblia_source = next(source for source in bundle.source_registry.sources if source.id == "biblia_open")
+
+    pinkas_candidates = PinkasImporter().discover_candidates(pinkas_source, bundle, StageOptions())
+    biblia_candidates = BibliaImporter().discover_candidates(biblia_source, bundle, StageOptions())
+
+    assert [candidate.source_item_id for candidate in pinkas_candidates] == ["pinkas-ledger-001"]
+    assert [candidate.source_item_id for candidate in biblia_candidates] == ["biblia-doc-001"]
 
 
 def test_static_expansion_manifest_rejects_weak_rights_gates_and_asset_roots(tmp_path: Path) -> None:
