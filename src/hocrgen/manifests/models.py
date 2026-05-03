@@ -534,6 +534,7 @@ class BenchmarkLayoutReferenceFileReference(BenchmarkReferenceFileReference):
 
 
 class BenchmarkReferenceManifestItemRecord(ManifestModel):
+    reference_id: str
     item_id: str
     source_id: str
     source_item_id: str
@@ -579,15 +580,23 @@ class BenchmarkReferenceManifestRecord(ManifestModel):
 
     @model_validator(mode="after")
     def validate_item_ids(self) -> "BenchmarkReferenceManifestRecord":
-        seen: set[str] = set()
-        duplicates: set[str] = set()
+        seen_item_ids: set[str] = set()
+        duplicate_item_ids: set[str] = set()
+        seen_reference_ids: set[str] = set()
+        duplicate_reference_ids: set[str] = set()
         for item in self.items:
-            if item.item_id in seen:
-                duplicates.add(item.item_id)
-            seen.add(item.item_id)
-        if duplicates:
-            joined = ", ".join(sorted(duplicates))
+            if item.item_id in seen_item_ids:
+                duplicate_item_ids.add(item.item_id)
+            seen_item_ids.add(item.item_id)
+            if item.reference_id in seen_reference_ids:
+                duplicate_reference_ids.add(item.reference_id)
+            seen_reference_ids.add(item.reference_id)
+        if duplicate_item_ids:
+            joined = ", ".join(sorted(duplicate_item_ids))
             raise ValueError(f"duplicate benchmark reference item ids: {joined}")
+        if duplicate_reference_ids:
+            joined = ", ".join(sorted(duplicate_reference_ids))
+            raise ValueError(f"duplicate benchmark reference ids: {joined}")
         return self
 
 
@@ -780,6 +789,7 @@ class BenchmarkLayoutReferenceRecord(ManifestModel):
 
 
 class BenchmarkReferenceStatusItemRecord(ManifestModel):
+    reference_id: str | None = None
     item_id: str
     source_id: str
     source_item_id: str

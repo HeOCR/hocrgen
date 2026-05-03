@@ -7,7 +7,7 @@ from typing import Sequence
 
 from hocrgen.annotation_pilots import load_annotation_pilot_config
 from hocrgen.benchmark import load_benchmark_config
-from hocrgen.benchmark_references import load_benchmark_reference_manifest
+from hocrgen.benchmark_references import load_benchmark_reference_manifest, validate_benchmark_reference_files
 from hocrgen.config.loader import ConfigBundle, load_and_validate_bundle
 from hocrgen.core.context import create_run_context
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
@@ -201,9 +201,10 @@ def handle_config_validate(args: argparse.Namespace) -> int:
         bundle = _load_bundle(args.config_root)
         benchmark_config = load_benchmark_config(bundle.config_root)
         benchmark_reference_manifest, benchmark_reference_manifest_path = load_benchmark_reference_manifest(bundle.config_root)
+        benchmark_reference_validation = validate_benchmark_reference_files(bundle.config_root)
         annotation_pilot_config = load_annotation_pilot_config(bundle.config_root)
         review_data = validate_review_data(bundle.config_root, args.config_root.resolve() if args.config_root else None)
-    except ConfigValidationError as exc:
+    except (ConfigValidationError, StageExecutionError) as exc:
         _print_json({"status": "error", "error": str(exc)})
         return 1
 
@@ -219,9 +220,11 @@ def handle_config_validate(args: argparse.Namespace) -> int:
             },
             "benchmark_references": {
                 "item_count": len(benchmark_reference_manifest.items) if benchmark_reference_manifest else 0,
+                "layout_reference_count": len(benchmark_reference_validation.layout_references),
                 "reference_manifest_id": (
                     benchmark_reference_manifest.reference_manifest_id if benchmark_reference_manifest else None
                 ),
+                "transcription_reference_count": len(benchmark_reference_validation.transcription_references),
                 "path": str(benchmark_reference_manifest_path) if benchmark_reference_manifest_path else None,
             },
             "annotation_pilot": {

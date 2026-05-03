@@ -321,6 +321,7 @@ A manifest should contain:
 
 Each item entry should contain:
 
+- `reference_id`: stable reference id used by correction and supersession records
 - `item_id`: hocrgen item id, matching benchmark and item manifests
 - `source_id` and `source_item_id`: source identity linkage
 - `benchmark_split`: the committed benchmark split when applicable
@@ -338,7 +339,7 @@ Example shape:
 
 ```json
 {
-  "schema_version": "benchmark_reference_manifest.v1",
+      "schema_version": "benchmark_reference_manifest.v1",
   "benchmark_id": "benchmark_v1",
   "reference_manifest_id": "benchmark_v1_refs_0001",
   "reference_contracts": {
@@ -347,6 +348,7 @@ Example shape:
   },
   "items": [
     {
+      "reference_id": "benchmark_v1_refs_0001:nli-ms-001",
       "item_id": "nli_any_use_permitted:nli-ms-001",
       "source_id": "nli_any_use_permitted",
       "source_item_id": "nli-ms-001",
@@ -388,13 +390,13 @@ Removing or retiring a benchmark reference is a benchmark-versioning event. It s
 
 ## Runtime Ingestion
 
-`F2b` implements the first runtime layer for these contracts. `build-release` loads a packaged or config-root override `benchmark_reference_manifest.v1`, validates child `benchmark_transcription_reference.v1` and `benchmark_layout_reference.v1` files, enforces release-relative reference paths, checks benchmark `item_id` / `source_id` / `source_item_id` / split linkage, verifies layout asset checksum and dimensions against current normalized assets, and emits:
+`F2b` implements the first runtime layer for these contracts. `build-release` loads a packaged or config-root override `benchmark_reference_manifest.v1`, validates child `benchmark_transcription_reference.v1` and `benchmark_layout_reference.v1` files, enforces release-relative reference paths, checks benchmark `item_id` / `source_id` / `source_item_id` / split linkage, copies validated child reference files under their manifest paths, verifies layout asset path, checksum, and dimensions against current normalized assets, and emits:
 
 - `benchmark_reference_manifest.json`
 - `benchmark_reference_status.json`
 - `benchmark_reference_versioning.json`
 
-The status artifact summarizes `not_available`, `draft`, `reviewed`, `adjudicated`, `corrected`, `retired`, blocked/draft, reference-ready, reviewer, adjudication, correction, and supersession fields. The versioning artifact rejects incoherent `correction_of` / `superseded_by` relationships and requires change reasons for corrected or retired references.
+The status artifact summarizes `not_available`, `draft`, `reviewed`, `adjudicated`, `corrected`, `retired`, blocked/draft, reference-ready, reviewer, adjudication, correction, and supersession fields. The versioning artifact rejects incoherent `correction_of` / `superseded_by` relationships over stable `reference_id` values, requires change reasons for corrected or retired references, and exposes a previous-manifest comparison hook for detecting silent public reference removals or changes. `export-alpha` mirrors selected reference artifacts and child reference files so public release-relative paths resolve inside the exported tree.
 
 This ingestion path remains optional for current public and alpha exports. It does not make references mandatory, does not change `benchmark_v1` membership, does not add OCR/HTR model training or annotation tooling, and does not resolve the separate F1d benchmark/holdout leakage risk.
 

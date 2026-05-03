@@ -161,6 +161,11 @@ def export_alpha_release(
     if export_dir.exists():
         shutil.rmtree(export_dir)
     exported_items = _copy_export_assets(selected_items, export_dir / "data")
+    exported_benchmark_reference_files = _copy_benchmark_reference_files(
+        selected_benchmark_reference_manifest,
+        build_dir,
+        export_dir,
+    )
     source_stats = _build_source_stats(exported_items, selected_duplicate_relations)
     classification_stats = _build_classification_stats(exported_items)
     privacy_stats = _build_privacy_stats(exported_items)
@@ -400,6 +405,7 @@ def export_alpha_release(
             if benchmark_inputs.reference_versioning is not None
             else []
         ),
+        *exported_benchmark_reference_files,
         docs_dir / "DATASET_CARD.md",
         docs_dir / "CHANGELOG.md",
         docs_dir / "RELEASE_NOTES.md",
@@ -1262,6 +1268,30 @@ def _filter_benchmark_reference_status(
         if item.public_reference_status in {"draft", "not_available"} or item.adjudication_status == "blocked"
     )
     return status.model_copy(update={"counts": dict(counts), "items": items})
+
+
+def _copy_benchmark_reference_files(
+    manifest: BenchmarkReferenceManifestRecord | None,
+    build_dir: Path,
+    export_dir: Path,
+) -> list[Path]:
+    if manifest is None:
+        return []
+    copied: list[Path] = []
+    for item in manifest.items:
+        paths = []
+        if item.transcription_reference is not None:
+            paths.append(item.transcription_reference.path)
+        paths.extend(reference.path for reference in item.layout_label_references)
+        for relative_path in paths:
+            source = build_dir / relative_path
+            if not source.is_file():
+                raise StageExecutionError(f"alpha export benchmark reference file is missing: {source}")
+            target = export_dir / relative_path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source, target)
+            copied.append(target)
+    return copied
 
 
 def _load_annotation_pilot_export_inputs(build_dir: Path) -> AnnotationPilotExportInputs:

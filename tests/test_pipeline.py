@@ -252,6 +252,14 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
     assert {item["outcome"] for item in benchmark_audit["items"]} == {"selected"}
     assert benchmark_policy["benchmark_id"] == "benchmark_v1"
     assert benchmark_reference_manifest["reference_manifest_id"] == "benchmark_v1_refs_0001"
+    reference_paths = [
+        reference["path"]
+        for item in benchmark_reference_manifest["items"]
+        for reference in [item.get("transcription_reference"), *item.get("layout_label_references", [])]
+        if reference is not None
+    ]
+    assert reference_paths
+    assert all((run_dir / "build_release" / path).is_file() for path in reference_paths)
     assert benchmark_reference_status["counts"]["reference_ready"] == 1
     assert benchmark_reference_status["counts"]["draft"] == 1
     assert benchmark_reference_status["counts"]["not_available"] == 1

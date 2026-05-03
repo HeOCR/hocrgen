@@ -165,6 +165,21 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
     assert str(output_dir.resolve()) not in json.dumps(benchmark_manifest)
     assert benchmark_reference_manifest["reference_manifest_id"] == "benchmark_v1_refs_0001"
     assert benchmark_reference_status["counts"]["reference_ready"] == 1
+    reference_paths = [
+        reference["path"]
+        for item in benchmark_reference_manifest["items"]
+        for reference in [item.get("transcription_reference"), *item.get("layout_label_references", [])]
+        if reference is not None
+    ]
+    layout_asset_paths = [
+        asset["path"]
+        for path in reference_paths
+        if "layout.json" in path
+        for asset in json.loads((output_dir / path).read_text(encoding="utf-8"))["assets"]
+    ]
+    assert reference_paths
+    assert all((output_dir / path).is_file() for path in reference_paths)
+    assert all((output_dir / path).is_file() for path in layout_asset_paths)
     assert str(output_dir.resolve()) not in json.dumps(benchmark_reference_manifest)
     assert annotation_pilot_manifest["pilot_id"] == "e3a_annotation_pilot"
     assert annotation_pilot_manifest["pilot_item_count"] == 2

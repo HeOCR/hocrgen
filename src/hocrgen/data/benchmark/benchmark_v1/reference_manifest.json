@@ -9,6 +9,7 @@
   },
   "items": [
     {
+      "reference_id": "benchmark_v1_refs_0001:nli-ms-seed-006",
       "item_id": "nli_any_use_permitted:nli-ms-seed-006",
       "source_id": "nli_any_use_permitted",
       "source_item_id": "nli-ms-seed-006",
@@ -33,6 +34,7 @@
       "change_reason": "initial reviewed reference fixture"
     },
     {
+      "reference_id": "benchmark_v1_refs_0001:pinkas-ledger-001",
       "item_id": "pinkas_open:pinkas-ledger-001",
       "source_id": "pinkas_open",
       "source_item_id": "pinkas-ledger-001",
@@ -51,6 +53,7 @@
       "change_reason": "draft fixture keeps references optional until adjudication completes"
     },
     {
+      "reference_id": "benchmark_v1_refs_0001:synthetic-0",
       "item_id": "project_synthetic:synthetic-0",
       "source_id": "project_synthetic",
       "source_item_id": "synthetic-0",

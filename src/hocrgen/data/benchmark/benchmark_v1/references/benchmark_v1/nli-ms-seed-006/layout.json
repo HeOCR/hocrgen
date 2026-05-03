@@ -13,7 +13,7 @@
     {
       "asset_id": "page-1-image",
       "page_id": "page-1",
-      "path": "data/train/nli_any_use_permitted:nli-ms-seed-006/nli_ms_seed_006_page1.jpg",
+      "path": "data/train/nli_any_use_permitted:nli-ms-seed-006/asset_01.jpg",
       "sha256": "9472983324fa55a471d7b5c4245e187cf9147bd6daa74ec6878e253661dac77d",
       "width": 3800,
       "height": 4888

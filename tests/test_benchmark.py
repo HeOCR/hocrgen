@@ -14,7 +14,12 @@ from hocrgen.benchmark import (
     resolve_benchmark_data_root,
     select_benchmark_items,
 )
-from hocrgen.benchmark_references import ingest_benchmark_references, load_benchmark_reference_manifest
+from hocrgen.benchmark_references import (
+    ingest_benchmark_references,
+    load_benchmark_reference_manifest,
+    validate_benchmark_reference_files,
+    validate_reference_versioning,
+)
 from hocrgen.config.loader import default_config_root
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.manifests.models import (
@@ -99,6 +104,19 @@ def test_load_packaged_benchmark_reference_manifest() -> None:
     }
 
 
+def test_validate_benchmark_reference_files_loads_child_references() -> None:
+    outputs = validate_benchmark_reference_files(default_config_root())
+
+    assert outputs.manifest is not None
+    assert len(outputs.transcription_references) == 2
+    assert len(outputs.layout_references) == 1
+    assert set(outputs.reference_files) == {
+        "references/benchmark_v1/nli-ms-seed-006/transcription.json",
+        "references/benchmark_v1/nli-ms-seed-006/layout.json",
+        "references/benchmark_v1/pinkas-ledger-001/transcription.json",
+    }
+
+
 @pytest.mark.parametrize(
     "path",
     [
@@ -154,6 +172,7 @@ def test_ingest_benchmark_references_validates_packaged_fixture(tmp_path: Path) 
                         "sha256": "9472983324fa55a471d7b5c4245e187cf9147bd6daa74ec6878e253661dac77d",
                         "width": 3800,
                         "height": 4888,
+                        "normalized_asset_path": str(tmp_path / "asset_01.jpg"),
                     }
                 )
             ]
@@ -198,7 +217,7 @@ def test_ingest_benchmark_references_rejects_layout_asset_mismatch(tmp_path: Pat
         }
     )
 
-    with pytest.raises(StageExecutionError, match="sha256/dimensions do not match"):
+    with pytest.raises(StageExecutionError, match="path/sha256/dimensions do not match"):
         ingest_benchmark_references(
             config_root=default_config_root(),
             benchmark_items=[
@@ -221,6 +240,7 @@ def test_benchmark_reference_manifest_rejects_bad_versioning() -> None:
         },
         "items": [
             {
+                "reference_id": "fixture-ref-001",
                 "item_id": "fixture:item-001",
                 "source_id": "fixture",
                 "source_item_id": "item-001",
@@ -243,6 +263,50 @@ def test_benchmark_reference_manifest_rejects_bad_versioning() -> None:
 
     with pytest.raises(ValueError, match="requires change_reason"):
         BenchmarkReferenceManifestRecord.model_validate(payload)
+
+
+def test_reference_versioning_rejects_silent_public_reference_removal() -> None:
+    previous = _reference_manifest_with_items(
+        [
+            {
+                "reference_id": "ref-001",
+                "item_id": "fixture:item-001",
+                "public_reference_status": "reviewed",
+            }
+        ]
+    )
+    current = _reference_manifest_with_items([])
+
+    with pytest.raises(StageExecutionError, match="disappeared without a versioning event"):
+        validate_reference_versioning(current, previous)
+
+
+def test_reference_versioning_accepts_correction_against_previous_reference() -> None:
+    previous = _reference_manifest_with_items(
+        [
+            {
+                "reference_id": "ref-001",
+                "item_id": "fixture:item-001",
+                "public_reference_status": "reviewed",
+            }
+        ]
+    )
+    current = _reference_manifest_with_items(
+        [
+            {
+                "reference_id": "ref-002",
+                "item_id": "fixture:item-001",
+                "public_reference_status": "corrected",
+                "correction_of": "ref-001",
+                "change_reason": "fixed reviewed transcription",
+            }
+        ]
+    )
+
+    report = validate_reference_versioning(current, previous)
+
+    assert report["status"] == "ok"
+    assert report["events"][0]["reference_id"] == "ref-002"
 
 
 def test_load_benchmark_config_rejects_duplicate_approved_items(tmp_path: Path) -> None:
@@ -500,6 +564,43 @@ def _layout_reference_payload() -> dict:
             "reviewers": ["fixture-reviewer"],
         },
     }
+
+
+def _reference_manifest_with_items(items: list[dict]) -> BenchmarkReferenceManifestRecord:
+    payload_items = []
+    for item in items:
+        item_id = item["item_id"]
+        payload_items.append(
+            {
+                "reference_id": item["reference_id"],
+                "item_id": item_id,
+                "source_id": item_id.split(":", 1)[0],
+                "source_item_id": item_id.split(":", 1)[1],
+                "benchmark_split": "train",
+                "visibility": "public",
+                "public_reference_status": item.get("public_reference_status", "reviewed"),
+                "transcription_reference": {
+                    "path": f"references/{item['reference_id']}/transcription.json",
+                    "schema_version": "benchmark_transcription_reference.v1",
+                },
+                "layout_label_references": [],
+                "reviewers": ["fixture-reviewer"],
+                "adjudication_status": "adjudicated",
+                "correction_of": item.get("correction_of"),
+                "superseded_by": item.get("superseded_by"),
+                "change_reason": item.get("change_reason"),
+            }
+        )
+    return BenchmarkReferenceManifestRecord(
+        schema_version="benchmark_reference_manifest.v1",
+        benchmark_id="benchmark_v1",
+        reference_manifest_id="fixture_refs",
+        reference_contracts={
+            "transcription": "benchmark_transcription_reference.v1",
+            "layout": "benchmark_layout_reference.v1",
+        },
+        items=payload_items,
+    )
 
 
 def _benchmark_item(tmp_path: Path, *, split: str | None) -> PrivacyScannedItemRecord:

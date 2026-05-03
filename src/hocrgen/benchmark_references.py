@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
+import shutil
 from typing import Any
 
 from pydantic import ValidationError
@@ -31,6 +32,16 @@ class BenchmarkReferenceOutputs:
     status_artifact: BenchmarkReferenceStatusArtifactRecord
     transcription_references: list[BenchmarkTranscriptionReferenceRecord]
     layout_references: list[BenchmarkLayoutReferenceRecord]
+    reference_files: dict[str, Path]
+    versioning_report: dict[str, Any]
+
+
+@dataclass(frozen=True)
+class BenchmarkReferenceValidationOutputs:
+    manifest: BenchmarkReferenceManifestRecord | None
+    transcription_references: list[BenchmarkTranscriptionReferenceRecord]
+    layout_references: list[BenchmarkLayoutReferenceRecord]
+    reference_files: dict[str, Path]
     versioning_report: dict[str, Any]
 
 
@@ -83,8 +94,9 @@ def ingest_benchmark_references(
     release_ready_items: list[PrivacyScannedItemRecord],
     benchmark_id: str = BENCHMARK_ID,
 ) -> BenchmarkReferenceOutputs:
-    manifest, manifest_path = load_benchmark_reference_manifest(config_root, benchmark_id)
-    if manifest is None or manifest_path is None or not benchmark_items:
+    validation_outputs = validate_benchmark_reference_files(config_root, benchmark_id=benchmark_id)
+    manifest = validation_outputs.manifest
+    if manifest is None or not benchmark_items:
         return _empty_outputs(benchmark_id, benchmark_items)
 
     benchmark_by_id = {item.item_id: item for item in benchmark_items}
@@ -97,31 +109,18 @@ def ingest_benchmark_references(
             )
         _validate_manifest_item_linkage(item, benchmark_item)
 
-    manifest_root = manifest_path.parent
-    transcription_references: list[BenchmarkTranscriptionReferenceRecord] = []
-    layout_references: list[BenchmarkLayoutReferenceRecord] = []
     for item in manifest.items:
         release_item = release_ready_by_id.get(item.item_id)
         if release_item is None:
             raise StageExecutionError(f"benchmark reference manifest item {item.item_id} is not release-ready")
-        if item.transcription_reference is not None:
-            transcription = _load_transcription_reference(manifest_root, item)
-            _validate_child_linkage(transcription, item)
-            transcription_references.append(transcription)
-        for layout_ref in item.layout_label_references:
-            layout = _load_layout_reference(manifest_root, item, layout_ref.path)
-            _validate_child_linkage(layout, item)
+        item_layouts = [
+            layout
+            for layout in validation_outputs.layout_references
+            if layout.item_id == item.item_id
+        ]
+        for layout in item_layouts:
             _validate_layout_assets(layout, release_item)
-            if layout_ref.page_ids:
-                actual_page_ids = {asset.page_id for asset in layout.assets}
-                missing = set(layout_ref.page_ids) - actual_page_ids
-                if missing:
-                    raise StageExecutionError(
-                        f"benchmark layout reference {layout_ref.path} missing declared page ids: {', '.join(sorted(missing))}"
-                    )
-            layout_references.append(layout)
 
-    versioning_report = _validate_versioning(manifest)
     status_artifact = build_benchmark_reference_status_artifact(
         benchmark_id=benchmark_id,
         reference_manifest=manifest,
@@ -130,9 +129,65 @@ def ingest_benchmark_references(
     return BenchmarkReferenceOutputs(
         manifest=manifest,
         status_artifact=status_artifact,
+        transcription_references=validation_outputs.transcription_references,
+        layout_references=validation_outputs.layout_references,
+        reference_files=validation_outputs.reference_files,
+        versioning_report=validation_outputs.versioning_report,
+    )
+
+
+def validate_benchmark_reference_files(
+    config_root: Path,
+    benchmark_id: str = BENCHMARK_ID,
+) -> BenchmarkReferenceValidationOutputs:
+    manifest, manifest_path = load_benchmark_reference_manifest(config_root, benchmark_id)
+    if manifest is None or manifest_path is None:
+        return BenchmarkReferenceValidationOutputs(
+            manifest=None,
+            transcription_references=[],
+            layout_references=[],
+            reference_files={},
+            versioning_report={
+                "benchmark_id": benchmark_id,
+                "reference_manifest_id": None,
+                "status": "not_available",
+                "checked_count": 0,
+                "events": [],
+                "policy": "Benchmark references are optional for current public and alpha exports.",
+            },
+        )
+
+    manifest_root = manifest_path.parent
+    transcription_references: list[BenchmarkTranscriptionReferenceRecord] = []
+    layout_references: list[BenchmarkLayoutReferenceRecord] = []
+    reference_files: dict[str, Path] = {}
+    for item in manifest.items:
+        if item.transcription_reference is not None:
+            transcription_path = _resolve_reference_path(manifest_root, item.transcription_reference.path)
+            transcription = _load_transcription_reference(transcription_path)
+            _validate_child_linkage(transcription, item)
+            transcription_references.append(transcription)
+            reference_files[item.transcription_reference.path] = transcription_path
+        for layout_ref in item.layout_label_references:
+            layout_path = _resolve_reference_path(manifest_root, layout_ref.path)
+            layout = _load_layout_reference(layout_path)
+            _validate_child_linkage(layout, item)
+            if layout_ref.page_ids:
+                actual_page_ids = {asset.page_id for asset in layout.assets}
+                missing = set(layout_ref.page_ids) - actual_page_ids
+                if missing:
+                    raise ConfigValidationError(
+                        f"benchmark layout reference {layout_ref.path} missing declared page ids: {', '.join(sorted(missing))}"
+                    )
+            layout_references.append(layout)
+            reference_files[layout_ref.path] = layout_path
+
+    return BenchmarkReferenceValidationOutputs(
+        manifest=manifest,
         transcription_references=transcription_references,
         layout_references=layout_references,
-        versioning_report=versioning_report,
+        reference_files=reference_files,
+        versioning_report=validate_reference_versioning(manifest),
     )
 
 
@@ -163,6 +218,7 @@ def build_benchmark_reference_status_artifact(
             continue
         status_items.append(
             BenchmarkReferenceStatusItemRecord(
+                reference_id=reference_item.reference_id,
                 item_id=benchmark_item.item_id,
                 source_id=benchmark_item.source_id,
                 source_item_id=benchmark_item.source_item_id,
@@ -212,6 +268,7 @@ def _empty_outputs(
         ),
         transcription_references=[],
         layout_references=[],
+        reference_files={},
         versioning_report={
             "benchmark_id": benchmark_id,
             "reference_manifest_id": None,
@@ -233,25 +290,27 @@ def _resolve_reference_path(manifest_root: Path, reference_path: str) -> Path:
     return candidate
 
 
-def _load_transcription_reference(
-    manifest_root: Path,
-    item: BenchmarkReferenceManifestItemRecord,
-) -> BenchmarkTranscriptionReferenceRecord:
-    assert item.transcription_reference is not None
-    path = _resolve_reference_path(manifest_root, item.transcription_reference.path)
+def materialize_benchmark_reference_files(
+    reference_files: dict[str, Path],
+    target_root: Path,
+) -> list[Path]:
+    copied: list[Path] = []
+    for relative_path, source_path in sorted(reference_files.items()):
+        target_path = target_root / relative_path
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source_path, target_path)
+        copied.append(target_path)
+    return copied
+
+
+def _load_transcription_reference(path: Path) -> BenchmarkTranscriptionReferenceRecord:
     try:
         return BenchmarkTranscriptionReferenceRecord.model_validate(load_json_file(path))
     except (ConfigValidationError, ValidationError) as exc:
         raise StageExecutionError(f"benchmark transcription reference validation failed for {path}: {exc}") from exc
 
 
-def _load_layout_reference(
-    manifest_root: Path,
-    item: BenchmarkReferenceManifestItemRecord,
-    reference_path: str,
-) -> BenchmarkLayoutReferenceRecord:
-    del item
-    path = _resolve_reference_path(manifest_root, reference_path)
+def _load_layout_reference(path: Path) -> BenchmarkLayoutReferenceRecord:
     try:
         return BenchmarkLayoutReferenceRecord.model_validate(load_json_file(path))
     except (ConfigValidationError, ValidationError) as exc:
@@ -294,39 +353,52 @@ def _validate_layout_assets(
     layout: BenchmarkLayoutReferenceRecord,
     release_item: PrivacyScannedItemRecord,
 ) -> None:
+    if release_item.split is None:
+        raise StageExecutionError(f"benchmark layout reference item {release_item.item_id} is missing a split assignment")
     normalized_assets = {
-        (asset.sha256, asset.width, asset.height)
+        (
+            f"data/{release_item.split}/{release_item.item_id}/{Path(asset.normalized_asset_path).name}",
+            asset.sha256,
+            asset.width,
+            asset.height,
+        )
         for asset in release_item.normalized_assets
     }
     for asset in layout.assets:
-        if (asset.sha256, asset.width, asset.height) not in normalized_assets:
+        if (asset.path, asset.sha256, asset.width, asset.height) not in normalized_assets:
             raise StageExecutionError(
                 "benchmark layout reference asset mismatch for "
-                f"{layout.item_id} page {asset.page_id}: sha256/dimensions do not match current normalized assets"
+                f"{layout.item_id} page {asset.page_id}: path/sha256/dimensions do not match current normalized assets"
             )
 
 
-def _validate_versioning(manifest: BenchmarkReferenceManifestRecord) -> dict[str, Any]:
-    items_by_id = {item.item_id: item for item in manifest.items}
+def validate_reference_versioning(
+    manifest: BenchmarkReferenceManifestRecord,
+    previous_manifest: BenchmarkReferenceManifestRecord | None = None,
+) -> dict[str, Any]:
+    items_by_reference_id = {item.reference_id: item for item in manifest.items}
     events: list[dict[str, str]] = []
     errors: list[str] = []
     for item in manifest.items:
         if item.correction_of:
-            prior = items_by_id.get(item.correction_of)
+            prior = items_by_reference_id.get(item.correction_of)
             if prior is None:
-                errors.append(f"{item.item_id} correction_of points to missing {item.correction_of}")
-            elif prior.superseded_by != item.item_id:
+                if previous_manifest is None or item.correction_of not in {prior.reference_id for prior in previous_manifest.items}:
+                    errors.append(f"{item.reference_id} correction_of points to missing {item.correction_of}")
+            elif prior.superseded_by != item.reference_id:
                 errors.append(f"{item.item_id} correction_of does not match superseded_by on {item.correction_of}")
-            events.append({"item_id": item.item_id, "event": "correction", "reason": item.change_reason or ""})
+            events.append({"reference_id": item.reference_id, "item_id": item.item_id, "event": "correction", "reason": item.change_reason or ""})
         if item.superseded_by:
-            replacement = items_by_id.get(item.superseded_by)
+            replacement = items_by_reference_id.get(item.superseded_by)
             if replacement is None:
-                errors.append(f"{item.item_id} superseded_by points to missing {item.superseded_by}")
-            elif replacement.correction_of != item.item_id:
+                errors.append(f"{item.reference_id} superseded_by points to missing {item.superseded_by}")
+            elif replacement.correction_of != item.reference_id:
                 errors.append(f"{item.item_id} superseded_by does not match correction_of on {item.superseded_by}")
-            events.append({"item_id": item.item_id, "event": "superseded", "reason": item.change_reason or ""})
+            events.append({"reference_id": item.reference_id, "item_id": item.item_id, "event": "superseded", "reason": item.change_reason or ""})
         if item.public_reference_status == "retired":
-            events.append({"item_id": item.item_id, "event": "retirement", "reason": item.change_reason or ""})
+            events.append({"reference_id": item.reference_id, "item_id": item.item_id, "event": "retirement", "reason": item.change_reason or ""})
+    if previous_manifest is not None:
+        errors.extend(_validate_against_previous_manifest(manifest, previous_manifest, events))
     if errors:
         raise StageExecutionError(f"benchmark reference versioning validation failed: {'; '.join(errors)}")
     return {
@@ -341,3 +413,48 @@ def _validate_versioning(manifest: BenchmarkReferenceManifestRecord) -> dict[str
             "or change reasons for versioning events."
         ),
     }
+
+
+def _validate_against_previous_manifest(
+    manifest: BenchmarkReferenceManifestRecord,
+    previous_manifest: BenchmarkReferenceManifestRecord,
+    events: list[dict[str, str]],
+) -> list[str]:
+    current_by_reference_id = {item.reference_id: item for item in manifest.items}
+    superseded_or_corrected = {
+        value
+        for item in manifest.items
+        for value in (item.correction_of, item.superseded_by)
+        if value is not None
+    }
+    errors: list[str] = []
+    for previous in previous_manifest.items:
+        if previous.visibility != "public" or previous.public_reference_status not in {"reviewed", "adjudicated"}:
+            continue
+        current = current_by_reference_id.get(previous.reference_id)
+        if current is None:
+            if previous.reference_id not in superseded_or_corrected:
+                errors.append(f"public benchmark reference {previous.reference_id} disappeared without a versioning event")
+            continue
+        if _versioned_public_payload(previous) != _versioned_public_payload(current) and not current.change_reason:
+            errors.append(f"public benchmark reference {previous.reference_id} changed without change_reason")
+        if _versioned_public_payload(previous) != _versioned_public_payload(current):
+            events.append(
+                {
+                    "reference_id": current.reference_id,
+                    "item_id": current.item_id,
+                    "event": "changed",
+                    "reason": current.change_reason or "",
+                }
+            )
+    return errors
+
+
+def _versioned_public_payload(item: BenchmarkReferenceManifestItemRecord) -> dict[str, Any]:
+    return item.model_dump(
+        mode="json",
+        exclude={
+            "change_reason",
+            "reviewers",
+        },
+    )

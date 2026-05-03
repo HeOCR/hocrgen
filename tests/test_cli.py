@@ -15,6 +15,9 @@ def test_config_validate_command_succeeds(capsys) -> None:
     assert payload["status"] == "ok"
     assert payload["profile_count"] == 2
     assert payload["benchmark"] == {"approved_item_count": 3, "benchmark_id": "benchmark_v1", "version": 1}
+    assert payload["benchmark_references"]["item_count"] == 3
+    assert payload["benchmark_references"]["transcription_reference_count"] == 2
+    assert payload["benchmark_references"]["layout_reference_count"] == 1
     assert payload["annotation_pilot"] == {
         "approved_item_count": 2,
         "pilot_id": "e3a_annotation_pilot",

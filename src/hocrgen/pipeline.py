@@ -9,7 +9,7 @@ from typing import Any
 from hocrgen.annotation_pilots import load_annotation_pilot_config, select_annotation_pilot_items
 from hocrgen.annotations import build_annotation_manifest
 from hocrgen.benchmark import load_benchmark_config, select_benchmark_items
-from hocrgen.benchmark_references import ingest_benchmark_references
+from hocrgen.benchmark_references import ingest_benchmark_references, materialize_benchmark_reference_files
 from hocrgen.classify.heuristics import classify_items
 from hocrgen.config.loader import ConfigBundle
 from hocrgen.config.models import LicenseEntry, SourceConfig
@@ -1010,6 +1010,10 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     state.benchmark_reference_manifest = benchmark_reference_outputs.manifest
     state.benchmark_reference_status = benchmark_reference_outputs.status_artifact
     state.benchmark_reference_versioning = benchmark_reference_outputs.versioning_report
+    benchmark_reference_files = materialize_benchmark_reference_files(
+        benchmark_reference_outputs.reference_files,
+        stage_dir,
+    )
     try:
         annotation_pilot_config = load_annotation_pilot_config(bundle.config_root)
     except ConfigValidationError as exc:
@@ -1172,6 +1176,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         benchmark_reference_manifest_path,
         benchmark_reference_status_path,
         benchmark_reference_versioning_path,
+        *benchmark_reference_files,
         benchmark_leakage_risk_path,
         benchmark_card_path,
         annotation_pilot_manifest_path,

@@ -362,7 +362,7 @@ def test_f2_benchmark_ground_truth_references_keep_scope_visible() -> None:
     for required in [
         "rejects non-portable absolute",
         "checks benchmark item/source/split linkage",
-        "verifies layout asset checksum/dimension linkage",
+        "verifies layout asset path/checksum/dimension linkage",
         "does not make references mandatory",
         "does not change `benchmark_v1` membership",
     ]:
