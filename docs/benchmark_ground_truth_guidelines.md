@@ -398,7 +398,7 @@ Removing or retiring a benchmark reference is a benchmark-versioning event. It s
 
 The status artifact summarizes `not_available`, `draft`, `reviewed`, `adjudicated`, `corrected`, `retired`, blocked/draft, reference-ready, reviewer, adjudication, correction, and supersession fields. The versioning artifact rejects incoherent `correction_of` / `superseded_by` relationships over stable `reference_id` values, requires change reasons for corrected or retired references, and exposes a previous-manifest comparison hook for detecting silent public reference removals or changes. `export-alpha` mirrors selected reference artifacts and child reference files so public release-relative paths resolve inside the exported tree.
 
-This ingestion path remains optional for current public and alpha exports. It does not make references mandatory, does not change `benchmark_v1` membership, does not add OCR/HTR model training or annotation tooling, and does not resolve the separate F1d benchmark/holdout leakage risk.
+This ingestion path remains optional for current public and alpha exports. It does not make references mandatory, does not change `benchmark_v1` membership, and does not add OCR/HTR model training or annotation tooling. The separate F1e benchmark/holdout leakage gate records accepted overlap resolutions in benchmark config and blocks unresolved or stale exact duplicate, near-duplicate, or source-group overlap; it is separate from benchmark-reference ingestion and still does not claim public beta readiness.
 
 ## Non-Goals for F2a
 

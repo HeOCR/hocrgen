@@ -25,5 +25,45 @@
     "splits": "Benchmark split assignments are committed per item in benchmark approval data and must match release split output.",
     "versioning": "Material membership or policy changes should create a new benchmark version rather than silently reshaping benchmark_v1."
   },
+  "benchmark_holdout_leakage_policy": {
+    "schema_version": 1,
+    "default_action": "block_unresolved",
+    "policy": "Benchmark members must not share exact duplicate, near-duplicate, or source-group membership with non-benchmark holdout/public-beta candidates unless a repo-tracked accepted resolution matches the detected group and member sets.",
+    "accepted_resolutions": [
+      {
+        "resolution_id": "F1e-pinkas-wdl11806-source-group",
+        "group_id": "source-group:e5a51dc8dd3e0a33",
+        "group_kind": "source_group",
+        "benchmark_item_ids": [
+          "pinkas_open:pinkas-ledger-001"
+        ],
+        "non_benchmark_item_ids": [
+          "pinkas_open:pinkas-wdl-11806-page-001",
+          "pinkas_open:pinkas-wdl-11806-page-002",
+          "pinkas_open:pinkas-wdl-11806-page-003",
+          "pinkas_open:pinkas-wdl-11806-page-004",
+          "pinkas_open:pinkas-wdl-11806-page-005",
+          "pinkas_open:pinkas-wdl-11806-page-006",
+          "pinkas_open:pinkas-wdl-11806-page-007",
+          "pinkas_open:pinkas-wdl-11806-page-008",
+          "pinkas_open:pinkas-wdl-11806-page-010",
+          "pinkas_open:pinkas-wdl-11806-page-011",
+          "pinkas_open:pinkas-wdl-11806-page-012",
+          "pinkas_open:pinkas-wdl-11806-page-013",
+          "pinkas_open:pinkas-wdl-11806-page-014",
+          "pinkas_open:pinkas-wdl-11806-page-015",
+          "pinkas_open:pinkas-wdl-11806-page-016",
+          "pinkas_open:pinkas-wdl-11806-page-017",
+          "pinkas_open:pinkas-wdl-11806-page-018",
+          "pinkas_open:pinkas-wdl-11806-page-019",
+          "pinkas_open:pinkas-wdl-11806-page-020"
+        ],
+        "action": "exclude_related_group_from_holdout_public_beta_claims",
+        "rationale": "F1e keeps benchmark_v1 membership stable while recording that the related Pinkas WDL11806 pages are not clean holdout/public-beta evidence for benchmark-readiness claims. Current build-release and alpha export outputs remain bounded and must not be presented as public beta readiness.",
+        "accepted_by": "repo:F1e",
+        "accepted_at": "2026-05-04"
+      }
+    ]
+  },
   "version": 1
 }

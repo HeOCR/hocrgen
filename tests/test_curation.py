@@ -3,10 +3,12 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
 from PIL import Image
 
 from hocrgen.config.loader import load_and_validate_bundle
 from hocrgen.core.context import create_run_context
+from hocrgen.core.errors import StageExecutionError
 from hocrgen.dedupe.exact import deduplicate_items
 from hocrgen.manifests.models import AcquiredAsset, NormalizedAssetRecord, NormalizedItemRecord
 from hocrgen.pipeline import _run_build_release, PipelineState
@@ -395,3 +397,67 @@ def test_build_release_ignores_retained_items_without_split_in_source_split_stat
     source_stats = __import__("json").loads(source_stats_path.read_text(encoding="utf-8"))
 
     assert source_stats["sources_by_split"] == {}
+
+
+def test_build_release_rejects_unresolved_benchmark_holdout_leakage(tmp_path: Path, monkeypatch) -> None:
+    bundle = load_and_validate_bundle()
+    context = create_run_context(profile_id="profile_open_v1", dry_run=True, workdir=tmp_path)
+    retained = deduplicate_items(
+        [
+            _normalized_item(
+                item_id="nli_any_use_permitted:item-unsplit",
+                source_id="nli_any_use_permitted",
+                source_item_id="item-unsplit",
+                asset_hashes=["unsplit"],
+            )
+        ],
+        bundle.profiles["profile_open_v1"],
+    ).retained_items
+    state = PipelineState(
+        retained_items=retained,
+        release_ready_items=retained,
+        leakage_report={"status": "ok", "duplicate_cluster_leaks": [], "split_group_leaks": [], "group_count": 0},
+    )
+    monkeypatch.setattr(
+        "hocrgen.pipeline.select_benchmark_items",
+        lambda **kwargs: SimpleNamespace(
+            audit=[],
+            card_markdown="",
+            config=SimpleNamespace(benchmark_id="benchmark_v1"),
+            items=[],
+            stability_policy={},
+        ),
+    )
+    monkeypatch.setattr(
+        "hocrgen.pipeline.select_annotation_pilot_items",
+        lambda **kwargs: SimpleNamespace(
+            audit=[],
+            config=SimpleNamespace(pilot_id="e3a_annotation_pilot"),
+            manifest=SimpleNamespace(
+                layout_label_task_count=0,
+                layout_labels_required_for_release=False,
+                model_dump=lambda mode: {
+                    "pilot_id": "e3a_annotation_pilot",
+                    "items": [],
+                    "pilot_item_count": 0,
+                    "schema_version": 1,
+                },
+                pilot_item_count=0,
+                transcription_required_for_release=False,
+                transcription_task_count=0,
+            ),
+        ),
+    )
+    monkeypatch.setattr(
+        "hocrgen.pipeline._benchmark_leakage_risk",
+        lambda *args, **kwargs: {
+            "enforcement_context": "build_release",
+            "risk_count": 1,
+            "status": "blocked",
+            "unresolved_count": 1,
+            "unresolved_risks": [],
+        },
+    )
+
+    with pytest.raises(StageExecutionError, match="benchmark/holdout leakage unresolved"):
+        _run_build_release(bundle, context, options=None, state=state)  # type: ignore[arg-type]

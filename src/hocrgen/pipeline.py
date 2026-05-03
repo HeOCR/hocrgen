@@ -8,7 +8,7 @@ from typing import Any
 
 from hocrgen.annotation_pilots import load_annotation_pilot_config, select_annotation_pilot_items
 from hocrgen.annotations import build_annotation_manifest
-from hocrgen.benchmark import load_benchmark_config, select_benchmark_items
+from hocrgen.benchmark import benchmark_holdout_leakage_artifact, load_benchmark_config, select_benchmark_items
 from hocrgen.benchmark_references import ingest_benchmark_references, materialize_benchmark_reference_files
 from hocrgen.classify.heuristics import classify_items
 from hocrgen.config.loader import ConfigBundle
@@ -28,6 +28,8 @@ from hocrgen.manifests.models import (
     AnnotationPilotManifestRecord,
     AnnotationPilotSelectionAuditRecord,
     BenchmarkItemRecord,
+    BenchmarkLeakageEnforcementContext,
+    BenchmarkLeakagePolicyRecord,
     BenchmarkReferenceManifestRecord,
     BenchmarkReferenceStatusArtifactRecord,
     BenchmarkSelectionAuditRecord,
@@ -130,6 +132,7 @@ class PipelineState:
     leakage_report: dict[str, Any] = field(default_factory=dict)
     source_health: list[dict[str, Any]] = field(default_factory=list)
     benchmark_items: list[BenchmarkItemRecord] = field(default_factory=list)
+    benchmark_leakage_policy: BenchmarkLeakagePolicyRecord | None = None
     benchmark_selection_audit: list[BenchmarkSelectionAuditRecord] = field(default_factory=list)
     benchmark_stability_policy: dict[str, Any] = field(default_factory=dict)
     benchmark_card_markdown: str = ""
@@ -170,6 +173,7 @@ def empty_pipeline_state() -> PipelineState:
         leakage_report={},
         source_health=[],
         benchmark_items=[],
+        benchmark_leakage_policy=None,
         benchmark_selection_audit=[],
         benchmark_stability_policy={},
         benchmark_card_markdown="",
@@ -649,33 +653,24 @@ def _synthetic_cap_outcome(real_count: int, synthetic_count: int, synthetic_frac
     }
 
 
-def _benchmark_leakage_risk(state: PipelineState) -> dict[str, Any]:
-    benchmark_ids = {item.item_id for item in state.benchmark_items}
-    benchmark_splits = {item.item_id: item.split for item in state.release_ready_items if item.item_id in benchmark_ids}
-    group_members: dict[str, set[str]] = {}
-    for item in state.release_ready_items:
-        for group_id in [item.dedupe_cluster_id, item.near_duplicate_cluster_id, item.source_group_id]:
-            if group_id:
-                group_members.setdefault(group_id, set()).add(item.item_id)
-
-    risks = []
-    for group_id, member_ids in sorted(group_members.items()):
-        benchmark_members = sorted(member_ids & benchmark_ids)
-        holdout_members = sorted(member_ids - benchmark_ids)
-        if benchmark_members and holdout_members:
-            risks.append(
-                {
-                    "benchmark_item_ids": benchmark_members,
-                    "group_id": group_id,
-                    "holdout_item_ids": holdout_members,
-                    "splits": sorted({split for item_id, split in benchmark_splits.items() if item_id in benchmark_members and split}),
-                }
-            )
-    return {
-        "risk_count": len(risks),
-        "risks": risks,
-        "status": "ok" if not risks else "review_required",
-    }
+def _benchmark_leakage_risk(
+    state: PipelineState,
+    enforcement_context: BenchmarkLeakageEnforcementContext,
+) -> dict[str, Any]:
+    policy = state.benchmark_leakage_policy or BenchmarkLeakagePolicyRecord(
+        policy=(
+            "Benchmark members must not share exact duplicate, near-duplicate, or source-group membership "
+            "with non-benchmark holdout/public-beta candidates unless a repo-tracked accepted resolution "
+            "matches the detected group and member sets."
+        )
+    )
+    return benchmark_holdout_leakage_artifact(
+        benchmark_items=state.benchmark_items,
+        release_ready_items=state.release_ready_items,
+        removed_duplicate_items=state.duplicate_items,
+        policy=policy,
+        enforcement_context=enforcement_context,
+    )
 
 
 def _build_f1_target_scale_trial_report(
@@ -744,7 +739,7 @@ def _build_f1_target_scale_trial_report(
     normalized_target_count = sum(row["normalized_count"] for row in source_rows)
     target_candidate_count = F1_REAL_TARGET_COUNT + F1_SYNTHETIC_TARGET_COUNT
     synthetic_cap = _synthetic_cap_outcome(real_release_ready_count, synthetic_release_ready_count, profile.synthetic_fraction_max)
-    benchmark_leakage = _benchmark_leakage_risk(state)
+    benchmark_leakage = _benchmark_leakage_risk(state, "f1_trial")
     gate_blockers: list[str] = []
     failed_source_health = [
         source_id
@@ -769,7 +764,10 @@ def _build_f1_target_scale_trial_report(
             f"near-duplicate review is blocked: {len(state.near_duplicate_clusters)} cluster(s) require manual review"
         )
     if benchmark_leakage["status"] != "ok":
-        gate_blockers.append(f"benchmark/holdout leakage has {benchmark_leakage['risk_count']} group risk(s)")
+        gate_blockers.append(
+            "benchmark/holdout leakage has "
+            f"{benchmark_leakage['unresolved_count']} unresolved group risk(s)"
+        )
 
     target_scale_execution_status = "complete" if not target_execution_blockers else "blocked"
     gate_status = "ok" if not gate_blockers else "blocked"
@@ -998,6 +996,11 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         removed_duplicate_items=state.duplicate_items,
     )
     state.benchmark_items = benchmark_outputs.items
+    state.benchmark_leakage_policy = getattr(
+        benchmark_outputs.config,
+        "benchmark_holdout_leakage_policy",
+        benchmark_config.benchmark_holdout_leakage_policy,
+    )
     state.benchmark_selection_audit = benchmark_outputs.audit
     state.benchmark_stability_policy = benchmark_outputs.stability_policy
     state.benchmark_card_markdown = benchmark_outputs.card_markdown
@@ -1025,7 +1028,15 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     )
     state.annotation_pilot_manifest = annotation_pilot_outputs.manifest
     state.annotation_pilot_selection_audit = annotation_pilot_outputs.audit
-    benchmark_leakage_risk = _benchmark_leakage_risk(state)
+    benchmark_leakage_context: BenchmarkLeakageEnforcementContext = (
+        "f1_trial" if options and options.f1_target_scale_trial else "build_release"
+    )
+    benchmark_leakage_risk = _benchmark_leakage_risk(state, benchmark_leakage_context)
+    if benchmark_leakage_risk["status"] != "ok" and benchmark_leakage_context == "build_release":
+        raise StageExecutionError(
+            "benchmark/holdout leakage unresolved: "
+            f"{benchmark_leakage_risk['unresolved_count']} unresolved group risk(s)"
+        )
     near_duplicate_review_status = "blocked" if state.near_duplicate_clusters else "ok"
     enriched_leakage_report = {
         **state.leakage_report,

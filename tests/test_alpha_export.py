@@ -124,6 +124,7 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
     assert (output_dir / "manifests" / "annotation_pilot_manifest.json").exists()
     assert (output_dir / "manifests" / "annotation_pilot_selection_audit.json").exists()
     assert (output_dir / "manifests" / "benchmark_manifest.json").exists()
+    assert (output_dir / "manifests" / "benchmark_leakage_risk.json").exists()
     assert (output_dir / "manifests" / "benchmark_selection_audit.json").exists()
     assert (output_dir / "manifests" / "benchmark_stability_policy.json").exists()
     assert (output_dir / "manifests" / "benchmark_reference_manifest.json").exists()
@@ -143,6 +144,7 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
 
     release_diff = json.loads((output_dir / "manifests" / "release_diff.json").read_text(encoding="utf-8"))
     benchmark_manifest = json.loads((output_dir / "manifests" / "benchmark_manifest.json").read_text(encoding="utf-8"))
+    benchmark_leakage_risk = json.loads((output_dir / "manifests" / "benchmark_leakage_risk.json").read_text(encoding="utf-8"))
     benchmark_reference_manifest = json.loads(
         (output_dir / "manifests" / "benchmark_reference_manifest.json").read_text(encoding="utf-8")
     )
@@ -163,6 +165,8 @@ def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
         "project_synthetic:synthetic-0",
     }
     assert str(output_dir.resolve()) not in json.dumps(benchmark_manifest)
+    assert benchmark_leakage_risk["status"] == "ok"
+    assert str(output_dir.resolve()) not in json.dumps(benchmark_leakage_risk)
     assert benchmark_reference_manifest["reference_manifest_id"] == "benchmark_v1_refs_0001"
     assert benchmark_reference_status["counts"]["reference_ready"] == 1
     reference_paths = [
@@ -947,7 +951,7 @@ def test_export_alpha_succeeds_when_removed_duplicate_items_are_curated_records(
                         "collection": "BiblIA Open Packaged Subset",
                         "period": "historical",
                         "raw_rights": "PD-IL",
-                        "asset_path": "package://data/pinkas/assets/pinkas_001.jpg",
+                        "asset_path": "package://data/hocrsyngen/contracts/generation_manifest_v1/fixture-batch/assets/hocrsyngen-s00000017-000001/page_0001.jpg",
                     }
                 ]
             },
@@ -965,7 +969,7 @@ planning_notation: F1b2
 target_count: 26
 expansion_mode: operator_packaged_records
 records_path: {duplicate_records_path}
-asset_root: package://data/pinkas/assets/
+asset_root: package://data/hocrsyngen/contracts/generation_manifest_v1/fixture-batch/assets/hocrsyngen-s00000017-000001/
 required_record_fields:
   - id
   - title
@@ -1301,6 +1305,114 @@ def test_export_alpha_release_raises_on_empty_selection(monkeypatch, tmp_path: P
     monkeypatch.setattr("hocrgen.package.alpha._select_alpha_items", lambda *args, **kwargs: [])
     with pytest.raises(StageExecutionError, match="alpha export selection is empty"):
         export_alpha_release(bundle, run_dir, "profile_open_v1", AlphaExportConfig(version="alpha-v0"))
+
+
+def test_export_alpha_release_blocks_benchmark_holdout_leakage(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    exit_code = main(
+        [
+            "build-release",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+        ]
+    )
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    run_dir = Path(payload["run_dir"])
+    build_dir = run_dir / "build_release"
+    release_summary_path = build_dir / "release_summary.json"
+    release_summary = json.loads(release_summary_path.read_text(encoding="utf-8"))
+    release_summary["benchmark_holdout_leakage_status"] = "blocked"
+    release_summary_path.write_text(json.dumps(release_summary), encoding="utf-8")
+    (build_dir / "benchmark_leakage_risk.json").write_text(
+        json.dumps(
+            {
+                "enforcement_context": "build_release",
+                "risk_count": 1,
+                "status": "blocked",
+                "unresolved_count": 1,
+                "unresolved_risks": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    bundle = load_and_validate_bundle(config_root)
+
+    with pytest.raises(StageExecutionError, match="alpha export is blocked"):
+        export_alpha_release(bundle, run_dir, "profile_open_v1", AlphaExportConfig(version="alpha-v0"))
+
+
+def test_export_alpha_scopes_benchmark_leakage_artifact_to_selected_items(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    output_dir = tmp_path / "HeOCR" / "releases" / "alpha-v0"
+    exit_code = main(
+        [
+            "build-release",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+        ]
+    )
+    assert exit_code == 0
+    payload = json.loads(capsys.readouterr().out)
+    run_dir = Path(payload["run_dir"])
+    (run_dir / "build_release" / "benchmark_leakage_risk.json").write_text(
+        json.dumps(
+            {
+                "accepted_resolution_count": 1,
+                "enforcement_context": "build_release",
+                "risk_count": 1,
+                "risks": [
+                    {
+                        "benchmark_item_ids": ["fixture:benchmark"],
+                        "group_id": "source-group:outside",
+                        "group_kind": "source_group",
+                        "holdout_item_ids": ["fixture:holdout"],
+                        "non_benchmark_item_ids": ["fixture:holdout"],
+                        "resolution_status": "accepted",
+                    }
+                ],
+                "resolved_risks": [
+                    {
+                        "benchmark_item_ids": ["fixture:benchmark"],
+                        "group_id": "source-group:outside",
+                        "group_kind": "source_group",
+                        "holdout_item_ids": ["fixture:holdout"],
+                        "non_benchmark_item_ids": ["fixture:holdout"],
+                        "resolution_status": "accepted",
+                    }
+                ],
+                "stale_resolutions": [],
+                "status": "ok",
+                "unresolved_count": 0,
+                "unresolved_risks": [],
+                "unused_resolutions": [],
+            }
+        ),
+        encoding="utf-8",
+    )
+    bundle = load_and_validate_bundle(config_root)
+
+    export_alpha_release(
+        bundle,
+        run_dir,
+        "profile_open_v1",
+        AlphaExportConfig(version="alpha-v0", output_dir=output_dir),
+    )
+    leakage_risk = json.loads((output_dir / "manifests" / "benchmark_leakage_risk.json").read_text(encoding="utf-8"))
+
+    assert leakage_risk["export_scope"] == "selected_alpha_items"
+    assert leakage_risk["risk_count"] == 0
+    assert leakage_risk["resolved_risks"] == []
 
 
 def test_export_alpha_release_requires_benchmark_artifacts(tmp_path: Path, capsys) -> None:

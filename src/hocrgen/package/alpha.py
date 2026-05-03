@@ -73,6 +73,7 @@ class BenchmarkExportInputs:
     selection_audit: list[BenchmarkSelectionAuditRecord]
     stability_policy: dict[str, Any]
     card_markdown: str
+    leakage_risk: dict[str, Any] | None = None
     reference_manifest: BenchmarkReferenceManifestRecord | None = None
     reference_status: BenchmarkReferenceStatusArtifactRecord | None = None
     reference_versioning: dict[str, Any] | None = None
@@ -122,6 +123,12 @@ def export_alpha_release(
         raise StageExecutionError(
             f"alpha export is blocked: {cluster_count} near-duplicate cluster(s) require manual review"
         )
+    if build_release_summary.get("benchmark_holdout_leakage_status") == "blocked":
+        unresolved_count = (benchmark_inputs.leakage_risk or {}).get("unresolved_count", 0)
+        raise StageExecutionError(
+            "alpha export is blocked: "
+            f"{unresolved_count} unresolved benchmark/holdout leakage group(s)"
+        )
 
     selected_items = _select_alpha_items(release_items, profile, config)
     if not selected_items:
@@ -140,6 +147,10 @@ def export_alpha_release(
     )
     selected_benchmark_reference_status = _filter_benchmark_reference_status(
         benchmark_inputs.reference_status,
+        selected_ids,
+    )
+    selected_benchmark_leakage_risk = _filter_benchmark_leakage_risk(
+        benchmark_inputs.leakage_risk,
         selected_ids,
     )
     included_sources = _ordered_sources(profile, {item.source_id for item in selected_items})
@@ -288,6 +299,8 @@ def export_alpha_release(
     write_json(manifests_dir / "release_record.json", release_record.model_dump(mode="json"))
     write_json(manifests_dir / "release_diff.json", release_diff.model_dump(mode="json"))
     write_json(manifests_dir / "benchmark_manifest.json", {"items": [item.model_dump(mode="json") for item in selected_benchmark_items]})
+    if selected_benchmark_leakage_risk is not None:
+        write_json(manifests_dir / "benchmark_leakage_risk.json", selected_benchmark_leakage_risk)
     write_json(
         manifests_dir / "benchmark_selection_audit.json",
         {"items": [item.model_dump(mode="json") for item in selected_benchmark_audit]},
@@ -354,6 +367,11 @@ def export_alpha_release(
                 if selected_benchmark_reference_manifest is not None
                 else None
             ),
+            "benchmark_leakage_risk": (
+                "manifests/benchmark_leakage_risk.json"
+                if selected_benchmark_leakage_risk is not None
+                else None
+            ),
             "benchmark_reference_status": (
                 "manifests/benchmark_reference_status.json"
                 if selected_benchmark_reference_status is not None
@@ -388,6 +406,11 @@ def export_alpha_release(
         manifests_dir / "release_record.json",
         manifests_dir / "release_diff.json",
         manifests_dir / "benchmark_manifest.json",
+        *(
+            [manifests_dir / "benchmark_leakage_risk.json"]
+            if selected_benchmark_leakage_risk is not None
+            else []
+        ),
         manifests_dir / "benchmark_selection_audit.json",
         manifests_dir / "benchmark_stability_policy.json",
         *(
@@ -1203,6 +1226,7 @@ def _load_models(path: Path, model_type: type[Any]) -> list[Any]:
 
 def _load_benchmark_export_inputs(build_dir: Path) -> BenchmarkExportInputs:
     try:
+        leakage_risk_path = build_dir / "benchmark_leakage_risk.json"
         reference_manifest_path = build_dir / "benchmark_reference_manifest.json"
         reference_status_path = build_dir / "benchmark_reference_status.json"
         reference_versioning_path = build_dir / "benchmark_reference_versioning.json"
@@ -1214,6 +1238,11 @@ def _load_benchmark_export_inputs(build_dir: Path) -> BenchmarkExportInputs:
             ),
             stability_policy=_load_json(build_dir / "benchmark_stability_policy.json"),
             card_markdown=(build_dir / "BENCHMARK_CARD.md").read_text(encoding="utf-8"),
+            leakage_risk=(
+                _load_json(leakage_risk_path)
+                if leakage_risk_path.exists()
+                else None
+            ),
             reference_manifest=(
                 BenchmarkReferenceManifestRecord.model_validate(_load_json(reference_manifest_path))
                 if reference_manifest_path.exists()
@@ -1268,6 +1297,94 @@ def _filter_benchmark_reference_status(
         if item.public_reference_status in {"draft", "not_available"} or item.adjudication_status == "blocked"
     )
     return status.model_copy(update={"counts": dict(counts), "items": items})
+
+
+def _filter_benchmark_leakage_risk(
+    leakage_risk: dict[str, Any] | None,
+    selected_ids: set[str],
+) -> dict[str, Any] | None:
+    if leakage_risk is None:
+        return None
+
+    def selected_risk(risk: dict[str, Any]) -> dict[str, Any] | None:
+        benchmark_item_ids = [
+            item_id
+            for item_id in risk.get("benchmark_item_ids", [])
+            if item_id in selected_ids
+        ]
+        non_benchmark_item_ids = [
+            item_id
+            for item_id in risk.get("non_benchmark_item_ids", risk.get("holdout_item_ids", []))
+            if item_id in selected_ids
+        ]
+        if not benchmark_item_ids or not non_benchmark_item_ids:
+            return None
+        filtered = {
+            **risk,
+            "benchmark_item_ids": benchmark_item_ids,
+            "holdout_item_ids": non_benchmark_item_ids,
+            "non_benchmark_item_ids": non_benchmark_item_ids,
+        }
+        resolution = filtered.get("resolution")
+        if isinstance(resolution, dict):
+            filtered["resolution"] = {
+                **resolution,
+                "benchmark_item_ids": [
+                    item_id
+                    for item_id in resolution.get("benchmark_item_ids", [])
+                    if item_id in selected_ids
+                ],
+                "non_benchmark_item_ids": [
+                    item_id
+                    for item_id in resolution.get("non_benchmark_item_ids", [])
+                    if item_id in selected_ids
+                ],
+            }
+        return filtered
+
+    resolved_risks = [
+        filtered
+        for risk in leakage_risk.get("resolved_risks", [])
+        if isinstance(risk, dict)
+        for filtered in [selected_risk(risk)]
+        if filtered is not None
+    ]
+    unresolved_risks = [
+        filtered
+        for risk in leakage_risk.get("unresolved_risks", [])
+        if isinstance(risk, dict)
+        for filtered in [selected_risk(risk)]
+        if filtered is not None
+    ]
+    risks = [
+        filtered
+        for risk in leakage_risk.get("risks", [])
+        if isinstance(risk, dict)
+        for filtered in [selected_risk(risk)]
+        if filtered is not None
+    ]
+    stale_resolutions = [
+        stale
+        for stale in leakage_risk.get("stale_resolutions", [])
+        if isinstance(stale, dict)
+        and (
+            any(item_id in selected_ids for item_id in stale.get("benchmark_item_ids", []))
+            or any(item_id in selected_ids for item_id in stale.get("non_benchmark_item_ids", []))
+        )
+    ]
+    status = "ok" if not unresolved_risks and not stale_resolutions else "blocked"
+    return {
+        **leakage_risk,
+        "accepted_resolution_count": len(resolved_risks),
+        "export_scope": "selected_alpha_items",
+        "risk_count": len(risks),
+        "risks": risks,
+        "resolved_risks": resolved_risks,
+        "stale_resolutions": stale_resolutions,
+        "status": status,
+        "unresolved_count": len(unresolved_risks),
+        "unresolved_risks": unresolved_risks,
+    }
 
 
 def _copy_benchmark_reference_files(
