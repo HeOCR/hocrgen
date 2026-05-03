@@ -7,8 +7,10 @@ from pathlib import Path
 import pytest
 import yaml
 
+import hocrgen.source_ops as source_ops
 from hocrgen.cli import main
 from hocrgen.config.loader import default_config_root, load_and_validate_bundle
+from hocrgen.config.models import SourceOperationalStatus
 from hocrgen.core.errors import ConfigValidationError
 from hocrgen.fetchers.biblia import BibliaImporter
 from hocrgen.fetchers.base import StageOptions
@@ -18,10 +20,14 @@ from hocrgen.fetchers.synthetic import SyntheticFetcher
 from hocrgen.manifests.models import EnrichedCandidateRecord, ItemRecord
 from hocrgen.source_ops import (
     SourceHealthResult,
+    evaluate_f1_source_depth_feasibility,
+    evaluate_source_health,
     _inspect_nli_source,
     _inspect_records_source,
     _inspect_source,
     _inspect_synthetic_source,
+    _source_depth_status_and_notes,
+    source_depth_feasibility_report,
     source_health_summary,
 )
 
@@ -140,11 +146,14 @@ def test_active_source_health_is_emitted_in_discover_and_build_release(tmp_path:
     run_dir = Path(payload["run_dir"])
     discover_summary = json.loads((run_dir / "discover" / "summary.json").read_text(encoding="utf-8"))
     source_health = json.loads((run_dir / "discover" / "source_health.json").read_text(encoding="utf-8"))
+    source_depth = json.loads((run_dir / "discover" / "source_depth_feasibility.json").read_text(encoding="utf-8"))
     source_stats = json.loads((run_dir / "build_release" / "source_stats.json").read_text(encoding="utf-8"))
 
     assert exit_code == 0
     assert discover_summary["source_health"]["selected_source_count"] == 4
+    assert discover_summary["source_depth_feasibility_report"] == "discover/source_depth_feasibility.json"
     assert source_health["summary"]["active_source_count"] == 4
+    assert source_depth["artifact_scope"] == "operator_only"
     assert source_stats["source_health"]["skipped_source_count"] == 0
 
 
@@ -365,6 +374,228 @@ def test_source_health_summary_accepts_result_models() -> None:
     )
 
     assert summary["selected_source_count"] == 1
+
+
+def test_f1_source_depth_feasibility_reports_current_fixture_backed_gaps() -> None:
+    bundle = load_and_validate_bundle()
+    source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
+
+    report = evaluate_f1_source_depth_feasibility(bundle, source_health)
+    sources = {source["source_id"]: source for source in report["sources"]}
+
+    assert report["real_target_count"] == 80
+    assert report["synthetic_target_count"] == 80
+    assert report["summary"]["overall_feasibility_status"] == "not_feasible"
+    assert report["summary"]["not_ready_sources"] == [
+        "nli_any_use_permitted",
+        "pinkas_open",
+        "biblia_open",
+        "project_synthetic",
+    ]
+    assert report["summary"]["not_feasible_sources"] == ["pinkas_open", "biblia_open"]
+    assert sources["nli_any_use_permitted"]["target_count"] == 27
+    assert sources["nli_any_use_permitted"]["observed_candidate_count"] == 7
+    assert sources["nli_any_use_permitted"]["runnable_cached_candidate_count"] == 7
+    assert sources["nli_any_use_permitted"]["exploratory_catalog_count"] == 14
+    assert sources["nli_any_use_permitted"]["source_health_status"] == "ok"
+    assert sources["nli_any_use_permitted"]["gap"] == 20
+    assert sources["nli_any_use_permitted"]["feasibility_status"] == "needs_promotion"
+    assert sources["pinkas_open"]["target_count"] == 27
+    assert sources["pinkas_open"]["runnable_cached_candidate_count"] == 1
+    assert sources["pinkas_open"]["gap"] == 26
+    assert sources["pinkas_open"]["feasibility_status"] == "not_feasible"
+    assert "fixture-backed, rights-safe, and reviewable" in " ".join(sources["pinkas_open"]["operator_notes"])
+    assert sources["biblia_open"]["target_count"] == 26
+    assert sources["biblia_open"]["runnable_cached_candidate_count"] == 1
+    assert sources["biblia_open"]["gap"] == 25
+    assert sources["biblia_open"]["feasibility_status"] == "not_feasible"
+    assert report["summary"]["warnings"] == [
+        "F1 source-depth feasibility is not met for: nli_any_use_permitted, pinkas_open, biblia_open, project_synthetic."
+    ]
+    assert "public beta export" in report["non_goals"]
+
+
+def test_f1_source_depth_counts_only_health_eligible_cached_candidates(tmp_path: Path) -> None:
+    config_root = _copy_config(tmp_path)
+    seed_path = tmp_path / "bad_seed.yaml"
+    seed_path.write_text(
+        "items:\n"
+        + "\n".join(
+            f"  - id: broken-{index}\n    url: https://example.org/broken-{index}\n    fixture_html: missing-{index}.html"
+            for index in range(27)
+        ),
+        encoding="utf-8",
+    )
+    _update_source_settings(config_root, "nli_any_use_permitted", {"seed_manifest": str(seed_path)})
+    bundle = load_and_validate_bundle(config_root)
+    source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
+
+    report = evaluate_f1_source_depth_feasibility(bundle, source_health)
+    nli = next(source for source in report["sources"] if source["source_id"] == "nli_any_use_permitted")
+
+    assert nli["observed_candidate_count"] == 27
+    assert nli["runnable_cached_candidate_count"] == 0
+    assert nli["source_health_status"] == "error"
+    assert nli["source_skip_reason"] == "source_health_failed"
+    assert nli["gap"] == 27
+    assert any("Source health is error" in note for note in nli["operator_notes"])
+
+
+def test_f1_source_depth_excludes_non_active_source_operations(tmp_path: Path) -> None:
+    config_root = _copy_config(tmp_path)
+    _update_source_operations(config_root, "nli_any_use_permitted", status="frozen", reason="operator freeze")
+    bundle = load_and_validate_bundle(config_root)
+    source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
+
+    report = evaluate_f1_source_depth_feasibility(bundle, source_health)
+    nli = next(source for source in report["sources"] if source["source_id"] == "nli_any_use_permitted")
+
+    assert nli["observed_candidate_count"] == 7
+    assert nli["runnable_cached_candidate_count"] == 0
+    assert nli["source_skip_reason"] == "source_frozen"
+    assert any("Source is skipped for source_frozen" in note for note in nli["operator_notes"])
+
+
+def test_f1_source_depth_excludes_real_sources_with_missing_cached_assets(tmp_path: Path) -> None:
+    config_root = _copy_config(tmp_path)
+    seed_path = tmp_path / "under_asseted_seed.yaml"
+    fixture_path = tmp_path / "fixture.html"
+    fixture_path.write_text("<html></html>", encoding="utf-8")
+    seed_path.write_text(
+        "items:\n"
+        f"  - id: cached\n    url: https://example.org/cached\n    fixture_html: {fixture_path}\n"
+        "  - id: no-fixture\n    url: https://example.org/no-fixture\n",
+        encoding="utf-8",
+    )
+    _update_source_settings(config_root, "nli_any_use_permitted", {"seed_manifest": str(seed_path)})
+    bundle = load_and_validate_bundle(config_root)
+    source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
+
+    report = evaluate_f1_source_depth_feasibility(bundle, source_health)
+    nli = next(source for source in report["sources"] if source["source_id"] == "nli_any_use_permitted")
+
+    assert nli["observed_candidate_count"] == 2
+    assert nli["asset_count"] == 1
+    assert nli["runnable_cached_candidate_count"] == 0
+    assert any("not have enough validated cached assets" in note for note in nli["operator_notes"])
+
+
+def test_f1_source_depth_excludes_synthetic_source_without_assets() -> None:
+    bundle = load_and_validate_bundle()
+    synthetic_source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    health = {"health_status": "ok", "skip_reason": None}
+
+    count = source_ops._runnable_cached_candidate_count(
+        synthetic_source,
+        health,
+        observed_candidate_count=2,
+        asset_count=0,
+    )
+
+    assert count == 0
+
+
+def test_f1_source_depth_excludes_source_with_non_active_status_even_when_not_skipped() -> None:
+    bundle = load_and_validate_bundle()
+    nli_source = next(source for source in bundle.source_registry.sources if source.id == "nli_any_use_permitted")
+    frozen_nli = nli_source.model_copy(
+        update={
+            "source_operations": nli_source.source_operations.model_copy(
+                update={"operational_status": SourceOperationalStatus.frozen}
+            )
+        }
+    )
+    health = {"health_status": "ok", "skip_reason": None}
+
+    count = source_ops._runnable_cached_candidate_count(
+        frozen_nli,
+        health,
+        observed_candidate_count=7,
+        asset_count=7,
+    )
+
+    assert count == 0
+
+
+def test_f1_source_depth_reports_missing_health_as_not_feasible() -> None:
+    bundle = load_and_validate_bundle()
+    source_health = [
+        result for result in evaluate_source_health(bundle, "profile_open_v1", StageOptions()) if result.source_id != "pinkas_open"
+    ]
+
+    report = evaluate_f1_source_depth_feasibility(bundle, source_health)
+    pinkas = next(source for source in report["sources"] if source["source_id"] == "pinkas_open")
+
+    assert pinkas["feasibility_status"] == "not_feasible"
+    assert pinkas["runnable_cached_candidate_count"] == 0
+    assert pinkas["source_health_status"] == "missing"
+    assert "Missing required F1 source health" in pinkas["operator_notes"][0]
+
+
+def test_f1_source_depth_reports_missing_source_config_as_not_feasible(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        source_ops,
+        "F1_SOURCE_TARGETS",
+        {
+            "nli_any_use_permitted": 27,
+            "pinkas_open": 27,
+            "biblia_open": 26,
+            "project_synthetic": 80,
+            "missing_source": 3,
+        },
+    )
+    bundle = load_and_validate_bundle()
+
+    report = evaluate_f1_source_depth_feasibility(bundle, [])
+    missing = next(source for source in report["sources"] if source["source_id"] == "missing_source")
+
+    assert missing["source_id"] == "missing_source"
+    assert missing["fetcher"] == "missing"
+    assert missing["feasibility_status"] == "not_feasible"
+    assert missing["gap"] == 3
+    assert "source configuration and source health" in missing["operator_notes"][0]
+
+
+def test_source_depth_feasibility_report_accepts_dict_rows() -> None:
+    report = source_depth_feasibility_report(
+        [
+            {
+                "asset_count": 1,
+                "exploratory_catalog_count": 0,
+                "feasibility_status": "feasible",
+                "fetcher": "test",
+                "gap": 0,
+                "observed_candidate_count": 1,
+                "operator_notes": [],
+                "runnable_cached_candidate_count": 1,
+                "source_health_status": "ok",
+                "source_id": "test_source",
+                "source_skip_reason": None,
+                "target_count": 1,
+            }
+        ]
+    )
+
+    assert report["summary"]["overall_feasibility_status"] == "feasible"
+    assert report["summary"]["warnings"] == []
+
+
+def test_source_depth_status_handles_unknown_fetcher_fallback() -> None:
+    status, notes = _source_depth_status_and_notes(
+        source_id="unknown_source",
+        fetcher="unknown",
+        target_count=3,
+        runnable_cached_count=2,
+        observed_candidate_count=2,
+        asset_count=2,
+        exploratory_count=0,
+        gap=1,
+        health_status="ok",
+        skip_reason=None,
+    )
+
+    assert status == "not_feasible"
+    assert notes == ["2 asset(s) and 2 runnable/cached candidate(s) qualify for target 3."]
 
 
 def test_source_health_reports_unknown_fetcher_without_selection() -> None:

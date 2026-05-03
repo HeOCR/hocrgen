@@ -68,7 +68,9 @@ Near-term release-scale acquisition preserves that seed boundary while removing 
 
 This is the preferred short-term path for growing from the current small alpha exemplar set toward a bounded beta-scale trial. The `F1a` trial plan targets `80` real items plus `80` synthetic controls, with the real-source mix fixed at `27` NLI, `27` Pinkas, and `26` BiblIA. It is an operator-only acquisition trial, not a public beta export, release-candidate export, broad live-source crawler, or publication workflow.
 
-The NLI portion can build on the existing live-but-cached seed promotion path. Pinkas and BiblIA are currently bounded packaged exemplar sources, so their trial allocation requires explicit source-depth feasibility work before either source is treated as scalable beyond the committed records. Rights, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates remain mandatory before any larger public release. The post-F1 roadmap also requires near-duplicate/source-group leakage hardening, benchmark ground-truth references, rights-clean modern handwritten Hebrew acquisition, Hebrew-specific RTL/niqqud/layout synthetic quality work, and separate public beta publication gates before treating beta-scale acquisition as release or benchmark readiness.
+The NLI portion can build on the existing live-but-cached seed promotion path. Pinkas and BiblIA are currently bounded packaged exemplar sources, so their trial allocation requires explicit source-depth expansion before either source is treated as scalable beyond the committed records. Rights, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates remain mandatory before any larger public release. The post-F1 roadmap also requires near-duplicate/source-group leakage hardening, benchmark ground-truth references, rights-clean modern handwritten Hebrew acquisition, Hebrew-specific RTL/niqqud/layout synthetic quality work, and separate public beta publication gates before treating beta-scale acquisition as release or benchmark readiness.
+
+Every `discover` run emits an operator-only `discover/source_depth_feasibility.json` artifact for the F1 target. The report records per-source target count, observed candidate count, health-eligible runnable/cached candidate count, asset count, exploratory catalog count where applicable, target gap, feasibility status, report-scoped warnings, and operator notes. On the current fixture-backed data, NLI reports `7` runnable/cached seeds plus `14` exploratory catalog entries against a target of `27`; Pinkas reports `1` record against `27`; BiblIA reports `1` record against `26`; and the synthetic source reports the configured candidate count against the `80` synthetic-control target. Pinkas and BiblIA explicitly remain not feasible for target scale until source-depth expansion is defined, fixture-backed, rights-safe, and reviewable.
 
 To promote exploratory entries into runnable local fixtures, use the local operator script:
 
@@ -101,8 +103,8 @@ python scripts/promote_nli_seeds.py \
 
 ## What is still future work
 
-- beta-scale source-depth feasibility for the `27` NLI / `27` Pinkas / `26` BiblIA real-source target
-- operator-only beta acquisition trial reporting for `80` real items plus `80` synthetic controls
+- resolving the reported F1 source-depth gaps for the `27` NLI / `27` Pinkas / `26` BiblIA real-source target
+- bounded operator-only beta acquisition execution for `80` real items plus `80` synthetic controls after feasibility gaps are resolved
 - bounded beta-trial execution artifacts that preserve acquisition failures, rights outcomes, review outcomes, dedupe outcomes, and split/benchmark eligibility
 - broad live-source crawling
 - near-duplicate / perceptual deduplication, source-group grouping, and split-leakage hardening

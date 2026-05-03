@@ -154,6 +154,7 @@ def _collect_run_counts(run_dir: Path, stage_summaries: dict[str, dict[str, Any]
     if "candidate_count" in discover:
         counts["candidate_count"] = discover["candidate_count"]
         counts["included_sources"] = discover.get("included_sources", [])
+        counts["source_depth_feasibility"] = discover.get("source_depth_feasibility", {})
         counts["source_health"] = discover.get("source_health", {})
     if "accepted_count" in policy_filter:
         counts["accepted_count"] = policy_filter["accepted_count"]
