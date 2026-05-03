@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="1280" viewBox="0 0 960 1280" role="img" aria-label="תכלאל NLI cached source-depth fixture">
+  <rect width="960" height="1280" fill="#f2ead8"/>
+  <rect x="80" y="80" width="800" height="1120" fill="#fffaf0" stroke="#5f4b32" stroke-width="8"/>
+  <rect x="130" y="140" width="700" height="120" fill="#d8c4a2" stroke="#5f4b32" stroke-width="4"/>
+  <text x="480" y="215" direction="rtl" unicode-bidi="bidi-override" text-anchor="middle" font-family="serif" font-size="44" fill="#2f2418">תכלאל</text>
+  <g fill="none" stroke="#40301f" stroke-width="6" stroke-linecap="round">
+    <path d="M180 340 C420 310, 560 370, 780 335"/>
+    <path d="M180 420 C410 395, 570 455, 780 415"/>
+    <path d="M180 500 C420 470, 560 530, 780 495"/>
+    <path d="M180 580 C410 555, 570 615, 780 575"/>
+    <path d="M180 660 C420 630, 560 690, 780 655"/>
+    <path d="M180 740 C410 715, 570 775, 780 735"/>
+    <path d="M180 820 C420 790, 560 850, 780 815"/>
+    <path d="M180 900 C410 875, 570 935, 780 895"/>
+  </g>
+  <text x="480" y="1065" text-anchor="middle" font-family="sans-serif" font-size="24" fill="#5f4b32">F1b4 NLI source-depth fixture</text>
+  <text x="480" y="1105" text-anchor="middle" font-family="sans-serif" font-size="20" fill="#5f4b32">Any Use Permitted - National Library of Israel</text>
+</svg>
