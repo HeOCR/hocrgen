@@ -10,7 +10,7 @@ This repository now implements a conservative review-readiness, source-operation
 - validate source-operations settings and fixture-backed source health expectations
 - ingest a seed-driven NLI source for items explicitly marked `Any Use Permitted`
 - ingest bounded static sample packages for Pinkas and BiblIA
-- generate deterministic synthetic Hebrew sample documents as degraded JPEG assets
+- ingest deterministic hocrsyngen manifest-backed synthetic Hebrew candidate inputs as degraded JPEG assets
 - normalize rights into controlled license values and policy classifications
 - apply release-profile eligibility rules
 - report source health and skip frozen/degraded sources with explicit reasons
@@ -47,7 +47,7 @@ This repository now implements a conservative review-readiness, source-operation
   - static importer over a packaged sample record set
   - current committed sample asset is a packaged real historical page normalized as `PD-IL`
 - `project_synthetic`
-  - deterministic JPEG-based synthetic generator
+  - hocrsyngen `generation_manifest.v1` fixture-backed synthetic candidate input source
   - includes governed packaged Hebrew fonts and a curated Hebrew text corpus
 
 This is not a broad crawler yet. The NLI support is intentionally narrow and reliable rather than site-wide.
@@ -70,7 +70,7 @@ This is the preferred short-term path for growing from the current small alpha e
 
 The NLI portion can build on the existing live-but-cached seed promotion path. Pinkas and BiblIA are bounded packaged exemplar sources with explicit source-depth expansion manifests under `src/hocrgen/data/pinkas/` and `src/hocrgen/data/biblia/`; added records only count when they are committed as packaged fixtures with stable provenance, PD-IL-compatible rights, source-health-visible assets, and reviewable operator notes. Rights, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates remain mandatory before any larger public release. F1d now adds deterministic near-duplicate/source-group leakage hardening before scale beyond the operator-only trial; near-duplicates are surfaced as manual-review risks and grouped for split safety, not automatically removed. The post-F1 roadmap still requires benchmark ground-truth references, rights-clean modern handwritten Hebrew acquisition, Hebrew-specific RTL/niqqud/layout synthetic quality work, and separate public beta publication gates before treating beta-scale acquisition as release or benchmark readiness.
 
-Every `discover` run emits an operator-only `discover/source_depth_feasibility.json` artifact for the F1 target. The report records per-source target count, observed candidate count, health-eligible runnable/cached candidate count, target-scale candidate count, asset count, exploratory catalog count where applicable, static-source expansion-path status, runnable/cached gap, target-scale gap, feasibility status, report-scoped warnings, and operator notes. On the current fixture-backed data, NLI reports `27` runnable/cached real source-cached seeds against a target of `27`; the newly promoted F1b4 NLI fixtures are marked source-depth-only and do not automatically enter normal release/export discovery. Pinkas reports `1` normally discoverable record plus `27` packaged source-depth inventory records against `27`; BiblIA reports `1` normally discoverable record plus `26` packaged source-depth inventory records against `26`; and the synthetic source reports `2` normally runnable synthetic controls plus `80` configured target-scale candidates against the `80` synthetic-control target. Pinkas/BiblIA expansion records marked for F1 source depth remain operator-only and do not automatically enter normal release/export discovery.
+Every `discover` run emits an operator-only `discover/source_depth_feasibility.json` artifact for the F1 target. The report records per-source target count, observed candidate count, health-eligible runnable/cached candidate count, target-scale candidate count, asset count, exploratory catalog count where applicable, static-source expansion-path status, runnable/cached gap, target-scale gap, feasibility status, report-scoped warnings, and operator notes. On the current fixture-backed data, NLI reports `27` runnable/cached real source-cached seeds against a target of `27`; the newly promoted F1b4 NLI fixtures are marked source-depth-only and do not automatically enter normal release/export discovery. Pinkas reports `1` normally discoverable record plus `27` packaged source-depth inventory records against `27`; BiblIA reports `1` normally discoverable record plus `26` packaged source-depth inventory records against `26`; and the hocrsyngen-backed synthetic source reports `2` validated manifest samples against the `80` synthetic-control target. Pinkas/BiblIA expansion records marked for F1 source depth remain operator-only and do not automatically enter normal release/export discovery, while synthetic target scale now requires a larger validated hocrsyngen batch rather than hocrgen-side generation.
 
 To execute the bounded F1c target-scale trial, use the explicit operator command:
 
@@ -78,7 +78,7 @@ To execute the bounded F1c target-scale trial, use the explicit operator command
 hocrgen f1-beta-trial --profile profile_open_v1 --dry-run
 ```
 
-This command opts into source-depth-only NLI seeds, packaged Pinkas/BiblIA expansion records, and `80` synthetic controls, then runs them through the existing build-release gate sequence without broad crawling, publication, public beta export, release-candidate export, or automatic public-profile promotion. It writes `build_release/f1_target_scale_trial_report.json` with acquisition counts, rights outcomes, review outcomes, exact duplicate outcomes, near-duplicate/source-group outcomes, split and benchmark eligibility, benchmark/holdout leakage risk, post-review synthetic-cap status, source allocation, source-health status, non-goals, and remaining blockers. Normal `discover`, `build-release`, and `export-alpha` behavior remains bounded unless the operator explicitly runs this trial command. On the current data, target-scale execution completes, while the report marks the post-review synthetic-cap gate blocked because many real items remain review-required and surfaces a benchmark/holdout source-group risk; those blockers are evidence that the gates remain enforceable, not permission to publish.
+This command opts into source-depth-only NLI seeds and packaged Pinkas/BiblIA expansion records, then runs the currently configured hocrsyngen synthetic fixture samples through the existing build-release gate sequence without broad crawling, publication, public beta export, release-candidate export, or automatic public-profile promotion. It writes `build_release/f1_target_scale_trial_report.json` with acquisition counts, rights outcomes, review outcomes, exact duplicate outcomes, near-duplicate/source-group outcomes, split and benchmark eligibility, benchmark/holdout leakage risk, post-review synthetic-cap status, source allocation, source-health status, non-goals, and remaining blockers. Normal `discover`, `build-release`, and `export-alpha` behavior remains bounded unless the operator explicitly runs this trial command. On the current data, target-scale execution is blocked until a validated hocrsyngen batch covers the synthetic target; those blockers are evidence that the gates remain enforceable, not permission to publish.
 
 To promote exploratory entries into runnable local fixtures, use the local operator script:
 
@@ -514,25 +514,21 @@ The pilot currently names two real `benchmark_v1` items for planned transcriptio
 
 ## Synthetic generation
 
-The current in-repo synthetic subsystem is modest but real:
+The active `project_synthetic` source now consumes fixture-backed hocrsyngen `generation_manifest.v1` batches. hocrsyngen owns deterministic candidate sample generation; hocrgen validates the manifest and assets, maps samples into its source adapter contract, and keeps the normal governance, release, review, split, benchmark, cap, and export gates in charge.
 
-- deterministic from seed
-- outputs degraded JPEG page assets plus reproducibility metadata
-- uses tracked governed fonts from [`src/hocrgen/data/synthetic/fonts/manifest.yaml`](./src/hocrgen/data/synthetic/fonts/manifest.yaml)
-- uses a curated packaged Hebrew text corpus from [`src/hocrgen/data/synthetic/texts/hebrew_lines.txt`](./src/hocrgen/data/synthetic/texts/hebrew_lines.txt)
-- supports a printed-style and handwritten-look template family with stable recipe and degradation metadata
-- applies a conservative Hebrew RTL display-order heuristic before Pillow rendering for environments without optional RTL layout libraries; this is not full bidi-aware layout and may be inaccurate for mixed-direction text
-- renders printed pages with form-like guide lines, identifiers, stamps, ink variation, paper edges, stains, and scan-like degradation
-- renders handwritten-look pages with looser line placement, marginal notes, underlines, creases, stronger paper wear, and worn notebook-style degradation
-- can limit generation by existing synthetic metadata with `--synthetic-template`, `--synthetic-recipe`, and `--synthetic-degradation-preset`
+- reads a packaged hocrsyngen fixture batch from `package://data/hocrsyngen/contracts/generation_manifest_v1/fixture-batch`
+- validates `generation_manifest.json` plus relative JPEG page assets inside hocrgen before ingestion
+- preserves stable hocrgen item ids such as `project_synthetic:synthetic-0` so benchmark approvals do not churn
+- carries hocrsyngen sample id, manifest version, generator name/version, seed, template, recipe, degradation, font, source corpus, text metadata, controls, and synthetic disclosure in item metadata
+- can limit manifest-backed synthetic candidates by `--synthetic-template`, `--synthetic-recipe`, and `--synthetic-degradation-preset`
 - emits `synthetic_composition.json` during `build-release` and `export-alpha`, with template, recipe, degradation preset, font, split, and synthetic fraction counts
-- keeps synthetic release inclusion bounded by profile and alpha export caps while allowing both default D4a recipes into the conservative public profile
+- keeps synthetic release inclusion bounded by profile and alpha export caps while allowing both default hocrsyngen fixture recipes into the conservative public profile
 
-Synthetic generation is now planned as a conservative spinout. `hocrsyngen` owns advanced synthetic Hebrew OCR/HTR sample generation; `hocrgen` remains the orchestration, governance, review, benchmark, split, cap, and export pipeline; `HeOCR` receives mixed real+synthetic releases; and `HeOCRsynth` receives synthetic-only releases. The existing `project_synthetic` source remains a legacy deterministic smoke/CI source until external provider gates pass.
+Synthetic generation is now a conservative spinout. `hocrsyngen` owns synthetic Hebrew OCR/HTR sample generation; `hocrgen` remains the orchestration, governance, review, benchmark, split, cap, and export pipeline; `HeOCR` receives mixed real+synthetic releases; and `HeOCRsynth` receives synthetic-only releases. The old in-repo generator code and font/text fixtures remain temporarily as legacy smoke coverage, but they are no longer the default `project_synthetic` source path.
 
-The first external-provider integration should be fixture-backed and dependency-light. `hocrsyngen` is expected to emit `generation_manifest.json` plus relative page assets. Manifest v1 should include sample id, page assets, logical-order UTF-8 text, script/language/direction metadata, generator version, recipe id, seed/provenance, license `PROJECT-SYNTHETIC`, synthetic disclosure, and optional persona/condition controls. Persona and condition fields are generator controls only; they must not claim psychological truth, real-writer identity, or demographic authority.
+The first external-provider integration is fixture-backed and dependency-light. hocrgen consumes `generation_manifest.v1`: `generation_manifest.json` plus relative page assets. Manifest v1 includes sample id, page assets, logical-order UTF-8 text, script/language/direction metadata, generator version, recipe id, seed/provenance, license `PROJECT-SYNTHETIC`, synthetic disclosure, and optional persona/condition controls. Persona and condition fields are generator controls only; they must not claim psychological truth, real-writer identity, or demographic authority.
 
-`hocrsyngen` outputs are candidate synthetic inputs, not release-ready data by themselves. `hocrgen` should first read committed fixture manifests rather than call a live service, GPU model, LLM, diffusion model, or other heavyweight generator dependency. The normal rights/provenance disclosure, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates decide whether generated samples appear in mixed `HeOCR` releases or synthetic-only `HeOCRsynth` releases.
+`hocrsyngen` outputs are candidate synthetic inputs, not release-ready data by themselves. hocrgen does not call `hocrsyngen generate`, `hocrsyngen validate`, a live service, GPU model, LLM, diffusion model, or other heavyweight generator dependency in the default pipeline. hocrsyngen CLI JSON reports such as `generation_report.v1` are command output only; hocrgen consumes the batch manifest and assets. The normal rights/provenance disclosure, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates decide whether generated samples appear in mixed `HeOCR` releases or synthetic-only `HeOCRsynth` releases.
 
 ## Community contribution model
 

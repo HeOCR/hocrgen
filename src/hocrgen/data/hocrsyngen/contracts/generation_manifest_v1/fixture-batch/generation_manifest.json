@@ -1,0 +1,82 @@
+{
+  "generator_name": "hocrsyngen",
+  "license": "PROJECT-SYNTHETIC",
+  "manifest_version": "1.0",
+  "samples": [
+    {
+      "controls": {
+        "condition": null,
+        "persona": null
+      },
+      "generator_version": "d4a-realism-v2",
+      "license": "PROJECT-SYNTHETIC",
+      "pages": [
+        {
+          "asset_path": "assets/hocrsyngen-s00000017-000000/page_0001.jpg",
+          "height": 1600,
+          "media_type": "image/jpeg",
+          "page_id": "hocrsyngen-s00000017-000000-page-0001",
+          "sha256": "50700a08f555ae3273e4c7c2f19544a8ff4b307af4cbc52eb9d986c43f6c09fd",
+          "width": 1200
+        }
+      ],
+      "provenance": {
+        "degradation_preset": "office_scan_soft",
+        "font_id": "alef-regular",
+        "recipe_id": "printed_letter_form_v1",
+        "sample_index": 0,
+        "seed": 17,
+        "source_corpus": "packaged:synthetic/texts/hebrew_lines.txt",
+        "template_id": "printed_letter"
+      },
+      "recipe_id": "printed_letter_form_v1",
+      "sample_id": "hocrsyngen-s00000017-000000",
+      "synthetic_disclosure": "Generated synthetic Hebrew OCR/HTR sample. It is candidate synthetic input for hocrgen governance and is not real-source provenance.",
+      "text": {
+        "direction": "rtl",
+        "language": "he",
+        "logical_order": "מכתב מנהלי\nמספר תיק 42/7 נרשם: סוף, כסף, דרך, נייר.\nהאסמכתה נשמרה יחד עם מסמכי החשבון הקודם.\nתזכורת זו צורפה למכתב שנשלח עם שליח הקהילה.\nהפרטים אושרו ונרשמו מחדש בדף הסיכום.\nרישום 34",
+        "script": "Hebr",
+        "unicode_normalization": "NFC"
+      }
+    },
+    {
+      "controls": {
+        "condition": null,
+        "persona": null
+      },
+      "generator_version": "d4a-realism-v2",
+      "license": "PROJECT-SYNTHETIC",
+      "pages": [
+        {
+          "asset_path": "assets/hocrsyngen-s00000017-000001/page_0001.jpg",
+          "height": 1600,
+          "media_type": "image/jpeg",
+          "page_id": "hocrsyngen-s00000017-000001-page-0001",
+          "sha256": "4615d215ec2e8ea5b13750f09f6da41a07075d1f74554812cc25cd4f5238b428",
+          "width": 1200
+        }
+      ],
+      "provenance": {
+        "degradation_preset": "notebook_scan_worn",
+        "font_id": "gveret-levin-regular",
+        "recipe_id": "handwritten_note_marginalia_v1",
+        "sample_index": 1,
+        "seed": 17,
+        "source_corpus": "packaged:synthetic/texts/hebrew_lines.txt",
+        "template_id": "handwritten_note"
+      },
+      "recipe_id": "handwritten_note_marginalia_v1",
+      "sample_id": "hocrsyngen-s00000017-000001",
+      "synthetic_disclosure": "Generated synthetic Hebrew OCR/HTR sample. It is candidate synthetic input for hocrgen governance and is not real-source provenance.",
+      "text": {
+        "direction": "rtl",
+        "language": "he",
+        "logical_order": "רישום קצר\nבדיקת אותיות סופיות ךםןףץ נשמרה ברשימת הבקרה.\nהודעה זו נמסרה למזכירות ונרשמה בספר העזר.\nתזכורת זו צורפה למכתב שנשלח עם שליח הקהילה.\nרישום 123",
+        "script": "Hebr",
+        "unicode_normalization": "NFC"
+      }
+    }
+  ],
+  "synthetic_disclosure": "Generated synthetic Hebrew OCR/HTR sample. It is candidate synthetic input for hocrgen governance and is not real-source provenance."
+}

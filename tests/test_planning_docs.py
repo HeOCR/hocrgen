@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F1d"
+CURRENT_COMPLETED_NOTATION = "F4b"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),

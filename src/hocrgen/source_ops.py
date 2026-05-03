@@ -7,11 +7,12 @@ from typing import Any
 
 from hocrgen.config.loader import ConfigBundle, load_json_file, load_yaml_file, package_root
 from hocrgen.config.models import SourceConfig, SourceOperationalStatus
-from hocrgen.core.errors import ConfigValidationError
+from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.fetchers.base import StageOptions
+from hocrgen.fetchers.hocrsyngen_manifest import validate_hocrsyngen_batch
 from hocrgen.fetchers.nli import parse_nli_fixture_html
-from hocrgen.fetchers.synthetic import F1_TARGET_SCALE_COUNT_KEY
 
+F1_TARGET_SCALE_COUNT_KEY = "f1_source_depth_candidate_count"
 F1_SOURCE_TARGETS = {
     "nli_any_use_permitted": 27,
     "pinkas_open": 27,
@@ -421,7 +422,7 @@ def _runnable_cached_candidate_count(
         return 0
     if source.fetcher in {"nli", "pinkas", "biblia"} and asset_count < observed_candidate_count:
         return 0
-    if source.fetcher == "synthetic" and asset_count <= 0:
+    if source.fetcher in {"hocrsyngen_manifest", "synthetic"} and asset_count <= 0:
         return 0
     return observed_candidate_count
 
@@ -507,7 +508,7 @@ def _source_depth_status_and_notes(
             "Seed promotion must remain operator-run and cached; CI must not depend on live NLI access.",
         ]
         return ("needs_promotion" if gap else "feasible", notes)
-    if fetcher == "synthetic":
+    if fetcher in {"hocrsyngen_manifest", "synthetic"}:
         notes = [
             f"{runnable_cached_count} runnable synthetic candidate(s) qualify for a target of {target_count}.",
             f"{target_scale_candidate_count} synthetic candidate(s) are configured for target-scale operator reporting.",
@@ -545,6 +546,8 @@ def _inspect_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[di
         return _inspect_nli_source_with_extra(source, bundle)
     if source.fetcher in {"pinkas", "biblia"}:
         return _inspect_records_source(source, bundle)
+    if source.fetcher == "hocrsyngen_manifest":
+        return _inspect_hocrsyngen_manifest_source(source, bundle)
     if source.fetcher == "synthetic":
         return _inspect_synthetic_source(source, bundle)
     return ([{"name": "known_fetcher", "status": "error", "message": f"unknown fetcher: {source.fetcher}"}], 0, 0)
@@ -939,6 +942,60 @@ def _inspect_synthetic_source(source: SourceConfig, bundle: ConfigBundle) -> tup
         }
     )
     return checks, source.settings.synthetic_batch_size or 0, asset_count
+
+
+def _inspect_hocrsyngen_manifest_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int]:
+    checks: list[dict[str, Any]] = []
+    batch_reference = source.settings.hocrsyngen_batch_path
+    if not batch_reference:
+        return (
+            [
+                {
+                    "message": "settings.hocrsyngen_batch_path is required",
+                    "name": "hocrsyngen_batch_path",
+                    "status": "error",
+                }
+            ],
+            0,
+            0,
+        )
+    batch_dir = bundle.resolve_path(batch_reference)
+    manifest_path = batch_dir / "generation_manifest.json"
+    checks.append(_path_check("hocrsyngen_batch_path", batch_dir, bundle))
+    checks.append(_path_check("hocrsyngen_generation_manifest", manifest_path, bundle))
+    try:
+        batch = validate_hocrsyngen_batch(batch_dir)
+    except (ConfigValidationError, OSError, StageExecutionError) as exc:
+        checks.append(
+            {
+                "message": str(exc),
+                "name": "hocrsyngen_generation_manifest_v1",
+                "path": _format_health_path(manifest_path, bundle),
+                "status": "error",
+            }
+        )
+        return checks, 0, 0
+
+    for sample in batch.manifest.samples:
+        for page in sample.pages:
+            checks.append(_path_check("hocrsyngen_page_asset", batch.batch_dir / page.asset_path, bundle))
+    checks.append(
+        {
+            "actual": batch.sample_count,
+            "expected": "validated hocrsyngen samples",
+            "name": "hocrsyngen_sample_count",
+            "status": "ok",
+        }
+    )
+    checks.append(
+        {
+            "actual": batch.page_count,
+            "expected": "validated hocrsyngen page assets",
+            "name": "hocrsyngen_page_count",
+            "status": "ok",
+        }
+    )
+    return checks, batch.sample_count, batch.page_count
 
 
 def _check_expectations(source: SourceConfig, candidate_count: int, asset_count: int) -> list[dict[str, Any]]:

@@ -14,14 +14,15 @@ from hocrgen.config.models import SourceOperationalStatus
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.fetchers.biblia import BibliaImporter
 from hocrgen.fetchers.base import StageOptions
+from hocrgen.fetchers.hocrsyngen_manifest import HocrsyngenManifestFetcher
 from hocrgen.fetchers.nli import NliFetcher
 from hocrgen.fetchers.pinkas import PinkasImporter
-from hocrgen.fetchers.synthetic import SyntheticFetcher, f1_target_scale_candidate_count
 from hocrgen.manifests.models import EnrichedCandidateRecord, ItemRecord
 from hocrgen.source_ops import (
     SourceHealthResult,
     evaluate_f1_source_depth_feasibility,
     evaluate_source_health,
+    _inspect_hocrsyngen_manifest_source,
     _inspect_nli_source,
     _inspect_records_source,
     _inspect_source,
@@ -393,7 +394,7 @@ def test_f1_source_depth_feasibility_reports_nli_ready_after_f1b4_promotion() ->
     ]
     assert report["summary"]["f1c_blocking_sources"] == report["summary"]["not_ready_sources"]
     assert report["summary"]["not_feasible_sources"] == []
-    assert report["summary"]["target_scale_gap"] == 0
+    assert report["summary"]["target_scale_gap"] == 78
     assert sources["nli_any_use_permitted"]["target_count"] == 27
     assert sources["nli_any_use_permitted"]["observed_candidate_count"] == 27
     assert sources["nli_any_use_permitted"]["runnable_cached_candidate_count"] == 27
@@ -419,10 +420,10 @@ def test_f1_source_depth_feasibility_reports_nli_ready_after_f1b4_promotion() ->
     assert sources["biblia_open"]["expansion_path_status"] == "ok"
     assert sources["project_synthetic"]["target_count"] == 80
     assert sources["project_synthetic"]["runnable_cached_candidate_count"] == 2
-    assert sources["project_synthetic"]["target_scale_candidate_count"] == 80
+    assert sources["project_synthetic"]["target_scale_candidate_count"] == 2
     assert sources["project_synthetic"]["gap"] == 78
-    assert sources["project_synthetic"]["target_scale_gap"] == 0
-    assert sources["project_synthetic"]["feasibility_status"] == "needs_target_scale_trial"
+    assert sources["project_synthetic"]["target_scale_gap"] == 78
+    assert sources["project_synthetic"]["feasibility_status"] == "needs_configuration"
     assert report["summary"]["warnings"] == [
         "F1 source-depth feasibility is not met for: pinkas_open, biblia_open, project_synthetic."
     ]
@@ -512,21 +513,21 @@ def test_static_source_depth_only_records_do_not_enter_normal_discovery() -> Non
     assert [candidate.source_item_id for candidate in biblia_candidates] == ["biblia-doc-001"]
 
 
-def test_f1_target_scale_trial_includes_static_and_synthetic_target_inventory() -> None:
+def test_f1_target_scale_trial_includes_static_inventory_and_hocrsyngen_fixture_samples() -> None:
     bundle = load_and_validate_bundle()
     sources = {source.id: source for source in bundle.source_registry.sources}
     options = StageOptions(f1_target_scale_trial=True)
 
     pinkas_candidates = PinkasImporter().discover_candidates(sources["pinkas_open"], bundle, options)
     biblia_candidates = BibliaImporter().discover_candidates(sources["biblia_open"], bundle, options)
-    synthetic_candidates = SyntheticFetcher().discover_candidates(sources["project_synthetic"], bundle, options)
+    synthetic_candidates = HocrsyngenManifestFetcher().discover_candidates(sources["project_synthetic"], bundle, options)
 
     assert len(pinkas_candidates) == 27
     assert len(biblia_candidates) == 26
-    assert len(synthetic_candidates) == 80
+    assert len(synthetic_candidates) == 2
     assert any(candidate.discovery_method == "f1_target_scale_static_importer" for candidate in pinkas_candidates)
     assert any(candidate.discovery_method == "f1_target_scale_static_importer" for candidate in biblia_candidates)
-    assert synthetic_candidates[-1].source_item_id == "synthetic-79"
+    assert synthetic_candidates[-1].source_item_id == "synthetic-1"
 
 
 def test_static_source_depth_only_marker_must_be_boolean(tmp_path: Path) -> None:
@@ -926,23 +927,20 @@ def test_synthetic_health_reports_non_list_fonts(tmp_path: Path) -> None:
     assert any(check["name"] == "fonts" and check["status"] == "error" for check in checks)
 
 
-def test_synthetic_f1_target_scale_count_must_be_positive_integer(tmp_path: Path) -> None:
+def test_hocrsyngen_manifest_health_reports_invalid_batch_path(tmp_path: Path) -> None:
     config_root = _copy_config(tmp_path)
-    _update_source_settings(config_root, "project_synthetic", {"extra": {"f1_source_depth_candidate_count": "80"}})
+    _update_source_settings(config_root, "project_synthetic", {"hocrsyngen_batch_path": str(tmp_path / "missing-batch")})
     bundle = load_and_validate_bundle(config_root)
     source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
 
-    checks, _, _ = _inspect_synthetic_source(source, bundle)
+    checks, candidate_count, asset_count = _inspect_hocrsyngen_manifest_source(source, bundle)
     source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
     synthetic_health = next(result for result in source_health if result.source_id == "project_synthetic")
 
-    assert any(
-        check["name"] == "f1_source_depth_candidate_count" and check["status"] == "error"
-        for check in checks
-    )
+    assert candidate_count == 0
+    assert asset_count == 0
+    assert any(check["name"] == "hocrsyngen_generation_manifest_v1" and check["status"] == "error" for check in checks)
     assert synthetic_health.health_status == "error"
-    with pytest.raises(StageExecutionError, match="must be a positive integer"):
-        f1_target_scale_candidate_count(source)
 
 
 def test_source_health_records_yaml_and_json_parse_errors(tmp_path: Path) -> None:
@@ -997,9 +995,11 @@ def test_fixture_backed_source_adapters_regressions(tmp_path: Path) -> None:
     assert biblia_candidates
     assert biblia_acquired[0].acquired_assets[0].path.endswith(".jpg")
 
-    synthetic_candidates = SyntheticFetcher().discover_candidates(sources["project_synthetic"], bundle, options)
-    synthetic_enriched = SyntheticFetcher().fetch_candidate_metadata(sources["project_synthetic"], bundle, synthetic_candidates, options)
-    synthetic_acquired = SyntheticFetcher().acquire_items(
+    synthetic_candidates = HocrsyngenManifestFetcher().discover_candidates(sources["project_synthetic"], bundle, options)
+    synthetic_enriched = HocrsyngenManifestFetcher().fetch_candidate_metadata(
+        sources["project_synthetic"], bundle, synthetic_candidates, options
+    )
+    synthetic_acquired = HocrsyngenManifestFetcher().acquire_items(
         sources["project_synthetic"],
         bundle,
         [_item_from_enriched(item, synthetic=True) for item in synthetic_enriched],
