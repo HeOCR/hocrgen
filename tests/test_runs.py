@@ -267,7 +267,7 @@ def test_summarize_run_collects_source_health_warning_before_build_release(tmp_p
     assert any("no operational reason recorded" in warning for warning in summary["warnings"])
 
 
-def test_summarize_run_collects_source_depth_feasibility_warning(tmp_path: Path) -> None:
+def test_summarize_run_does_not_promote_source_depth_feasibility_warnings(tmp_path: Path) -> None:
     run_dir = _write_run_files(
         tmp_path / "run",
         latest_stage="discover",
@@ -284,7 +284,8 @@ def test_summarize_run_collects_source_depth_feasibility_warning(tmp_path: Path)
 
     summary = summarize_run(run_dir)
 
-    assert any("F1 source-depth feasibility is not met for: pinkas_open, biblia_open" in warning for warning in summary["warnings"])
+    assert summary["counts"]["source_depth_feasibility"]["overall_feasibility_status"] == "not_feasible"
+    assert not any("F1 source-depth feasibility is not met" in warning for warning in summary["warnings"])
 
 
 def test_summarize_run_prefers_build_release_counts_over_review_export_counts(tmp_path: Path) -> None:

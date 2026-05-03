@@ -61,9 +61,12 @@ class SourceDepthFeasibilityResult:
     source_id: str
     fetcher: str
     target_count: int
+    observed_candidate_count: int
     runnable_cached_candidate_count: int
     asset_count: int
-    exploratory_live_candidate_count: int
+    exploratory_catalog_count: int
+    source_health_status: str
+    source_skip_reason: str | None
     gap: int
     feasibility_status: str
     operator_notes: list[str]
@@ -71,13 +74,16 @@ class SourceDepthFeasibilityResult:
     def model_dump(self) -> dict[str, Any]:
         return {
             "asset_count": self.asset_count,
-            "exploratory_live_candidate_count": self.exploratory_live_candidate_count,
+            "exploratory_catalog_count": self.exploratory_catalog_count,
             "feasibility_status": self.feasibility_status,
             "fetcher": self.fetcher,
             "gap": self.gap,
+            "observed_candidate_count": self.observed_candidate_count,
             "operator_notes": self.operator_notes,
             "runnable_cached_candidate_count": self.runnable_cached_candidate_count,
+            "source_health_status": self.source_health_status,
             "source_id": self.source_id,
+            "source_skip_reason": self.source_skip_reason,
             "target_count": self.target_count,
         }
 
@@ -119,33 +125,46 @@ def evaluate_f1_source_depth_feasibility(
     bundle: ConfigBundle,
     source_health: Iterable[SourceHealthResult | dict[str, Any]],
 ) -> dict[str, Any]:
-    health_by_source = {_health_record(result)["source_id"]: _health_record(result) for result in source_health}
+    health_by_source: dict[str, dict[str, Any]] = {}
+    for result in source_health:
+        record = _health_record(result)
+        health_by_source[record["source_id"]] = record
     sources_by_id = {source.id: source for source in bundle.source_registry.sources}
     source_results: list[SourceDepthFeasibilityResult] = []
     for source_id, target_count in F1_SOURCE_TARGETS.items():
-        source = sources_by_id[source_id]
-        health = health_by_source[source_id]
+        source = sources_by_id.get(source_id)
+        health = health_by_source.get(source_id)
+        if source is None or health is None:
+            source_results.append(_missing_source_depth_result(source_id, target_count, source, health))
+            continue
         exploratory_count = _exploratory_candidate_count(source, bundle)
-        runnable_cached_count = int(health["candidate_count"])
+        observed_candidate_count = int(health["candidate_count"])
         asset_count = int(health["asset_count"])
+        runnable_cached_count = _runnable_cached_candidate_count(source, health, observed_candidate_count, asset_count)
         gap = max(target_count - runnable_cached_count, 0)
         status, notes = _source_depth_status_and_notes(
             source_id=source_id,
             fetcher=source.fetcher,
             target_count=target_count,
             runnable_cached_count=runnable_cached_count,
+            observed_candidate_count=observed_candidate_count,
             asset_count=asset_count,
             exploratory_count=exploratory_count,
             gap=gap,
+            health_status=str(health["health_status"]),
+            skip_reason=health.get("skip_reason"),
         )
         source_results.append(
             SourceDepthFeasibilityResult(
                 source_id=source_id,
                 fetcher=source.fetcher,
                 target_count=target_count,
+                observed_candidate_count=observed_candidate_count,
                 runnable_cached_candidate_count=runnable_cached_count,
                 asset_count=asset_count,
-                exploratory_live_candidate_count=exploratory_count,
+                exploratory_catalog_count=exploratory_count,
+                source_health_status=str(health["health_status"]),
+                source_skip_reason=health.get("skip_reason"),
                 gap=gap,
                 feasibility_status=status,
                 operator_notes=notes,
@@ -161,6 +180,11 @@ def source_depth_feasibility_report(
     real_source_ids = {"nli_any_use_permitted", "pinkas_open", "biblia_open"}
     not_ready = [source for source in sources if source["feasibility_status"] != "feasible"]
     not_feasible = [source for source in sources if source["feasibility_status"] == "not_feasible"]
+    warnings = (
+        [f"F1 source-depth feasibility is not met for: {', '.join(source['source_id'] for source in not_ready)}."]
+        if not_ready
+        else []
+    )
     return {
         "trial": "F1 beta-scale acquisition trial",
         "artifact_scope": "operator_only",
@@ -175,15 +199,17 @@ def source_depth_feasibility_report(
         "summary": {
             "target_count": sum(source["target_count"] for source in sources),
             "real_target_count": sum(source["target_count"] for source in sources if source["source_id"] in real_source_ids),
+            "observed_candidate_count": sum(source["observed_candidate_count"] for source in sources),
             "runnable_cached_candidate_count": sum(source["runnable_cached_candidate_count"] for source in sources),
             "asset_count": sum(source["asset_count"] for source in sources),
-            "exploratory_live_candidate_count": sum(source["exploratory_live_candidate_count"] for source in sources),
+            "exploratory_catalog_count": sum(source["exploratory_catalog_count"] for source in sources),
             "gap": sum(source["gap"] for source in sources),
             "not_ready_source_count": len(not_ready),
             "not_ready_sources": [source["source_id"] for source in not_ready],
             "not_feasible_source_count": len(not_feasible),
             "not_feasible_sources": [source["source_id"] for source in not_feasible],
             "overall_feasibility_status": "not_feasible" if not_ready else "feasible",
+            "warnings": warnings,
         },
         "required_gates": [
             "rights",
@@ -256,40 +282,103 @@ def _exploratory_candidate_count(source: SourceConfig, bundle: ConfigBundle) -> 
     return len(items) if isinstance(items, list) else 0
 
 
+def _missing_source_depth_result(
+    source_id: str,
+    target_count: int,
+    source: SourceConfig | None,
+    health: dict[str, Any] | None,
+) -> SourceDepthFeasibilityResult:
+    missing = []
+    if source is None:
+        missing.append("source configuration")
+    if health is None:
+        missing.append("source health")
+    return SourceDepthFeasibilityResult(
+        source_id=source_id,
+        fetcher=source.fetcher if source is not None else "missing",
+        target_count=target_count,
+        observed_candidate_count=int(health.get("candidate_count", 0)) if health else 0,
+        runnable_cached_candidate_count=0,
+        asset_count=int(health.get("asset_count", 0)) if health else 0,
+        exploratory_catalog_count=0,
+        source_health_status=str(health.get("health_status", "missing")) if health else "missing",
+        source_skip_reason=health.get("skip_reason") if health else None,
+        gap=target_count,
+        feasibility_status="not_feasible",
+        operator_notes=[
+            f"Missing required F1 {' and '.join(missing)} for {source_id}.",
+            "Target scale is not feasible until the required source is configured and source health can be evaluated.",
+        ],
+    )
+
+
+def _runnable_cached_candidate_count(
+    source: SourceConfig,
+    health: dict[str, Any],
+    observed_candidate_count: int,
+    asset_count: int,
+) -> int:
+    if health["health_status"] != "ok" or health.get("skip_reason") is not None:
+        return 0
+    if source.source_operations.operational_status != SourceOperationalStatus.active:
+        return 0
+    if source.fetcher in {"nli", "pinkas", "biblia"} and asset_count < observed_candidate_count:
+        return 0
+    if source.fetcher == "synthetic" and asset_count <= 0:
+        return 0
+    return observed_candidate_count
+
+
 def _source_depth_status_and_notes(
     *,
     source_id: str,
     fetcher: str,
     target_count: int,
     runnable_cached_count: int,
+    observed_candidate_count: int,
     asset_count: int,
     exploratory_count: int,
     gap: int,
+    health_status: str,
+    skip_reason: str | None,
 ) -> tuple[str, list[str]]:
+    health_notes = []
+    if health_status != "ok":
+        health_notes.append(f"Source health is {health_status}; observed candidates do not count as runnable/cached depth.")
+    if skip_reason is not None:
+        health_notes.append(f"Source is skipped for {skip_reason}; observed candidates do not count as runnable/cached depth.")
+    if observed_candidate_count and runnable_cached_count == 0 and not health_notes:
+        health_notes.append("Observed candidates do not have enough validated cached assets to count as runnable/cached depth.")
     if source_id in {"pinkas_open", "biblia_open"}:
         return (
             "not_feasible",
             [
-                f"Only {runnable_cached_count} fixture-backed record(s) are committed for a target of {target_count}.",
+                f"Only {runnable_cached_count} runnable/cached record(s) qualify for a target of {target_count}.",
+                *health_notes,
                 "Target scale is not feasible until source-depth expansion is defined, fixture-backed, rights-safe, and reviewable.",
             ],
         )
     if source_id == "nli_any_use_permitted":
         notes = [
-            f"{runnable_cached_count} runnable fixture-backed seed(s) are available.",
-            f"{exploratory_count} exploratory catalog seed(s) can inform operator promotion, but they are not runnable cached candidates.",
+            f"{runnable_cached_count} runnable/cached fixture-backed seed(s) qualify for the target.",
+            f"{exploratory_count} exploratory catalog seed(s) can inform operator promotion, but they are not runnable/cached candidates.",
+            *health_notes,
             "Seed promotion must remain operator-run and cached; CI must not depend on live NLI access.",
         ]
         return ("needs_promotion" if gap else "feasible", notes)
     if fetcher == "synthetic":
         notes = [
-            f"{runnable_cached_count} configured synthetic candidate(s) are available for a target of {target_count}.",
+            f"{runnable_cached_count} configured synthetic candidate(s) qualify for a target of {target_count}.",
+            *health_notes,
             "Synthetic scale remains bounded by the existing synthetic-cap and quality/reporting gates.",
         ]
         return ("needs_configuration" if gap else "feasible", notes)
     return (
         "not_feasible" if gap else "feasible",
-        [f"{asset_count} asset(s) and {runnable_cached_count} runnable/cached candidate(s) found for target {target_count}."],
+        [
+            f"{asset_count} asset(s) and {runnable_cached_count} runnable/cached candidate(s) qualify for target {target_count}.",
+            *health_notes,
+        ],
     )
 
 

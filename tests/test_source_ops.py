@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 import yaml
 
+import hocrgen.source_ops as source_ops
 from hocrgen.cli import main
 from hocrgen.config.loader import default_config_root, load_and_validate_bundle
 from hocrgen.core.errors import ConfigValidationError
@@ -24,6 +25,8 @@ from hocrgen.source_ops import (
     _inspect_records_source,
     _inspect_source,
     _inspect_synthetic_source,
+    _source_depth_status_and_notes,
+    source_depth_feasibility_report,
     source_health_summary,
 )
 
@@ -390,8 +393,10 @@ def test_f1_source_depth_feasibility_reports_current_fixture_backed_gaps() -> No
     ]
     assert report["summary"]["not_feasible_sources"] == ["pinkas_open", "biblia_open"]
     assert sources["nli_any_use_permitted"]["target_count"] == 27
+    assert sources["nli_any_use_permitted"]["observed_candidate_count"] == 7
     assert sources["nli_any_use_permitted"]["runnable_cached_candidate_count"] == 7
-    assert sources["nli_any_use_permitted"]["exploratory_live_candidate_count"] == 14
+    assert sources["nli_any_use_permitted"]["exploratory_catalog_count"] == 14
+    assert sources["nli_any_use_permitted"]["source_health_status"] == "ok"
     assert sources["nli_any_use_permitted"]["gap"] == 20
     assert sources["nli_any_use_permitted"]["feasibility_status"] == "needs_promotion"
     assert sources["pinkas_open"]["target_count"] == 27
@@ -403,7 +408,117 @@ def test_f1_source_depth_feasibility_reports_current_fixture_backed_gaps() -> No
     assert sources["biblia_open"]["runnable_cached_candidate_count"] == 1
     assert sources["biblia_open"]["gap"] == 25
     assert sources["biblia_open"]["feasibility_status"] == "not_feasible"
+    assert report["summary"]["warnings"] == [
+        "F1 source-depth feasibility is not met for: nli_any_use_permitted, pinkas_open, biblia_open, project_synthetic."
+    ]
     assert "public beta export" in report["non_goals"]
+
+
+def test_f1_source_depth_counts_only_health_eligible_cached_candidates(tmp_path: Path) -> None:
+    config_root = _copy_config(tmp_path)
+    seed_path = tmp_path / "bad_seed.yaml"
+    seed_path.write_text(
+        "items:\n"
+        + "\n".join(
+            f"  - id: broken-{index}\n    url: https://example.org/broken-{index}\n    fixture_html: missing-{index}.html"
+            for index in range(27)
+        ),
+        encoding="utf-8",
+    )
+    _update_source_settings(config_root, "nli_any_use_permitted", {"seed_manifest": str(seed_path)})
+    bundle = load_and_validate_bundle(config_root)
+    source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
+
+    report = evaluate_f1_source_depth_feasibility(bundle, source_health)
+    nli = next(source for source in report["sources"] if source["source_id"] == "nli_any_use_permitted")
+
+    assert nli["observed_candidate_count"] == 27
+    assert nli["runnable_cached_candidate_count"] == 0
+    assert nli["source_health_status"] == "error"
+    assert nli["source_skip_reason"] == "source_health_failed"
+    assert nli["gap"] == 27
+    assert any("Source health is error" in note for note in nli["operator_notes"])
+
+
+def test_f1_source_depth_reports_missing_health_as_not_feasible() -> None:
+    bundle = load_and_validate_bundle()
+    source_health = [
+        result for result in evaluate_source_health(bundle, "profile_open_v1", StageOptions()) if result.source_id != "pinkas_open"
+    ]
+
+    report = evaluate_f1_source_depth_feasibility(bundle, source_health)
+    pinkas = next(source for source in report["sources"] if source["source_id"] == "pinkas_open")
+
+    assert pinkas["feasibility_status"] == "not_feasible"
+    assert pinkas["runnable_cached_candidate_count"] == 0
+    assert pinkas["source_health_status"] == "missing"
+    assert "Missing required F1 source health" in pinkas["operator_notes"][0]
+
+
+def test_f1_source_depth_reports_missing_source_config_as_not_feasible(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(
+        source_ops,
+        "F1_SOURCE_TARGETS",
+        {
+            "nli_any_use_permitted": 27,
+            "pinkas_open": 27,
+            "biblia_open": 26,
+            "project_synthetic": 80,
+            "missing_source": 3,
+        },
+    )
+    bundle = load_and_validate_bundle()
+
+    report = evaluate_f1_source_depth_feasibility(bundle, [])
+    missing = next(source for source in report["sources"] if source["source_id"] == "missing_source")
+
+    assert missing["source_id"] == "missing_source"
+    assert missing["fetcher"] == "missing"
+    assert missing["feasibility_status"] == "not_feasible"
+    assert missing["gap"] == 3
+    assert "source configuration and source health" in missing["operator_notes"][0]
+
+
+def test_source_depth_feasibility_report_accepts_dict_rows() -> None:
+    report = source_depth_feasibility_report(
+        [
+            {
+                "asset_count": 1,
+                "exploratory_catalog_count": 0,
+                "feasibility_status": "feasible",
+                "fetcher": "test",
+                "gap": 0,
+                "observed_candidate_count": 1,
+                "operator_notes": [],
+                "runnable_cached_candidate_count": 1,
+                "source_health_status": "ok",
+                "source_id": "test_source",
+                "source_skip_reason": None,
+                "target_count": 1,
+            }
+        ]
+    )
+
+    assert report["summary"]["overall_feasibility_status"] == "feasible"
+    assert report["summary"]["warnings"] == []
+
+
+def test_source_depth_status_handles_unknown_fetcher_fallback() -> None:
+    status, notes = _source_depth_status_and_notes(
+        source_id="unknown_source",
+        fetcher="unknown",
+        target_count=3,
+        runnable_cached_count=2,
+        observed_candidate_count=2,
+        asset_count=2,
+        exploratory_count=0,
+        gap=1,
+        health_status="ok",
+        skip_reason=None,
+    )
+
+    assert status == "not_feasible"
+    assert notes == ["2 asset(s) and 2 runnable/cached candidate(s) qualify for target 3."]
 
 
 def test_source_health_reports_unknown_fetcher_without_selection() -> None:

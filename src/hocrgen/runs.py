@@ -187,10 +187,6 @@ def _collect_run_warnings(run_dir: Path, stage_summaries: dict[str, dict[str, An
     rejection_reasons = counts.get("rejection_reasons", {})
     if rejection_reasons:
         warnings.append(f"Policy rejections: {_format_counter(rejection_reasons)}.")
-    source_depth = counts.get("source_depth_feasibility", {})
-    if source_depth.get("overall_feasibility_status") == "not_feasible":
-        sources = ", ".join(source_depth.get("not_ready_sources") or source_depth.get("not_feasible_sources", [])) or "unknown"
-        warnings.append(f"F1 source-depth feasibility is not met for: {sources}.")
 
     build_release = stage_summaries.get("build-release", {})
     if "source_stats" in build_release:
