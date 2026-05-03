@@ -1,6 +1,6 @@
 # Modern Handwritten Acquisition Policy
 
-`F3a` defines the rights-clean policy foundation for future modern handwritten Hebrew intake. It does not collect samples, does not add broad upload/acquisition automation, does not change public-profile inclusion, and does not claim public beta readiness. `F3b` should implement any operator acquisition workflow against this policy.
+`F3a` defines the rights-clean policy foundation for future modern handwritten Hebrew intake, including contributor consent, public-use release terms, scanning/upload standards, mixed-language coverage, and future typed intake manifests. It does not collect samples, does not add broad upload/acquisition automation, does not change public-profile inclusion, and does not claim public beta readiness. `F3b` should implement any operator acquisition workflow against this policy.
 
 ## Scope
 
@@ -17,6 +17,8 @@ It does not cover:
 
 Modern real handwriting must remain a distinct source family from historical public sources and synthetic data.
 
+Historical public-source rights and synthetic-provider manifests do not satisfy modern contributor-consent requirements.
+
 | Source family | Examples | Required boundary |
 | --- | --- | --- |
 | Modern real handwriting | contributor scans, coordinated classroom or volunteer writing batches | explicit contributor consent, release terms, privacy screening, and operator review before public-profile eligibility |
@@ -31,14 +33,14 @@ Modern handwriting may be accepted only when every contributor has consented bef
 
 Minimum consent requirements:
 
-- contributor is an adult, or a guardian/authorized institution has provided documented permission for minor participation
+- contributor is an adult; minor participation is out of scope for F3a/F3b and must remain blocked unless a future explicit minor-participant policy is approved
 - contributor understands that accepted samples may be included in an open dataset and redistributed through future HeOCR public releases
 - contributor grants a broad, irrevocable public reuse license compatible with `profile_open_v1`, or the item remains blocked/review-only
 - consent covers the handwriting image, any transcription prompt text written on the page, and non-sensitive metadata needed for dataset composition reporting
 - consent records are retained in a private maintainer record or typed operator manifest, not exposed as public personal data
 - contributors receive a takedown/removal contact path before submitting material
 
-The preferred public-profile rights posture is project-owned or contributor-granted open reuse with attribution avoided unless attribution can be made non-identifying and release-portable. Ambiguous consent, workplace/school ownership ambiguity, third-party forms, or any uncertainty about who owns the handwritten page must block public-profile use.
+The preferred public-profile rights posture is project-owned or contributor-granted open reuse with attribution avoided unless attribution can be made non-identifying and release-portable. Ambiguous consent, workplace/school ownership ambiguity, third-party forms, minor-participant material, or any uncertainty about who owns the handwritten page must block public-profile use.
 
 ## Rights Provenance And Public-Profile Use
 
@@ -113,7 +115,7 @@ Composition metadata must not claim sensitive identity attributes, infer protect
 
 ## Takedown And Removal Workflow
 
-Modern handwriting contributors, source owners, or affected third parties must have a removal path.
+Modern handwriting contributors, source owners, or affected third parties must have a removal path. Because public-profile material is expected to use broad public reuse terms, takedown is prospective for hocrgen/HeOCR-controlled distribution: it removes or blocks affected items from future project releases, but it cannot promise to revoke already distributed public copies or downstream reuse that happened under valid release terms.
 
 Minimum handling:
 
@@ -121,8 +123,9 @@ Minimum handling:
 2. identify affected source ids, item ids, consent artifact ids, release versions, and benchmark membership
 3. block future public promotion through review decisions, source status, or config changes while investigating
 4. remove affected items from future public payloads when the concern is valid or unresolved
-5. preserve release-relative export behavior and document the change in release diffs, changelogs, release notes, and PR metadata where disclosure is safe
-6. keep the full sensitive evidence in private maintainer records rather than public manifests
+5. document that removal applies to future hocrgen/HeOCR releases and does not revoke already distributed public copies
+6. preserve release-relative export behavior and document the change in release diffs, changelogs, release notes, and PR metadata where disclosure is safe
+7. keep the full sensitive evidence in private maintainer records rather than public manifests
 
 If a benchmark item is affected, benchmark stability policy still applies: the replacement/removal must be deliberate, documented, and versioned.
 
@@ -131,11 +134,15 @@ If a benchmark item is affected, benchmark stability policy still applies: the r
 F3a does not add runtime schema. F3b should introduce a typed, repo-tracked operator intake shape before any sample collection. The shape should include, at minimum:
 
 - batch id, source id, operator id, collection date, and collection method
-- consent artifact id or institutional agreement id
+- contributor eligibility class, with adult contributor as the only F3b public-profile-eligible class
+- consent artifact id or institutional agreement id stored as a private-record reference
+- consent/release terms version, consent effective date, consent scope, and normalized license id
 - normalized rights candidate and public-profile eligibility state
-- privacy-screening status and reviewer id
+- private evidence locator for consent/provenance records, without public personal data
+- privacy-screening status, reviewer id, review timestamp, and unresolved-risk flags
 - source-relative asset paths and checksums only
 - prompt/page type, script style, language mix, and composition metadata
-- takedown/removal status
+- takedown/removal status, takedown request date when applicable, and affected future release versions
+- public-release inclusion state and the first/last release versions in which the item appears
 
 The manifest must remain compatible with existing public export portability rules and must not publish absolute local filesystem paths or private consent records.

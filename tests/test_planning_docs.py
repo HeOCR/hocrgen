@@ -69,12 +69,11 @@ def test_f3a_modern_handwritten_policy_is_consistent_and_bounded() -> None:
     source_guide = Path("docs/source_adapter_contribution_guide.md").read_text(encoding="utf-8")
     release_governance = Path("docs/release_governance.md").read_text(encoding="utf-8")
     design = Path("docs/hocrgen_design_and_spec.md").read_text(encoding="utf-8")
-    combined = "\n".join([policy, agent_plan, readme, roadmap, contributing, source_guide, release_governance, design])
+    policy_lower = policy.casefold()
 
     for required in [
         "F3a",
         "F3b",
-        "Modern Handwritten Acquisition Policy",
         "contributor consent",
         "public-use release terms",
         "rights provenance",
@@ -92,21 +91,35 @@ def test_f3a_modern_handwritten_policy_is_consistent_and_bounded() -> None:
         "synthetic data",
         "typed intake manifests",
     ]:
-        assert required in combined
+        assert required.casefold() in policy_lower
 
-    for required_boundary in [
+    for required_policy_boundary in [
         "does not collect samples",
-        "does not collect handwriting samples",
         "does not add broad upload/acquisition automation",
         "does not claim public beta readiness",
-        "No modern contributor samples are collected or exported by F3a.",
         "Historical public-source rights and synthetic-provider manifests do not satisfy modern contributor-consent requirements.",
+        "minor participation is out of scope for F3a/F3b",
+        "takedown is prospective for hocrgen/HeOCR-controlled distribution",
+        "cannot promise to revoke already distributed public copies",
+        "consent/release terms version",
+        "consent effective date",
+        "consent scope",
+        "normalized license id",
+        "affected future release versions",
+        "first/last release versions",
     ]:
-        assert required_boundary in combined
+        assert required_policy_boundary.casefold() in policy_lower
 
     assert "| F3 | Modern handwritten acquisition program | F3a, F3b |" in roadmap
+    assert "| F3 | Modern handwritten acquisition program | F3a, F3b | Rights-clean modern Hebrew handwriting collection policy and operator acquisition workflow | partial |" in roadmap
     assert "| F3a | F3 | Define rights-clean modern handwritten Hebrew collection policy, consent, privacy, and takedown workflow | no | completed |" in roadmap
     assert "F3b should implement a bounded operator workflow and typed intake manifests against this policy." in roadmap
+    assert "F3b implementation is still required before modern handwritten acquisition can start" in agent_plan
+    assert "F3a does not collect handwriting samples" in readme
+    assert "No modern contributor samples are collected or exported by F3a." in release_governance
+    assert "Do not collect contributor samples" in contributing
+    assert "before any sample collection" in source_guide
+    assert "Modern handwriting intake is a future contributor-supplied acquisition path" in design
 
 
 def test_f1a_beta_trial_plan_is_bounded_and_source_balanced() -> None:
