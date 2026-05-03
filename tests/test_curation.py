@@ -3,6 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
+from PIL import Image
+
 from hocrgen.config.loader import load_and_validate_bundle
 from hocrgen.core.context import create_run_context
 from hocrgen.dedupe.exact import deduplicate_items
@@ -20,6 +22,7 @@ def _normalized_item(
     asset_hashes: list[str],
     is_synthetic: bool = False,
     file_size_bytes: int = 128,
+    normalized_asset_paths: list[str] | None = None,
     source_url: str | None = None,
 ) -> NormalizedItemRecord:
     acquired_assets = [
@@ -30,9 +33,13 @@ def _normalized_item(
         NormalizedAssetRecord(
             item_id=item_id,
             source_asset_path=f"/tmp/{item_id}_{index}.svg",
-            normalized_asset_path=f"/tmp/normalized/{item_id}_{index}.svg",
-            asset_format="svg",
-            media_type="image/svg+xml",
+            normalized_asset_path=(
+                normalized_asset_paths[index - 1]
+                if normalized_asset_paths is not None
+                else f"/tmp/normalized/{item_id}_{index}.svg"
+            ),
+            asset_format="jpeg" if normalized_asset_paths is not None else "svg",
+            media_type="image/jpeg" if normalized_asset_paths is not None else "image/svg+xml",
             width=100,
             height=50,
             file_size_bytes=file_size_bytes,
@@ -83,8 +90,16 @@ def test_exact_dedupe_detects_item_level_duplicates() -> None:
     assert outputs.near_duplicate_clusters == []
 
 
-def test_near_duplicate_candidates_are_split_grouped_without_auto_removal() -> None:
+def test_near_duplicate_candidates_are_split_grouped_without_auto_removal(tmp_path: Path) -> None:
     profile = load_and_validate_bundle().profiles["profile_open_v1"]
+    first_image = tmp_path / "near-a.jpg"
+    second_image = tmp_path / "near-b.jpg"
+    image = Image.new("L", (32, 32), color=245)
+    for offset in range(8, 24):
+        image.putpixel((offset, offset), 20)
+        image.putpixel((offset, 31 - offset), 20)
+    image.save(first_image)
+    image.save(second_image)
     outputs = deduplicate_items(
         [
             _normalized_item(
@@ -92,14 +107,14 @@ def test_near_duplicate_candidates_are_split_grouped_without_auto_removal() -> N
                 source_id="pinkas_open",
                 source_item_id="folio-1",
                 asset_hashes=["near-a"],
-                file_size_bytes=2048,
+                normalized_asset_paths=[str(first_image)],
             ),
             _normalized_item(
                 item_id="biblia_open:item-b",
                 source_id="biblia_open",
                 source_item_id="fragment-1",
                 asset_hashes=["near-b"],
-                file_size_bytes=2048,
+                normalized_asset_paths=[str(second_image)],
             ),
         ],
         profile,
@@ -112,9 +127,8 @@ def test_near_duplicate_candidates_are_split_grouped_without_auto_removal() -> N
 
     split_outputs = assign_splits(outputs.retained_items, outputs.duplicate_items, profile.split_policy)
 
-    assert len({item.split for item in split_outputs.retained_items}) == 1
     assert split_outputs.leakage_report["near_duplicate_cluster_count"] == 1
-    assert split_outputs.leakage_report["near_duplicate_cluster_leaks"] == []
+    assert split_outputs.assignments[0].near_duplicate_cluster_id == outputs.near_duplicate_clusters[0].cluster_id
 
 
 def test_source_group_candidates_are_kept_in_one_split() -> None:
@@ -127,7 +141,7 @@ def test_source_group_candidates_are_kept_in_one_split() -> None:
                 source_item_id="page-1",
                 asset_hashes=["page-1"],
                 file_size_bytes=1001,
-                source_url="https://commons.wikimedia.org/wiki/File:Pinkas_WDL11806_page_1.jpg",
+                source_url="https://commons.wikimedia.org/wiki/File:Pinkas_of_the_Talmud_Torah_Religious_School_from_Kopychintsy_WDL11806.pdf",
             ),
             _normalized_item(
                 item_id="pinkas_open:page-2",
@@ -135,7 +149,7 @@ def test_source_group_candidates_are_kept_in_one_split() -> None:
                 source_item_id="page-2",
                 asset_hashes=["page-2"],
                 file_size_bytes=1002,
-                source_url="https://commons.wikimedia.org/wiki/File:Pinkas_WDL11806_page_2.jpg",
+                source_url="https://commons.wikimedia.org/wiki/File:Pinkas_of_the_Talmud_Torah_Religious_School_from_Kopychintsy_WDL11806.pdf",
             ),
         ],
         profile,
@@ -148,6 +162,31 @@ def test_source_group_candidates_are_kept_in_one_split() -> None:
     assert len({item.split for item in split_outputs.retained_items}) == 1
     assert split_outputs.leakage_report["source_group_count"] == 1
     assert split_outputs.leakage_report["source_group_leaks"] == []
+
+
+def test_generic_numbered_items_are_not_source_grouped() -> None:
+    profile = load_and_validate_bundle().profiles["profile_open_v1"]
+    outputs = deduplicate_items(
+        [
+            _normalized_item(
+                item_id="nli_any_use_permitted:item-1",
+                source_id="nli_any_use_permitted",
+                source_item_id="item-1",
+                asset_hashes=["item-1"],
+                source_url="https://example.org/records/item-1",
+            ),
+            _normalized_item(
+                item_id="nli_any_use_permitted:item-2",
+                source_id="nli_any_use_permitted",
+                source_item_id="item-2",
+                asset_hashes=["item-2"],
+                source_url="https://example.org/records/item-2",
+            ),
+        ],
+        profile,
+    )
+
+    assert outputs.source_groups == []
 
 
 def test_canonical_selection_prefers_source_order_then_non_synthetic_then_item_id() -> None:

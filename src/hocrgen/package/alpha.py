@@ -112,6 +112,11 @@ def export_alpha_release(
     benchmark_inputs = _load_benchmark_export_inputs(build_dir)
     annotation_pilot_inputs = _load_annotation_pilot_export_inputs(build_dir)
     build_release_summary = _load_json(build_dir / "release_summary.json")
+    if build_release_summary.get("near_duplicate_review_status") == "blocked":
+        cluster_count = build_release_summary.get("near_duplicate_cluster_count", 0)
+        raise StageExecutionError(
+            f"alpha export is blocked: {cluster_count} near-duplicate cluster(s) require manual review"
+        )
 
     selected_items = _select_alpha_items(release_items, profile, config)
     if not selected_items:

@@ -555,7 +555,7 @@ Outputs:
 
 Actions:
 - exact duplicate detection
-- deterministic near-duplicate candidate surfacing from normalized asset metadata
+- deterministic near-duplicate candidate surfacing from content-derived quantized thumbnails
 - source-work group derivation for split safety
 - optional future perceptual-hash or embedding-based near-duplicate clustering
 

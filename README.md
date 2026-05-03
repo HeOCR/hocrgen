@@ -438,11 +438,11 @@ What it does today:
 - detects exact duplicate items when those ordered asset sequences match exactly
 - retains a deterministic canonical item using source priority, then non-synthetic preference, then `item_id`
 - emits duplicate-cluster and duplicate-relation manifests
-- surfaces deterministic near-duplicate candidates from normalized asset metadata signatures as manual-review risks without auto-removing them
+- surfaces deterministic near-duplicate candidates from content-derived quantized thumbnail hashes as manual-review blockers without auto-removing them
 - emits source-group manifests for related source-work records, including multi-page static source records, and keeps those groups split-safe
 - assigns deterministic `train` / `validation` / `test` splits using the profile `split_policy`
-- keeps exact duplicate clusters, near-duplicate clusters, and source groups together by using stable split-group ids
-- emits a leakage report confirming that release-ready items do not cross split boundaries incorrectly, plus build-release benchmark/holdout leakage risk
+- keeps exact duplicate clusters and source groups together by using stable split-group ids
+- emits a leakage report confirming that release-ready items do not cross split boundaries incorrectly, records near-duplicate cluster split exposure, and adds build-release benchmark/holdout leakage risk
 
 What it does not do yet:
 

@@ -122,7 +122,7 @@ class DuplicateClusterRecord(ManifestModel):
 class NearDuplicateClusterRecord(ManifestModel):
     cluster_id: str
     member_item_ids: list[str] = Field(min_length=2)
-    method: Literal["asset_metadata_signature"] = "asset_metadata_signature"
+    method: Literal["quantized_thumbnail_hash"] = "quantized_thumbnail_hash"
     status: Literal["manual_review_required"] = "manual_review_required"
     rationale: str
 

@@ -32,8 +32,6 @@ def _pick_split(split_group_id: str, split_policy: SplitPolicy) -> str:
 def _split_group_id(item: CuratedItemRecord) -> str:
     if item.dedupe_cluster_id:
         return item.dedupe_cluster_id
-    if item.near_duplicate_cluster_id:
-        return item.near_duplicate_cluster_id
     if item.source_group_id:
         return item.source_group_id
     return f"{item.source_id}:{item.source_item_id}"

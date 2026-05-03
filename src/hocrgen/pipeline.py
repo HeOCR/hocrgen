@@ -750,6 +750,10 @@ def _build_f1_target_scale_trial_report(
             f"{synthetic_release_ready_count} synthetic release-ready item(s) exceed "
             f"{synthetic_cap['allowed_synthetic_count']} allowed for {real_release_ready_count} real item(s)"
         )
+    if state.near_duplicate_clusters:
+        gate_blockers.append(
+            f"near-duplicate review is blocked: {len(state.near_duplicate_clusters)} cluster(s) require manual review"
+        )
     if benchmark_leakage["status"] != "ok":
         gate_blockers.append(f"benchmark/holdout leakage has {benchmark_leakage['risk_count']} group risk(s)")
 
@@ -806,7 +810,7 @@ def _build_f1_target_scale_trial_report(
             "duplicate_sources": source_stats["duplicate_sources"],
             "exact_duplicate_cluster_count": len(state.duplicate_clusters),
             "near_duplicate_cluster_count": len(state.near_duplicate_clusters),
-            "near_duplicate_policy": "surface candidates and keep clusters split-safe; do not auto-remove without review",
+            "near_duplicate_policy": "block release readiness until candidate clusters are manually reviewed; do not auto-remove",
             "source_group_count": len(state.source_groups),
         },
         "split_and_benchmark_eligibility": {
@@ -828,8 +832,17 @@ def _build_f1_target_scale_trial_report(
             "dedupe": {
                 "duplicate_removed_count": release_summary["duplicate_removed_count"],
                 "near_duplicate_cluster_count": len(state.near_duplicate_clusters),
+                "near_duplicate_review_status": release_summary.get(
+                    "near_duplicate_review_status",
+                    "blocked" if state.near_duplicate_clusters else "ok",
+                ),
                 "source_group_count": len(state.source_groups),
-                "status": "ok",
+                "status": (
+                    "ok"
+                    if release_summary.get("near_duplicate_review_status", "blocked" if state.near_duplicate_clusters else "ok")
+                    == "ok"
+                    else "blocked"
+                ),
             },
             "export_portability": {
                 "status": "ok",
@@ -873,6 +886,7 @@ def _build_f1_target_scale_trial_report(
             "privacy",
             "review",
             "dedupe",
+            "near-duplicate-review",
             "split",
             "benchmark",
             "synthetic-cap",
@@ -982,11 +996,16 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     state.annotation_pilot_manifest = annotation_pilot_outputs.manifest
     state.annotation_pilot_selection_audit = annotation_pilot_outputs.audit
     benchmark_leakage_risk = _benchmark_leakage_risk(state)
+    near_duplicate_review_status = "blocked" if state.near_duplicate_clusters else "ok"
     enriched_leakage_report = {
         **state.leakage_report,
         "benchmark_holdout_leakage": benchmark_leakage_risk,
+        "near_duplicate_review": {
+            "cluster_count": len(state.near_duplicate_clusters),
+            "status": near_duplicate_review_status,
+        },
         "policy": {
-            "near_duplicates": "surface candidates and keep clusters split-safe; do not auto-remove without review",
+            "near_duplicates": "block release readiness until candidate clusters are manually reviewed; do not auto-remove",
             "source_groups": "keep related source-work groups in the same split",
         },
     }
@@ -1033,6 +1052,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
         "blocked_count": len(state.blocked_items),
         "duplicate_removed_count": len(state.duplicate_items),
         "near_duplicate_cluster_count": len(state.near_duplicate_clusters),
+        "near_duplicate_review_status": near_duplicate_review_status,
         "is_dry_run": context.dry_run,
         "normalized_count": len(state.normalized_items),
         "profile_id": context.profile_id,

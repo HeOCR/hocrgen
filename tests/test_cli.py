@@ -80,7 +80,10 @@ def test_f1_beta_trial_command_creates_operator_report(tmp_path: Path, capsys) -
     }
     assert report["rights_outcomes"]["accepted_count"] == 160
     assert report["dedupe_outcomes"]["duplicate_removed_count"] == 0
-    assert report["dedupe_outcomes"]["near_duplicate_policy"] == "surface candidates and keep clusters split-safe; do not auto-remove without review"
+    assert (
+        report["dedupe_outcomes"]["near_duplicate_policy"]
+        == "block release readiness until candidate clusters are manually reviewed; do not auto-remove"
+    )
     assert report["dedupe_outcomes"]["source_group_count"] >= 1
     assert report["split_and_benchmark_eligibility"]["benchmark_holdout_leakage"]["status"] == "review_required"
     assert report["gate_outcomes"]["synthetic_cap"] == {
