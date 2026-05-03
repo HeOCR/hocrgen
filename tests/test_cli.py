@@ -63,14 +63,14 @@ def test_f1_beta_trial_command_creates_operator_report(tmp_path: Path, capsys) -
     assert exit_code == 0
     assert payload["stage"] == "f1-beta-trial"
     assert payload["f1_target_scale_trial_report"].endswith("f1_target_scale_trial_report.json")
-    assert len(candidates["items"]) == 160
+    assert len(candidates["items"]) == 82
     assert report["artifact_scope"] == "operator_only"
     assert report["planning_notation"] == "F1c"
-    assert report["status"] == "complete_with_gate_blockers"
-    assert report["target_scale_execution_status"] == "complete"
+    assert report["status"] == "blocked"
+    assert report["target_scale_execution_status"] == "blocked"
     assert report["gate_status"] == "blocked"
-    assert report["target_scale_exercised"]["candidate_count"] == 160
-    assert report["target_scale_exercised"]["acquired_count"] == 160
+    assert report["target_scale_exercised"]["candidate_count"] == 82
+    assert report["target_scale_exercised"]["acquired_count"] == 82
     assert report["target_counts"] == {"real": 80, "synthetic": 80, "total": 160}
     assert report["source_allocation"] == {
         "biblia_open": 26,
@@ -78,7 +78,7 @@ def test_f1_beta_trial_command_creates_operator_report(tmp_path: Path, capsys) -
         "pinkas_open": 27,
         "project_synthetic": 80,
     }
-    assert report["rights_outcomes"]["accepted_count"] == 160
+    assert report["rights_outcomes"]["accepted_count"] == 82
     assert report["dedupe_outcomes"]["duplicate_removed_count"] == 0
     assert (
         report["dedupe_outcomes"]["near_duplicate_policy"]
@@ -89,15 +89,18 @@ def test_f1_beta_trial_command_creates_operator_report(tmp_path: Path, capsys) -
     assert report["gate_outcomes"]["synthetic_cap"] == {
         "allowed_synthetic_count": 30,
         "real_release_ready_count": 30,
-        "status": "blocked",
+        "status": "ok",
         "synthetic_fraction_max": 0.5,
-        "synthetic_release_ready_count": 80,
+        "synthetic_release_ready_count": 2,
     }
     assert report["gate_blockers"] == [
-        "synthetic-cap is blocked after review: 80 synthetic release-ready item(s) exceed 30 allowed for 30 real item(s)",
         "benchmark/holdout leakage has 1 group risk(s)",
     ]
-    assert report["next_step"] == "F2 benchmark ground-truth foundation"
+    assert report["target_execution_blockers"] == [
+        "project_synthetic discovered 2 / 80 target candidates",
+        "project_synthetic acquired 2 / 80 target items",
+    ]
+    assert report["next_step"] == "Configure validated hocrsyngen synthetic target batch before public beta readiness"
 
 
 def test_f1_beta_trial_reports_unknown_profile(capsys) -> None:

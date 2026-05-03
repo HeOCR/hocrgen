@@ -27,6 +27,25 @@ from hocrgen.synthetic.generator import (
 )
 
 
+def _legacy_synthetic_source(bundle):
+    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    return source.model_copy(
+        update={
+            "fetcher": "synthetic",
+            "settings": source.settings.model_copy(
+                update={
+                    "extra": {"f1_source_depth_candidate_count": 80},
+                    "font_manifest": "package://data/synthetic/fonts/manifest.yaml",
+                    "synthetic_batch_size": 2,
+                    "synthetic_seed": 17,
+                    "template_ids": ["printed_letter", "handwritten_note"],
+                    "text_corpus_path": "package://data/synthetic/texts/hebrew_lines.txt",
+                }
+            ),
+        }
+    )
+
+
 def test_nli_fetcher_parses_fixture_metadata() -> None:
     bundle = load_and_validate_bundle()
     source = next(source for source in bundle.source_registry.sources if source.id == "nli_any_use_permitted")
@@ -124,7 +143,7 @@ def test_review_profile_accepts_restricted_nonpublic_items() -> None:
 
 def test_synthetic_generation_is_deterministic(tmp_path: Path) -> None:
     bundle = load_and_validate_bundle()
-    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    source = _legacy_synthetic_source(bundle)
     fetcher = SyntheticFetcher()
     candidates = fetcher.discover_candidates(source, bundle, StageOptions(synthetic_seed=23))
     enriched = fetcher.fetch_candidate_metadata(source, bundle, candidates, StageOptions(synthetic_seed=23))
@@ -168,7 +187,7 @@ def test_synthetic_generation_is_deterministic(tmp_path: Path) -> None:
 
 def test_synthetic_generation_uses_packaged_fonts_and_curated_text(tmp_path: Path) -> None:
     bundle = load_and_validate_bundle()
-    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    source = _legacy_synthetic_source(bundle)
     documents = generate_documents(
         count=2,
         seed=11,
@@ -201,7 +220,7 @@ def test_synthetic_generation_uses_packaged_fonts_and_curated_text(tmp_path: Pat
 
 def test_synthetic_template_recipes_are_distinct_and_deterministic(tmp_path: Path) -> None:
     bundle = load_and_validate_bundle()
-    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    source = _legacy_synthetic_source(bundle)
 
     first = generate_documents(
         count=2,
@@ -228,7 +247,7 @@ def test_synthetic_template_recipes_are_distinct_and_deterministic(tmp_path: Pat
 
 def test_synthetic_controls_filter_by_recipe_and_degradation_preset(tmp_path: Path) -> None:
     bundle = load_and_validate_bundle()
-    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    source = _legacy_synthetic_source(bundle)
     fetcher = SyntheticFetcher()
     options = StageOptions(
         synthetic_recipe_filter={"handwritten_note_marginalia_v1"},
@@ -262,7 +281,7 @@ def test_synthetic_controls_filter_by_recipe_and_degradation_preset(tmp_path: Pa
 
 def test_synthetic_discovery_honors_max_items() -> None:
     bundle = load_and_validate_bundle()
-    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    source = _legacy_synthetic_source(bundle)
 
     candidates = SyntheticFetcher().discover_candidates(source, bundle, StageOptions(max_items=1))
 
@@ -271,14 +290,14 @@ def test_synthetic_discovery_honors_max_items() -> None:
 
 def test_synthetic_acquire_handles_empty_item_batches(tmp_path: Path) -> None:
     bundle = load_and_validate_bundle()
-    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    source = _legacy_synthetic_source(bundle)
 
     assert SyntheticFetcher().acquire_items(source, bundle, [], tmp_path, StageOptions()) == []
 
 
 def test_synthetic_resume_rejects_candidate_metadata_outside_current_controls() -> None:
     bundle = load_and_validate_bundle()
-    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    source = _legacy_synthetic_source(bundle)
     fetcher = SyntheticFetcher()
     candidates = fetcher.discover_candidates(source, bundle, StageOptions())
 
@@ -293,7 +312,7 @@ def test_synthetic_resume_rejects_candidate_metadata_outside_current_controls() 
 
 def test_synthetic_controls_reject_empty_selection() -> None:
     bundle = load_and_validate_bundle()
-    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    source = _legacy_synthetic_source(bundle)
 
     with pytest.raises(StageExecutionError, match="selected no configured templates"):
         SyntheticFetcher().discover_candidates(
@@ -305,7 +324,7 @@ def test_synthetic_controls_reject_empty_selection() -> None:
 
 def test_synthetic_controls_reject_unknown_degradation_preset() -> None:
     bundle = load_and_validate_bundle()
-    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    source = _legacy_synthetic_source(bundle)
 
     with pytest.raises(StageExecutionError, match="selected no configured templates"):
         SyntheticFetcher().discover_candidates(
@@ -317,7 +336,7 @@ def test_synthetic_controls_reject_unknown_degradation_preset() -> None:
 
 def test_synthetic_metadata_validation_rejects_recipe_mismatch() -> None:
     bundle = load_and_validate_bundle()
-    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    source = _legacy_synthetic_source(bundle)
     fetcher = SyntheticFetcher()
     candidate = fetcher.discover_candidates(source, bundle, StageOptions())[0].model_copy(
         update={
@@ -336,7 +355,7 @@ def test_synthetic_metadata_validation_rejects_recipe_mismatch() -> None:
 
 def test_synthetic_acquire_rejects_item_metadata_outside_current_controls() -> None:
     bundle = load_and_validate_bundle()
-    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    source = _legacy_synthetic_source(bundle)
     fetcher = SyntheticFetcher()
     candidates = fetcher.discover_candidates(source, bundle, StageOptions())
     enriched = fetcher.fetch_candidate_metadata(source, bundle, candidates, StageOptions())
@@ -366,7 +385,7 @@ def test_synthetic_acquire_rejects_item_metadata_outside_current_controls() -> N
 
 def test_synthetic_visual_recipes_render_expected_page_features(tmp_path: Path) -> None:
     bundle = load_and_validate_bundle()
-    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    source = _legacy_synthetic_source(bundle)
     documents = generate_documents(
         count=2,
         seed=31,
@@ -455,7 +474,7 @@ def test_rtl_text_helpers_reraise_unexpected_key_errors() -> None:
 
 def test_synthetic_generation_rejects_unknown_template_ids(tmp_path: Path) -> None:
     bundle = load_and_validate_bundle()
-    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    source = _legacy_synthetic_source(bundle)
 
     with pytest.raises(ValueError, match="Unsupported synthetic template_id: typo_template"):
         generate_documents(
@@ -526,7 +545,7 @@ def test_wrap_hebrew_text_handles_empty_and_wrapping_branches() -> None:
     image = Image.new("RGB", (600, 400), (255, 255, 255))
     draw = ImageDraw.Draw(image)
     bundle = load_and_validate_bundle()
-    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+    source = _legacy_synthetic_source(bundle)
     manifest_path = bundle.resolve_path(source.settings.font_manifest or "")
     printed_font_entry = {
         "id": "alef-regular",

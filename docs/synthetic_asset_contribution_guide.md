@@ -2,7 +2,7 @@
 
 Synthetic data helps hocrgen exercise the pipeline and provide bounded OCR-relevant examples. It must remain governed, reproducible, and visibly capped so it does not overpower real-source identity.
 
-Advanced synthetic OCR/HTR generation is being split into the separate `hocrsyngen` package. This repository should keep only governed in-repo smoke assets, provider-contract fixtures, and hocrgen-side validation/export policy. Generated outputs from `hocrsyngen` are candidate synthetic inputs, not release-ready data by themselves.
+Advanced synthetic OCR/HTR generation is split into the separate `hocrsyngen` package. This repository keeps only governed legacy smoke assets, provider-contract fixtures, and hocrgen-side validation/export policy. Generated outputs from `hocrsyngen` are candidate synthetic inputs, not release-ready data by themselves.
 
 ## Acceptable synthetic contributions
 
@@ -36,9 +36,9 @@ The four-repository boundary is:
 - `HeOCR`: mixed real+synthetic public dataset releases exported by `hocrgen`.
 - `HeOCRsynth`: synthetic-only dataset releases exported by `hocrgen`.
 
-The planned provider contract starts with `hocrsyngen` emitting `generation_manifest.json` plus relative image assets. Manifest v1 should include sample id, page assets, logical-order UTF-8 text, script/language/direction metadata, generator version, recipe id, seed/provenance, license `PROJECT-SYNTHETIC`, synthetic disclosure, and optional persona/condition controls. The first hocrgen integration should read fixture-backed manifests. It should not call a live service or require network, GPU, LLM, diffusion, or heavyweight generator dependencies.
+The provider contract starts with `hocrsyngen` emitting `generation_manifest.json` plus relative image assets. Manifest v1 includes sample id, page assets, logical-order UTF-8 text, script/language/direction metadata, generator version, recipe id, seed/provenance, license `PROJECT-SYNTHETIC`, synthetic disclosure, and optional persona/condition controls. hocrgen reads fixture-backed `generation_manifest.v1` batches and validates them on its side, including unique sample/page/asset identities before mapping samples into hocrgen item ids. It should not call `hocrsyngen generate`, `hocrsyngen validate`, a live service, or require network, GPU, LLM, diffusion, or heavyweight generator dependencies in baseline tests or release builds. hocrsyngen CLI JSON reports are command reports only, not hocrgen release manifests.
 
-The current internal `project_synthetic` source remains a legacy deterministic smoke/CI source until the external provider contract and validation gates are implemented.
+The current `project_synthetic` source is hocrsyngen manifest-backed. It preserves legacy `project_synthetic:synthetic-*` item ids through a validated sample-index compatibility mapping, but exact logical text from the provider manifest is not published as generic item metadata. The old internal generator code remains legacy deterministic smoke coverage until it can be retired safely.
 
 ## Font contributions
 

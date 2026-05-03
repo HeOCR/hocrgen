@@ -71,8 +71,8 @@ sources:
       extra:
         source_depth_expansion_manifest: package://data/biblia/source_depth_expansion.yaml
   - id: project_synthetic
-    name: Project synthetic generator
-    fetcher: synthetic
+    name: hocrsyngen manifest-backed synthetic source
+    fetcher: hocrsyngen_manifest
     status: allowed
     default_public_release: true
     allowed_content_types:
@@ -91,12 +91,4 @@ sources:
         min_candidates: 1
         min_assets: 1
     settings:
-      synthetic_batch_size: 2
-      extra:
-        f1_source_depth_candidate_count: 80
-      synthetic_seed: 17
-      template_ids:
-        - printed_letter
-        - handwritten_note
-      font_manifest: package://data/synthetic/fonts/manifest.yaml
-      text_corpus_path: package://data/synthetic/texts/hebrew_lines.txt
+      hocrsyngen_batch_path: package://data/hocrsyngen/contracts/generation_manifest_v1/fixture-batch

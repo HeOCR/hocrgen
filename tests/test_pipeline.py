@@ -73,7 +73,7 @@ def test_f1_trial_report_records_target_execution_blockers(tmp_path: Path) -> No
     assert "nli_any_use_permitted acquired 1 / 27 target items" in report["target_execution_blockers"]
     assert "nli_any_use_permitted did not account for all acquired items during normalization" in report["target_execution_blockers"]
     assert "pinkas_open discovered 0 / 27 target candidates" in report["target_execution_blockers"]
-    assert report["next_step"] == "Resolve F1c target execution blockers before F1d"
+    assert report["next_step"] == "Configure validated hocrsyngen synthetic target batch before public beta readiness"
 
 
 def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> None:

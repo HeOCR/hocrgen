@@ -66,6 +66,7 @@ class RightsStrategy(ConfigBaseModel):
 class SourceSettings(ConfigBaseModel):
     seed_manifest: str | None = None
     records_path: str | None = None
+    hocrsyngen_batch_path: str | None = None
     synthetic_batch_size: int | None = Field(default=None, ge=1)
     synthetic_seed: int | None = None
     template_ids: list[str] = Field(default_factory=list)

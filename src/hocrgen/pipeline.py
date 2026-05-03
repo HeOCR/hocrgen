@@ -17,6 +17,7 @@ from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.dedupe.exact import deduplicate_items
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.biblia import BibliaImporter
+from hocrgen.fetchers.hocrsyngen_manifest import HocrsyngenManifestFetcher
 from hocrgen.fetchers.nli import NliFetcher
 from hocrgen.fetchers.pinkas import PinkasImporter
 from hocrgen.fetchers.synthetic import SyntheticFetcher
@@ -81,8 +82,12 @@ FETCHERS = {
     "nli": NliFetcher(),
     "pinkas": PinkasImporter(),
     "biblia": BibliaImporter(),
+    "hocrsyngen_manifest": HocrsyngenManifestFetcher(),
     "synthetic": SyntheticFetcher(),
 }
+
+
+SYNTHETIC_FETCHERS = {"hocrsyngen_manifest", "synthetic"}
 
 
 @dataclass(frozen=True)
@@ -267,7 +272,7 @@ def _item_from_enriched(record: EnrichedCandidateRecord, source: SourceConfig, b
         rights_classification=rights.rights_classification,
         eligibility=eligibility,
         eligibility_reason=reason,
-        is_synthetic=source.fetcher == "synthetic",
+        is_synthetic=source.fetcher in SYNTHETIC_FETCHERS,
         provenance={
             "fetcher": source.fetcher,
             "source_name": source.name,
@@ -907,7 +912,7 @@ def _build_f1_target_scale_trial_report(
         "next_step": (
             "F2 benchmark ground-truth foundation"
             if target_scale_execution_status == "complete"
-            else "Resolve F1c target execution blockers before F1d"
+            else "Configure validated hocrsyngen synthetic target batch before public beta readiness"
         ),
     }
 
