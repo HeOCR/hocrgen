@@ -84,7 +84,52 @@ def test_low_confidence_classification_routes_to_review(tmp_path: Path, capsys) 
         + "\n",
         encoding="utf-8",
     )
+    expansion_manifest_path = config_root / "biblia_low_conf_source_depth_expansion.yaml"
+    expansion_manifest_path.write_text(
+        f"""version: 1
+source_id: biblia_open
+planning_notation: F1b2
+target_count: 26
+expansion_mode: operator_packaged_records
+records_path: {records_path}
+asset_root: package://data/biblia/assets/
+required_record_fields:
+  - id
+  - title
+  - source_url
+  - upstream_identifier
+  - collection
+  - period
+  - raw_rights
+  - asset_path
+allowed_raw_rights:
+  - PD-IL
+allowed_normalized_licenses:
+  - PD-IL
+required_gates:
+  - rights
+  - privacy
+  - review
+  - dedupe
+  - split
+  - benchmark
+  - synthetic-cap
+  - export-portability
+review_requirements:
+  - Test review records remain explicit operator fixtures.
+  - Test review records carry stable provenance and PD-IL rights.
+  - Test review assets remain under the declared fixture root.
+non_goals:
+  - broad live-source crawling
+  - public beta export
+  - release-candidate export
+  - publication
+  - network-dependent CI
+""",
+        encoding="utf-8",
+    )
     updated_sources = updated_sources.replace("package://data/biblia/records.json", str(records_path))
+    updated_sources = updated_sources.replace("package://data/biblia/source_depth_expansion.yaml", str(expansion_manifest_path))
     sources_path.write_text(updated_sources, encoding="utf-8")
 
     exit_code = main(

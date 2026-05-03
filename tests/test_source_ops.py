@@ -392,7 +392,8 @@ def test_f1_source_depth_feasibility_reports_current_fixture_backed_gaps() -> No
         "biblia_open",
         "project_synthetic",
     ]
-    assert report["summary"]["not_feasible_sources"] == ["pinkas_open", "biblia_open"]
+    assert report["summary"]["f1c_blocking_sources"] == report["summary"]["not_ready_sources"]
+    assert report["summary"]["not_feasible_sources"] == []
     assert sources["nli_any_use_permitted"]["target_count"] == 27
     assert sources["nli_any_use_permitted"]["observed_candidate_count"] == 7
     assert sources["nli_any_use_permitted"]["runnable_cached_candidate_count"] == 7
@@ -403,16 +404,129 @@ def test_f1_source_depth_feasibility_reports_current_fixture_backed_gaps() -> No
     assert sources["pinkas_open"]["target_count"] == 27
     assert sources["pinkas_open"]["runnable_cached_candidate_count"] == 1
     assert sources["pinkas_open"]["gap"] == 26
-    assert sources["pinkas_open"]["feasibility_status"] == "not_feasible"
-    assert "fixture-backed, rights-safe, and reviewable" in " ".join(sources["pinkas_open"]["operator_notes"])
+    assert sources["pinkas_open"]["feasibility_status"] == "needs_fixture_expansion"
+    assert sources["pinkas_open"]["expansion_path_status"] == "ok"
+    assert "F1c remains blocked" in " ".join(sources["pinkas_open"]["operator_notes"])
     assert sources["biblia_open"]["target_count"] == 26
     assert sources["biblia_open"]["runnable_cached_candidate_count"] == 1
     assert sources["biblia_open"]["gap"] == 25
-    assert sources["biblia_open"]["feasibility_status"] == "not_feasible"
+    assert sources["biblia_open"]["feasibility_status"] == "needs_fixture_expansion"
+    assert sources["biblia_open"]["expansion_path_status"] == "ok"
     assert report["summary"]["warnings"] == [
         "F1 source-depth feasibility is not met for: nli_any_use_permitted, pinkas_open, biblia_open, project_synthetic."
     ]
     assert "public beta export" in report["non_goals"]
+
+
+def test_f1_source_depth_reports_missing_static_expansion_path_as_not_feasible(tmp_path: Path) -> None:
+    config_root = _copy_config(tmp_path)
+    sources_path = config_root / "sources.yaml"
+    payload = yaml.safe_load(sources_path.read_text(encoding="utf-8"))
+    for source in payload["sources"]:
+        if source["id"] == "pinkas_open":
+            source["settings"].pop("extra")
+            break
+    sources_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    bundle = load_and_validate_bundle(config_root)
+    source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
+
+    report = evaluate_f1_source_depth_feasibility(bundle, source_health)
+    pinkas = next(source for source in report["sources"] if source["source_id"] == "pinkas_open")
+
+    pinkas_health = next(source for source in source_health if source.source_id == "pinkas_open")
+
+    assert pinkas_health.health_status == "error"
+    assert pinkas_health.skip_reason == "source_health_failed"
+    assert pinkas["expansion_path_status"] == "error"
+    assert pinkas["feasibility_status"] == "not_feasible"
+    assert "until source-depth expansion is defined" in " ".join(pinkas["operator_notes"])
+
+
+def test_record_source_health_covers_static_expansion_manifest() -> None:
+    bundle = load_and_validate_bundle()
+    source = next(source for source in bundle.source_registry.sources if source.id == "biblia_open")
+
+    checks, _, _ = _inspect_records_source(source, bundle)
+
+    assert {"name": "source_depth_expansion_manifest", "path": "package://data/biblia/source_depth_expansion.yaml", "status": "ok"} in checks
+    assert any(
+        check["name"] == "source_depth_expansion_planning_notation"
+        and check["expected"] == "F1b2"
+        and check["status"] == "ok"
+        for check in checks
+    )
+    assert any(
+        check["name"] == "source_depth_expansion_record_asset_root"
+        and check["record_id"] == "biblia-doc-001"
+        and check["status"] == "ok"
+        for check in checks
+    )
+
+
+def test_static_expansion_manifest_rejects_weak_rights_gates_and_asset_roots(tmp_path: Path) -> None:
+    config_root = _copy_config(tmp_path)
+    records_dir = tmp_path / "records"
+    records_dir.mkdir()
+    outside_asset = tmp_path / "outside.jpg"
+    outside_asset.write_bytes(b"fake")
+    records_path = records_dir / "records.json"
+    records_path.write_text(
+        json.dumps(
+            {
+                "records": [
+                    {
+                        "id": "bad-expansion-record",
+                        "title": "Bad expansion record",
+                        "source_url": "https://example.org/bad",
+                        "upstream_identifier": "bad",
+                        "collection": "Bad",
+                        "period": "historical",
+                        "raw_rights": "BAD",
+                        "asset_path": str(outside_asset),
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    manifest_path = records_dir / "source_depth_expansion.yaml"
+    manifest_path.write_text(
+        f"""version: 1
+source_id: pinkas_open
+planning_notation: F1b2
+target_count: 27
+expansion_mode: operator_packaged_records
+records_path: {records_path}
+asset_root: package://data/pinkas/assets/
+required_record_fields:
+  - id
+allowed_raw_rights:
+  - BAD
+allowed_normalized_licenses:
+  - BAD
+required_gates:
+  - rights
+review_requirements:
+  - incomplete
+non_goals:
+  - broad live-source crawling
+""",
+        encoding="utf-8",
+    )
+    _update_source_settings(
+        config_root,
+        "pinkas_open",
+        {"records_path": str(records_path), "extra": {"source_depth_expansion_manifest": str(manifest_path)}},
+    )
+    bundle = load_and_validate_bundle(config_root)
+    source = next(source for source in bundle.source_registry.sources if source.id == "pinkas_open")
+
+    checks, _, _ = _inspect_records_source(source, bundle)
+
+    assert any(check["name"] == "source_depth_expansion_allowed_raw_rights" and check["status"] == "error" for check in checks)
+    assert any(check["name"] == "source_depth_expansion_required_gates" and check["status"] == "error" for check in checks)
+    assert any(check["name"] == "source_depth_expansion_record_rights" and check["status"] == "error" for check in checks)
+    assert any(check["name"] == "source_depth_expansion_record_asset_root" and check["status"] == "error" for check in checks)
 
 
 def test_f1_source_depth_counts_only_health_eligible_cached_candidates(tmp_path: Path) -> None:

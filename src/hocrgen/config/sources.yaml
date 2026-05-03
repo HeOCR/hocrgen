@@ -44,6 +44,8 @@ sources:
         min_assets: 1
     settings:
       records_path: package://data/pinkas/records.json
+      extra:
+        source_depth_expansion_manifest: package://data/pinkas/source_depth_expansion.yaml
   - id: biblia_open
     name: BiblIA packaged open subset
     fetcher: biblia
@@ -66,6 +68,8 @@ sources:
         min_assets: 1
     settings:
       records_path: package://data/biblia/records.json
+      extra:
+        source_depth_expansion_manifest: package://data/biblia/source_depth_expansion.yaml
   - id: project_synthetic
     name: Project synthetic generator
     fetcher: synthetic

@@ -91,7 +91,7 @@ def _wrap_hebrew_text(draw: ImageDraw.ImageDraw, text: str, font: ImageFont.Free
     current = words[0]
     for word in words[1:]:
         candidate = f"{current} {word}"
-        left, _top, right, _bottom = draw.textbbox((0, 0), candidate, font=font, direction="rtl")
+        left, _top, right, _bottom = _rtl_textbbox(draw, (0, 0), candidate, font=font)
         width = right - left
         if width <= max_width:
             current = candidate
@@ -115,7 +115,27 @@ def _draw_rtl_text(
     fill: tuple[int, int, int] | tuple[int, int, int, int],
     anchor: str = "ra",
 ) -> None:
-    draw.text(xy, _rtl_display_text(text), font=font, fill=fill, anchor=anchor, direction="rtl")
+    try:
+        draw.text(xy, _rtl_display_text(text), font=font, fill=fill, anchor=anchor, direction="rtl")
+    except KeyError as exc:
+        if "not supported without libraqm" not in str(exc):
+            raise
+        draw.text(xy, _rtl_display_text(text), font=font, fill=fill, anchor=anchor)
+
+
+def _rtl_textbbox(
+    draw: ImageDraw.ImageDraw,
+    xy: tuple[int, int],
+    text: str,
+    *,
+    font: ImageFont.FreeTypeFont,
+) -> tuple[int, int, int, int]:
+    try:
+        return draw.textbbox(xy, _rtl_display_text(text), font=font, direction="rtl")
+    except KeyError as exc:
+        if "not supported without libraqm" not in str(exc):
+            raise
+        return draw.textbbox(xy, _rtl_display_text(text), font=font)
 
 
 def _paper_background(randomizer: random.Random, size: tuple[int, int], tone: str) -> Image.Image:
