@@ -63,7 +63,11 @@ def _recipe_for_metadata(
 class SyntheticFetcher:
     def discover_candidates(self, source: SourceConfig, bundle: ConfigBundle, options: StageOptions) -> list[CandidateRecord]:
         del bundle
-        count = source.settings.synthetic_batch_size or 1
+        count = (
+            source.settings.extra.get("f1_source_depth_candidate_count")
+            if options.f1_target_scale_trial
+            else source.settings.synthetic_batch_size
+        ) or 1
         if options.max_items is not None:
             count = min(count, options.max_items)
         template_ids = _template_ids_for_options(source, options)
@@ -78,9 +82,10 @@ class SyntheticFetcher:
                     source_id=source.id,
                     source_item_id=f"synthetic-{index}",
                     source_url=f"synthetic://{source.id}/{index}",
-                    discovery_method="synthetic_generator",
+                    discovery_method="f1_target_scale_synthetic_generator" if options.f1_target_scale_trial else "synthetic_generator",
                     title=f"Synthetic sample {index + 1}",
                     raw_metadata={
+                        "f1_target_scale_trial": options.f1_target_scale_trial,
                         "synthetic_index": index,
                         "synthetic_template_id": template_id,
                         "synthetic_recipe_id": recipe.recipe_id,

@@ -143,6 +143,32 @@ def build_parser() -> argparse.ArgumentParser:
     )
     export_alpha_parser.set_defaults(handler=handle_export_alpha)
 
+    f1_trial_parser = subparsers.add_parser(
+        "f1-beta-trial",
+        help="Run the operator-only F1c target-scale beta trial through build-release gates",
+    )
+    f1_trial_parser.add_argument("--profile", required=True, help="Release profile id")
+    f1_trial_parser.add_argument("--workdir", type=Path, default=None, help="Work directory root")
+    f1_trial_parser.add_argument("--config-root", type=Path, default=None, help="Override config root directory")
+    f1_trial_parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Run the operator-only target-scale workflow without publication side effects",
+    )
+    f1_trial_parser.add_argument("--source", action="append", default=None, help="Limit execution to one or more source ids")
+    f1_trial_parser.add_argument("--max-items", type=int, default=None, help="Limit items per source during discovery/import")
+    f1_trial_parser.add_argument("--seed", type=int, default=None, help="Override the synthetic generator seed")
+    f1_trial_parser.add_argument("--synthetic-template", action="append", default=None, help="Limit synthetic generation to one or more template ids")
+    f1_trial_parser.add_argument("--synthetic-recipe", action="append", default=None, help="Limit synthetic generation to one or more recipe ids")
+    f1_trial_parser.add_argument(
+        "--synthetic-degradation-preset",
+        action="append",
+        default=None,
+        help="Limit synthetic generation to one or more degradation preset ids",
+    )
+    f1_trial_parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
+    f1_trial_parser.set_defaults(handler=handle_f1_beta_trial, stage_name="build-release", f1_target_scale_trial=True)
+
     for stage in STAGE_COMMANDS:
         stage_parser = subparsers.add_parser(stage, help=f"Run the {stage} stage")
         stage_parser.add_argument("--profile", required=True, help="Release profile id")
@@ -186,6 +212,7 @@ def _stage_options_from_args(args: argparse.Namespace) -> StageOptions:
         synthetic_template_filter=set(synthetic_template) if synthetic_template else None,
         synthetic_recipe_filter=set(synthetic_recipe) if synthetic_recipe else None,
         synthetic_degradation_filter=set(synthetic_degradation_preset) if synthetic_degradation_preset else None,
+        f1_target_scale_trial=bool(getattr(args, "f1_target_scale_trial", False)),
     )
 
 
@@ -299,6 +326,57 @@ def handle_stage(args: argparse.Namespace) -> int:
             "run_dir": str(context.run_dir),
             "run_id": context.run_id,
             "stage": args.stage_name,
+            "status": "ok",
+            "summary_path": str(run_summary_path),
+        }
+    )
+    return 0
+
+
+def handle_f1_beta_trial(args: argparse.Namespace) -> int:
+    try:
+        bundle = _load_bundle(args.config_root)
+    except ConfigValidationError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+
+    if args.profile not in bundle.profiles:
+        _print_json({"status": "error", "error": f"unknown profile: {args.profile}"})
+        return 1
+
+    context = create_run_context(profile_id=args.profile, dry_run=args.dry_run, workdir=args.workdir)
+    logger = configure_logging(context.log_dir / "run.log", verbose=args.verbose)
+    logger.info(
+        "starting F1 target-scale beta trial",
+        extra={"run_id": context.run_id, "stage": "f1-beta-trial", "profile": args.profile, "dry_run": args.dry_run},
+    )
+
+    run_path = write_run_metadata(context)
+    options = _stage_options_from_args(args)
+    try:
+        stage_results = execute_pipeline("build-release", bundle, context, options)
+    except StageExecutionError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+    artifacts = [run_path]
+    for result in stage_results:
+        artifacts.append(result.summary_path)
+        artifacts.extend(result.extra_artifacts)
+    run_summary_path = write_run_summary(context, "f1-beta-trial", artifacts)
+    f1_report_path = context.stage_dir("build-release") / "f1_target_scale_trial_report.json"
+    logger.info(
+        "F1 target-scale beta trial completed",
+        extra={"run_id": context.run_id, "stage": "f1-beta-trial", "profile": args.profile, "dry_run": args.dry_run},
+    )
+
+    _print_json(
+        {
+            "dry_run": args.dry_run,
+            "f1_target_scale_trial_report": str(f1_report_path),
+            "profile_id": args.profile,
+            "run_dir": str(context.run_dir),
+            "run_id": context.run_id,
+            "stage": "f1-beta-trial",
             "status": "ok",
             "summary_path": str(run_summary_path),
         }

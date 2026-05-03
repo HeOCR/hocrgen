@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F1b4"
+CURRENT_COMPLETED_NOTATION = "F1c"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -41,7 +41,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
 
     assert f"Last completed roadmap action on the current ref: `{CURRENT_COMPLETED_NOTATION}`" in agent_plan
-    assert "next implementation should move to `F1c` target-scale gate execution" in agent_plan
+    assert "next implementation should move to `F1d` near-duplicate, source-group, and split-leakage hardening" in agent_plan
     assert f"| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert f"| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
@@ -54,7 +54,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "| F3 | Modern handwritten acquisition program | F3a, F3b |" in roadmap
     assert "| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d |" in roadmap
     assert "| F5 | Public beta and publication readiness | F5a, F5b |" in roadmap
-    assert f"The immediate acquisition implementation critical path after `{CURRENT_COMPLETED_NOTATION}` remains:" in roadmap
+    assert f"The immediate acquisition implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
     assert "`E4a` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
 

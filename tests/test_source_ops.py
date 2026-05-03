@@ -444,6 +444,17 @@ def test_nli_source_depth_only_seeds_do_not_enter_normal_discovery() -> None:
     assert all("nli-ms-seed-005" != candidate.source_item_id for candidate in candidates)
 
 
+def test_f1_target_scale_trial_includes_nli_source_depth_only_seeds() -> None:
+    bundle = load_and_validate_bundle()
+    source = next(source for source in bundle.source_registry.sources if source.id == "nli_any_use_permitted")
+
+    candidates = NliFetcher().discover_candidates(source, bundle, StageOptions(f1_target_scale_trial=True))
+
+    assert len(candidates) == 27
+    assert any(candidate.source_item_id == "nli-ms-seed-005" for candidate in candidates)
+    assert any(candidate.discovery_method == "f1_target_scale_seed_manifest" for candidate in candidates)
+
+
 def test_f1_source_depth_reports_missing_static_expansion_path_as_not_feasible(tmp_path: Path) -> None:
     config_root = _copy_config(tmp_path)
     sources_path = config_root / "sources.yaml"
@@ -499,6 +510,23 @@ def test_static_source_depth_only_records_do_not_enter_normal_discovery() -> Non
 
     assert [candidate.source_item_id for candidate in pinkas_candidates] == ["pinkas-ledger-001"]
     assert [candidate.source_item_id for candidate in biblia_candidates] == ["biblia-doc-001"]
+
+
+def test_f1_target_scale_trial_includes_static_and_synthetic_target_inventory() -> None:
+    bundle = load_and_validate_bundle()
+    sources = {source.id: source for source in bundle.source_registry.sources}
+    options = StageOptions(f1_target_scale_trial=True)
+
+    pinkas_candidates = PinkasImporter().discover_candidates(sources["pinkas_open"], bundle, options)
+    biblia_candidates = BibliaImporter().discover_candidates(sources["biblia_open"], bundle, options)
+    synthetic_candidates = SyntheticFetcher().discover_candidates(sources["project_synthetic"], bundle, options)
+
+    assert len(pinkas_candidates) == 27
+    assert len(biblia_candidates) == 26
+    assert len(synthetic_candidates) == 80
+    assert any(candidate.discovery_method == "f1_target_scale_static_importer" for candidate in pinkas_candidates)
+    assert any(candidate.discovery_method == "f1_target_scale_static_importer" for candidate in biblia_candidates)
+    assert synthetic_candidates[-1].source_item_id == "synthetic-79"
 
 
 def test_static_source_depth_only_marker_must_be_boolean(tmp_path: Path) -> None:

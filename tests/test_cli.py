@@ -49,6 +49,35 @@ def test_build_release_command_creates_real_manifests(tmp_path: Path, capsys) ->
     assert (run_dir / "build_release" / "annotation_pilot_manifest.json").exists()
     assert (run_dir / "build_release" / "annotation_pilot_selection_audit.json").exists()
     assert (run_dir / "build_release" / "release_summary.json").exists()
+    assert not (run_dir / "build_release" / "f1_target_scale_trial_report.json").exists()
+
+
+def test_f1_beta_trial_command_creates_operator_report(tmp_path: Path, capsys) -> None:
+    exit_code = main(["f1-beta-trial", "--profile", "profile_open_v1", "--dry-run", "--workdir", str(tmp_path)])
+    payload = json.loads(capsys.readouterr().out)
+    run_dir = Path(payload["run_dir"])
+    report = json.loads((run_dir / "build_release" / "f1_target_scale_trial_report.json").read_text(encoding="utf-8"))
+    candidates = json.loads((run_dir / "discover" / "candidates.json").read_text(encoding="utf-8"))
+
+    assert exit_code == 0
+    assert payload["stage"] == "f1-beta-trial"
+    assert payload["f1_target_scale_trial_report"].endswith("f1_target_scale_trial_report.json")
+    assert len(candidates["items"]) == 160
+    assert report["artifact_scope"] == "operator_only"
+    assert report["planning_notation"] == "F1c"
+    assert report["status"] == "complete"
+    assert report["target_scale_exercised"]["candidate_count"] == 160
+    assert report["target_scale_exercised"]["acquired_count"] == 160
+    assert report["target_counts"] == {"real": 80, "synthetic": 80, "total": 160}
+    assert report["source_allocation"] == {
+        "biblia_open": 26,
+        "nli_any_use_permitted": 27,
+        "pinkas_open": 27,
+        "project_synthetic": 80,
+    }
+    assert report["rights_outcomes"]["accepted_count"] == 160
+    assert report["dedupe_outcomes"]["duplicate_removed_count"] == 0
+    assert report["next_step"] == "F1d near-duplicate/source-group/split-leakage hardening"
 
 
 def test_normalize_command_creates_qa_artifacts(tmp_path: Path, capsys) -> None:

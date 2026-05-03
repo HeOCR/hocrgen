@@ -83,7 +83,8 @@ class NliFetcher:
         seeds = load_yaml_file(seed_manifest)["items"]
         candidates: list[CandidateRecord] = []
         for item in seeds:
-            if item.get("f1_source_depth_only") is True:
+            source_depth_only = item.get("f1_source_depth_only") is True
+            if source_depth_only and not options.f1_target_scale_trial:
                 continue
             if options.max_items is not None and len(candidates) >= options.max_items:
                 break
@@ -104,10 +105,12 @@ class NliFetcher:
                     source_id=source.id,
                     source_item_id=item["id"],
                     source_url=item["url"],
-                    discovery_method="seed_manifest",
+                    discovery_method="f1_target_scale_seed_manifest" if source_depth_only else "seed_manifest",
                     title=item.get("title"),
                     fixture_path=str(fixture_path) if fixture_path else None,
                     raw_metadata={
+                        "f1_target_scale_trial": options.f1_target_scale_trial,
+                        "f1_source_depth_only": source_depth_only,
                         "notes": item.get("notes"),
                         "seed_manifest": str(seed_manifest),
                     },

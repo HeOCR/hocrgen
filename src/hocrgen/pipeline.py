@@ -47,7 +47,14 @@ from hocrgen.normalize.metadata import normalize_items
 from hocrgen.parsers.rights import classify_eligibility, normalize_rights
 from hocrgen.privacy.rules import apply_privacy_rules
 from hocrgen.review.queue import export_review_queue
-from hocrgen.source_ops import evaluate_f1_source_depth_feasibility, evaluate_source_health, source_health_summary
+from hocrgen.source_ops import (
+    F1_REAL_TARGET_COUNT,
+    F1_SOURCE_TARGETS,
+    F1_SYNTHETIC_TARGET_COUNT,
+    evaluate_f1_source_depth_feasibility,
+    evaluate_source_health,
+    source_health_summary,
+)
 from hocrgen.split.assign import assign_splits
 from hocrgen.synthetic.reporting import synthetic_composition_report
 
@@ -588,8 +595,161 @@ def _run_split(bundle: ConfigBundle, context: RunContext, options: StageOptions,
     return StageResult(stage="split", summary_path=summary_path, extra_artifacts=[split_manifest_path, leakage_report_path])
 
 
+def _count_by_source(items: list[Any]) -> dict[str, int]:
+    return dict(Counter(item.source_id for item in items))
+
+
+def _build_f1_target_scale_trial_report(
+    context: RunContext,
+    state: PipelineState,
+    source_health: dict[str, Any],
+    release_summary: dict[str, Any],
+    source_stats: dict[str, Any],
+) -> dict[str, Any]:
+    source_rows: list[dict[str, Any]] = []
+    candidate_counts = _count_by_source(state.candidates)
+    accepted_counts = _count_by_source(state.accepted_items)
+    rejected_counts = _count_by_source(state.rejected_items)
+    acquired_counts = _count_by_source(state.acquired_items)
+    normalized_counts = _count_by_source(state.normalized_items)
+    qa_failed_counts = _count_by_source(state.failed_normalized_items)
+    retained_counts = _count_by_source(state.retained_items)
+    duplicate_counts = _count_by_source(state.duplicate_items)
+    release_ready_counts = _count_by_source(state.release_ready_items)
+    review_required_counts = _count_by_source(state.review_required_items)
+    blocked_counts = _count_by_source(state.blocked_items)
+    rejected_review_counts = _count_by_source(state.rejected_review_items)
+    benchmark_counts = _count_by_source(state.benchmark_items)
+    split_counts_by_source = source_stats["sources_by_split"]
+    source_health_by_id = {record["source_id"]: record for record in state.source_health}
+
+    remaining_blockers: list[str] = []
+    for source_id, target_count in F1_SOURCE_TARGETS.items():
+        source_release_ready_count = release_ready_counts.get(source_id, 0)
+        source_row = {
+            "source_id": source_id,
+            "target_count": target_count,
+            "candidate_count": candidate_counts.get(source_id, 0),
+            "accepted_count": accepted_counts.get(source_id, 0),
+            "rejected_count": rejected_counts.get(source_id, 0),
+            "acquired_count": acquired_counts.get(source_id, 0),
+            "normalized_count": normalized_counts.get(source_id, 0),
+            "qa_failed_count": qa_failed_counts.get(source_id, 0),
+            "retained_after_dedupe_count": retained_counts.get(source_id, 0),
+            "duplicate_removed_count": duplicate_counts.get(source_id, 0),
+            "release_ready_count": source_release_ready_count,
+            "review_required_count": review_required_counts.get(source_id, 0),
+            "review_rejected_count": rejected_review_counts.get(source_id, 0),
+            "blocked_count": blocked_counts.get(source_id, 0),
+            "split_counts": split_counts_by_source.get(source_id, {}),
+            "benchmark_item_count": benchmark_counts.get(source_id, 0),
+            "source_health_status": source_health_by_id.get(source_id, {}).get("health_status", "missing"),
+            "source_skip_reason": source_health_by_id.get(source_id, {}).get("skip_reason"),
+        }
+        if source_row["candidate_count"] < target_count:
+            remaining_blockers.append(f"{source_id} discovered {source_row['candidate_count']} / {target_count} target candidates")
+        if source_row["acquired_count"] < target_count:
+            remaining_blockers.append(f"{source_id} acquired {source_row['acquired_count']} / {target_count} target items")
+        if source_row["normalized_count"] + source_row["qa_failed_count"] < source_row["acquired_count"]:
+            remaining_blockers.append(f"{source_id} did not account for all acquired items during normalization")
+        source_rows.append(source_row)
+
+    real_release_ready_count = sum(row["release_ready_count"] for row in source_rows if row["source_id"] != "project_synthetic")
+    synthetic_release_ready_count = release_ready_counts.get("project_synthetic", 0)
+    discovered_target_count = sum(row["candidate_count"] for row in source_rows)
+    acquired_target_count = sum(row["acquired_count"] for row in source_rows)
+    normalized_target_count = sum(row["normalized_count"] for row in source_rows)
+    target_candidate_count = F1_REAL_TARGET_COUNT + F1_SYNTHETIC_TARGET_COUNT
+
+    near_duplicate_blocker = (
+        "F1d remains the next planned hardening step for near-duplicate, source-group, and split-leakage controls "
+        "before scale beyond this operator-only trial."
+    )
+    status = "complete" if not remaining_blockers else "blocked"
+    if status == "complete":
+        remaining_blockers.append(near_duplicate_blocker)
+
+    return {
+        "artifact_scope": "operator_only",
+        "planning_notation": "F1c",
+        "profile_id": context.profile_id,
+        "run_id": context.run_id,
+        "dry_run": context.dry_run,
+        "status": status,
+        "target_counts": {
+            "real": F1_REAL_TARGET_COUNT,
+            "synthetic": F1_SYNTHETIC_TARGET_COUNT,
+            "total": target_candidate_count,
+        },
+        "source_allocation": dict(F1_SOURCE_TARGETS),
+        "target_scale_exercised": {
+            "candidate_count": discovered_target_count,
+            "acquired_count": acquired_target_count,
+            "normalized_count": normalized_target_count,
+            "candidate_target_met": discovered_target_count >= target_candidate_count,
+            "acquisition_target_met": acquired_target_count >= target_candidate_count,
+            "normalization_accounted_for_acquired": (
+                normalized_target_count + sum(row["qa_failed_count"] for row in source_rows) >= acquired_target_count
+            ),
+        },
+        "source_outcomes": source_rows,
+        "rights_outcomes": {
+            "accepted_count": release_summary["accepted_count"],
+            "rejected_count": len(state.rejected_items),
+            "accepted_rights_classifications": dict(Counter(item.rights_classification.value for item in state.accepted_items)),
+            "rejection_reasons": dict(Counter(item.eligibility_reason for item in state.rejected_items)),
+            "rights_classifications": source_stats["rights_classifications"],
+        },
+        "review_outcomes": {
+            "release_ready_count": release_summary["release_ready_count"],
+            "review_required_count": release_summary["review_required_count"],
+            "review_rejected_count": release_summary["review_rejected_count"],
+            "blocked_count": release_summary["blocked_count"],
+        },
+        "dedupe_outcomes": {
+            "retained_count": release_summary["retained_count"],
+            "duplicate_removed_count": release_summary["duplicate_removed_count"],
+            "duplicate_sources": source_stats["duplicate_sources"],
+        },
+        "split_and_benchmark_eligibility": {
+            "real_release_ready_count": real_release_ready_count,
+            "synthetic_release_ready_count": synthetic_release_ready_count,
+            "split_counts": release_summary["split_counts"],
+            "benchmark_id": release_summary["benchmark_id"],
+            "benchmark_item_count": release_summary["benchmark_item_count"],
+            "benchmark_note": "F1c exercises benchmark selection eligibility; F2 remains responsible for benchmark ground-truth foundations.",
+        },
+        "source_health": source_health,
+        "source_depth_feasibility": {
+            "report": "discover/source_depth_feasibility.json",
+            "operator_note": "F1c consumes source-depth-only inventory only through this explicit target-scale trial mode.",
+        },
+        "required_gates": [
+            "source-health",
+            "rights",
+            "privacy",
+            "review",
+            "dedupe",
+            "split",
+            "benchmark",
+            "synthetic-cap",
+            "export-portability",
+        ],
+        "non_goals": [
+            "broad live-source crawling",
+            "public beta export",
+            "release-candidate export",
+            "delivery to the HeOCR dataset repo",
+            "Hugging Face upload",
+            "network-dependent CI",
+            "automatic promotion of source-depth-only records into normal public release inputs",
+        ],
+        "remaining_blockers": remaining_blockers,
+        "next_step": "F1d near-duplicate/source-group/split-leakage hardening" if status == "complete" else "Resolve F1c blockers before F1d",
+    }
+
+
 def _run_build_release(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
-    del options
     stage_dir = context.stage_dir("build_release")
     stage_dir.mkdir(parents=True, exist_ok=True)
     item_manifest_path = stage_dir / "item_manifest.json"
@@ -614,6 +774,7 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     benchmark_card_path = stage_dir / "BENCHMARK_CARD.md"
     annotation_pilot_manifest_path = stage_dir / "annotation_pilot_manifest.json"
     annotation_pilot_selection_audit_path = stage_dir / "annotation_pilot_selection_audit.json"
+    f1_trial_report_path = stage_dir / "f1_target_scale_trial_report.json"
     summary_path = stage_dir / "summary.json"
 
     retained_source_counts = dict(Counter(item.source_id for item in state.release_ready_items))
@@ -689,65 +850,97 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
     benchmark_card_path.write_text(state.benchmark_card_markdown, encoding="utf-8")
     write_json(annotation_pilot_manifest_path, state.annotation_pilot_manifest.model_dump(mode="json"))
     write_json(annotation_pilot_selection_audit_path, {"items": _dump_models(state.annotation_pilot_selection_audit)})
-    write_json(
-        source_stats_path,
-        {
-            "asset_formats": format_counts,
-            "duplicate_sources": duplicate_source_counts,
-            "qa_fail_reasons": qa_fail_reasons,
-            "rights_classifications": rights_counts,
-            "source_health": source_health_summary(state.source_health),
-            "sources": retained_source_counts,
-            "sources_by_split": source_split_counts,
-            "splits": split_counts,
-            "synthetic_composition": synthetic_composition,
+    source_stats = {
+        "asset_formats": format_counts,
+        "duplicate_sources": duplicate_source_counts,
+        "qa_fail_reasons": qa_fail_reasons,
+        "rights_classifications": rights_counts,
+        "source_health": source_health_summary(state.source_health),
+        "sources": retained_source_counts,
+        "sources_by_split": source_split_counts,
+        "splits": split_counts,
+        "synthetic_composition": synthetic_composition,
+    }
+    release_summary = {
+        "accepted_count": len(state.accepted_items),
+        "acquired_count": len(state.acquired_items),
+        "blocked_count": len(state.blocked_items),
+        "duplicate_removed_count": len(state.duplicate_items),
+        "is_dry_run": context.dry_run,
+        "normalized_count": len(state.normalized_items),
+        "profile_id": context.profile_id,
+        "publish_targets": [target.value for target in bundle.profiles[context.profile_id].publish_targets],
+        "qa_failed_count": len(state.failed_normalized_items),
+        "real_items": sum(1 for item in state.release_ready_items if not item.is_synthetic),
+        "release_ready_count": len(state.release_ready_items),
+        "retained_count": len(state.retained_items),
+        "review_approved_count": sum(
+            1
+            for record in state.decision_audit
+            if record.outcome == "release_ready" and record.decision_source in {"manual_decision", "allowlist"}
+        ),
+        "review_rejected_count": len(state.rejected_review_items),
+        "review_required_count": len(state.review_required_items),
+        "review_unresolved_count": len(state.review_required_items),
+        "split_counts": split_counts,
+        "synthetic_items": sum(1 for item in state.release_ready_items if item.is_synthetic),
+        "synthetic_composition": synthetic_composition,
+        "annotation_manifest": {
+            "annotated_item_count": annotation_manifest.annotated_item_count,
+            "transcription_item_count": annotation_manifest.transcription_item_count,
+            "layout_label_item_count": annotation_manifest.layout_label_item_count,
+            "transcription_required": annotation_manifest.transcription_required,
+            "layout_labels_required": annotation_manifest.layout_labels_required,
         },
-    )
-    write_json(
+        "benchmark_id": benchmark_outputs.config.benchmark_id,
+        "benchmark_item_count": len(state.benchmark_items),
+        "annotation_pilot": {
+            "pilot_id": annotation_pilot_outputs.config.pilot_id,
+            "pilot_item_count": annotation_pilot_outputs.manifest.pilot_item_count,
+            "transcription_task_count": annotation_pilot_outputs.manifest.transcription_task_count,
+            "layout_label_task_count": annotation_pilot_outputs.manifest.layout_label_task_count,
+            "transcription_required_for_release": annotation_pilot_outputs.manifest.transcription_required_for_release,
+            "layout_labels_required_for_release": annotation_pilot_outputs.manifest.layout_labels_required_for_release,
+        },
+    }
+    write_json(source_stats_path, source_stats)
+    write_json(release_summary_path, release_summary)
+    extra_artifacts = [
+        item_manifest_path,
+        removed_duplicate_items_path,
+        duplicate_relations_path,
+        duplicate_clusters_path,
+        review_queue_path,
+        review_required_items_path,
+        blocked_items_path,
+        decision_audit_path,
+        split_manifest_path,
+        leakage_report_path,
         release_summary_path,
-        {
-            "accepted_count": len(state.accepted_items),
-            "acquired_count": len(state.acquired_items),
-            "blocked_count": len(state.blocked_items),
-            "duplicate_removed_count": len(state.duplicate_items),
-            "is_dry_run": context.dry_run,
-            "normalized_count": len(state.normalized_items),
-            "profile_id": context.profile_id,
-            "publish_targets": [target.value for target in bundle.profiles[context.profile_id].publish_targets],
-            "qa_failed_count": len(state.failed_normalized_items),
-            "real_items": sum(1 for item in state.release_ready_items if not item.is_synthetic),
-            "release_ready_count": len(state.release_ready_items),
-            "retained_count": len(state.retained_items),
-            "review_approved_count": sum(
-                1
-                for record in state.decision_audit
-                if record.outcome == "release_ready" and record.decision_source in {"manual_decision", "allowlist"}
-            ),
-            "review_rejected_count": len(state.rejected_review_items),
-            "review_required_count": len(state.review_required_items),
-            "review_unresolved_count": len(state.review_required_items),
-            "split_counts": split_counts,
-            "synthetic_items": sum(1 for item in state.release_ready_items if item.is_synthetic),
-            "synthetic_composition": synthetic_composition,
-            "annotation_manifest": {
-                "annotated_item_count": annotation_manifest.annotated_item_count,
-                "transcription_item_count": annotation_manifest.transcription_item_count,
-                "layout_label_item_count": annotation_manifest.layout_label_item_count,
-                "transcription_required": annotation_manifest.transcription_required,
-                "layout_labels_required": annotation_manifest.layout_labels_required,
-            },
-            "benchmark_id": benchmark_outputs.config.benchmark_id,
-            "benchmark_item_count": len(state.benchmark_items),
-            "annotation_pilot": {
-                "pilot_id": annotation_pilot_outputs.config.pilot_id,
-                "pilot_item_count": annotation_pilot_outputs.manifest.pilot_item_count,
-                "transcription_task_count": annotation_pilot_outputs.manifest.transcription_task_count,
-                "layout_label_task_count": annotation_pilot_outputs.manifest.layout_label_task_count,
-                "transcription_required_for_release": annotation_pilot_outputs.manifest.transcription_required_for_release,
-                "layout_labels_required_for_release": annotation_pilot_outputs.manifest.layout_labels_required_for_release,
-            },
-        },
-    )
+        source_stats_path,
+        synthetic_composition_path,
+        annotation_manifest_path,
+        classification_stats_path,
+        privacy_stats_path,
+        benchmark_manifest_path,
+        benchmark_selection_audit_path,
+        benchmark_stability_policy_path,
+        benchmark_card_path,
+        annotation_pilot_manifest_path,
+        annotation_pilot_selection_audit_path,
+    ]
+    summary_extra: dict[str, Any] = {}
+    if options and options.f1_target_scale_trial:
+        f1_trial_report = _build_f1_target_scale_trial_report(
+            context,
+            state,
+            source_stats["source_health"],
+            release_summary,
+            source_stats,
+        )
+        write_json(f1_trial_report_path, f1_trial_report)
+        extra_artifacts.append(f1_trial_report_path)
+        summary_extra["f1_target_scale_trial_report"] = str(f1_trial_report_path.relative_to(context.run_dir))
     write_json(
         summary_path,
         {
@@ -774,35 +967,13 @@ def _run_build_release(bundle: ConfigBundle, context: RunContext, options: Stage
             "synthetic_composition": str(synthetic_composition_path.relative_to(context.run_dir)),
             "annotation_manifest": str(annotation_manifest_path.relative_to(context.run_dir)),
             "stage": "build-release",
+            **summary_extra,
         },
     )
     return StageResult(
         stage="build-release",
         summary_path=summary_path,
-        extra_artifacts=[
-            item_manifest_path,
-            removed_duplicate_items_path,
-            duplicate_relations_path,
-            duplicate_clusters_path,
-            review_queue_path,
-            review_required_items_path,
-            blocked_items_path,
-            decision_audit_path,
-            split_manifest_path,
-            leakage_report_path,
-            release_summary_path,
-            source_stats_path,
-            synthetic_composition_path,
-            annotation_manifest_path,
-            classification_stats_path,
-            privacy_stats_path,
-            benchmark_manifest_path,
-            benchmark_selection_audit_path,
-            benchmark_stability_policy_path,
-            benchmark_card_path,
-            annotation_pilot_manifest_path,
-            annotation_pilot_selection_audit_path,
-        ],
+        extra_artifacts=extra_artifacts,
     )
 
 
