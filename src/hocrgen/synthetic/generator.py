@@ -278,7 +278,7 @@ def _draw_stamp(draw: ImageDraw.ImageDraw, randomizer: random.Random, font: Imag
     draw.ellipse(
         (center_x - radius_x, center_y - radius_y, center_x + radius_x, center_y + radius_y),
         outline=color,
-        width=5,
+        width=4,
     )
     _draw_rtl_text(draw, (center_x + 62, center_y - 13), "נבדק", font=font, fill=color)
 

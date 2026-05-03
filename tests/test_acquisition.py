@@ -16,9 +16,11 @@ from hocrgen.manifests.models import ItemRecord
 from hocrgen.parsers.rights import RightsResult, classify_eligibility, normalize_rights
 from hocrgen.synthetic.generator import (
     CANVAS_SIZE,
+    _draw_rtl_text,
     _font_path,
     _load_font,
     _rtl_display_text,
+    _rtl_textbbox,
     _select_font,
     _wrap_hebrew_text,
     generate_documents,
@@ -383,7 +385,7 @@ def test_synthetic_visual_recipes_render_expected_page_features(tmp_path: Path) 
             for r, g, b in printed_pixels
             if 175 <= r <= 235 and 165 <= g <= 225 and 145 <= b <= 210 and max(r, g, b) - min(r, g, b) > 8
         )
-        assert red_stamp_pixels > 500
+        assert red_stamp_pixels > 450
         assert dark_ink_pixels > 5_000
         assert faint_rule_pixels > 50_000
 
@@ -400,6 +402,53 @@ def test_synthetic_visual_recipes_render_expected_page_features(tmp_path: Path) 
         )
         assert marginalia_ink_pixels > 150
         assert guide_rule_pixels > 500_000
+
+
+class _NoRaqmDraw:
+    def __init__(self) -> None:
+        self.text_calls: list[dict[str, object]] = []
+        self.textbbox_calls: list[dict[str, object]] = []
+
+    def text(self, *args, **kwargs) -> None:
+        self.text_calls.append(kwargs)
+        if kwargs.get("direction") == "rtl":
+            raise KeyError("setting text direction, language or font features is not supported without libraqm")
+
+    def textbbox(self, *args, **kwargs) -> tuple[int, int, int, int]:
+        self.textbbox_calls.append(kwargs)
+        if kwargs.get("direction") == "rtl":
+            raise KeyError("setting text direction, language or font features is not supported without libraqm")
+        return (0, 0, 42, 10)
+
+
+class _BrokenDraw(_NoRaqmDraw):
+    def text(self, *args, **kwargs) -> None:
+        raise KeyError("different drawing failure")
+
+    def textbbox(self, *args, **kwargs) -> tuple[int, int, int, int]:
+        raise KeyError("different bbox failure")
+
+
+def test_rtl_text_helpers_fall_back_without_libraqm() -> None:
+    draw = _NoRaqmDraw()
+
+    _draw_rtl_text(draw, (10, 10), "שלום", font=object(), fill=(0, 0, 0))  # type: ignore[arg-type]
+    bbox = _rtl_textbbox(draw, (0, 0), "שלום", font=object())  # type: ignore[arg-type]
+
+    assert bbox == (0, 0, 42, 10)
+    assert draw.text_calls[0]["direction"] == "rtl"
+    assert "direction" not in draw.text_calls[1]
+    assert draw.textbbox_calls[0]["direction"] == "rtl"
+    assert "direction" not in draw.textbbox_calls[1]
+
+
+def test_rtl_text_helpers_reraise_unexpected_key_errors() -> None:
+    draw = _BrokenDraw()
+
+    with pytest.raises(KeyError, match="different drawing failure"):
+        _draw_rtl_text(draw, (10, 10), "שלום", font=object(), fill=(0, 0, 0))  # type: ignore[arg-type]
+    with pytest.raises(KeyError, match="different bbox failure"):
+        _rtl_textbbox(draw, (0, 0), "שלום", font=object())  # type: ignore[arg-type]
 
 
 def test_synthetic_generation_rejects_unknown_template_ids(tmp_path: Path) -> None:
