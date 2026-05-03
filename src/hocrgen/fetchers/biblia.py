@@ -17,7 +17,8 @@ class BibliaImporter:
         candidates: list[CandidateRecord] = []
         selected_count = 0
         for record in records:
-            if record.get("f1_source_depth_only") is True:
+            source_depth_only = record.get("f1_source_depth_only") is True
+            if source_depth_only and not options.f1_target_scale_trial:
                 continue
             if options.max_items is not None and selected_count >= options.max_items:
                 break
@@ -28,9 +29,14 @@ class BibliaImporter:
                     source_id=source.id,
                     source_item_id=record["id"],
                     source_url=record["source_url"],
-                    discovery_method="static_importer",
+                    discovery_method="f1_target_scale_static_importer" if source_depth_only else "static_importer",
                     title=record["title"],
-                    raw_metadata={"record_path": str(records_path), "record": record},
+                    raw_metadata={
+                        "f1_target_scale_trial": options.f1_target_scale_trial,
+                        "f1_source_depth_only": source_depth_only,
+                        "record_path": str(records_path),
+                        "record": record,
+                    },
                 )
             )
         return candidates

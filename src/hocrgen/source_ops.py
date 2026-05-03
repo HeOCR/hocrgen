@@ -10,6 +10,7 @@ from hocrgen.config.models import SourceConfig, SourceOperationalStatus
 from hocrgen.core.errors import ConfigValidationError
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.nli import parse_nli_fixture_html
+from hocrgen.fetchers.synthetic import F1_TARGET_SCALE_COUNT_KEY
 
 F1_SOURCE_TARGETS = {
     "nli_any_use_permitted": 27,
@@ -445,7 +446,7 @@ def _target_scale_candidate_count(
         records = data.get("records", []) if isinstance(data, dict) else []
         return len(records) if isinstance(records, list) else runnable_cached_count
     if source.fetcher == "synthetic":
-        configured_count = source.settings.extra.get("f1_source_depth_candidate_count")
+        configured_count = source.settings.extra.get(F1_TARGET_SCALE_COUNT_KEY)
         if isinstance(configured_count, int) and configured_count > 0:
             return configured_count
     return runnable_cached_count
@@ -928,6 +929,15 @@ def _inspect_synthetic_source(source: SourceConfig, bundle: ConfigBundle) -> tup
                 "message": "fonts must be a list",
             }
         )
+    configured_count = source.settings.extra.get(F1_TARGET_SCALE_COUNT_KEY)
+    checks.append(
+        {
+            "actual": configured_count,
+            "expected": "positive integer",
+            "name": F1_TARGET_SCALE_COUNT_KEY,
+            "status": "ok" if isinstance(configured_count, int) and configured_count > 0 else "error",
+        }
+    )
     return checks, source.settings.synthetic_batch_size or 0, asset_count
 
 

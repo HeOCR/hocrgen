@@ -8,6 +8,18 @@ from hocrgen.manifests.models import AcquiredAsset, AcquiredItemRecord, Candidat
 from hocrgen.synthetic.generator import generate_documents, recipe_catalog
 
 
+F1_TARGET_SCALE_COUNT_KEY = "f1_source_depth_candidate_count"
+
+
+def f1_target_scale_candidate_count(source: SourceConfig) -> int:
+    configured_count = source.settings.extra.get(F1_TARGET_SCALE_COUNT_KEY)
+    if not isinstance(configured_count, int) or configured_count <= 0:
+        raise StageExecutionError(
+            f"source {source.id} setting extra.{F1_TARGET_SCALE_COUNT_KEY} must be a positive integer for F1 target-scale trial"
+        )
+    return configured_count
+
+
 def _template_ids_for_options(source: SourceConfig, options: StageOptions) -> list[str]:
     template_ids = source.settings.template_ids or ["printed_letter", "handwritten_note"]
     recipes = recipe_catalog(template_ids)
@@ -63,7 +75,7 @@ def _recipe_for_metadata(
 class SyntheticFetcher:
     def discover_candidates(self, source: SourceConfig, bundle: ConfigBundle, options: StageOptions) -> list[CandidateRecord]:
         del bundle
-        count = source.settings.synthetic_batch_size or 1
+        count = f1_target_scale_candidate_count(source) if options.f1_target_scale_trial else (source.settings.synthetic_batch_size or 1)
         if options.max_items is not None:
             count = min(count, options.max_items)
         template_ids = _template_ids_for_options(source, options)
@@ -78,9 +90,10 @@ class SyntheticFetcher:
                     source_id=source.id,
                     source_item_id=f"synthetic-{index}",
                     source_url=f"synthetic://{source.id}/{index}",
-                    discovery_method="synthetic_generator",
+                    discovery_method="f1_target_scale_synthetic_generator" if options.f1_target_scale_trial else "synthetic_generator",
                     title=f"Synthetic sample {index + 1}",
                     raw_metadata={
+                        "f1_target_scale_trial": options.f1_target_scale_trial,
                         "synthetic_index": index,
                         "synthetic_template_id": template_id,
                         "synthetic_recipe_id": recipe.recipe_id,

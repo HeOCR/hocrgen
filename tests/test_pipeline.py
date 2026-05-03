@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import shutil
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -12,7 +13,7 @@ from hocrgen.config.loader import default_config_root
 from hocrgen.core.context import create_run_context
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.base import StageOptions
-from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_summary
+from hocrgen.pipeline import PipelineState, _build_f1_target_scale_trial_report, execute_pipeline, write_run_metadata, write_run_summary
 from hocrgen.runs import load_resumed_pipeline_state
 
 
@@ -29,6 +30,50 @@ def _is_portable_manifest_path(path: str) -> bool:
         and ".." not in Path(path).parts
         and not (len(path) >= 2 and path[1] == ":")
     )
+
+
+def test_f1_trial_report_records_target_execution_blockers(tmp_path: Path) -> None:
+    bundle = load_and_validate_bundle()
+    context = create_run_context(profile_id="profile_open_v1", dry_run=True, workdir=tmp_path)
+    state = PipelineState(
+        candidates=[SimpleNamespace(source_id="nli_any_use_permitted")],
+        accepted_items=[],
+        acquired_items=[SimpleNamespace(source_id="nli_any_use_permitted")],
+        normalized_items=[],
+        source_health=[
+            {"health_status": "ok", "skip_reason": None, "source_id": "nli_any_use_permitted"},
+            {"health_status": "ok", "skip_reason": None, "source_id": "pinkas_open"},
+            {"health_status": "ok", "skip_reason": None, "source_id": "biblia_open"},
+            {"health_status": "ok", "skip_reason": None, "source_id": "project_synthetic"},
+        ],
+    )
+
+    report = _build_f1_target_scale_trial_report(
+        bundle,
+        context,
+        state,
+        {"active_source_count": 4},
+        {
+            "accepted_count": 0,
+            "benchmark_id": "benchmark_v1",
+            "benchmark_item_count": 0,
+            "blocked_count": 0,
+            "duplicate_removed_count": 0,
+            "release_ready_count": 0,
+            "retained_count": 0,
+            "review_rejected_count": 0,
+            "review_required_count": 0,
+            "split_counts": {},
+        },
+        {"duplicate_sources": {}, "rights_classifications": {}, "sources_by_split": {}},
+    )
+
+    assert report["target_scale_execution_status"] == "blocked"
+    assert "nli_any_use_permitted discovered 1 / 27 target candidates" in report["target_execution_blockers"]
+    assert "nli_any_use_permitted acquired 1 / 27 target items" in report["target_execution_blockers"]
+    assert "nli_any_use_permitted did not account for all acquired items during normalization" in report["target_execution_blockers"]
+    assert "pinkas_open discovered 0 / 27 target candidates" in report["target_execution_blockers"]
+    assert report["next_step"] == "Resolve F1c target execution blockers before F1d"
 
 
 def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> None:

@@ -17,6 +17,7 @@ class StageOptions:
     synthetic_template_filter: set[str] | None = None
     synthetic_recipe_filter: set[str] | None = None
     synthetic_degradation_filter: set[str] | None = None
+    f1_target_scale_trial: bool = False
 
 
 class SourceAdapter(Protocol):

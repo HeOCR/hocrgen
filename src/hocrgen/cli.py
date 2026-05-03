@@ -40,6 +40,25 @@ STAGE_COMMANDS = (
 )
 
 
+def _add_pipeline_common_args(parser: argparse.ArgumentParser, *, dry_run_help: str) -> None:
+    parser.add_argument("--profile", required=True, help="Release profile id")
+    parser.add_argument("--workdir", type=Path, default=None, help="Work directory root")
+    parser.add_argument("--config-root", type=Path, default=None, help="Override config root directory")
+    parser.add_argument("--dry-run", action="store_true", help=dry_run_help)
+    parser.add_argument("--source", action="append", default=None, help="Limit execution to one or more source ids")
+    parser.add_argument("--max-items", type=int, default=None, help="Limit items per source during discovery/import")
+    parser.add_argument("--seed", type=int, default=None, help="Override the synthetic generator seed")
+    parser.add_argument("--synthetic-template", action="append", default=None, help="Limit synthetic generation to one or more template ids")
+    parser.add_argument("--synthetic-recipe", action="append", default=None, help="Limit synthetic generation to one or more recipe ids")
+    parser.add_argument(
+        "--synthetic-degradation-preset",
+        action="append",
+        default=None,
+        help="Limit synthetic generation to one or more degradation preset ids",
+    )
+    parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="hocrgen", description="HeOCR dataset operations CLI")
     subparsers = parser.add_subparsers(dest="command", required=True)
@@ -108,22 +127,10 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate_benchmark_parser.set_defaults(handler=handle_evaluate_benchmark)
 
     export_alpha_parser = subparsers.add_parser("export-alpha", help="Export a narrow alpha release tree for the HeOCR repo")
-    export_alpha_parser.add_argument("--profile", required=True, help="Release profile id")
-    export_alpha_parser.add_argument("--workdir", type=Path, default=None, help="Work directory root")
-    export_alpha_parser.add_argument("--config-root", type=Path, default=None, help="Override config root directory")
-    export_alpha_parser.add_argument("--dry-run", action="store_true", help="Run the fixture/sample-backed milestone workflow without publishing")
-    export_alpha_parser.add_argument("--source", action="append", default=None, help="Limit execution to one or more source ids")
-    export_alpha_parser.add_argument("--max-items", type=int, default=None, help="Limit items per source during discovery/import")
-    export_alpha_parser.add_argument("--seed", type=int, default=None, help="Override the synthetic generator seed")
-    export_alpha_parser.add_argument("--synthetic-template", action="append", default=None, help="Limit synthetic generation to one or more template ids")
-    export_alpha_parser.add_argument("--synthetic-recipe", action="append", default=None, help="Limit synthetic generation to one or more recipe ids")
-    export_alpha_parser.add_argument(
-        "--synthetic-degradation-preset",
-        action="append",
-        default=None,
-        help="Limit synthetic generation to one or more degradation preset ids",
+    _add_pipeline_common_args(
+        export_alpha_parser,
+        dry_run_help="Run the fixture/sample-backed milestone workflow without publishing",
     )
-    export_alpha_parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
     export_alpha_parser.add_argument("--version", default="alpha-v0", help="Versioned release folder name")
     export_alpha_parser.add_argument("--output-dir", type=Path, default=None, help="Override the alpha export root directory")
     export_alpha_parser.add_argument("--heocr-repo", type=Path, default=None, help="Path to a checked-out HeOCR repo; exports to releases/<version> there")
@@ -143,25 +150,23 @@ def build_parser() -> argparse.ArgumentParser:
     )
     export_alpha_parser.set_defaults(handler=handle_export_alpha)
 
+    f1_trial_parser = subparsers.add_parser(
+        "f1-beta-trial",
+        help="Run the operator-only F1c target-scale beta trial through build-release gates",
+    )
+    _add_pipeline_common_args(
+        f1_trial_parser,
+        dry_run_help="Run the operator-only target-scale workflow without publication side effects",
+    )
+    f1_trial_parser.set_defaults(handler=handle_f1_beta_trial, stage_name="build-release", f1_target_scale_trial=True)
+
     for stage in STAGE_COMMANDS:
         stage_parser = subparsers.add_parser(stage, help=f"Run the {stage} stage")
-        stage_parser.add_argument("--profile", required=True, help="Release profile id")
-        stage_parser.add_argument("--workdir", type=Path, default=None, help="Work directory root")
-        stage_parser.add_argument("--config-root", type=Path, default=None, help="Override config root directory")
-        stage_parser.add_argument("--dry-run", action="store_true", help="Run the fixture/sample-backed milestone workflow without publishing")
-        stage_parser.add_argument("--source", action="append", default=None, help="Limit execution to one or more source ids")
-        stage_parser.add_argument("--max-items", type=int, default=None, help="Limit items per source during discovery/import")
-        stage_parser.add_argument("--seed", type=int, default=None, help="Override the synthetic generator seed")
-        stage_parser.add_argument("--synthetic-template", action="append", default=None, help="Limit synthetic generation to one or more template ids")
-        stage_parser.add_argument("--synthetic-recipe", action="append", default=None, help="Limit synthetic generation to one or more recipe ids")
-        stage_parser.add_argument(
-            "--synthetic-degradation-preset",
-            action="append",
-            default=None,
-            help="Limit synthetic generation to one or more degradation preset ids",
+        _add_pipeline_common_args(
+            stage_parser,
+            dry_run_help="Run the fixture/sample-backed milestone workflow without publishing",
         )
         stage_parser.add_argument("--resume-run-dir", type=Path, default=None, help="Resume from a previous run directory")
-        stage_parser.add_argument("--verbose", action="store_true", help="Enable debug logging")
         stage_parser.set_defaults(handler=handle_stage, stage_name=stage)
 
     return parser
@@ -186,6 +191,7 @@ def _stage_options_from_args(args: argparse.Namespace) -> StageOptions:
         synthetic_template_filter=set(synthetic_template) if synthetic_template else None,
         synthetic_recipe_filter=set(synthetic_recipe) if synthetic_recipe else None,
         synthetic_degradation_filter=set(synthetic_degradation_preset) if synthetic_degradation_preset else None,
+        f1_target_scale_trial=bool(getattr(args, "f1_target_scale_trial", False)),
     )
 
 
@@ -299,6 +305,57 @@ def handle_stage(args: argparse.Namespace) -> int:
             "run_dir": str(context.run_dir),
             "run_id": context.run_id,
             "stage": args.stage_name,
+            "status": "ok",
+            "summary_path": str(run_summary_path),
+        }
+    )
+    return 0
+
+
+def handle_f1_beta_trial(args: argparse.Namespace) -> int:
+    try:
+        bundle = _load_bundle(args.config_root)
+    except ConfigValidationError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+
+    if args.profile not in bundle.profiles:
+        _print_json({"status": "error", "error": f"unknown profile: {args.profile}"})
+        return 1
+
+    context = create_run_context(profile_id=args.profile, dry_run=args.dry_run, workdir=args.workdir)
+    logger = configure_logging(context.log_dir / "run.log", verbose=args.verbose)
+    logger.info(
+        "starting F1 target-scale beta trial",
+        extra={"run_id": context.run_id, "stage": "f1-beta-trial", "profile": args.profile, "dry_run": args.dry_run},
+    )
+
+    run_path = write_run_metadata(context)
+    options = _stage_options_from_args(args)
+    try:
+        stage_results = execute_pipeline("build-release", bundle, context, options)
+    except StageExecutionError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+    artifacts = [run_path]
+    for result in stage_results:
+        artifacts.append(result.summary_path)
+        artifacts.extend(result.extra_artifacts)
+    run_summary_path = write_run_summary(context, "f1-beta-trial", artifacts)
+    f1_report_path = context.stage_dir("build-release") / "f1_target_scale_trial_report.json"
+    logger.info(
+        "F1 target-scale beta trial completed",
+        extra={"run_id": context.run_id, "stage": "f1-beta-trial", "profile": args.profile, "dry_run": args.dry_run},
+    )
+
+    _print_json(
+        {
+            "dry_run": args.dry_run,
+            "f1_target_scale_trial_report": str(f1_report_path),
+            "profile_id": args.profile,
+            "run_dir": str(context.run_dir),
+            "run_id": context.run_id,
+            "stage": "f1-beta-trial",
             "status": "ok",
             "summary_path": str(run_summary_path),
         }
