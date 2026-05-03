@@ -376,7 +376,7 @@ def test_source_health_summary_accepts_result_models() -> None:
     assert summary["selected_source_count"] == 1
 
 
-def test_f1_source_depth_feasibility_reports_current_fixture_backed_gaps() -> None:
+def test_f1_source_depth_feasibility_reports_remaining_nli_gap_after_f1b3_expansion() -> None:
     bundle = load_and_validate_bundle()
     source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
 
@@ -394,24 +394,36 @@ def test_f1_source_depth_feasibility_reports_current_fixture_backed_gaps() -> No
     ]
     assert report["summary"]["f1c_blocking_sources"] == report["summary"]["not_ready_sources"]
     assert report["summary"]["not_feasible_sources"] == []
+    assert report["summary"]["target_scale_gap"] == 20
     assert sources["nli_any_use_permitted"]["target_count"] == 27
     assert sources["nli_any_use_permitted"]["observed_candidate_count"] == 7
     assert sources["nli_any_use_permitted"]["runnable_cached_candidate_count"] == 7
+    assert sources["nli_any_use_permitted"]["target_scale_candidate_count"] == 7
     assert sources["nli_any_use_permitted"]["exploratory_catalog_count"] == 14
     assert sources["nli_any_use_permitted"]["source_health_status"] == "ok"
     assert sources["nli_any_use_permitted"]["gap"] == 20
+    assert sources["nli_any_use_permitted"]["target_scale_gap"] == 20
     assert sources["nli_any_use_permitted"]["feasibility_status"] == "needs_promotion"
     assert sources["pinkas_open"]["target_count"] == 27
     assert sources["pinkas_open"]["runnable_cached_candidate_count"] == 1
+    assert sources["pinkas_open"]["target_scale_candidate_count"] == 27
     assert sources["pinkas_open"]["gap"] == 26
-    assert sources["pinkas_open"]["feasibility_status"] == "needs_fixture_expansion"
+    assert sources["pinkas_open"]["target_scale_gap"] == 0
+    assert sources["pinkas_open"]["feasibility_status"] == "needs_target_scale_trial"
     assert sources["pinkas_open"]["expansion_path_status"] == "ok"
-    assert "F1c remains blocked" in " ".join(sources["pinkas_open"]["operator_notes"])
     assert sources["biblia_open"]["target_count"] == 26
     assert sources["biblia_open"]["runnable_cached_candidate_count"] == 1
+    assert sources["biblia_open"]["target_scale_candidate_count"] == 26
     assert sources["biblia_open"]["gap"] == 25
-    assert sources["biblia_open"]["feasibility_status"] == "needs_fixture_expansion"
+    assert sources["biblia_open"]["target_scale_gap"] == 0
+    assert sources["biblia_open"]["feasibility_status"] == "needs_target_scale_trial"
     assert sources["biblia_open"]["expansion_path_status"] == "ok"
+    assert sources["project_synthetic"]["target_count"] == 80
+    assert sources["project_synthetic"]["runnable_cached_candidate_count"] == 2
+    assert sources["project_synthetic"]["target_scale_candidate_count"] == 80
+    assert sources["project_synthetic"]["gap"] == 78
+    assert sources["project_synthetic"]["target_scale_gap"] == 0
+    assert sources["project_synthetic"]["feasibility_status"] == "needs_target_scale_trial"
     assert report["summary"]["warnings"] == [
         "F1 source-depth feasibility is not met for: nli_any_use_permitted, pinkas_open, biblia_open, project_synthetic."
     ]
@@ -459,6 +471,55 @@ def test_record_source_health_covers_static_expansion_manifest() -> None:
         check["name"] == "source_depth_expansion_record_asset_root"
         and check["record_id"] == "biblia-doc-001"
         and check["status"] == "ok"
+        for check in checks
+    )
+
+
+def test_static_source_depth_only_records_do_not_enter_normal_discovery() -> None:
+    bundle = load_and_validate_bundle()
+    pinkas_source = next(source for source in bundle.source_registry.sources if source.id == "pinkas_open")
+    biblia_source = next(source for source in bundle.source_registry.sources if source.id == "biblia_open")
+
+    pinkas_candidates = PinkasImporter().discover_candidates(pinkas_source, bundle, StageOptions())
+    biblia_candidates = BibliaImporter().discover_candidates(biblia_source, bundle, StageOptions())
+
+    assert [candidate.source_item_id for candidate in pinkas_candidates] == ["pinkas-ledger-001"]
+    assert [candidate.source_item_id for candidate in biblia_candidates] == ["biblia-doc-001"]
+
+
+def test_static_source_depth_only_marker_must_be_boolean(tmp_path: Path) -> None:
+    config_root = _copy_config(tmp_path)
+    records_path = tmp_path / "records.json"
+    asset_path = tmp_path / "asset.jpg"
+    asset_path.write_bytes(b"fake")
+    records_path.write_text(
+        json.dumps(
+            {
+                "records": [
+                    {
+                        "id": "bad-marker",
+                        "title": "Bad marker",
+                        "source_url": "https://example.org/bad-marker",
+                        "upstream_identifier": "bad-marker",
+                        "collection": "Test",
+                        "period": "historical",
+                        "raw_rights": "PD-IL",
+                        "asset_path": str(asset_path),
+                        "f1_source_depth_only": "true",
+                    }
+                ]
+            }
+        ),
+        encoding="utf-8",
+    )
+    _update_source_settings(config_root, "pinkas_open", {"records_path": str(records_path)})
+    bundle = load_and_validate_bundle(config_root)
+    source = next(source for source in bundle.source_registry.sources if source.id == "pinkas_open")
+
+    checks, _, _ = _inspect_records_source(source, bundle)
+
+    assert any(
+        check["name"] == "source_depth_expansion_record_source_depth_only" and check["status"] == "error"
         for check in checks
     )
 
