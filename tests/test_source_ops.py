@@ -424,6 +424,8 @@ def test_f1_source_depth_feasibility_reports_nli_ready_after_f1b4_promotion() ->
     assert sources["project_synthetic"]["gap"] == 78
     assert sources["project_synthetic"]["target_scale_gap"] == 78
     assert sources["project_synthetic"]["feasibility_status"] == "needs_configuration"
+    assert any("validated hocrsyngen manifest sample" in note for note in sources["project_synthetic"]["operator_notes"])
+    assert any("requires a larger validated hocrsyngen batch" in note for note in sources["project_synthetic"]["operator_notes"])
     assert report["summary"]["warnings"] == [
         "F1 source-depth feasibility is not met for: pinkas_open, biblia_open, project_synthetic."
     ]

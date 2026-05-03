@@ -48,7 +48,7 @@ This repository now implements a conservative review-readiness, source-operation
   - current committed sample asset is a packaged real historical page normalized as `PD-IL`
 - `project_synthetic`
   - hocrsyngen `generation_manifest.v1` fixture-backed synthetic candidate input source
-  - includes governed packaged Hebrew fonts and a curated Hebrew text corpus
+  - consumes a configured manifest batch and keeps legacy in-repo generator fixtures out of the active source path
 
 This is not a broad crawler yet. The NLI support is intentionally narrow and reliable rather than site-wide.
 
@@ -518,8 +518,8 @@ The active `project_synthetic` source now consumes fixture-backed hocrsyngen `ge
 
 - reads a packaged hocrsyngen fixture batch from `package://data/hocrsyngen/contracts/generation_manifest_v1/fixture-batch`
 - validates `generation_manifest.json` plus relative JPEG page assets inside hocrgen before ingestion
-- preserves stable hocrgen item ids such as `project_synthetic:synthetic-0` so benchmark approvals do not churn
-- carries hocrsyngen sample id, manifest version, generator name/version, seed, template, recipe, degradation, font, source corpus, text metadata, controls, and synthetic disclosure in item metadata
+- preserves stable hocrgen item ids such as `project_synthetic:synthetic-0` through an explicit legacy sample-index mapping so benchmark approvals do not churn in this transition PR
+- carries hocrsyngen sample id, manifest version, generator name/version, seed, template, recipe, degradation, font, source corpus, text metadata, controls, and synthetic disclosure in item metadata without publishing exact logical text as generic item metadata
 - can limit manifest-backed synthetic candidates by `--synthetic-template`, `--synthetic-recipe`, and `--synthetic-degradation-preset`
 - emits `synthetic_composition.json` during `build-release` and `export-alpha`, with template, recipe, degradation preset, font, split, and synthetic fraction counts
 - keeps synthetic release inclusion bounded by profile and alpha export caps while allowing both default hocrsyngen fixture recipes into the conservative public profile
@@ -668,7 +668,7 @@ The orchestrator accepts these manual-dispatch inputs:
 
 - `run_scope`: `all`, `discovery`, `synthetic`, `review_build`, or `open_build`
 - `max_items`: optional override for discovery/import limits
-- `synthetic_seed`: optional override for synthetic dry-run reproducibility
+- `synthetic_seed`: optional legacy synthetic-generator seed override; the active hocrsyngen manifest-backed source is fixture-batch driven
 
 The CLI now exposes two D1a-oriented operator surfaces:
 

@@ -508,7 +508,19 @@ def _source_depth_status_and_notes(
             "Seed promotion must remain operator-run and cached; CI must not depend on live NLI access.",
         ]
         return ("needs_promotion" if gap else "feasible", notes)
-    if fetcher in {"hocrsyngen_manifest", "synthetic"}:
+    if fetcher == "hocrsyngen_manifest":
+        notes = [
+            f"{runnable_cached_count} validated hocrsyngen manifest sample(s) qualify for a target of {target_count}.",
+            f"{target_scale_candidate_count} manifest-backed synthetic candidate(s) are available from the configured batch.",
+            *health_notes,
+            "Synthetic target scale requires a larger validated hocrsyngen batch; hocrgen no longer expands this source through the legacy generator.",
+            "Synthetic scale remains bounded by the existing synthetic-cap and quality/reporting gates.",
+            "F1c remains blocked until target-scale operator trial artifacts exercise a target-sized hocrsyngen batch through the pipeline gates.",
+        ]
+        if gap == 0:
+            return "feasible", notes
+        return ("needs_target_scale_trial" if target_scale_gap == 0 else "needs_configuration", notes)
+    if fetcher == "synthetic":
         notes = [
             f"{runnable_cached_count} runnable synthetic candidate(s) qualify for a target of {target_count}.",
             f"{target_scale_candidate_count} synthetic candidate(s) are configured for target-scale operator reporting.",

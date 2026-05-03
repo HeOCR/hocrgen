@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from hashlib import sha256
 import unicodedata
 from dataclasses import dataclass
 from json import JSONDecodeError
@@ -22,6 +23,7 @@ from hocrgen.utils.io import copy_file
 MANIFEST_FILENAME = "generation_manifest.json"
 GENERATION_MANIFEST_VERSION = "1.0"
 PROJECT_SYNTHETIC_LICENSE = "PROJECT-SYNTHETIC"
+LEGACY_SOURCE_ITEM_ID_PREFIX = "synthetic-"
 
 
 class HocrsyngenManifestModel(BaseModel):
@@ -94,7 +96,7 @@ class HocrsyngenGenerationManifest(HocrsyngenManifestModel):
     generator_name: Literal["hocrsyngen"]
     license: Literal["PROJECT-SYNTHETIC"]
     synthetic_disclosure: str = Field(min_length=1)
-    samples: list[HocrsyngenGeneratedSample]
+    samples: list[HocrsyngenGeneratedSample] = Field(min_length=1)
 
 
 @dataclass(frozen=True)
@@ -130,6 +132,8 @@ def validate_hocrsyngen_batch(batch_dir: Path) -> HocrsyngenBatch:
         manifest = HocrsyngenGenerationManifest.model_validate(payload)
     except ValidationError as exc:
         raise StageExecutionError(f"hocrsyngen generation_manifest.v1 validation failed: {exc}") from exc
+
+    _validate_manifest_uniqueness(manifest)
 
     page_count = 0
     for sample_index, sample in enumerate(manifest.samples):
@@ -256,7 +260,7 @@ def _filtered_samples(
 
 
 def _source_item_id(sample: HocrsyngenGeneratedSample) -> str:
-    return f"synthetic-{sample.provenance.sample_index}"
+    return f"{LEGACY_SOURCE_ITEM_ID_PREFIX}{sample.provenance.sample_index}"
 
 
 def _sample_title(sample: HocrsyngenGeneratedSample) -> str:
@@ -271,10 +275,12 @@ def _sample_metadata(
     return {
         "hocrsyngen_controls": sample.controls.model_dump(mode="json"),
         "hocrsyngen_generator_name": manifest.generator_name,
+        "hocrsyngen_identity_mapping": "legacy_sample_index_v1",
         "hocrsyngen_manifest_version": manifest.manifest_version,
         "hocrsyngen_sample_id": sample.sample_id,
         "hocrsyngen_synthetic_disclosure": sample.synthetic_disclosure,
-        "hocrsyngen_text": sample.text.model_dump(mode="json"),
+        "hocrsyngen_text_logical_order_sha256": sha256(sample.text.logical_order.encode("utf-8")).hexdigest(),
+        "hocrsyngen_text_metadata": _text_metadata(sample.text),
         "synthetic_degradation_preset": sample.provenance.degradation_preset,
         "synthetic_disclosure": sample.synthetic_disclosure,
         "synthetic_font_id": sample.provenance.font_id,
@@ -287,6 +293,36 @@ def _sample_metadata(
         "synthetic_source_corpus": sample.provenance.source_corpus,
         "synthetic_template_id": sample.provenance.template_id,
     }
+
+
+def _text_metadata(text: HocrsyngenTextMetadata) -> dict[str, str]:
+    return {
+        "direction": text.direction,
+        "language": text.language,
+        "script": text.script,
+        "unicode_normalization": text.unicode_normalization,
+    }
+
+
+def _validate_manifest_uniqueness(manifest: HocrsyngenGenerationManifest) -> None:
+    sample_ids: set[str] = set()
+    sample_indexes: set[int] = set()
+    source_item_ids: set[str] = set()
+    page_ids: set[str] = set()
+    asset_paths: set[str] = set()
+    for sample in manifest.samples:
+        _require_unique("sample_id", sample.sample_id, sample_ids)
+        _require_unique("provenance.sample_index", sample.provenance.sample_index, sample_indexes)
+        _require_unique("derived source_item_id", _source_item_id(sample), source_item_ids)
+        for page in sample.pages:
+            _require_unique("page_id", page.page_id, page_ids)
+            _require_unique("asset_path", page.asset_path, asset_paths)
+
+
+def _require_unique(label: str, value: object, seen: set) -> None:
+    if value in seen:
+        raise StageExecutionError(f"hocrsyngen manifest contains duplicate {label}: {value}")
+    seen.add(value)
 
 
 def _portable_asset_path(value: str, location: str) -> PurePosixPath:

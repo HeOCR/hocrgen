@@ -92,12 +92,3 @@ sources:
         min_assets: 1
     settings:
       hocrsyngen_batch_path: package://data/hocrsyngen/contracts/generation_manifest_v1/fixture-batch
-      synthetic_batch_size: 2
-      extra:
-        f1_source_depth_candidate_count: 80
-      synthetic_seed: 17
-      template_ids:
-        - printed_letter
-        - handwritten_note
-      font_manifest: package://data/synthetic/fonts/manifest.yaml
-      text_corpus_path: package://data/synthetic/texts/hebrew_lines.txt

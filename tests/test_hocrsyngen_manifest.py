@@ -65,6 +65,10 @@ def test_hocrsyngen_manifest_fetcher_maps_fixture_samples(tmp_path: Path) -> Non
         "hocrsyngen-s00000017-000000",
         "hocrsyngen-s00000017-000001",
     }
+    assert {item.metadata["hocrsyngen_identity_mapping"] for item in enriched} == {"legacy_sample_index_v1"}
+    assert all("hocrsyngen_text" not in item.metadata for item in enriched)
+    assert {item.metadata["hocrsyngen_text_metadata"]["direction"] for item in enriched} == {"rtl"}
+    assert all("hocrsyngen_text_logical_order_sha256" in item.metadata for item in enriched)
     assert {item.metadata["synthetic_recipe_id"] for item in enriched} == {
         "printed_letter_form_v1",
         "handwritten_note_marginalia_v1",
@@ -226,4 +230,97 @@ def test_hocrsyngen_manifest_validation_rejects_bad_jpeg(tmp_path: Path) -> None
     _write_manifest(batch_dir, payload)
 
     with pytest.raises(StageExecutionError, match="not a readable image"):
+        validate_hocrsyngen_batch(batch_dir)
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (
+            lambda payload: payload["samples"].append(
+                {
+                    **payload["samples"][1],
+                    "sample_id": payload["samples"][0]["sample_id"],
+                    "provenance": {**payload["samples"][1]["provenance"], "sample_index": 2},
+                    "pages": [
+                        {
+                            **payload["samples"][1]["pages"][0],
+                            "page_id": "hocrsyngen-s00000017-000002-page-0001",
+                            "asset_path": "assets/hocrsyngen-s00000017-000002/page_0001.jpg",
+                        }
+                    ],
+                }
+            ),
+            "duplicate sample_id",
+        ),
+        (
+            lambda payload: payload["samples"].append(
+                {
+                    **payload["samples"][1],
+                    "sample_id": "hocrsyngen-s00000017-000002",
+                    "provenance": {**payload["samples"][1]["provenance"], "sample_index": 0},
+                    "pages": [
+                        {
+                            **payload["samples"][1]["pages"][0],
+                            "page_id": "hocrsyngen-s00000017-000002-page-0001",
+                            "asset_path": "assets/hocrsyngen-s00000017-000002/page_0001.jpg",
+                        }
+                    ],
+                }
+            ),
+            "duplicate provenance.sample_index",
+        ),
+        (
+            lambda payload: payload["samples"].append(
+                {
+                    **payload["samples"][1],
+                    "sample_id": "hocrsyngen-s00000017-000002",
+                    "provenance": {**payload["samples"][1]["provenance"], "sample_index": 2},
+                    "pages": [
+                        {
+                            **payload["samples"][1]["pages"][0],
+                            "page_id": payload["samples"][0]["pages"][0]["page_id"],
+                            "asset_path": "assets/hocrsyngen-s00000017-000002/page_0001.jpg",
+                        }
+                    ],
+                }
+            ),
+            "duplicate page_id",
+        ),
+        (
+            lambda payload: payload["samples"].append(
+                {
+                    **payload["samples"][1],
+                    "sample_id": "hocrsyngen-s00000017-000002",
+                    "provenance": {**payload["samples"][1]["provenance"], "sample_index": 2},
+                    "pages": [
+                        {
+                            **payload["samples"][1]["pages"][0],
+                            "page_id": "hocrsyngen-s00000017-000002-page-0001",
+                            "asset_path": payload["samples"][0]["pages"][0]["asset_path"],
+                        }
+                    ],
+                }
+            ),
+            "duplicate asset_path",
+        ),
+    ],
+)
+def test_hocrsyngen_manifest_validation_rejects_duplicate_identities(
+    tmp_path: Path,
+    mutate: Callable[[dict], object],
+    message: str,
+) -> None:
+    batch_dir = _copy_fixture(tmp_path)
+    payload = _load_manifest(batch_dir)
+    mutate(payload)
+    duplicate_asset_reference = payload["samples"][-1]["pages"][0]["asset_path"]
+    original_asset = batch_dir / payload["samples"][1]["pages"][0]["asset_path"]
+    target_asset = batch_dir / duplicate_asset_reference
+    if duplicate_asset_reference != payload["samples"][0]["pages"][0]["asset_path"]:
+        target_asset.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(original_asset, target_asset)
+    _write_manifest(batch_dir, payload)
+
+    with pytest.raises(StageExecutionError, match=message):
         validate_hocrsyngen_batch(batch_dir)
