@@ -399,7 +399,7 @@ def test_f1_source_depth_feasibility_reports_remaining_nli_gap_after_f1b3_expans
     assert sources["nli_any_use_permitted"]["observed_candidate_count"] == 7
     assert sources["nli_any_use_permitted"]["runnable_cached_candidate_count"] == 7
     assert sources["nli_any_use_permitted"]["target_scale_candidate_count"] == 7
-    assert sources["nli_any_use_permitted"]["exploratory_catalog_count"] == 14
+    assert sources["nli_any_use_permitted"]["exploratory_catalog_count"] == 20
     assert sources["nli_any_use_permitted"]["source_health_status"] == "ok"
     assert sources["nli_any_use_permitted"]["gap"] == 20
     assert sources["nli_any_use_permitted"]["target_scale_gap"] == 20

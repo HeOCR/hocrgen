@@ -55,3 +55,27 @@ items:
   url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH997013215301605171/NLI
   title: הקדשת ספרים בידי מחבריהם
   notes: Manuscript note/dedication seed.
+- id: nli-ms-seed-021
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990025935150205171/NLI
+  title: מגלת אסתר
+  notes: Manually selected Any Use Permitted Esther scroll seed for F1b4 NLI source-depth promotion.
+- id: nli-ms-seed-022
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990034300030205171/NLI
+  title: מגלת אסתר
+  notes: Manually selected Any Use Permitted Esther scroll seed for F1b4 NLI source-depth promotion.
+- id: nli-ms-seed-023
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH997010489764105171/NLI
+  title: מגלת אסתר
+  notes: Manually selected Any Use Permitted Esther manuscript seed for F1b4 NLI source-depth promotion.
+- id: nli-ms-seed-024
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990025795620205171/NLI
+  title: תכלאל
+  notes: Manually selected Any Use Permitted Yemenite prayer manuscript seed for F1b4 NLI source-depth promotion.
+- id: nli-ms-seed-025
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH997010651093505171/NLI
+  title: תכלאל
+  notes: Manually selected Any Use Permitted Yemenite prayer manuscript seed for F1b4 NLI source-depth promotion.
+- id: nli-ms-seed-026
+  url: https://www.nli.org.il/en/manuscripts/NNL_ALEPH990001219520205171/NLI
+  title: תכלאל
+  notes: Manually selected Any Use Permitted Yemenite prayer manuscript seed for F1b4 NLI source-depth promotion.
