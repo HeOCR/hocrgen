@@ -392,7 +392,7 @@ def test_f1_source_depth_feasibility_reports_current_fixture_backed_gaps() -> No
         "biblia_open",
         "project_synthetic",
     ]
-    assert report["summary"]["not_feasible_sources"] == ["pinkas_open", "biblia_open"]
+    assert report["summary"]["not_feasible_sources"] == []
     assert sources["nli_any_use_permitted"]["target_count"] == 27
     assert sources["nli_any_use_permitted"]["observed_candidate_count"] == 7
     assert sources["nli_any_use_permitted"]["runnable_cached_candidate_count"] == 7
@@ -403,16 +403,53 @@ def test_f1_source_depth_feasibility_reports_current_fixture_backed_gaps() -> No
     assert sources["pinkas_open"]["target_count"] == 27
     assert sources["pinkas_open"]["runnable_cached_candidate_count"] == 1
     assert sources["pinkas_open"]["gap"] == 26
-    assert sources["pinkas_open"]["feasibility_status"] == "not_feasible"
-    assert "fixture-backed, rights-safe, and reviewable" in " ".join(sources["pinkas_open"]["operator_notes"])
+    assert sources["pinkas_open"]["feasibility_status"] == "needs_fixture_expansion"
+    assert sources["pinkas_open"]["expansion_path_status"] == "ok"
+    assert "F1c remains blocked" in " ".join(sources["pinkas_open"]["operator_notes"])
     assert sources["biblia_open"]["target_count"] == 26
     assert sources["biblia_open"]["runnable_cached_candidate_count"] == 1
     assert sources["biblia_open"]["gap"] == 25
-    assert sources["biblia_open"]["feasibility_status"] == "not_feasible"
+    assert sources["biblia_open"]["feasibility_status"] == "needs_fixture_expansion"
+    assert sources["biblia_open"]["expansion_path_status"] == "ok"
     assert report["summary"]["warnings"] == [
         "F1 source-depth feasibility is not met for: nli_any_use_permitted, pinkas_open, biblia_open, project_synthetic."
     ]
     assert "public beta export" in report["non_goals"]
+
+
+def test_f1_source_depth_reports_missing_static_expansion_path_as_not_feasible(tmp_path: Path) -> None:
+    config_root = _copy_config(tmp_path)
+    sources_path = config_root / "sources.yaml"
+    payload = yaml.safe_load(sources_path.read_text(encoding="utf-8"))
+    for source in payload["sources"]:
+        if source["id"] == "pinkas_open":
+            source["settings"].pop("extra")
+            break
+    sources_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+    bundle = load_and_validate_bundle(config_root)
+    source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
+
+    report = evaluate_f1_source_depth_feasibility(bundle, source_health)
+    pinkas = next(source for source in report["sources"] if source["source_id"] == "pinkas_open")
+
+    assert pinkas["expansion_path_status"] == "missing"
+    assert pinkas["feasibility_status"] == "not_feasible"
+    assert "until source-depth expansion is defined" in " ".join(pinkas["operator_notes"])
+
+
+def test_record_source_health_covers_static_expansion_manifest() -> None:
+    bundle = load_and_validate_bundle()
+    source = next(source for source in bundle.source_registry.sources if source.id == "biblia_open")
+
+    checks, _, _ = _inspect_records_source(source, bundle)
+
+    assert {"name": "source_depth_expansion_manifest", "path": "package://data/biblia/source_depth_expansion.yaml", "status": "ok"} in checks
+    assert any(
+        check["name"] == "source_depth_expansion_planning_notation"
+        and check["expected"] == "F1b2"
+        and check["status"] == "ok"
+        for check in checks
+    )
 
 
 def test_f1_source_depth_counts_only_health_eligible_cached_candidates(tmp_path: Path) -> None:

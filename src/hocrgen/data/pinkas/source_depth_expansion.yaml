@@ -1,0 +1,40 @@
+version: 1
+source_id: pinkas_open
+planning_notation: F1b2
+target_count: 27
+expansion_mode: operator_packaged_records
+records_path: package://data/pinkas/records.json
+asset_root: package://data/pinkas/assets/
+required_record_fields:
+  - id
+  - title
+  - source_url
+  - upstream_identifier
+  - collection
+  - period
+  - raw_rights
+  - asset_path
+allowed_raw_rights:
+  - PD-IL
+allowed_normalized_licenses:
+  - PD-IL
+required_gates:
+  - rights
+  - privacy
+  - review
+  - dedupe
+  - split
+  - benchmark
+  - synthetic-cap
+  - export-portability
+review_requirements:
+  - New records must be committed as packaged fixtures before they count toward F1 source depth.
+  - Each record must carry stable upstream provenance and a PD-IL-compatible rights assertion.
+  - Assets must stay under the packaged Pinkas asset root and pass source-health path checks.
+  - Near-duplicate and source-group leakage risk is reported or deferred to F1d before scale beyond the trial.
+non_goals:
+  - broad live-source crawling
+  - public beta export
+  - release-candidate export
+  - publication
+  - network-dependent CI

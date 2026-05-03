@@ -67,6 +67,8 @@ class SourceDepthFeasibilityResult:
     exploratory_catalog_count: int
     source_health_status: str
     source_skip_reason: str | None
+    expansion_path_status: str
+    expansion_path_checks: list[dict[str, Any]]
     gap: int
     feasibility_status: str
     operator_notes: list[str]
@@ -75,6 +77,8 @@ class SourceDepthFeasibilityResult:
         return {
             "asset_count": self.asset_count,
             "exploratory_catalog_count": self.exploratory_catalog_count,
+            "expansion_path_checks": self.expansion_path_checks,
+            "expansion_path_status": self.expansion_path_status,
             "feasibility_status": self.feasibility_status,
             "fetcher": self.fetcher,
             "gap": self.gap,
@@ -138,6 +142,7 @@ def evaluate_f1_source_depth_feasibility(
             source_results.append(_missing_source_depth_result(source_id, target_count, source, health))
             continue
         exploratory_count = _exploratory_candidate_count(source, bundle)
+        expansion_path_status, expansion_path_checks = _source_depth_expansion_path(source, bundle)
         observed_candidate_count = int(health["candidate_count"])
         asset_count = int(health["asset_count"])
         runnable_cached_count = _runnable_cached_candidate_count(source, health, observed_candidate_count, asset_count)
@@ -153,6 +158,7 @@ def evaluate_f1_source_depth_feasibility(
             gap=gap,
             health_status=str(health["health_status"]),
             skip_reason=health.get("skip_reason"),
+            expansion_path_status=expansion_path_status,
         )
         source_results.append(
             SourceDepthFeasibilityResult(
@@ -165,6 +171,8 @@ def evaluate_f1_source_depth_feasibility(
                 exploratory_catalog_count=exploratory_count,
                 source_health_status=str(health["health_status"]),
                 source_skip_reason=health.get("skip_reason"),
+                expansion_path_status=expansion_path_status,
+                expansion_path_checks=expansion_path_checks,
                 gap=gap,
                 feasibility_status=status,
                 operator_notes=notes,
@@ -270,6 +278,8 @@ def _health_record(result: SourceHealthResult | dict[str, Any]) -> dict[str, Any
 def _source_depth_record(result: SourceDepthFeasibilityResult | dict[str, Any]) -> dict[str, Any]:
     if isinstance(result, SourceDepthFeasibilityResult):
         return result.model_dump()
+    result.setdefault("expansion_path_status", "not_applicable")
+    result.setdefault("expansion_path_checks", [])
     return result
 
 
@@ -303,6 +313,8 @@ def _missing_source_depth_result(
         exploratory_catalog_count=0,
         source_health_status=str(health.get("health_status", "missing")) if health else "missing",
         source_skip_reason=health.get("skip_reason") if health else None,
+        expansion_path_status="missing",
+        expansion_path_checks=[],
         gap=target_count,
         feasibility_status="not_feasible",
         operator_notes=[
@@ -341,6 +353,7 @@ def _source_depth_status_and_notes(
     gap: int,
     health_status: str,
     skip_reason: str | None,
+    expansion_path_status: str = "not_applicable",
 ) -> tuple[str, list[str]]:
     health_notes = []
     if health_status != "ok":
@@ -350,6 +363,14 @@ def _source_depth_status_and_notes(
     if observed_candidate_count and runnable_cached_count == 0 and not health_notes:
         health_notes.append("Observed candidates do not have enough validated cached assets to count as runnable/cached depth.")
     if source_id in {"pinkas_open", "biblia_open"}:
+        if expansion_path_status == "ok":
+            notes = [
+                f"Only {runnable_cached_count} runnable/cached record(s) qualify for a target of {target_count}.",
+                *health_notes,
+                "Source-depth expansion path is defined, fixture-backed, rights-safe, and reviewable.",
+                "F1c remains blocked until enough packaged records and cached assets qualify for the target.",
+            ]
+            return ("needs_fixture_expansion" if gap else "feasible", notes)
         return (
             "not_feasible",
             [
@@ -476,7 +497,85 @@ def _inspect_records_source(source: SourceConfig, bundle: ConfigBundle) -> tuple
         asset_path = _resolve_source_local_reference(str(asset_reference), records_path, bundle)
         asset_count += 1
         checks.append(_path_check("record_asset", asset_path, bundle))
+    checks.extend(_expansion_manifest_checks(source, bundle))
     return checks, candidate_count, asset_count
+
+
+def _source_depth_expansion_path(source: SourceConfig, bundle: ConfigBundle) -> tuple[str, list[dict[str, Any]]]:
+    if source.id not in {"pinkas_open", "biblia_open"}:
+        return "not_applicable", []
+    checks = _expansion_manifest_checks(source, bundle)
+    if not checks:
+        return "missing", []
+    status = "ok" if all(check["status"] == "ok" for check in checks) else "error"
+    return status, checks
+
+
+def _expansion_manifest_checks(source: SourceConfig, bundle: ConfigBundle) -> list[dict[str, Any]]:
+    manifest_reference = source.settings.extra.get("source_depth_expansion_manifest")
+    if manifest_reference is None:
+        return []
+    manifest_path = bundle.resolve_path(str(manifest_reference))
+    checks: list[dict[str, Any]] = [_path_check("source_depth_expansion_manifest", manifest_path, bundle)]
+    manifest = _load_yaml_checked(checks, "source_depth_expansion_manifest_parse", manifest_path, bundle)
+    if not isinstance(manifest, dict):
+        checks.append(
+            {
+                "name": "source_depth_expansion_manifest_schema",
+                "path": _format_health_path(manifest_path, bundle),
+                "status": "error",
+                "message": "manifest must be an object",
+            }
+        )
+        return checks
+    expected_target = F1_SOURCE_TARGETS.get(source.id)
+    required_fields = {
+        "version": 1,
+        "source_id": source.id,
+        "planning_notation": "F1b2",
+        "target_count": expected_target,
+        "expansion_mode": "operator_packaged_records",
+    }
+    for field, expected in required_fields.items():
+        checks.append(
+            {
+                "actual": manifest.get(field),
+                "expected": expected,
+                "name": f"source_depth_expansion_{field}",
+                "path": _format_health_path(manifest_path, bundle),
+                "status": "ok" if manifest.get(field) == expected else "error",
+            }
+        )
+    list_fields = [
+        "required_record_fields",
+        "allowed_raw_rights",
+        "allowed_normalized_licenses",
+        "required_gates",
+        "review_requirements",
+        "non_goals",
+    ]
+    for field in list_fields:
+        value = manifest.get(field)
+        checks.append(
+            {
+                "name": f"source_depth_expansion_{field}",
+                "path": _format_health_path(manifest_path, bundle),
+                "status": "ok" if isinstance(value, list) and bool(value) else "error",
+            }
+        )
+    if "asset_root" in manifest:
+        asset_root = bundle.resolve_path(str(manifest["asset_root"]))
+        checks.append(_path_check("source_depth_expansion_asset_root", asset_root, bundle))
+    else:
+        checks.append(
+            {
+                "name": "source_depth_expansion_asset_root",
+                "path": _format_health_path(manifest_path, bundle),
+                "status": "error",
+                "message": "asset_root is required",
+            }
+        )
+    return checks
 
 
 def _inspect_synthetic_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int]:
