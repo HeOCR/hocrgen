@@ -80,6 +80,16 @@ The canonical transcription should contain only text that reviewers can justify 
 
 Do not invent replacement text for illegible spans. If a deletion remains readable, transcribe it and mark it as deleted. If marginal text has a clear reading position, include it in reading order and mark it as marginal; otherwise put it in a separate region with an explicit review flag.
 
+Primary benchmark scoring should use the canonical transcription text after applying the reference `scoring_policy`. The default policy is:
+
+- `uncertain`: include the visible text in canonical scoring, and report the span in a separate uncertainty count.
+- `illegible`: exclude the span from primary scoring unless the benchmark task explicitly scores illegibility detection.
+- `damaged`: include readable text in canonical scoring and retain the damage flag for secondary reporting.
+- `deleted`: exclude from primary OCR/HTR scoring by default, because deleted text is not part of the final reading text; keep it available for specialist evaluation.
+- `marginal`: include in primary scoring only when it has an explicit reading-order position; otherwise score it separately.
+
+Reference files must make these choices explicit with span metadata so evaluators can reproduce the masking or inclusion decision instead of guessing from free text.
+
 ### Line and Page Boundaries
 
 Represent line breaks as reference structure, not by relying only on free-form newlines. A page-level text view may include newline separators for readability, but line-level references are the authority for boundaries.
@@ -134,6 +144,168 @@ All public layout-label references must use release-relative paths. Do not store
 
 Geometry should be reproducible from exported release assets and manifests alone. If a label depends on a derived image, the derived image path and checksum must be release-relative and manifest-visible.
 
+## Transcription Reference Contract
+
+The first documented transcription reference shape is `benchmark_transcription_reference.v1`. `F2b` should validate this shape before a reference can be treated as benchmark-ready.
+
+A transcription reference should contain:
+
+- `schema_version`: `benchmark_transcription_reference.v1`
+- `item_id`, `source_id`, and `source_item_id`: matching the benchmark reference manifest item
+- `normalization`: at minimum `{ "unicode": "NFC", "text_order": "logical" }`
+- `language_scripts`: script/language declarations used by the reference
+- `scoring_policy`: explicit include/exclude behavior for uncertain, illegible, damaged, deleted, and marginal spans
+- `pages`: ordered page records with page ids and optional page-level text views
+- `lines`: page-local or item-global line records with stable ids, page ids, reading-order indexes, canonical text, and optional linked layout line ids
+- `spans`: structured annotations anchored by line id and character offsets, with status values such as `uncertain`, `illegible`, `damaged`, `deleted`, and `marginal`
+- `review`: reviewer/adjudication status for the transcription reference itself
+
+Character offsets are counted over the NFC-normalized canonical line text. If a span is excluded from primary scoring and has no canonical characters, the span must still identify its line, its insertion position, its status, and a human-readable note. Do not represent excluded illegible text by inventing placeholder glyphs in the canonical text.
+
+Example shape:
+
+```json
+{
+  "schema_version": "benchmark_transcription_reference.v1",
+  "item_id": "nli_any_use_permitted:nli-ms-001",
+  "source_id": "nli_any_use_permitted",
+  "source_item_id": "nli-ms-001",
+  "normalization": {
+    "unicode": "NFC",
+    "text_order": "logical"
+  },
+  "language_scripts": [
+    {
+      "language": "he",
+      "script": "Hebr",
+      "direction": "rtl"
+    }
+  ],
+  "scoring_policy": {
+    "uncertain": "include_primary_and_report",
+    "illegible": "exclude_primary",
+    "damaged": "include_readable_and_report",
+    "deleted": "exclude_primary",
+    "marginal": "include_when_ordered_else_separate"
+  },
+  "pages": [
+    {
+      "page_id": "page-1",
+      "reading_order": 1
+    }
+  ],
+  "lines": [
+    {
+      "line_id": "line-1",
+      "page_id": "page-1",
+      "reading_order": 1,
+      "text": "\u05e9\u05dc\u05d5\u05dd 123",
+      "layout_line_id": "layout-line-1"
+    }
+  ],
+  "spans": [
+    {
+      "span_id": "span-1",
+      "line_id": "line-1",
+      "start": 0,
+      "end": 4,
+      "status": "uncertain",
+      "scoring": "include_primary_and_report",
+      "note": "letters are faint but readable"
+    }
+  ],
+  "review": {
+    "status": "in_review",
+    "reviewers": ["reviewer-id"]
+  }
+}
+```
+
+## Layout Reference Contract
+
+The first documented layout reference shape is `benchmark_layout_reference.v1`. `F2b` should validate this shape before a layout reference can be treated as benchmark-ready.
+
+A layout reference should contain:
+
+- `schema_version`: `benchmark_layout_reference.v1`
+- `item_id`, `source_id`, and `source_item_id`: matching the benchmark reference manifest item
+- `coordinate_system`: pixel units, top-left origin, and axis direction declarations
+- `assets`: one record per annotated release asset, with release-relative path, checksum, width, height, and page id
+- `regions`: optional page-local region records with stable ids, page ids, labels, reading-order indexes, geometry, and flags
+- `lines`: line records with stable ids, page ids, optional region ids, reading-order indexes, geometry, optional baseline geometry, optional linked transcription line ids, and flags
+- `words` or `references`: optional finer geometry records when the benchmark task needs them
+- `review`: reviewer/adjudication status for the layout reference itself
+
+Geometry records should declare whether they use `bbox`, `polygon`, `baseline`, or a combination. Bounding boxes use `{ "x", "y", "width", "height" }` in pixel units. Polygons use ordered `{ "x", "y" }` points in the same coordinate system. The referenced asset checksum and dimensions are part of the reference contract so F2b can detect stale labels after asset regeneration or export changes.
+
+Example shape:
+
+```json
+{
+  "schema_version": "benchmark_layout_reference.v1",
+  "item_id": "nli_any_use_permitted:nli-ms-001",
+  "source_id": "nli_any_use_permitted",
+  "source_item_id": "nli-ms-001",
+  "coordinate_system": {
+    "units": "px",
+    "origin": "top_left",
+    "x_axis": "right",
+    "y_axis": "down"
+  },
+  "assets": [
+    {
+      "asset_id": "page-1-image",
+      "page_id": "page-1",
+      "path": "assets/nli-ms-001/page-1.jpg",
+      "sha256": "sha256-placeholder",
+      "width": 1200,
+      "height": 1800
+    }
+  ],
+  "regions": [
+    {
+      "region_id": "region-1",
+      "page_id": "page-1",
+      "label": "body",
+      "reading_order": 1,
+      "geometry": {
+        "type": "bbox",
+        "bbox": {
+          "x": 100,
+          "y": 200,
+          "width": 900,
+          "height": 600
+        }
+      },
+      "flags": []
+    }
+  ],
+  "lines": [
+    {
+      "line_id": "layout-line-1",
+      "page_id": "page-1",
+      "region_id": "region-1",
+      "reading_order": 1,
+      "transcription_line_id": "line-1",
+      "geometry": {
+        "type": "bbox",
+        "bbox": {
+          "x": 120,
+          "y": 220,
+          "width": 700,
+          "height": 52
+        }
+      },
+      "flags": ["estimated"]
+    }
+  ],
+  "review": {
+    "status": "in_review",
+    "reviewers": ["reviewer-id"]
+  }
+}
+```
+
 ## Reference-Manifest Contract
 
 The documented contract name for the first benchmark reference manifest is `benchmark_reference_manifest.v1`. `F2a` defines the contract at the documentation level; `F2b` should implement ingestion, validation, adjudication artifacts, and versioning gates.
@@ -144,6 +316,7 @@ A manifest should contain:
 - `benchmark_id`: for example `benchmark_v1`
 - `reference_manifest_id`: stable id for this reference set
 - `release_id` or release compatibility range when references are tied to exported assets
+- `reference_contracts`: the expected transcription and layout reference schema versions
 - `items`: one entry per referenced benchmark item
 
 Each item entry should contain:
@@ -153,8 +326,8 @@ Each item entry should contain:
 - `benchmark_split`: the committed benchmark split when applicable
 - `public_reference_status`: `not_available`, `draft`, `reviewed`, `adjudicated`, `corrected`, or `retired`
 - `visibility`: `public`, `private_adjudication`, or `hidden_reference`
-- `transcription_reference`: nullable release-relative path to the transcription reference
-- `layout_label_references`: release-relative paths to layout-label references
+- `transcription_reference`: nullable object with release-relative `path`, `schema_version`, and optional checksum
+- `layout_label_references`: objects with release-relative `path`, `schema_version`, optional checksum, and declared page ids
 - `reviewers`: reviewer ids or handles suitable for repository policy
 - `adjudication_status`: `not_started`, `in_review`, `needs_adjudication`, `adjudicated`, or `blocked`
 - `correction_of`: nullable prior reference id when correcting a published reference
@@ -168,6 +341,10 @@ Example shape:
   "schema_version": "benchmark_reference_manifest.v1",
   "benchmark_id": "benchmark_v1",
   "reference_manifest_id": "benchmark_v1_refs_0001",
+  "reference_contracts": {
+    "transcription": "benchmark_transcription_reference.v1",
+    "layout": "benchmark_layout_reference.v1"
+  },
   "items": [
     {
       "item_id": "nli_any_use_permitted:nli-ms-001",
@@ -176,9 +353,18 @@ Example shape:
       "benchmark_split": "validation",
       "visibility": "public",
       "public_reference_status": "reviewed",
-      "transcription_reference": "references/benchmark_v1/nli-ms-001/transcription.json",
+      "transcription_reference": {
+        "path": "references/benchmark_v1/nli-ms-001/transcription.json",
+        "schema_version": "benchmark_transcription_reference.v1",
+        "sha256": "sha256-placeholder"
+      },
       "layout_label_references": [
-        "references/benchmark_v1/nli-ms-001/layout.json"
+        {
+          "path": "references/benchmark_v1/nli-ms-001/layout.json",
+          "schema_version": "benchmark_layout_reference.v1",
+          "sha256": "sha256-placeholder",
+          "page_ids": ["page-1"]
+        }
       ],
       "reviewers": ["reviewer-id"],
       "adjudication_status": "in_review",

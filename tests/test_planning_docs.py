@@ -304,6 +304,8 @@ def test_f2a_benchmark_ground_truth_guidelines_keep_scope_visible() -> None:
         "source-image pixel units",
         "release-relative paths",
         "benchmark_reference_manifest.v1",
+        "benchmark_transcription_reference.v1",
+        "benchmark_layout_reference.v1",
         "public_reference_status",
         "private_adjudication",
         "hidden_reference",
@@ -311,9 +313,44 @@ def test_f2a_benchmark_ground_truth_guidelines_keep_scope_visible() -> None:
     ]:
         assert required in combined
 
-    for forbidden in [
+    for required_non_goal in [
         "make annotations mandatory",
         "change `benchmark_v1` membership",
         "relax rights, privacy, review, dedupe, split, benchmark, synthetic-cap, or export-portability gates",
     ]:
-        assert forbidden in guidelines
+        assert required_non_goal in guidelines
+
+    for required in [
+        "`schema_version`: `benchmark_transcription_reference.v1`",
+        "`normalization`: at minimum",
+        "`scoring_policy`: explicit include/exclude behavior",
+        "`pages`: ordered page records",
+        "`lines`: page-local or item-global line records",
+        "`spans`: structured annotations anchored by line id and character offsets",
+        "Character offsets are counted over the NFC-normalized canonical line text.",
+        "`illegible`: exclude the span from primary scoring",
+        "`deleted`: exclude from primary OCR/HTR scoring by default",
+    ]:
+        assert required in guidelines
+
+    for required in [
+        "`schema_version`: `benchmark_layout_reference.v1`",
+        "`coordinate_system`: pixel units, top-left origin, and axis direction declarations",
+        "`assets`: one record per annotated release asset, with release-relative path, checksum, width, height, and page id",
+        "`regions`: optional page-local region records",
+        "`lines`: line records with stable ids",
+        "Bounding boxes use `{ \"x\", \"y\", \"width\", \"height\" }` in pixel units.",
+        "referenced asset checksum and dimensions are part of the reference contract",
+    ]:
+        assert required in guidelines
+
+    for required in [
+        "`reference_contracts`: the expected transcription and layout reference schema versions",
+        "`transcription_reference`: nullable object with release-relative `path`, `schema_version`, and optional checksum",
+        "`layout_label_references`: objects with release-relative `path`, `schema_version`, optional checksum, and declared page ids",
+        "\"reference_contracts\"",
+        "\"schema_version\": \"benchmark_transcription_reference.v1\"",
+        "\"schema_version\": \"benchmark_layout_reference.v1\"",
+        "\"page_ids\": [\"page-1\"]",
+    ]:
+        assert required in guidelines
