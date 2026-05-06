@@ -195,6 +195,7 @@ def test_hocrsyngen_manifest_validation_rejects_malformed_json(tmp_path: Path) -
         (lambda payload: payload.update({"generator_name": "other"}), "validation failed"),
         (lambda payload: payload.update({"extra": "nope"}), "validation failed"),
         (lambda payload: payload.pop("provider_metadata"), "validation failed"),
+        (lambda payload: payload["provider_metadata"].update({"provider_version": "  "}), "validation failed"),
         (lambda payload: payload["provider_metadata"].update({"used_llm": True}), "validation failed"),
         (lambda payload: payload["samples"][0]["rendering_metadata"].update({"text_order": "visual"}), "validation failed"),
         (lambda payload: payload["samples"][0]["rendering_metadata"].update({"line_direction": "ltr"}), "validation failed"),
@@ -229,6 +230,27 @@ def test_hocrsyngen_manifest_validation_rejects_invalid_contract_fields(
     _write_manifest(batch_dir, payload)
 
     with pytest.raises(StageExecutionError, match=message):
+        validate_hocrsyngen_batch(batch_dir)
+
+
+def test_hocrsyngen_manifest_validation_rejects_missing_batch_coverage(tmp_path: Path) -> None:
+    batch_dir = _copy_fixture(tmp_path)
+    payload = _load_manifest(batch_dir)
+    logical_order = "אבג 123 ךםןףץ"
+    for sample in payload["samples"]:
+        sample["text"]["logical_order"] = logical_order
+        sample["rendering_metadata"]["line_count"] = 1
+        sample["hebrew_coverage"] = {
+            "has_arabic_numerals": True,
+            "has_final_letters": True,
+            "has_hebrew_letters": True,
+            "has_mixed_ltr": False,
+            "has_niqqud": False,
+            "has_punctuation": False,
+        }
+    _write_manifest(batch_dir, payload)
+
+    with pytest.raises(StageExecutionError, match="punctuation coverage"):
         validate_hocrsyngen_batch(batch_dir)
 
 

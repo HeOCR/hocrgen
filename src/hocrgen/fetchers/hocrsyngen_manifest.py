@@ -50,7 +50,7 @@ class HocrsyngenTextMetadata(HocrsyngenManifestModel):
 
 class HocrsyngenProviderMetadata(HocrsyngenManifestModel):
     provider_name: Literal["hocrsyngen"]
-    provider_version: str = Field(min_length=1)
+    provider_version: str = Field(pattern=r".*\S.*")
     generation_mode: Literal["offline_manifest_batch"]
     used_network: Literal[False]
     used_rest_service: Literal[False]

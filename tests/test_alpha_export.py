@@ -74,6 +74,19 @@ def test_synthetic_composition_helpers_cover_empty_and_missing_metadata() -> Non
         metadata={},
         split=None,
     )
+    incomplete_coverage_item = Namespace(
+        is_synthetic=True,
+        metadata={
+            "synthetic_degradation_preset": "preset",
+            "synthetic_font_id": "font",
+            "synthetic_hebrew_coverage": {"has_hebrew_letters": True},
+            "synthetic_layout_family": "layout",
+            "synthetic_provider_version": "provider",
+            "synthetic_recipe_id": "recipe",
+            "synthetic_template_id": "template",
+        },
+        split=None,
+    )
     real_item = Namespace(
         is_synthetic=False,
         metadata={},
@@ -82,6 +95,7 @@ def test_synthetic_composition_helpers_cover_empty_and_missing_metadata() -> Non
 
     empty_report = synthetic_composition_report([real_item])
     missing_report = synthetic_composition_report([real_item, missing_metadata_item])
+    incomplete_report = synthetic_composition_report([real_item, incomplete_coverage_item])
 
     assert _synthetic_composition_lines(empty_report) == ["- Synthetic items: 0"]
     assert missing_report["by_template_id"] == {"unknown": 1}
@@ -97,6 +111,8 @@ def test_synthetic_composition_helpers_cover_empty_and_missing_metadata() -> Non
         "synthetic_recipe_id": 1,
         "synthetic_template_id": 1,
     }
+    assert incomplete_report["missing_metadata"] == {"synthetic_hebrew_coverage": 1}
+    assert incomplete_report["hebrew_coverage_counts"] == {"has_hebrew_letters": 1}
 
 
 def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:

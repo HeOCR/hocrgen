@@ -1,8 +1,12 @@
 from __future__ import annotations
 
 import json
+import shutil
 from pathlib import Path
 
+import yaml
+
+from hocrgen.config.loader import default_config_root
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.cli import main
 
@@ -27,6 +31,25 @@ def test_config_validate_command_succeeds(capsys) -> None:
     assert payload["quality_thresholds_version"] == 1
     assert payload["review_data_counts"] == {"allowlist": 0, "blocklist": 0, "manual_decisions": 0}
     assert payload["source_count"] == 4
+
+
+def test_config_validate_command_rejects_missing_hocrsyngen_batch_path(tmp_path: Path, capsys) -> None:
+    config_root = tmp_path / "config"
+    shutil.copytree(default_config_root(), config_root)
+    sources_path = config_root / "sources.yaml"
+    payload = yaml.safe_load(sources_path.read_text(encoding="utf-8"))
+    for source in payload["sources"]:
+        if source["id"] == "project_synthetic":
+            source["settings"].pop("hocrsyngen_batch_path")
+            break
+    sources_path.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
+
+    exit_code = main(["config", "validate", "--config-root", str(config_root)])
+    output = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert output["status"] == "error"
+    assert output["error"] == "source project_synthetic settings.hocrsyngen_batch_path is required"
 
 
 def test_build_release_command_creates_real_manifests(tmp_path: Path, capsys) -> None:
