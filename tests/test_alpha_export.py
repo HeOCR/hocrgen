@@ -91,6 +91,7 @@ def test_synthetic_composition_helpers_cover_empty_and_missing_metadata() -> Non
     assert missing_report["missing_metadata"] == {
         "synthetic_degradation_preset": 1,
         "synthetic_font_id": 1,
+        "synthetic_hebrew_coverage": 1,
         "synthetic_layout_family": 1,
         "synthetic_provider_version": 1,
         "synthetic_recipe_id": 1,

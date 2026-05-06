@@ -3,6 +3,15 @@ from __future__ import annotations
 from collections import Counter
 from typing import Any
 
+SYNTHETIC_HEBREW_COVERAGE_KEYS = {
+    "has_arabic_numerals",
+    "has_final_letters",
+    "has_hebrew_letters",
+    "has_mixed_ltr",
+    "has_niqqud",
+    "has_punctuation",
+}
+
 
 def synthetic_composition_report(items: list[Any]) -> dict[str, Any]:
     synthetic_items = [item for item in items if item.is_synthetic]
@@ -35,11 +44,14 @@ def synthetic_composition_report(items: list[Any]) -> dict[str, Any]:
     coverage_counts: dict[str, int] = {}
     for item in synthetic_metadata:
         coverage = item["hebrew_coverage"]
-        if not isinstance(coverage, dict):
+        if not isinstance(coverage, dict) or not coverage:
             missing_metadata["synthetic_hebrew_coverage"] += 1
             continue
+        missing_coverage_keys = SYNTHETIC_HEBREW_COVERAGE_KEYS - set(coverage)
+        if missing_coverage_keys:
+            missing_metadata["synthetic_hebrew_coverage"] += 1
         for key, value in coverage.items():
-            if value is True:
+            if key in SYNTHETIC_HEBREW_COVERAGE_KEYS and value is True:
                 coverage_counts[key] = coverage_counts.get(key, 0) + 1
 
     for item in synthetic_metadata:

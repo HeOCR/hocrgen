@@ -63,9 +63,9 @@ class HocrsyngenRenderingMetadata(HocrsyngenManifestModel):
     text_order: Literal["logical"]
     page_direction: Literal["rtl"]
     line_direction: Literal["rtl"]
-    bidi_handling: str = Field(min_length=1)
-    font_shaping: str = Field(min_length=1)
-    layout_family: str = Field(min_length=1)
+    bidi_handling: Literal["logical_rtl_paragraphs"]
+    font_shaping: Literal["provider_shaped_hebrew_text"]
+    layout_family: Literal["handwritten_note_marginalia", "printed_letter_form"]
     line_count: int = Field(ge=1)
 
 

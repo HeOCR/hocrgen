@@ -962,6 +962,15 @@ def test_hocrsyngen_manifest_health_reports_f4c_metadata_signals() -> None:
     assert extra["hocrsyngen_coverage_counts"]["has_punctuation"] == 2
     assert "no niqqud coverage in hocrsyngen batch" in extra["hocrsyngen_coverage_warnings"]
     assert "no mixed LTR coverage in hocrsyngen batch" in extra["hocrsyngen_coverage_warnings"]
+    assert source_health_summary(source_health)["hocrsyngen_coverage_warnings"] == [
+        {
+            "source_id": "project_synthetic",
+            "warnings": [
+                "no mixed LTR coverage in hocrsyngen batch",
+                "no niqqud coverage in hocrsyngen batch",
+            ],
+        }
+    ]
     assert any(check["name"] == "hocrsyngen_provider_version" and check["status"] == "ok" for check in checks)
     assert any(check["name"] == "hocrsyngen_coverage_has_final_letters" and check["status"] == "ok" for check in checks)
     assert synthetic_health.extra == extra

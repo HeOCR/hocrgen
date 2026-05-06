@@ -308,10 +308,20 @@ def source_health_summary(source_health: Iterable[SourceHealthResult | dict[str,
     results = [_health_record(result) for result in source_health]
     skipped = [result for result in results if result["skipped"]]
     unhealthy = [result for result in results if result["health_status"] != "ok"]
+    hocrsyngen_coverage_warnings = [
+        {
+            "source_id": result["source_id"],
+            "warnings": warnings,
+        }
+        for result in results
+        if isinstance(result.get("extra"), dict)
+        and (warnings := result["extra"].get("hocrsyngen_coverage_warnings"))
+    ]
     return {
         "active_source_count": sum(1 for result in results if result["operational_status"] == SourceOperationalStatus.active.value),
         "degraded_source_count": sum(1 for result in results if result["operational_status"] == SourceOperationalStatus.degraded.value),
         "frozen_source_count": sum(1 for result in results if result["operational_status"] == SourceOperationalStatus.frozen.value),
+        "hocrsyngen_coverage_warnings": hocrsyngen_coverage_warnings,
         "selected_source_count": sum(1 for result in results if result["selected"]),
         "skipped_source_count": len(skipped),
         "skipped_sources": [
