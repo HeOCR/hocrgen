@@ -41,7 +41,41 @@ class HocrsyngenTextMetadata(HocrsyngenManifestModel):
     def validate_logical_order_nfc(self) -> "HocrsyngenTextMetadata":
         if self.logical_order != unicodedata.normalize("NFC", self.logical_order):
             raise ValueError("logical_order must be NFC-normalized")
+        if "\ufffd" in self.logical_order:
+            raise ValueError("logical_order must not contain replacement characters")
+        if not _has_hebrew_letters(self.logical_order):
+            raise ValueError("logical_order must contain Hebrew letters")
         return self
+
+
+class HocrsyngenProviderMetadata(HocrsyngenManifestModel):
+    provider_name: Literal["hocrsyngen"]
+    provider_version: str = Field(min_length=1)
+    generation_mode: Literal["offline_manifest_batch"]
+    used_network: Literal[False]
+    used_rest_service: Literal[False]
+    used_gpu: Literal[False]
+    used_llm: Literal[False]
+    used_diffusion: Literal[False]
+
+
+class HocrsyngenRenderingMetadata(HocrsyngenManifestModel):
+    text_order: Literal["logical"]
+    page_direction: Literal["rtl"]
+    line_direction: Literal["rtl"]
+    bidi_handling: str = Field(min_length=1)
+    font_shaping: str = Field(min_length=1)
+    layout_family: str = Field(min_length=1)
+    line_count: int = Field(ge=1)
+
+
+class HocrsyngenHebrewCoverage(HocrsyngenManifestModel):
+    has_hebrew_letters: bool
+    has_final_letters: bool
+    has_niqqud: bool
+    has_arabic_numerals: bool
+    has_punctuation: bool
+    has_mixed_ltr: bool
 
 
 class HocrsyngenPageAsset(HocrsyngenManifestModel):
@@ -77,6 +111,8 @@ class HocrsyngenGeneratedSample(HocrsyngenManifestModel):
     sample_id: str = Field(pattern=r"^hocrsyngen-s[0-9]{8}-[0-9]{6}$")
     pages: list[HocrsyngenPageAsset] = Field(min_length=1)
     text: HocrsyngenTextMetadata
+    rendering_metadata: HocrsyngenRenderingMetadata
+    hebrew_coverage: HocrsyngenHebrewCoverage
     generator_version: str = Field(min_length=1)
     recipe_id: str = Field(min_length=1)
     provenance: HocrsyngenSampleProvenance
@@ -88,15 +124,34 @@ class HocrsyngenGeneratedSample(HocrsyngenManifestModel):
     def validate_sample_consistency(self) -> "HocrsyngenGeneratedSample":
         if self.recipe_id != self.provenance.recipe_id:
             raise ValueError("recipe_id must match provenance.recipe_id")
+        if self.rendering_metadata.line_count != len(self.text.logical_order.splitlines()):
+            raise ValueError("rendering_metadata.line_count must match logical_order line count")
+        coverage = _hebrew_coverage(self.text.logical_order)
+        if self.hebrew_coverage.model_dump() != coverage:
+            raise ValueError("hebrew_coverage must match logical_order text")
         return self
 
 
 class HocrsyngenGenerationManifest(HocrsyngenManifestModel):
     manifest_version: Literal["1.0"]
     generator_name: Literal["hocrsyngen"]
+    provider_metadata: HocrsyngenProviderMetadata
     license: Literal["PROJECT-SYNTHETIC"]
     synthetic_disclosure: str = Field(min_length=1)
     samples: list[HocrsyngenGeneratedSample] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_batch_coverage(self) -> "HocrsyngenGenerationManifest":
+        required = {
+            "has_arabic_numerals": "Arabic numeral",
+            "has_final_letters": "Hebrew final-letter",
+            "has_hebrew_letters": "Hebrew letter",
+            "has_punctuation": "punctuation",
+        }
+        for field_name, label in required.items():
+            if not any(getattr(sample.hebrew_coverage, field_name) for sample in self.samples):
+                raise ValueError(f"hocrsyngen batch must include at least one sample with {label} coverage")
+        return self
 
 
 @dataclass(frozen=True)
@@ -274,9 +329,12 @@ def _sample_metadata(
 ) -> dict[str, Any]:
     return {
         "hocrsyngen_controls": sample.controls.model_dump(mode="json"),
+        "hocrsyngen_hebrew_coverage": sample.hebrew_coverage.model_dump(mode="json"),
         "hocrsyngen_generator_name": manifest.generator_name,
         "hocrsyngen_identity_mapping": "legacy_sample_index_v1",
         "hocrsyngen_manifest_version": manifest.manifest_version,
+        "hocrsyngen_provider_metadata": manifest.provider_metadata.model_dump(mode="json"),
+        "hocrsyngen_rendering_metadata": sample.rendering_metadata.model_dump(mode="json"),
         "hocrsyngen_sample_id": sample.sample_id,
         "hocrsyngen_synthetic_disclosure": sample.synthetic_disclosure,
         "hocrsyngen_text_logical_order_sha256": sha256(sample.text.logical_order.encode("utf-8")).hexdigest(),
@@ -286,7 +344,11 @@ def _sample_metadata(
         "synthetic_font_id": sample.provenance.font_id,
         "synthetic_generator_name": manifest.generator_name,
         "synthetic_generator_version": sample.generator_version,
+        "synthetic_hebrew_coverage": sample.hebrew_coverage.model_dump(mode="json"),
+        "synthetic_layout_family": sample.rendering_metadata.layout_family,
         "synthetic_license": sample.license,
+        "synthetic_provider_name": manifest.provider_metadata.provider_name,
+        "synthetic_provider_version": manifest.provider_metadata.provider_version,
         "synthetic_recipe_id": sample.provenance.recipe_id,
         "synthetic_sample_index": sample.provenance.sample_index,
         "synthetic_seed": sample.provenance.seed,
@@ -302,6 +364,21 @@ def _text_metadata(text: HocrsyngenTextMetadata) -> dict[str, str]:
         "script": text.script,
         "unicode_normalization": text.unicode_normalization,
     }
+
+
+def _hebrew_coverage(text: str) -> dict[str, bool]:
+    return {
+        "has_arabic_numerals": any("0" <= char <= "9" for char in text),
+        "has_final_letters": any(char in "ךםןףץ" for char in text),
+        "has_hebrew_letters": _has_hebrew_letters(text),
+        "has_mixed_ltr": any(("A" <= char <= "Z") or ("a" <= char <= "z") for char in text),
+        "has_niqqud": any("\u0591" <= char <= "\u05c7" and unicodedata.category(char).startswith("M") for char in text),
+        "has_punctuation": any(unicodedata.category(char).startswith("P") for char in text),
+    }
+
+
+def _has_hebrew_letters(text: str) -> bool:
+    return any("\u05d0" <= char <= "\u05ea" for char in text)
 
 
 def _validate_manifest_uniqueness(manifest: HocrsyngenGenerationManifest) -> None:

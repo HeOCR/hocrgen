@@ -91,6 +91,8 @@ def test_synthetic_composition_helpers_cover_empty_and_missing_metadata() -> Non
     assert missing_report["missing_metadata"] == {
         "synthetic_degradation_preset": 1,
         "synthetic_font_id": 1,
+        "synthetic_layout_family": 1,
+        "synthetic_provider_version": 1,
         "synthetic_recipe_id": 1,
         "synthetic_template_id": 1,
     }
@@ -497,6 +499,12 @@ def test_export_alpha_docs_and_release_record_include_metadata(
         "handwritten_note": 1,
         "printed_letter": 1,
     }
+    assert synthetic_composition["by_provider_version"] == {"fixture-f4c-v1": 2}
+    assert synthetic_composition["by_layout_family"] == {
+        "handwritten_note_marginalia": 1,
+        "printed_letter_form": 1,
+    }
+    assert synthetic_composition["hebrew_coverage_counts"]["has_hebrew_letters"] == 2
     if git_result.returncode == 0:
         current_commit = git_result.stdout.strip()
         assert release_record["hocrgen_commit"] == current_commit

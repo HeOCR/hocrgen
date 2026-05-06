@@ -25,10 +25,22 @@ def synthetic_composition_report(items: list[Any]) -> dict[str, Any]:
             "recipe_id": metadata_value(item, "synthetic_recipe_id"),
             "degradation_preset": metadata_value(item, "synthetic_degradation_preset"),
             "font_id": metadata_value(item, "synthetic_font_id"),
+            "provider_version": metadata_value(item, "synthetic_provider_version"),
+            "layout_family": metadata_value(item, "synthetic_layout_family"),
+            "hebrew_coverage": item.metadata.get("synthetic_hebrew_coverage") or {},
             "split": item.split or "unknown",
         }
         for item in synthetic_items
     ]
+    coverage_counts: dict[str, int] = {}
+    for item in synthetic_metadata:
+        coverage = item["hebrew_coverage"]
+        if not isinstance(coverage, dict):
+            missing_metadata["synthetic_hebrew_coverage"] += 1
+            continue
+        for key, value in coverage.items():
+            if value is True:
+                coverage_counts[key] = coverage_counts.get(key, 0) + 1
 
     for item in synthetic_metadata:
         split = item["split"]
@@ -44,6 +56,9 @@ def synthetic_composition_report(items: list[Any]) -> dict[str, Any]:
         "by_recipe_id": dict(Counter(item["recipe_id"] for item in synthetic_metadata)),
         "by_degradation_preset": dict(Counter(item["degradation_preset"] for item in synthetic_metadata)),
         "by_font_id": dict(Counter(item["font_id"] for item in synthetic_metadata)),
+        "by_provider_version": dict(Counter(item["provider_version"] for item in synthetic_metadata)),
+        "by_layout_family": dict(Counter(item["layout_family"] for item in synthetic_metadata)),
+        "hebrew_coverage_counts": coverage_counts,
         "by_split": {
             split: {
                 "items": sum(counter.values()),

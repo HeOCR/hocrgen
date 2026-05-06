@@ -799,6 +799,9 @@ For each synthetic item:
 - text-source references
 - degradation recipe
 - normalized license metadata
+- provider metadata for fixture-backed hocrsyngen batches, including offline manifest-batch mode and explicit no-network/no-REST/no-GPU/no-LLM/no-diffusion flags
+- Hebrew rendering metadata for logical RTL pages, bidi handling, font shaping, layout family, and line counts
+- computed Hebrew coverage metadata for letters, final letters, niqqud, Arabic numerals, punctuation, and mixed LTR text
 
 For near-term planning, the expected public-release path should assume a raster export mode for synthetic items, even if SVG remains acceptable as an intermediate development format. Synthetic outputs intended for release should therefore support:
 
@@ -825,6 +828,8 @@ Font assets should be treated as first-class governed inputs. In practice, this 
 - allowed usage scope
 
 The build should fail if an asset lacks a manifest entry or uses a non-allowed license.
+
+For hocrsyngen-backed inputs, hocrgen validates the provider manifest and assets but does not call the generator package. The hardened `generation_manifest.v1` boundary requires provider, rendering, and Hebrew coverage metadata to be internally consistent with the logical text before source health can pass. Niqqud and mixed-LTR absence remain reportable coverage limitations rather than release-readiness claims.
 
 ---
 

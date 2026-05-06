@@ -249,6 +249,13 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
         "notebook_scan_worn": 1,
         "office_scan_soft": 1,
     }
+    assert synthetic_composition["by_provider_version"] == {"fixture-f4c-v1": 2}
+    assert synthetic_composition["by_layout_family"] == {
+        "handwritten_note_marginalia": 1,
+        "printed_letter_form": 1,
+    }
+    assert synthetic_composition["hebrew_coverage_counts"]["has_hebrew_letters"] == 2
+    assert synthetic_composition["hebrew_coverage_counts"]["has_punctuation"] == 2
     assert synthetic_composition["missing_metadata"] == {}
     assert "biblia_open" not in source_stats["sources"]
     assert len(split_manifest["items"]) == 4

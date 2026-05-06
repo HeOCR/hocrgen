@@ -2,6 +2,16 @@
   "generator_name": "hocrsyngen",
   "license": "PROJECT-SYNTHETIC",
   "manifest_version": "1.0",
+  "provider_metadata": {
+    "generation_mode": "offline_manifest_batch",
+    "provider_name": "hocrsyngen",
+    "provider_version": "fixture-f4c-v1",
+    "used_diffusion": false,
+    "used_gpu": false,
+    "used_llm": false,
+    "used_network": false,
+    "used_rest_service": false
+  },
   "samples": [
     {
       "controls": {
@@ -9,6 +19,14 @@
         "persona": null
       },
       "generator_version": "d4a-realism-v2",
+      "hebrew_coverage": {
+        "has_arabic_numerals": true,
+        "has_final_letters": true,
+        "has_hebrew_letters": true,
+        "has_mixed_ltr": false,
+        "has_niqqud": false,
+        "has_punctuation": true
+      },
       "license": "PROJECT-SYNTHETIC",
       "pages": [
         {
@@ -30,6 +48,15 @@
         "template_id": "printed_letter"
       },
       "recipe_id": "printed_letter_form_v1",
+      "rendering_metadata": {
+        "bidi_handling": "logical_rtl_paragraphs",
+        "font_shaping": "provider_shaped_hebrew_text",
+        "layout_family": "printed_letter_form",
+        "line_count": 6,
+        "line_direction": "rtl",
+        "page_direction": "rtl",
+        "text_order": "logical"
+      },
       "sample_id": "hocrsyngen-s00000017-000000",
       "synthetic_disclosure": "Generated synthetic Hebrew OCR/HTR sample. It is candidate synthetic input for hocrgen governance and is not real-source provenance.",
       "text": {
@@ -46,6 +73,14 @@
         "persona": null
       },
       "generator_version": "d4a-realism-v2",
+      "hebrew_coverage": {
+        "has_arabic_numerals": true,
+        "has_final_letters": true,
+        "has_hebrew_letters": true,
+        "has_mixed_ltr": false,
+        "has_niqqud": false,
+        "has_punctuation": true
+      },
       "license": "PROJECT-SYNTHETIC",
       "pages": [
         {
@@ -67,6 +102,15 @@
         "template_id": "handwritten_note"
       },
       "recipe_id": "handwritten_note_marginalia_v1",
+      "rendering_metadata": {
+        "bidi_handling": "logical_rtl_paragraphs",
+        "font_shaping": "provider_shaped_hebrew_text",
+        "layout_family": "handwritten_note_marginalia",
+        "line_count": 5,
+        "line_direction": "rtl",
+        "page_direction": "rtl",
+        "text_order": "logical"
+      },
       "sample_id": "hocrsyngen-s00000017-000001",
       "synthetic_disclosure": "Generated synthetic Hebrew OCR/HTR sample. It is candidate synthetic input for hocrgen governance and is not real-source provenance.",
       "text": {

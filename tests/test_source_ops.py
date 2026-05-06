@@ -935,14 +935,58 @@ def test_hocrsyngen_manifest_health_reports_invalid_batch_path(tmp_path: Path) -
     bundle = load_and_validate_bundle(config_root)
     source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
 
-    checks, candidate_count, asset_count = _inspect_hocrsyngen_manifest_source(source, bundle)
+    checks, candidate_count, asset_count, extra = _inspect_hocrsyngen_manifest_source(source, bundle)
     source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
     synthetic_health = next(result for result in source_health if result.source_id == "project_synthetic")
 
     assert candidate_count == 0
     assert asset_count == 0
+    assert extra == {}
     assert any(check["name"] == "hocrsyngen_generation_manifest_v1" and check["status"] == "error" for check in checks)
     assert synthetic_health.health_status == "error"
+
+
+def test_hocrsyngen_manifest_health_reports_f4c_metadata_signals() -> None:
+    bundle = load_and_validate_bundle()
+    source = next(source for source in bundle.source_registry.sources if source.id == "project_synthetic")
+
+    checks, candidate_count, asset_count, extra = _inspect_hocrsyngen_manifest_source(source, bundle)
+    source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
+    synthetic_health = next(result for result in source_health if result.source_id == "project_synthetic")
+
+    assert candidate_count == 2
+    assert asset_count == 2
+    assert extra["hocrsyngen_provider_version"] == "fixture-f4c-v1"
+    assert extra["hocrsyngen_layout_families"] == ["handwritten_note_marginalia", "printed_letter_form"]
+    assert extra["hocrsyngen_coverage_counts"]["has_hebrew_letters"] == 2
+    assert extra["hocrsyngen_coverage_counts"]["has_punctuation"] == 2
+    assert "no niqqud coverage in hocrsyngen batch" in extra["hocrsyngen_coverage_warnings"]
+    assert "no mixed LTR coverage in hocrsyngen batch" in extra["hocrsyngen_coverage_warnings"]
+    assert any(check["name"] == "hocrsyngen_provider_version" and check["status"] == "ok" for check in checks)
+    assert any(check["name"] == "hocrsyngen_coverage_has_final_letters" and check["status"] == "ok" for check in checks)
+    assert synthetic_health.extra == extra
+
+
+def test_hocrsyngen_manifest_health_blocks_invalid_f4c_metadata(tmp_path: Path) -> None:
+    base_bundle = load_and_validate_bundle()
+    base_source = next(source for source in base_bundle.source_registry.sources if source.id == "project_synthetic")
+    batch_dir = tmp_path / "fixture-batch"
+    shutil.copytree(base_bundle.resolve_path(base_source.settings.hocrsyngen_batch_path or ""), batch_dir)
+    manifest_path = batch_dir / "generation_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["samples"][0]["hebrew_coverage"]["has_final_letters"] = False
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    config_root = _copy_config(tmp_path)
+    _update_source_settings(config_root, "project_synthetic", {"hocrsyngen_batch_path": str(batch_dir)})
+    bundle = load_and_validate_bundle(config_root)
+    source_health = evaluate_source_health(bundle, "profile_open_v1", StageOptions())
+    synthetic_health = next(result for result in source_health if result.source_id == "project_synthetic")
+
+    assert synthetic_health.health_status == "error"
+    assert synthetic_health.skipped is True
+    assert synthetic_health.skip_reason == "source_health_failed"
+    assert any(check["name"] == "hocrsyngen_generation_manifest_v1" for check in synthetic_health.checks)
 
 
 def test_source_health_records_yaml_and_json_parse_errors(tmp_path: Path) -> None:
