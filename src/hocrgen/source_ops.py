@@ -308,10 +308,20 @@ def source_health_summary(source_health: Iterable[SourceHealthResult | dict[str,
     results = [_health_record(result) for result in source_health]
     skipped = [result for result in results if result["skipped"]]
     unhealthy = [result for result in results if result["health_status"] != "ok"]
+    hocrsyngen_coverage_warnings = [
+        {
+            "source_id": result["source_id"],
+            "warnings": warnings,
+        }
+        for result in results
+        if isinstance(result.get("extra"), dict)
+        and (warnings := result["extra"].get("hocrsyngen_coverage_warnings"))
+    ]
     return {
         "active_source_count": sum(1 for result in results if result["operational_status"] == SourceOperationalStatus.active.value),
         "degraded_source_count": sum(1 for result in results if result["operational_status"] == SourceOperationalStatus.degraded.value),
         "frozen_source_count": sum(1 for result in results if result["operational_status"] == SourceOperationalStatus.frozen.value),
+        "hocrsyngen_coverage_warnings": hocrsyngen_coverage_warnings,
         "selected_source_count": sum(1 for result in results if result["selected"]),
         "skipped_source_count": len(skipped),
         "skipped_sources": [
@@ -554,7 +564,7 @@ def _skip_reason(source: SourceConfig, selection_requested: bool, health_status:
     return None
 
 
-def _inspect_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int]:
+def _inspect_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int] | tuple[list[dict[str, Any]], int, int, dict[str, Any]]:
     if source.fetcher == "nli":
         return _inspect_nli_source_with_extra(source, bundle)
     if source.fetcher in {"pinkas", "biblia"}:
@@ -959,7 +969,7 @@ def _inspect_synthetic_source(source: SourceConfig, bundle: ConfigBundle) -> tup
     return checks, source.settings.synthetic_batch_size or 0, asset_count
 
 
-def _inspect_hocrsyngen_manifest_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int]:
+def _inspect_hocrsyngen_manifest_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int, dict[str, Any]]:
     checks: list[dict[str, Any]] = []
     batch_reference = source.settings.hocrsyngen_batch_path
     if not batch_reference:
@@ -973,6 +983,7 @@ def _inspect_hocrsyngen_manifest_source(source: SourceConfig, bundle: ConfigBund
             ],
             0,
             0,
+            {},
         )
     batch_dir = bundle.resolve_path(batch_reference)
     manifest_path = batch_dir / "generation_manifest.json"
@@ -989,11 +1000,22 @@ def _inspect_hocrsyngen_manifest_source(source: SourceConfig, bundle: ConfigBund
                 "status": "error",
             }
         )
-        return checks, 0, 0
+        return checks, 0, 0, {}
 
     for sample in batch.manifest.samples:
         for page in sample.pages:
             checks.append(_path_check("hocrsyngen_page_asset", batch.batch_dir / page.asset_path, bundle))
+    coverage_counts = _hocrsyngen_coverage_counts(batch)
+    layout_families = sorted({sample.rendering_metadata.layout_family for sample in batch.manifest.samples})
+    provider_version = batch.manifest.provider_metadata.provider_version
+    coverage_warnings = [
+        label
+        for key, label in {
+            "has_mixed_ltr": "no mixed LTR coverage in hocrsyngen batch",
+            "has_niqqud": "no niqqud coverage in hocrsyngen batch",
+        }.items()
+        if coverage_counts.get(key, 0) == 0
+    ]
     checks.append(
         {
             "actual": batch.sample_count,
@@ -1004,13 +1026,57 @@ def _inspect_hocrsyngen_manifest_source(source: SourceConfig, bundle: ConfigBund
     )
     checks.append(
         {
+            "actual": provider_version,
+            "expected": "non-empty hocrsyngen provider version",
+            "name": "hocrsyngen_provider_version",
+            "status": "ok",
+        }
+    )
+    for key, label in {
+        "has_arabic_numerals": "Arabic numeral",
+        "has_final_letters": "Hebrew final-letter",
+        "has_hebrew_letters": "Hebrew letter",
+        "has_punctuation": "punctuation",
+    }.items():
+        checks.append(
+            {
+                "actual": coverage_counts.get(key, 0),
+                "expected": f"at least one sample with {label} coverage",
+                "name": f"hocrsyngen_coverage_{key}",
+                "status": "ok" if coverage_counts.get(key, 0) > 0 else "error",
+            }
+        )
+    checks.append(
+        {
             "actual": batch.page_count,
             "expected": "validated hocrsyngen page assets",
             "name": "hocrsyngen_page_count",
             "status": "ok",
         }
     )
-    return checks, batch.sample_count, batch.page_count
+    return checks, batch.sample_count, batch.page_count, {
+        "hocrsyngen_coverage_counts": coverage_counts,
+        "hocrsyngen_coverage_warnings": coverage_warnings,
+        "hocrsyngen_layout_families": layout_families,
+        "hocrsyngen_provider_version": provider_version,
+    }
+
+
+def _hocrsyngen_coverage_counts(batch: Any) -> dict[str, int]:
+    counts = {
+        "has_arabic_numerals": 0,
+        "has_final_letters": 0,
+        "has_hebrew_letters": 0,
+        "has_mixed_ltr": 0,
+        "has_niqqud": 0,
+        "has_punctuation": 0,
+    }
+    for sample in batch.manifest.samples:
+        coverage = sample.hebrew_coverage.model_dump()
+        for key in counts:
+            if coverage[key]:
+                counts[key] += 1
+    return counts
 
 
 def _inspect_modern_handwriting_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int]:

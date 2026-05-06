@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F3b"
+CURRENT_COMPLETED_NOTATION = "F4c"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -42,7 +42,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
 
     assert f"Last completed roadmap action on the current ref: `{CURRENT_COMPLETED_NOTATION}`" in agent_plan
     assert "`F1e` resolves the previously visible F1d benchmark/holdout source-group risk" in agent_plan
-    assert "next planned critical-path implementation should move to `F4c` deeper hocrsyngen rendering/provider metadata gates" in agent_plan
+    assert "next planned critical-path implementation should move to `F4d` synthetic-only export handoff" in agent_plan
     assert f"| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert f"| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
@@ -220,6 +220,29 @@ def test_f4a_synthetic_spinout_docs_keep_four_repo_boundary_visible() -> None:
         Path("docs/2026_05_02_heocrsyn_spinout/hocrgen_synthetic_spinout_plan_amendment_by_gemini_2.md"),
     ]:
         assert path.exists()
+
+
+def test_f4c_hocrsyngen_metadata_gates_are_documented() -> None:
+    agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+    design = Path("docs/hocrgen_design_and_spec.md").read_text(encoding="utf-8")
+    synthetic_guide = Path("docs/synthetic_asset_contribution_guide.md").read_text(encoding="utf-8")
+    combined = "\n".join([agent_plan, readme, roadmap, design, synthetic_guide])
+
+    for required in [
+        "`F4c`",
+        "provider metadata",
+        "offline manifest-batch",
+        "no-network/no-REST/no-GPU/no-LLM/no-diffusion",
+        "logical RTL",
+        "Hebrew coverage",
+        "source-health signals",
+        "synthetic composition",
+        "does not import hocrsyngen internals",
+        "does not call the generator package",
+    ]:
+        assert required in combined
 
 
 def test_planning_docs_do_not_use_stale_branch_local_status_phrases() -> None:

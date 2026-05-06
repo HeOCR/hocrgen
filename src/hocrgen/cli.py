@@ -19,6 +19,7 @@ from hocrgen.evaluation import (
     summarize_benchmark_examples,
 )
 from hocrgen.fetchers.base import StageOptions
+from hocrgen.fetchers.hocrsyngen_manifest import validate_hocrsyngen_batch
 from hocrgen.fetchers.modern_handwriting import validate_modern_intake_manifest
 from hocrgen.package.alpha import AlphaExportConfig, export_alpha_release
 from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_summary
@@ -200,7 +201,20 @@ def _stage_options_from_args(args: argparse.Namespace) -> StageOptions:
 def handle_config_validate(args: argparse.Namespace) -> int:
     try:
         bundle = _load_bundle(args.config_root)
+        hocrsyngen_batches = []
         for source in bundle.source_registry.sources:
+            if source.fetcher == "hocrsyngen_manifest":
+                if not source.settings.hocrsyngen_batch_path:
+                    raise StageExecutionError(f"source {source.id} settings.hocrsyngen_batch_path is required")
+                batch = validate_hocrsyngen_batch(bundle.resolve_path(source.settings.hocrsyngen_batch_path))
+                hocrsyngen_batches.append(
+                    {
+                        "page_count": batch.page_count,
+                        "provider_version": batch.manifest.provider_metadata.provider_version,
+                        "sample_count": batch.sample_count,
+                        "source_id": source.id,
+                    }
+                )
             if source.fetcher == "modern_handwriting_intake":
                 validate_modern_intake_manifest(source, bundle)
         benchmark_config = load_benchmark_config(bundle.config_root)
@@ -245,6 +259,7 @@ def handle_config_validate(args: argparse.Namespace) -> int:
                 "manual_decisions": len(review_data.manual_decisions),
             },
             "source_count": len(bundle.source_registry.sources),
+            "hocrsyngen_batches": hocrsyngen_batches,
             "status": "ok",
         }
     )

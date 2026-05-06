@@ -74,6 +74,19 @@ def test_synthetic_composition_helpers_cover_empty_and_missing_metadata() -> Non
         metadata={},
         split=None,
     )
+    incomplete_coverage_item = Namespace(
+        is_synthetic=True,
+        metadata={
+            "synthetic_degradation_preset": "preset",
+            "synthetic_font_id": "font",
+            "synthetic_hebrew_coverage": {"has_hebrew_letters": True},
+            "synthetic_layout_family": "layout",
+            "synthetic_provider_version": "provider",
+            "synthetic_recipe_id": "recipe",
+            "synthetic_template_id": "template",
+        },
+        split=None,
+    )
     real_item = Namespace(
         is_synthetic=False,
         metadata={},
@@ -82,6 +95,7 @@ def test_synthetic_composition_helpers_cover_empty_and_missing_metadata() -> Non
 
     empty_report = synthetic_composition_report([real_item])
     missing_report = synthetic_composition_report([real_item, missing_metadata_item])
+    incomplete_report = synthetic_composition_report([real_item, incomplete_coverage_item])
 
     assert _synthetic_composition_lines(empty_report) == ["- Synthetic items: 0"]
     assert missing_report["by_template_id"] == {"unknown": 1}
@@ -91,9 +105,14 @@ def test_synthetic_composition_helpers_cover_empty_and_missing_metadata() -> Non
     assert missing_report["missing_metadata"] == {
         "synthetic_degradation_preset": 1,
         "synthetic_font_id": 1,
+        "synthetic_hebrew_coverage": 1,
+        "synthetic_layout_family": 1,
+        "synthetic_provider_version": 1,
         "synthetic_recipe_id": 1,
         "synthetic_template_id": 1,
     }
+    assert incomplete_report["missing_metadata"] == {"synthetic_hebrew_coverage": 1}
+    assert incomplete_report["hebrew_coverage_counts"] == {"has_hebrew_letters": 1}
 
 
 def test_export_alpha_creates_heocr_shaped_tree(tmp_path: Path, capsys) -> None:
@@ -497,6 +516,12 @@ def test_export_alpha_docs_and_release_record_include_metadata(
         "handwritten_note": 1,
         "printed_letter": 1,
     }
+    assert synthetic_composition["by_provider_version"] == {"fixture-f4c-v1": 2}
+    assert synthetic_composition["by_layout_family"] == {
+        "handwritten_note_marginalia": 1,
+        "printed_letter_form": 1,
+    }
+    assert synthetic_composition["hebrew_coverage_counts"]["has_hebrew_letters"] == 2
     if git_result.returncode == 0:
         current_commit = git_result.stdout.strip()
         assert release_record["hocrgen_commit"] == current_commit

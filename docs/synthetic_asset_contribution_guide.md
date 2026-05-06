@@ -36,7 +36,7 @@ The four-repository boundary is:
 - `HeOCR`: mixed real+synthetic public dataset releases exported by `hocrgen`.
 - `HeOCRsynth`: synthetic-only dataset releases exported by `hocrgen`.
 
-The provider contract starts with `hocrsyngen` emitting `generation_manifest.json` plus relative image assets. Manifest v1 includes sample id, page assets, logical-order UTF-8 text, script/language/direction metadata, generator version, recipe id, seed/provenance, license `PROJECT-SYNTHETIC`, synthetic disclosure, and optional persona/condition controls. hocrgen reads fixture-backed `generation_manifest.v1` batches and validates them on its side, including unique sample/page/asset identities before mapping samples into hocrgen item ids. It should not call `hocrsyngen generate`, `hocrsyngen validate`, a live service, or require network, GPU, LLM, diffusion, or heavyweight generator dependencies in baseline tests or release builds. hocrsyngen CLI JSON reports are command reports only, not hocrgen release manifests.
+The provider contract starts with `hocrsyngen` emitting `generation_manifest.json` plus relative image assets. Manifest v1 includes sample id, page assets, logical-order UTF-8 text, script/language/direction metadata, hocrsyngen provider metadata, offline manifest-batch generation mode, explicit no-network/no-REST/no-GPU/no-LLM/no-diffusion flags, rendering metadata for logical RTL Hebrew pages, computed Hebrew coverage metadata, generator version, recipe id, seed/provenance, license `PROJECT-SYNTHETIC`, synthetic disclosure, and optional persona/condition controls. hocrgen reads fixture-backed `generation_manifest.v1` batches and validates them on its side, including unique sample/page/asset identities and Hebrew rendering/provider metadata before mapping samples into hocrgen item ids. It should not call `hocrsyngen generate`, `hocrsyngen validate`, a live service, or require network, GPU, LLM, diffusion, or heavyweight generator dependencies in baseline tests or release builds. hocrsyngen CLI JSON reports are command reports only, not hocrgen release manifests.
 
 The current `project_synthetic` source is hocrsyngen manifest-backed. It preserves legacy `project_synthetic:synthetic-*` item ids through a validated sample-index compatibility mapping, but exact logical text from the provider manifest is not published as generic item metadata. The old internal generator code remains legacy deterministic smoke coverage until it can be retired safely.
 
@@ -71,6 +71,9 @@ Recipe changes should preserve existing reporting metadata:
 - `synthetic_recipe_id`
 - `synthetic_degradation_preset`
 - `synthetic_font_id`
+- `synthetic_provider_version`
+- `synthetic_layout_family`
+- `synthetic_hebrew_coverage`
 
 If a new recipe is public-profile eligible, update tests and docs that describe `synthetic_composition.json`, alpha export selection, and release summary behavior.
 
