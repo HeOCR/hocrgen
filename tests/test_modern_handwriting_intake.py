@@ -71,7 +71,6 @@ def _record(asset_path: Path, *, source_item_id: str = "sample-001") -> dict[str
             "script_style": "block_print",
             "language_mix": "hebrew_only",
             "page_condition": "clean_scan",
-            "demographic_band": "not_collected",
         },
         "text_metadata": {"prompt": "שלום עולם"},
     }
@@ -173,6 +172,9 @@ def test_config_validate_checks_modern_intake_manifest(tmp_path: Path, capsys) -
         (lambda payload: payload["records"][0].update({"asset_path": "/tmp/page.png"}), "validation failed"),
         (lambda payload: payload["records"][0].update({"private_evidence_locator": "../private/consent.pdf"}), "validation failed"),
         (lambda payload: payload["records"][0].update({"media_type": "image/gif"}), "validation failed"),
+        (lambda payload: payload["records"][0].update({"consent_effective_date": "not-a-date"}), "validation failed"),
+        (lambda payload: payload["records"][0].update({"privacy_review_timestamp": "2026-05-06T10:00:00"}), "timezone"),
+        (lambda payload: payload["records"][0]["composition"].update({"demographic_band": "age:30-39"}), "validation failed"),
         (lambda payload: payload["records"][0].update({"unresolved_privacy_flags": ["name_visible"]}), "unresolved_privacy_flags"),
         (lambda payload: payload["records"][0].update({"takedown_request_date": "2026-05-06"}), "takedown"),
         (lambda payload: payload["records"][0].update({"normalized_license": "CC-BY-4.0"}), "validation failed"),
@@ -189,6 +191,14 @@ def test_modern_intake_manifest_rejects_policy_failures(tmp_path: Path, mutate, 
         load_and_validate_bundle(_config_root(tmp_path, manifest_path))
 
 
+def test_modern_intake_manifest_rejects_missing_asset(tmp_path: Path) -> None:
+    root, manifest_path = _modern_fixture(tmp_path)
+    (root / "sample_001.png").unlink()
+
+    with pytest.raises(ConfigValidationError, match="asset is missing"):
+        load_and_validate_bundle(_config_root(tmp_path, manifest_path))
+
+
 def test_modern_intake_manifest_rejects_checksum_mismatch(tmp_path: Path) -> None:
     root, manifest_path = _modern_fixture(tmp_path)
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
@@ -196,6 +206,43 @@ def test_modern_intake_manifest_rejects_checksum_mismatch(tmp_path: Path) -> Non
     _write_manifest(root, payload)
 
     with pytest.raises(ConfigValidationError, match="sha256 mismatch"):
+        load_and_validate_bundle(_config_root(tmp_path, manifest_path))
+
+
+def test_modern_intake_manifest_rejects_symlink_asset_escape(tmp_path: Path) -> None:
+    root, manifest_path = _modern_fixture(tmp_path)
+    outside_asset = tmp_path / "outside.png"
+    _write_fixture_image(outside_asset)
+    linked_asset = root / "linked.png"
+    linked_asset.symlink_to(outside_asset)
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload["records"][0]["asset_path"] = linked_asset.name
+    payload["records"][0]["sha256"] = sha256_file(outside_asset)
+    _write_manifest(root, payload)
+
+    with pytest.raises(ConfigValidationError, match="escapes manifest directory"):
+        load_and_validate_bundle(_config_root(tmp_path, manifest_path))
+
+
+def test_modern_intake_manifest_rejects_media_type_mismatch(tmp_path: Path) -> None:
+    root, manifest_path = _modern_fixture(tmp_path)
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload["records"][0]["media_type"] = "image/jpeg"
+    _write_manifest(root, payload)
+
+    with pytest.raises(ConfigValidationError, match="media type mismatch"):
+        load_and_validate_bundle(_config_root(tmp_path, manifest_path))
+
+
+def test_modern_intake_manifest_rejects_unreadable_asset_content(tmp_path: Path) -> None:
+    root, manifest_path = _modern_fixture(tmp_path)
+    asset_path = root / "sample_001.png"
+    asset_path.write_text("not really an image", encoding="utf-8")
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload["records"][0]["sha256"] = sha256_file(asset_path)
+    _write_manifest(root, payload)
+
+    with pytest.raises(ConfigValidationError, match="not a readable JPEG/PNG"):
         load_and_validate_bundle(_config_root(tmp_path, manifest_path))
 
 
@@ -239,6 +286,8 @@ def test_modern_intake_fetcher_maps_records_without_private_paths(tmp_path: Path
     assert enriched[0].metadata["modern_intake_batch_id"] == "modern-batch-0001"
     assert "private-consent-0001" not in json.dumps(enriched[0].metadata, ensure_ascii=False)
     assert str(tmp_path) not in json.dumps(enriched[0].metadata, ensure_ascii=False)
+    assert str(tmp_path) not in json.dumps(enriched[0].raw_metadata, ensure_ascii=False)
+    assert "demographic" not in json.dumps(enriched[0].model_dump(mode="json"), ensure_ascii=False)
     assert acquired[0].acquired_assets[0].media_type == "image/png"
     assert Path(acquired[0].acquired_assets[0].path).is_file()
 

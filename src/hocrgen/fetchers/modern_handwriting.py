@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import unicodedata
 from dataclasses import dataclass
+from datetime import date, datetime
 from hashlib import sha256
 from json import JSONDecodeError
 from pathlib import Path, PurePosixPath
@@ -15,6 +16,7 @@ from hocrgen.config.models import SourceConfig, SourceStatus
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.manifests.models import AcquiredAsset, AcquiredItemRecord, AssetReference, CandidateRecord, EnrichedCandidateRecord
+from hocrgen.normalize.images import detect_asset_metadata
 from hocrgen.utils.hashing import sha256_file
 from hocrgen.utils.io import copy_file
 
@@ -53,7 +55,6 @@ class ModernCompositionMetadata(ModernIntakeModel):
     script_style: Literal["block_print", "cursive_like", "mixed_print_cursive", "natural_variation"]
     language_mix: Literal["hebrew_only", "hebrew_with_arabic_numerals", "hebrew_with_latin_fragments", "mixed_hebrew_english"]
     page_condition: Literal["clean_scan", "mild_skew", "varied_writing_instrument", "lined_paper", "plain_paper", "smartphone_capture"]
-    demographic_band: str | None = None
 
 
 class ModernIntakeRecord(ModernIntakeModel):
@@ -65,7 +66,7 @@ class ModernIntakeRecord(ModernIntakeModel):
     contributor_eligibility: Literal["adult_contributor"]
     consent_artifact_id: str | None = None
     institutional_agreement_id: str | None = None
-    consent_effective_date: str = Field(min_length=1)
+    consent_effective_date: date
     consent_scope: Literal["image_prompt_metadata_public_reuse"]
     release_terms_version: str = Field(min_length=1)
     normalized_license: Literal["HEOCR-CONSENT-OPEN"]
@@ -74,13 +75,13 @@ class ModernIntakeRecord(ModernIntakeModel):
     private_evidence_locator: str = Field(min_length=1)
     privacy_screening_status: Literal["clear"]
     privacy_reviewer_id: str = Field(min_length=1)
-    privacy_review_timestamp: str = Field(min_length=1)
+    privacy_review_timestamp: datetime
     unresolved_privacy_flags: list[str] = Field(default_factory=list)
     operator_review_status: Literal["intake_ready"]
     operator_reviewer_id: str = Field(min_length=1)
-    operator_review_timestamp: str = Field(min_length=1)
+    operator_review_timestamp: datetime
     takedown_status: Literal["none"]
-    takedown_request_date: str | None = None
+    takedown_request_date: date | None = None
     affected_future_release_versions: list[str] = Field(default_factory=list)
     public_inclusion_state: Literal["candidate"]
     first_release_version: str | None = None
@@ -100,6 +101,13 @@ class ModernIntakeRecord(ModernIntakeModel):
     def validate_private_evidence_locator(cls, value: str) -> str:
         if "/" in value or "\\" in value or "://" in value or value.startswith("."):
             raise ValueError("private_evidence_locator must be an opaque private reference, not a path")
+        return value
+
+    @field_validator("privacy_review_timestamp", "operator_review_timestamp")
+    @classmethod
+    def validate_review_timestamp_timezone(cls, value: datetime) -> datetime:
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ValueError("review timestamps must include a timezone")
         return value
 
     @model_validator(mode="after")
@@ -127,7 +135,7 @@ class ModernIntakeManifest(ModernIntakeModel):
     batch_id: str = Field(min_length=1)
     source_id: str = Field(min_length=1)
     operator_id: str = Field(min_length=1)
-    collection_date: str = Field(min_length=1)
+    collection_date: date
     collection_method: Literal["operator_manifest"]
     consent_terms_version: str = Field(min_length=1)
     records: list[ModernIntakeRecord] = Field(min_length=1)
@@ -192,14 +200,26 @@ def validate_modern_intake_manifest(source: SourceConfig, bundle: ConfigBundle) 
     if manifest.source_id != source.id:
         raise StageExecutionError(f"modern intake manifest source_id {manifest.source_id!r} does not match source {source.id!r}")
 
+    manifest_root = manifest_path.parent.resolve()
     for record in manifest.records:
         asset_path = _asset_path(manifest_path, record.asset_path)
+        if not asset_path.is_relative_to(manifest_root):
+            raise StageExecutionError(f"modern intake asset escapes manifest directory for {record.source_item_id}: {record.asset_path}")
         if not asset_path.is_file():
             raise StageExecutionError(f"modern intake asset is missing for {record.source_item_id}: {record.asset_path}")
         actual_sha = sha256_file(asset_path)
         if actual_sha != record.sha256:
             raise StageExecutionError(
                 f"modern intake asset sha256 mismatch for {record.source_item_id}: expected {record.sha256}, got {actual_sha}"
+            )
+        try:
+            technical_metadata = detect_asset_metadata(asset_path)
+        except (OSError, ValueError) as exc:
+            raise StageExecutionError(f"modern intake asset is not a readable JPEG/PNG for {record.source_item_id}: {exc}") from exc
+        if technical_metadata.media_type != record.media_type:
+            raise StageExecutionError(
+                f"modern intake asset media type mismatch for {record.source_item_id}: "
+                f"expected {record.media_type}, got {technical_metadata.media_type}"
             )
     return ModernIntakeBatch(
         manifest_path=manifest_path,
@@ -224,7 +244,7 @@ class ModernHandwritingIntakeFetcher:
                 raw_metadata={
                     "batch_id": batch.manifest.batch_id,
                     "collection_method": batch.manifest.collection_method,
-                    "modern_intake_manifest": str(batch.manifest_path),
+                    "modern_intake_manifest_schema_version": batch.manifest.schema_version,
                     "source_item_id": record.source_item_id,
                 },
             )
@@ -285,9 +305,10 @@ class ModernHandwritingIntakeFetcher:
 
 def _record_metadata(manifest: ModernIntakeManifest, record: ModernIntakeRecord) -> dict[str, object]:
     metadata = {
-        "collection_date": manifest.collection_date,
+        "collection_date": manifest.collection_date.isoformat(),
         "collection_method": manifest.collection_method,
         "consent_artifact_id": record.consent_artifact_id,
+        "consent_effective_date": record.consent_effective_date.isoformat(),
         "consent_terms_version": manifest.consent_terms_version,
         "institutional_agreement_id": record.institutional_agreement_id,
         "modern_intake_batch_id": manifest.batch_id,
