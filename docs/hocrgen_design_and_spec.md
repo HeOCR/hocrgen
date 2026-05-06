@@ -1007,7 +1007,7 @@ A later milestone may support a stable benchmark subset with stronger review and
 
 ### 19.1 Responsibilities
 
-The packaging layer should build the release structure expected by Hugging Face and the `HeOCR` repo.
+The packaging layer should build the release structure expected by Hugging Face, the mixed `HeOCR` repo, and the synthetic-only `HeOCRsynth` repo.
 
 ### 19.2 Required outputs
 
@@ -1068,6 +1068,22 @@ Each release should include a small compatibility set that lets users understand
 Published releases should be treated as immutable records. Corrections, takedowns, source deprecations, and schema migrations should appear in later versions with release notes rather than rewriting prior release history.
 
 Current removal manifests may use coarse machine-readable reasons, but release notes and changelogs should provide a human-readable audit rationale for rights, privacy, takedown, and source-policy removals whenever disclosure is safe.
+
+### 19.6 Synthetic-only HeOCRsynth handoff
+
+`hocrgen export-synthetic` is the dedicated synthetic-only export path for `HeOCRsynth`. It runs the normal pipeline through `build-release`, then filters existing release-ready pipeline state instead of treating raw hocrsyngen batches as publishable data.
+
+The HeOCRsynth export must:
+
+- select only release-ready synthetic items with `PROJECT-SYNTHETIC`
+- preserve synthetic disclosure, hocrsyngen provider metadata, rendering metadata, and Hebrew coverage metadata
+- reject selected synthetic items missing the metadata required to distinguish generated provenance from real-source provenance
+- write payload assets under `data/synthetic/<split>/<item_id>/`
+- filter item, split, benchmark, annotation, review, blocked, duplicate, source-stat, composition, diff, and handoff artifacts to the selected synthetic scope
+- emit `release_record.json` with `dataset_id: HeOCRsynth`, `release_kind: synthetic_only`, `synthetic_only: true`, and `real_items: 0`
+- keep mixed `HeOCR` release behavior in `export-alpha` unchanged
+
+The synthetic-only exporter must not call hocrsyngen internals, a hocrsyngen CLI validator/generator, REST services, network services, GPU, LLM, diffusion, or heavyweight generator dependencies.
 
 ---
 

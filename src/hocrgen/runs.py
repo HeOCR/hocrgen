@@ -28,7 +28,7 @@ from hocrgen.manifests.models import (
 from hocrgen.pipeline import PIPELINE_STAGES, PipelineState, empty_pipeline_state
 
 
-EXTRA_RUN_STAGES = ("export-alpha",)
+EXTRA_RUN_STAGES = ("export-alpha", "export-synthetic")
 RUN_STAGE_ORDER = PIPELINE_STAGES + EXTRA_RUN_STAGES
 RUN_STAGE_INDEX = {stage: index for index, stage in enumerate(RUN_STAGE_ORDER)}
 RunRecordModel = TypeVar("RunRecordModel", bound=BaseModel)

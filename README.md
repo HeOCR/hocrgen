@@ -2,7 +2,7 @@
 
 `hocrgen` is the open-source dataset operations toolchain for the HeOCR project.
 
-This repository now implements a conservative review-readiness, source-operations, benchmark-subset, evaluation-utility, community-contribution, annotation-pilot, multi-release governance, benchmark ground-truth reference, modern handwritten acquisition policy, and synthetic-provider validation layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, optional benchmark-reference ingestion and adjudication/status reporting, lightweight text evaluation over benchmark manifests, carefully bounded annotation pilot selection, curated dry-run release assembly, documented contribution safety rails, release/version governance for repeated public exports, and roadmap planning for a separate synthetic generator package and synthetic-only dataset stream.
+This repository now implements a conservative review-readiness, source-operations, benchmark-subset, evaluation-utility, community-contribution, annotation-pilot, multi-release governance, benchmark ground-truth reference, modern handwritten acquisition policy, synthetic-provider validation, and synthetic-only export layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, optional benchmark-reference ingestion and adjudication/status reporting, lightweight text evaluation over benchmark manifests, carefully bounded annotation pilot selection, curated dry-run release assembly, documented contribution safety rails, release/version governance for repeated public exports, mixed HeOCR alpha handoff, and synthetic-only HeOCRsynth handoff.
 
 ## What `hocrgen` can do today
 
@@ -36,6 +36,7 @@ This repository now implements a conservative review-readiness, source-operation
 - document and validate benchmark ground-truth guidance for Hebrew transcription, layout labels, and `benchmark_reference_manifest.v1` reference manifests
 - document the `F3a` rights-clean modern handwritten Hebrew acquisition policy for consent, public-use release terms, provenance, privacy screening, takedown/removal handling, scanning standards, operator review, composition targets, and source-family boundaries
 - document the four-repository synthetic spinout boundary: `hocrsyngen` for generation, `hocrgen` for gates/orchestration/export, `HeOCR` for mixed releases, and `HeOCRsynth` for synthetic-only releases
+- export synthetic-only HeOCRsynth release handoff trees from governed release-ready pipeline state
 
 ## Supported sources in the current MVP
 
@@ -71,7 +72,7 @@ Near-term release-scale acquisition preserves that seed boundary while removing 
 
 This is the preferred short-term path for growing from the current small alpha exemplar set toward a bounded beta-scale trial. The `F1a` trial plan targets `80` real items plus `80` synthetic controls, with the real-source mix fixed at `27` NLI, `27` Pinkas, and `26` BiblIA. It is an operator-only acquisition trial, not a public beta export, release-candidate export, broad live-source crawler, or publication workflow.
 
-The NLI portion can build on the existing live-but-cached seed promotion path. Pinkas and BiblIA are bounded packaged exemplar sources with explicit source-depth expansion manifests under `src/hocrgen/data/pinkas/` and `src/hocrgen/data/biblia/`; added records only count when they are committed as packaged fixtures with stable provenance, PD-IL-compatible rights, source-health-visible assets, and reviewable operator notes. Rights, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates remain mandatory before any larger public release. F1d adds deterministic near-duplicate/source-group leakage hardening before scale beyond the operator-only trial; near-duplicates are surfaced as manual-review risks and grouped for split safety, not automatically removed. F1e adds an explicit benchmark/holdout leakage policy: benchmark items cannot share exact duplicate, near-duplicate, or source-group membership with non-benchmark holdout/public-beta candidates unless a typed repo-tracked accepted resolution matches the detected group and member set. F3a now defines the rights-clean modern handwritten Hebrew acquisition policy; the post-F3a roadmap still requires a bounded operator acquisition workflow, Hebrew-specific RTL/niqqud/layout synthetic quality work, and separate public beta publication gates before treating beta-scale acquisition as release or benchmark readiness.
+The NLI portion can build on the existing live-but-cached seed promotion path. Pinkas and BiblIA are bounded packaged exemplar sources with explicit source-depth expansion manifests under `src/hocrgen/data/pinkas/` and `src/hocrgen/data/biblia/`; added records only count when they are committed as packaged fixtures with stable provenance, PD-IL-compatible rights, source-health-visible assets, and reviewable operator notes. Rights, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates remain mandatory before any larger public release. F1d adds deterministic near-duplicate/source-group leakage hardening before scale beyond the operator-only trial; near-duplicates are surfaced as manual-review risks and grouped for split safety, not automatically removed. F1e adds an explicit benchmark/holdout leakage policy: benchmark items cannot share exact duplicate, near-duplicate, or source-group membership with non-benchmark holdout/public-beta candidates unless a typed repo-tracked accepted resolution matches the detected group and member set. F3a/F3b now define the rights-clean modern handwritten Hebrew acquisition policy and bounded operator intake workflow; F4b-F4d define the external synthetic-provider and HeOCRsynth handoff boundary; separate F5 publication gates are still required before treating beta-scale acquisition as release or benchmark readiness.
 
 Every `discover` run emits an operator-only `discover/source_depth_feasibility.json` artifact for the F1 target. The report records per-source target count, observed candidate count, health-eligible runnable/cached candidate count, target-scale candidate count, asset count, exploratory catalog count where applicable, static-source expansion-path status, runnable/cached gap, target-scale gap, feasibility status, report-scoped warnings, and operator notes. On the current fixture-backed data, NLI reports `27` runnable/cached real source-cached seeds against a target of `27`; the newly promoted F1b4 NLI fixtures are marked source-depth-only and do not automatically enter normal release/export discovery. Pinkas reports `1` normally discoverable record plus `27` packaged source-depth inventory records against `27`; BiblIA reports `1` normally discoverable record plus `26` packaged source-depth inventory records against `26`; and the hocrsyngen-backed synthetic source reports `2` validated manifest samples against the `80` synthetic-control target. Pinkas/BiblIA expansion records marked for F1 source depth remain operator-only and do not automatically enter normal release/export discovery, while synthetic target scale now requires a larger validated hocrsyngen batch rather than hocrgen-side generation.
 
@@ -116,8 +117,6 @@ python scripts/promote_nli_seeds.py \
 
 - broad live-source crawling
 - stronger perceptual/semantic duplicate review beyond the current deterministic near-duplicate/source-group split-safety gates
-- bounded modern handwritten Hebrew acquisition implementation and typed intake manifests against the F3a consent, privacy, composition, and takedown policy
-- synthetic-only export handoff to `HeOCRsynth`
 - OCR-aware privacy screening
 - advanced classification and model-training infrastructure
 - final public beta publication to Hugging Face or the GitHub dataset repo after source-depth, uniqueness, ground-truth, review, and portability gates pass
@@ -343,6 +342,51 @@ The current pre-alpha freeze sequencing and blocker list lives in [`docs/pre_alp
 
 Kaggle and Hugging Face publication remain out of scope for alpha releases.
 
+## Synthetic-only export
+
+`export-synthetic` builds on the existing `build-release` outputs and writes a versioned synthetic-only release tree shaped for the separate `HeOCRsynth` repository. It selects only release-ready synthetic items from hocrgen pipeline state; raw hocrsyngen batches are not publishable by themselves.
+
+Default usage:
+
+```bash
+hocrgen export-synthetic --profile profile_open_v1 --dry-run
+```
+
+By default the export is written under:
+
+```text
+.work/hocrgen/exports/synth-alpha-v0/
+```
+
+To write directly into a checkout of the separate `HeOCRsynth` repo:
+
+```bash
+hocrgen export-synthetic \
+  --profile profile_open_v1 \
+  --dry-run \
+  --heocrsynth-repo /path/to/HeOCRsynth
+```
+
+The synthetic exporter:
+
+- copies only release-ready synthetic items with `PROJECT-SYNTHETIC` licensing into `data/synthetic/<split>/<item_id>/`
+- rejects synthetic items that are missing synthetic disclosure or hocrsyngen provider, rendering, and Hebrew coverage metadata
+- filters public manifests, benchmark artifacts, review/audit artifacts, annotation artifacts, release diffs, and docs to the selected synthetic scope
+- writes `release_record.json` with `dataset_id: HeOCRsynth`, `release_kind: synthetic_only`, `synthetic_only: true`, and `real_items: 0`
+- keeps real NLI, Pinkas, BiblIA, and modern handwriting items out of the synthetic-only payload and audit manifests
+- writes HeOCRsynth-specific `CHANGELOG.md`, `DATASET_CARD.md`, `RELEASE_NOTES.md`, `PROVENANCE.md`, `BENCHMARK_CARD.md`, and `HANDOFF.md`
+- keeps mixed real+synthetic `HeOCR` releases distinct; those remain handled by `export-alpha`
+
+By default `export-synthetic` auto-discovers the previous sibling synthetic release under the same export root and compares against it. To override that baseline explicitly:
+
+```bash
+hocrgen export-synthetic \
+  --profile profile_open_v1 \
+  --dry-run \
+  --version synth-alpha-v1 \
+  --compare-to /path/to/HeOCRsynth/releases/synth-alpha-v0
+```
+
 ## Multi-release governance
 
 `E4a` defines the current release governance contract without changing alpha/public item inclusion behavior.
@@ -556,14 +600,14 @@ The active `project_synthetic` source now consumes fixture-backed hocrsyngen `ge
 - preserves stable hocrgen item ids such as `project_synthetic:synthetic-0` through an explicit legacy sample-index mapping so benchmark approvals do not churn in this transition PR
 - carries hocrsyngen sample id, manifest version, provider/generator version, seed, template, recipe, degradation, font, source corpus, text metadata, rendering metadata, Hebrew coverage metadata, controls, and synthetic disclosure in item metadata without publishing exact logical text as generic item metadata
 - can limit manifest-backed synthetic candidates by `--synthetic-template`, `--synthetic-recipe`, and `--synthetic-degradation-preset`
-- emits `synthetic_composition.json` during `build-release` and `export-alpha`, with template, recipe, degradation preset, font, provider version, layout family, Hebrew coverage, split, and synthetic fraction counts
+- emits `synthetic_composition.json` during `build-release`, `export-alpha`, and `export-synthetic`, with template, recipe, degradation preset, font, provider version, layout family, Hebrew coverage, split, and synthetic fraction counts
 - keeps synthetic release inclusion bounded by profile and alpha export caps while allowing both default hocrsyngen fixture recipes into the conservative public profile
 
 Synthetic generation is now a conservative spinout. `hocrsyngen` owns synthetic Hebrew OCR/HTR sample generation; `hocrgen` remains the orchestration, governance, review, benchmark, split, cap, and export pipeline; `HeOCR` receives mixed real+synthetic releases; and `HeOCRsynth` receives synthetic-only releases. The old in-repo generator code and font/text fixtures remain temporarily as legacy smoke coverage, but they are no longer the default `project_synthetic` source path.
 
 The external-provider integration is fixture-backed and dependency-light. hocrgen consumes a hardened `generation_manifest.v1`: `generation_manifest.json` plus relative page assets. Manifest v1 includes sample id, page assets, logical-order UTF-8 text, script/language/direction metadata, explicit hocrsyngen provider metadata, no-network/no-REST/no-GPU/no-LLM/no-diffusion flags, rendering metadata for logical RTL Hebrew pages, computed Hebrew coverage booleans, generator version, recipe id, seed/provenance, license `PROJECT-SYNTHETIC`, synthetic disclosure, and optional persona/condition controls. Persona and condition fields are generator controls only; they must not claim psychological truth, real-writer identity, or demographic authority.
 
-`hocrsyngen` outputs are candidate synthetic inputs, not release-ready data by themselves. hocrgen does not call `hocrsyngen generate`, `hocrsyngen validate`, a live service, GPU model, LLM, diffusion model, or other heavyweight generator dependency in the default pipeline. hocrsyngen CLI JSON reports such as `generation_report.v1` are command output only; hocrgen consumes the batch manifest and assets. The normal rights/provenance disclosure, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates decide whether generated samples appear in mixed `HeOCR` releases or synthetic-only `HeOCRsynth` releases.
+`hocrsyngen` outputs are candidate synthetic inputs, not release-ready data by themselves. hocrgen does not call `hocrsyngen generate`, `hocrsyngen validate`, a live service, GPU model, LLM, diffusion model, or other heavyweight generator dependency in the default pipeline. hocrsyngen CLI JSON reports such as `generation_report.v1` are command output only; hocrgen consumes the batch manifest and assets. The normal rights/provenance disclosure, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates decide whether generated samples appear in mixed `HeOCR` releases or synthetic-only `HeOCRsynth` releases. `export-synthetic` is the hocrgen-side HeOCRsynth handoff path and keeps its release tree visibly synthetic-only under `data/synthetic/`.
 
 ## Community contribution model
 

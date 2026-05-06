@@ -418,6 +418,23 @@ class AlphaReleaseRecord(ManifestModel):
     schema_version: Literal[1] = 1
 
 
+class SyntheticReleaseRecord(ManifestModel):
+    dataset_id: Literal["HeOCRsynth"] = "HeOCRsynth"
+    release_kind: Literal["synthetic_only"] = "synthetic_only"
+    synthetic_only: Literal[True] = True
+    version: str
+    profile_id: str
+    included_sources: list[str] = Field(default_factory=list)
+    split_counts: dict[str, int] = Field(default_factory=dict)
+    real_items: Literal[0] = 0
+    synthetic_items: int
+    review_required_count: int
+    blocked_count: int
+    hocrgen_commit: str
+    exported_at: str
+    schema_version: Literal[1] = 1
+
+
 class ReleaseRemovalRecord(ManifestModel):
     item_id: str
     source_id: str
