@@ -34,7 +34,7 @@ Public releases must:
 
 Unknown rights, restricted review-only rights, blocked sources, unresolved privacy flags, and unresolved review decisions must not be promoted into `profile_open_v1`.
 
-Modern handwritten contributor material must additionally satisfy the F3a policy before public-profile use: explicit contributor consent, compatible public-use release terms, rights provenance, contemporary privacy clearance, operator review, and a documented takedown/removal path. No modern contributor samples are collected or exported by F3a.
+Modern handwritten contributor material must additionally satisfy the F3a/F3b policy before public-profile use: explicit contributor consent, compatible public-use release terms, rights provenance, contemporary privacy clearance, typed operator intake manifests, source-relative assets, operator review, and a documented takedown/removal path. F3b does not add a default modern handwriting source or collect/package real contributor samples; configured modern intake records remain review-only until explicitly approved.
 
 ## External contribution review policy
 

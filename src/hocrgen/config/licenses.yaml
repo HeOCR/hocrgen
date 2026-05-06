@@ -30,6 +30,13 @@ licenses:
     aliases:
       - PROJECT-SYNTHETIC
     notes: Used for deterministic synthetic samples emitted by the milestone-2 generator.
+  - id: HEOCR-CONSENT-OPEN
+    name: HeOCR contributor consent open-use grant
+    rights_classification: open
+    public_release_allowed: true
+    aliases:
+      - HEOCR-CONSENT-OPEN
+    notes: Project-specific normalized bucket for adult contributor-granted modern handwriting samples governed by the F3a/F3b consent policy.
   - id: RESTRICTED-NONOPEN
     name: Restricted non-open material
     rights_classification: restricted_review_only

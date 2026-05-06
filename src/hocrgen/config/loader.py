@@ -10,7 +10,7 @@ import yaml
 from pydantic import ValidationError
 
 from hocrgen.config.models import LicenseRegistry, PrivacyRules, QualityThresholds, ReleaseProfile, SourceRegistry
-from hocrgen.core.errors import ConfigValidationError
+from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 
 
 @dataclass(frozen=True)
@@ -140,6 +140,8 @@ def load_config_bundle(config_root: Path | None = None) -> ConfigBundle:
 
 
 def validate_bundle_references(bundle: ConfigBundle) -> None:
+    from hocrgen.fetchers.modern_handwriting import validate_modern_intake_source_config
+
     source_ids = {source.id for source in bundle.source_registry.sources}
     for profile in bundle.profiles.values():
         unknown = (set(profile.include_sources) | set(profile.exclude_sources)) - source_ids
@@ -161,6 +163,14 @@ def validate_bundle_references(bundle: ConfigBundle) -> None:
                 f"privacy rule {rule.id} references unknown source ids",
                 details=[{"privacy_rule_id": rule.id, "unknown_source_ids": sorted(unknown_rule_sources)}],
             )
+    for source in bundle.source_registry.sources:
+        if source.fetcher == "modern_handwriting_intake":
+            try:
+                validate_modern_intake_source_config(source)
+            except StageExecutionError as exc:
+                raise ConfigValidationError(f"modern handwriting intake validation failed for {source.id}: {exc}") from exc
+
+
 def load_and_validate_bundle(config_root: Path | None = None) -> ConfigBundle:
     bundle = load_config_bundle(config_root)
     validate_bundle_references(bundle)

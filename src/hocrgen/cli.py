@@ -19,6 +19,7 @@ from hocrgen.evaluation import (
     summarize_benchmark_examples,
 )
 from hocrgen.fetchers.base import StageOptions
+from hocrgen.fetchers.modern_handwriting import validate_modern_intake_manifest
 from hocrgen.package.alpha import AlphaExportConfig, export_alpha_release
 from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_summary
 from hocrgen.review.merge import validate_review_data
@@ -199,6 +200,9 @@ def _stage_options_from_args(args: argparse.Namespace) -> StageOptions:
 def handle_config_validate(args: argparse.Namespace) -> int:
     try:
         bundle = _load_bundle(args.config_root)
+        for source in bundle.source_registry.sources:
+            if source.fetcher == "modern_handwriting_intake":
+                validate_modern_intake_manifest(source, bundle)
         benchmark_config = load_benchmark_config(bundle.config_root)
         benchmark_reference_manifest, benchmark_reference_manifest_path = load_benchmark_reference_manifest(bundle.config_root)
         benchmark_reference_validation = validate_benchmark_reference_files(bundle.config_root)

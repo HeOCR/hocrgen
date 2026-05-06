@@ -130,7 +130,7 @@ It should not be responsible for training OCR models, though it may later emit b
    - rights parsing
    - metadata extraction
    - file download
-   - future modern handwriting intake manifests governed by the F3a policy
+   - operator-provided modern handwriting intake manifests governed by the F3a/F3b policy
 
 3. **Processing layer**
    - normalization
@@ -207,7 +207,7 @@ An item is a normalized dataset unit with assigned metadata and eligibility stat
 A review decision is a persisted human or policy-driven judgment about a candidate or item.
 
 ### 6.6 Modern handwriting intake
-Modern handwriting intake is a future contributor-supplied acquisition path governed by the F3a policy in [`modern_handwritten_acquisition_policy.md`](./modern_handwritten_acquisition_policy.md). It should stay separate from historical public sources and synthetic-provider inputs, require consent/provenance/privacy records before review, and use typed source-relative manifests before any public-profile eligibility.
+Modern handwriting intake is an operator-provided contributor-supplied acquisition path governed by the F3a policy in [`modern_handwritten_acquisition_policy.md`](./modern_handwritten_acquisition_policy.md) and implemented by the F3b `modern_handwriting_intake` adapter. It stays separate from historical public sources and synthetic-provider inputs, requires consent/provenance/privacy records before review, uses typed source-relative manifests, and requires explicit review approval before any public-profile eligibility.
 
 ### 6.7 Release
 A release is a versioned packaged dataset output, including assets, metadata, and changelog.
@@ -722,6 +722,7 @@ Recommended `license_normalized` values:
 - `CC-BY-4.0`
 - `CC-BY-SA-4.0`
 - `PROJECT-SYNTHETIC`
+- `HEOCR-CONSENT-OPEN`
 - `RESTRICTED-NONOPEN`
 - `UNKNOWN`
 

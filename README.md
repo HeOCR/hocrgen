@@ -364,6 +364,7 @@ The current milestone normalizes rights into these controlled values:
 - `CC-BY-4.0`
 - `CC-BY-SA-4.0`
 - `PROJECT-SYNTHETIC`
+- `HEOCR-CONSENT-OPEN`
 - `RESTRICTED-NONOPEN`
 - `UNKNOWN`
 
@@ -538,9 +539,13 @@ The same document defines layout-label guidance for page, region, line, and opti
 
 ## Modern handwritten acquisition policy
 
-`F3a` defines the policy foundation for future rights-clean modern handwritten Hebrew intake in [`docs/modern_handwritten_acquisition_policy.md`](./docs/modern_handwritten_acquisition_policy.md). The policy requires explicit contributor consent and public-use release terms, rights provenance before review, conservative contemporary privacy screening, a takedown/removal workflow, scan/upload quality standards, mandatory operator review, and composition targets for demographic bands, script style, page type, and mixed-language coverage.
+`F3a` defines the policy foundation for rights-clean modern handwritten Hebrew intake in [`docs/modern_handwritten_acquisition_policy.md`](./docs/modern_handwritten_acquisition_policy.md). The policy requires explicit contributor consent and public-use release terms, rights provenance before review, conservative contemporary privacy screening, a takedown/removal workflow, scan/upload quality standards, mandatory operator review, and composition targets for demographic bands, script style, page type, and mixed-language coverage.
 
-Modern real handwriting remains distinct from historical public sources and synthetic data. Historical public sources continue to use upstream rights/provenance evidence and source-adapter gates; synthetic data continues to use hocrsyngen/provider manifests, synthetic disclosure, and caps. F3a does not collect handwriting samples, implement a public upload portal, add broad acquisition automation, change public/alpha exports, or claim public beta readiness. F3b should add the typed, repo-tracked operator intake manifest and bounded acquisition workflow before any modern contributor samples are collected into this repository.
+`F3b` implements the bounded operator workflow for custom-config intake sources without adding a default modern handwriting source to `profile_open_v1` or `profile_review_v1`. A modern intake source uses the `modern_handwriting_intake` fetcher with `settings.modern_intake_manifest`, `status: review_only`, `requires_manual_review: true`, `default_public_release: false`, and the normalized license `HEOCR-CONSENT-OPEN`.
+
+Modern intake manifests are operator-provided JSON files with source-relative JPEG/PNG assets. `hocrgen config validate --config-root ...` and source health validation check adult contributor eligibility, consent/provenance ids, public-use release terms, clear contemporary privacy screening, takedown/removal state, scan metadata, checksums, portable paths, and composition metadata before the source can run. Valid records flow through the normal pipeline as candidate real modern handwriting, but public release inclusion still requires explicit review approval or allowlist treatment through the existing review-merge path.
+
+Modern real handwriting remains distinct from historical public sources and synthetic data. Historical public sources continue to use upstream rights/provenance evidence and source-adapter gates; synthetic data continues to use hocrsyngen/provider manifests, synthetic disclosure, and caps. F3b does not collect or package real contributor samples, implement a public upload portal, add broad acquisition automation, change default public/alpha exports, or claim public beta readiness.
 
 ## Synthetic generation
 

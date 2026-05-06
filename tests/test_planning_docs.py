@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F3a"
+CURRENT_COMPLETED_NOTATION = "F3b"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -42,7 +42,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
 
     assert f"Last completed roadmap action on the current ref: `{CURRENT_COMPLETED_NOTATION}`" in agent_plan
     assert "`F1e` resolves the previously visible F1d benchmark/holdout source-group risk" in agent_plan
-    assert "next planned critical-path implementation should move to `F3b` modern handwritten acquisition workflow" in agent_plan
+    assert "next planned critical-path implementation should move to `F4c` deeper hocrsyngen rendering/provider metadata gates" in agent_plan
     assert f"| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert f"| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
@@ -55,12 +55,12 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "| F3 | Modern handwritten acquisition program | F3a, F3b |" in roadmap
     assert "| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d |" in roadmap
     assert "| F5 | Public beta and publication readiness | F5a, F5b |" in roadmap
-    assert f"The immediate acquisition implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
+    assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
     assert "`E4a` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
 
 
-def test_f3a_modern_handwritten_policy_is_consistent_and_bounded() -> None:
+def test_f3_modern_handwritten_policy_and_intake_are_consistent_and_bounded() -> None:
     policy = Path("docs/modern_handwritten_acquisition_policy.md").read_text(encoding="utf-8")
     agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
     readme = Path("README.md").read_text(encoding="utf-8")
@@ -90,12 +90,14 @@ def test_f3a_modern_handwritten_policy_is_consistent_and_bounded() -> None:
         "historical public sources",
         "synthetic data",
         "typed intake manifests",
+        "HEOCR-CONSENT-OPEN",
     ]:
         assert required.casefold() in policy_lower
 
     for required_policy_boundary in [
         "does not collect samples",
         "does not add broad upload/acquisition automation",
+        "does not add a default public-profile source",
         "does not claim public beta readiness",
         "Historical public-source rights and synthetic-provider manifests do not satisfy modern contributor-consent requirements.",
         "minor participation is out of scope for F3a/F3b",
@@ -111,15 +113,16 @@ def test_f3a_modern_handwritten_policy_is_consistent_and_bounded() -> None:
         assert required_policy_boundary.casefold() in policy_lower
 
     assert "| F3 | Modern handwritten acquisition program | F3a, F3b |" in roadmap
-    assert "| F3 | Modern handwritten acquisition program | F3a, F3b | Rights-clean modern Hebrew handwriting collection policy and operator acquisition workflow | partial |" in roadmap
+    assert "| F3 | Modern handwritten acquisition program | F3a, F3b | Rights-clean modern Hebrew handwriting collection policy and operator acquisition workflow | completed |" in roadmap
     assert "| F3a | F3 | Define rights-clean modern handwritten Hebrew collection policy, consent, privacy, and takedown workflow | no | completed |" in roadmap
-    assert "F3b should implement a bounded operator workflow and typed intake manifests against this policy." in roadmap
-    assert "F3b implementation is still required before modern handwritten acquisition can start" in agent_plan
-    assert "F3a does not collect handwriting samples" in readme
-    assert "No modern contributor samples are collected or exported by F3a." in release_governance
+    assert "| F3b | F3 | Implement operator workflow for bounded modern handwriting acquisition and review | no | completed |" in roadmap
+    assert "`F3b` implements the bounded operator workflow" in roadmap
+    assert "`F3b`: hocrgen now validates operator-provided modern handwriting intake manifests" in agent_plan
+    assert "`F3b` implements the bounded operator workflow" in readme
+    assert "F3b does not add a default modern handwriting source" in release_governance
     assert "Do not collect contributor samples" in contributing
-    assert "before any sample collection" in source_guide
-    assert "Modern handwriting intake is a future contributor-supplied acquisition path" in design
+    assert "F3b `modern_handwriting_intake` manifest contract" in source_guide
+    assert "implemented by the F3b `modern_handwriting_intake` adapter" in design
 
 
 def test_f1a_beta_trial_plan_is_bounded_and_source_balanced() -> None:
