@@ -45,6 +45,8 @@ def export_review_queue(items: list[PrivacyScannedItemRecord]) -> ReviewExportOu
             review_reasons.extend(f"privacy:{reason}" for reason in (item.privacy_reasons or [item.privacy_flag.value]))
         if item.classification_review_reasons:
             review_reasons.extend(f"classification:{reason}" for reason in item.classification_review_reasons)
+        if item.provenance.get("requires_manual_review") is True:
+            review_reasons.append("policy:manual_review_required_source")
         if item.provenance.get("source_status") == "review_only":
             review_reasons.append("policy:review_only_source")
         if item.rights_classification.value == "restricted_review_only":

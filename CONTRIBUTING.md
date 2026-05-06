@@ -35,7 +35,7 @@ Open an issue before adding source code or changing release profiles. A source p
 
 Acceptance of a proposal does not approve broad ingestion. It only authorizes a bounded follow-up PR that keeps the existing pipeline safeguards in place.
 
-Modern handwritten Hebrew proposals must also follow the `F3a` policy in [Modern Handwritten Acquisition Policy](./docs/modern_handwritten_acquisition_policy.md). Do not collect contributor samples, add upload forms, or place modern handwriting in `profile_open_v1` until a bounded F3b-style operator workflow records consent/provenance, privacy-screening status, source-relative assets, composition metadata, and review decisions in typed repo-tracked artifacts.
+Modern handwritten Hebrew proposals must also follow the `F3a` policy and F3b manifest workflow in [Modern Handwritten Acquisition Policy](./docs/modern_handwritten_acquisition_policy.md). Do not collect contributor samples, add upload forms, or place modern handwriting in `profile_open_v1` unless a review-only `modern_handwriting_intake` source records consent/provenance, privacy-screening status, source-relative assets, composition metadata, and review decisions in typed repo-tracked artifacts.
 
 ## Source adapter rules
 
@@ -50,6 +50,7 @@ Required implementation shape:
 - extend a stage-specific fetcher in `src/hocrgen/fetchers/` instead of adding unrelated orchestration logic to `src/hocrgen/cli.py`
 - prove unknown or non-public rights are rejected or routed to review under the relevant profile
 - keep network-dependent discovery out of CI tests
+- for modern handwritten Hebrew intake, use a review-only `modern_handwriting_intake` source with a typed operator manifest, `HEOCR-CONSENT-OPEN`, source-relative assets, and explicit review approval before release inclusion
 
 Adapter PRs must not:
 

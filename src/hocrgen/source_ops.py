@@ -10,6 +10,7 @@ from hocrgen.config.models import SourceConfig, SourceOperationalStatus
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.hocrsyngen_manifest import validate_hocrsyngen_batch
+from hocrgen.fetchers.modern_handwriting import validate_modern_intake_manifest
 from hocrgen.fetchers.nli import parse_nli_fixture_html
 
 F1_TARGET_SCALE_COUNT_KEY = "f1_source_depth_candidate_count"
@@ -560,6 +561,8 @@ def _inspect_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[di
         return _inspect_records_source(source, bundle)
     if source.fetcher == "hocrsyngen_manifest":
         return _inspect_hocrsyngen_manifest_source(source, bundle)
+    if source.fetcher == "modern_handwriting_intake":
+        return _inspect_modern_handwriting_source(source, bundle)
     if source.fetcher == "synthetic":
         return _inspect_synthetic_source(source, bundle)
     return ([{"name": "known_fetcher", "status": "error", "message": f"unknown fetcher: {source.fetcher}"}], 0, 0)
@@ -1008,6 +1011,56 @@ def _inspect_hocrsyngen_manifest_source(source: SourceConfig, bundle: ConfigBund
         }
     )
     return checks, batch.sample_count, batch.page_count
+
+
+def _inspect_modern_handwriting_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int]:
+    checks: list[dict[str, Any]] = []
+    manifest_reference = source.settings.modern_intake_manifest
+    if not manifest_reference:
+        return (
+            [
+                {
+                    "message": "settings.modern_intake_manifest is required",
+                    "name": "modern_intake_manifest",
+                    "status": "error",
+                }
+            ],
+            0,
+            0,
+        )
+    manifest_path = bundle.resolve_path(manifest_reference)
+    checks.append(_path_check("modern_intake_manifest", manifest_path, bundle))
+    try:
+        batch = validate_modern_intake_manifest(source, bundle)
+    except (ConfigValidationError, OSError, StageExecutionError) as exc:
+        checks.append(
+            {
+                "message": str(exc),
+                "name": "modern_intake_manifest_v1",
+                "path": _format_health_path(manifest_path, bundle),
+                "status": "error",
+            }
+        )
+        return checks, 0, 0
+    for record in batch.manifest.records:
+        checks.append(_path_check("modern_intake_asset", batch.manifest_path.parent / record.asset_path, bundle))
+    checks.append(
+        {
+            "actual": batch.candidate_count,
+            "expected": "validated modern handwriting intake records",
+            "name": "modern_intake_candidate_count",
+            "status": "ok",
+        }
+    )
+    checks.append(
+        {
+            "actual": batch.asset_count,
+            "expected": "validated modern handwriting intake assets",
+            "name": "modern_intake_asset_count",
+            "status": "ok",
+        }
+    )
+    return checks, batch.candidate_count, batch.asset_count
 
 
 def _check_expectations(source: SourceConfig, candidate_count: int, asset_count: int) -> list[dict[str, Any]]:

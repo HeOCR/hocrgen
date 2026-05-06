@@ -1,6 +1,6 @@
 # Modern Handwritten Acquisition Policy
 
-`F3a` defines the rights-clean policy foundation for future modern handwritten Hebrew intake, including contributor consent, public-use release terms, scanning/upload standards, mixed-language coverage, and future typed intake manifests. It does not collect samples, does not add broad upload/acquisition automation, does not change public-profile inclusion, and does not claim public beta readiness. `F3b` should implement any operator acquisition workflow against this policy.
+`F3a` defines the rights-clean policy foundation for modern handwritten Hebrew intake, including contributor consent, public-use release terms, scanning/upload standards, mixed-language coverage, and typed intake manifests. F3b implements the bounded operator manifest workflow against this policy. It does not collect samples, does not add broad upload/acquisition automation, does not add a default public-profile source, and does not claim public beta readiness.
 
 ## Scope
 
@@ -71,7 +71,7 @@ Accepted writing prompts should use neutral text supplied by the project or publ
 
 ## Scanning And Upload Standards
 
-F3b implementation should require operator-visible scan metadata and technical checks before review. Minimum standards:
+F3b requires operator-visible scan metadata and technical checks before review. Minimum standards:
 
 - one page per image unless a multi-page record is explicitly modeled
 - JPEG or PNG input that can be normalized by the existing technical QA path
@@ -82,7 +82,7 @@ F3b implementation should require operator-visible scan metadata and technical c
 - color or grayscale accepted; aggressive filters, beautification, and perspective distortion should be avoided
 - prompts, page type, script style, language mix, and collection context recorded as metadata rather than inferred later
 
-Upload implementation is out of scope for F3a. Until F3b exists, modern handwriting samples should not be collected into this repository.
+Upload implementation remains out of scope. Modern handwriting samples should enter this repository only through review-only F3b operator manifests and explicit review decisions.
 
 ## Operator Review Requirements
 
@@ -129,9 +129,9 @@ Minimum handling:
 
 If a benchmark item is affected, benchmark stability policy still applies: the replacement/removal must be deliberate, documented, and versioned.
 
-## Future Typed Manifest Expectations
+## Typed Manifest Expectations
 
-F3a does not add runtime schema. F3b should introduce a typed, repo-tracked operator intake shape before any sample collection. The shape should include, at minimum:
+F3b introduces a typed operator intake shape before any sample collection. The shape includes:
 
 - batch id, source id, operator id, collection date, and collection method
 - contributor eligibility class, with adult contributor as the only F3b public-profile-eligible class
@@ -145,4 +145,4 @@ F3a does not add runtime schema. F3b should introduce a typed, repo-tracked oper
 - takedown/removal status, takedown request date when applicable, and affected future release versions
 - public-release inclusion state and the first/last release versions in which the item appears
 
-The manifest must remain compatible with existing public export portability rules and must not publish absolute local filesystem paths or private consent records.
+The manifest must remain compatible with existing public export portability rules and must not publish absolute local filesystem paths or private consent records. Configured modern intake sources must use `status: review_only`, `requires_manual_review: true`, `default_public_release: false`, and `HEOCR-CONSENT-OPEN`.

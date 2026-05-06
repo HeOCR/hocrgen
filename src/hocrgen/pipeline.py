@@ -19,6 +19,7 @@ from hocrgen.dedupe.exact import deduplicate_items
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.biblia import BibliaImporter
 from hocrgen.fetchers.hocrsyngen_manifest import HocrsyngenManifestFetcher
+from hocrgen.fetchers.modern_handwriting import ModernHandwritingIntakeFetcher
 from hocrgen.fetchers.nli import NliFetcher
 from hocrgen.fetchers.pinkas import PinkasImporter
 from hocrgen.fetchers.synthetic import SyntheticFetcher
@@ -88,6 +89,7 @@ FETCHERS = {
     "pinkas": PinkasImporter(),
     "biblia": BibliaImporter(),
     "hocrsyngen_manifest": HocrsyngenManifestFetcher(),
+    "modern_handwriting_intake": ModernHandwritingIntakeFetcher(),
     "synthetic": SyntheticFetcher(),
 }
 
@@ -288,6 +290,7 @@ def _item_from_enriched(record: EnrichedCandidateRecord, source: SourceConfig, b
         is_synthetic=source.fetcher in SYNTHETIC_FETCHERS,
         provenance={
             "fetcher": source.fetcher,
+            "requires_manual_review": source.requires_manual_review,
             "source_name": source.name,
             "source_status": source.status.value,
             "upstream_identifier": record.source_item_id,
