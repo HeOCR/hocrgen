@@ -22,7 +22,6 @@ from hocrgen.utils.io import copy_file
 
 
 MODERN_CONSENT_LICENSE = "HEOCR-CONSENT-OPEN"
-MANIFEST_FILENAME = "modern_intake_manifest.json"
 
 
 class ModernIntakeModel(BaseModel):
@@ -230,8 +229,24 @@ def validate_modern_intake_manifest(source: SourceConfig, bundle: ConfigBundle) 
 
 
 class ModernHandwritingIntakeFetcher:
+    def __init__(self) -> None:
+        self._validated_batches: dict[tuple[str, Path, int, int], ModernIntakeBatch] = {}
+
+    def _validated_batch(self, source: SourceConfig, bundle: ConfigBundle) -> ModernIntakeBatch:
+        manifest_path = bundle.resolve_path(source.settings.modern_intake_manifest or "")
+        try:
+            manifest_stat = manifest_path.stat()
+        except FileNotFoundError:
+            return validate_modern_intake_manifest(source, bundle)
+        key = (source.id, manifest_path.resolve(), manifest_stat.st_mtime_ns, manifest_stat.st_size)
+        batch = self._validated_batches.get(key)
+        if batch is None:
+            batch = validate_modern_intake_manifest(source, bundle)
+            self._validated_batches[key] = batch
+        return batch
+
     def discover_candidates(self, source: SourceConfig, bundle: ConfigBundle, options: StageOptions) -> list[CandidateRecord]:
-        batch = validate_modern_intake_manifest(source, bundle)
+        batch = self._validated_batch(source, bundle)
         records = batch.manifest.records[: options.max_items] if options.max_items is not None else batch.manifest.records
         return [
             CandidateRecord(
@@ -258,7 +273,7 @@ class ModernHandwritingIntakeFetcher:
         candidates,
         options: StageOptions,
     ) -> list[EnrichedCandidateRecord]:
-        batch = validate_modern_intake_manifest(source, bundle)
+        batch = self._validated_batch(source, bundle)
         records = {record.source_item_id: record for record in batch.manifest.records}
         enriched: list[EnrichedCandidateRecord] = []
         for candidate in candidates:
@@ -340,6 +355,7 @@ def _portable_relative_path(path: str, field_label: str) -> None:
         or path != path.strip()
         or "\\" in path
         or "://" in path
+        or (len(path) >= 2 and path[0].isalpha() and path[1] == ":")
         or parsed.is_absolute()
         or any(part in {"", ".", ".."} for part in parsed.parts)
         or path.startswith("~")

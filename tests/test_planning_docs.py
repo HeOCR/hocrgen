@@ -116,8 +116,8 @@ def test_f3_modern_handwritten_policy_and_intake_are_consistent_and_bounded() ->
     assert "| F3 | Modern handwritten acquisition program | F3a, F3b | Rights-clean modern Hebrew handwriting collection policy and operator acquisition workflow | completed |" in roadmap
     assert "| F3a | F3 | Define rights-clean modern handwritten Hebrew collection policy, consent, privacy, and takedown workflow | no | completed |" in roadmap
     assert "| F3b | F3 | Implement operator workflow for bounded modern handwriting acquisition and review | no | completed |" in roadmap
-    assert "F3b` implements the bounded operator workflow" in roadmap
-    assert "F3b`: hocrgen now validates operator-provided modern handwriting intake manifests" in agent_plan
+    assert "`F3b` implements the bounded operator workflow" in roadmap
+    assert "`F3b`: hocrgen now validates operator-provided modern handwriting intake manifests" in agent_plan
     assert "`F3b` implements the bounded operator workflow" in readme
     assert "F3b does not add a default modern handwriting source" in release_governance
     assert "Do not collect contributor samples" in contributing

@@ -140,7 +140,7 @@ def load_config_bundle(config_root: Path | None = None) -> ConfigBundle:
 
 
 def validate_bundle_references(bundle: ConfigBundle) -> None:
-    from hocrgen.fetchers.modern_handwriting import validate_modern_intake_manifest, validate_modern_intake_source_config
+    from hocrgen.fetchers.modern_handwriting import validate_modern_intake_source_config
 
     source_ids = {source.id for source in bundle.source_registry.sources}
     for profile in bundle.profiles.values():
@@ -167,7 +167,6 @@ def validate_bundle_references(bundle: ConfigBundle) -> None:
         if source.fetcher == "modern_handwriting_intake":
             try:
                 validate_modern_intake_source_config(source)
-                validate_modern_intake_manifest(source, bundle)
             except StageExecutionError as exc:
                 raise ConfigValidationError(f"modern handwriting intake validation failed for {source.id}: {exc}") from exc
 

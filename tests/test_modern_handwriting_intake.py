@@ -140,6 +140,14 @@ def _modern_fixture(tmp_path: Path) -> tuple[Path, Path]:
     return root, manifest_path
 
 
+def _assert_config_validate_error(config_root: Path, capsys, message: str) -> None:
+    exit_code = main(["config", "validate", "--config-root", str(config_root)])
+    assert exit_code == 1
+    payload = json.loads(capsys.readouterr().out)
+    assert payload["status"] == "error"
+    assert message in payload["error"]
+
+
 def test_modern_intake_manifest_validates(tmp_path: Path) -> None:
     _, manifest_path = _modern_fixture(tmp_path)
     bundle = load_and_validate_bundle(_config_root(tmp_path, manifest_path))
@@ -164,12 +172,22 @@ def test_config_validate_checks_modern_intake_manifest(tmp_path: Path, capsys) -
     assert payload["source_count"] == 5
 
 
+def test_config_validate_checks_modern_intake_manifest_failures(tmp_path: Path, capsys) -> None:
+    root, manifest_path = _modern_fixture(tmp_path)
+    payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+    payload["records"][0]["sha256"] = "0" * 64
+    _write_manifest(root, payload)
+
+    _assert_config_validate_error(_config_root(tmp_path, manifest_path), capsys, "sha256 mismatch")
+
+
 @pytest.mark.parametrize(
     ("mutate", "message"),
     [
         (lambda payload: payload["records"][0].pop("consent_artifact_id"), "consent_artifact_id or institutional_agreement_id"),
         (lambda payload: payload["records"][0].update({"contributor_eligibility": "minor_contributor"}), "validation failed"),
         (lambda payload: payload["records"][0].update({"asset_path": "/tmp/page.png"}), "validation failed"),
+        (lambda payload: payload["records"][0].update({"asset_path": "C:sample.png"}), "validation failed"),
         (lambda payload: payload["records"][0].update({"private_evidence_locator": "../private/consent.pdf"}), "validation failed"),
         (lambda payload: payload["records"][0].update({"media_type": "image/gif"}), "validation failed"),
         (lambda payload: payload["records"][0].update({"consent_effective_date": "not-a-date"}), "validation failed"),
@@ -181,35 +199,32 @@ def test_config_validate_checks_modern_intake_manifest(tmp_path: Path, capsys) -
         (lambda payload: payload["records"][0]["text_metadata"].update({"prompt": "Cafe\u0301"}), "NFC"),
     ],
 )
-def test_modern_intake_manifest_rejects_policy_failures(tmp_path: Path, mutate, message: str) -> None:
+def test_modern_intake_manifest_rejects_policy_failures(tmp_path: Path, capsys, mutate, message: str) -> None:
     root, manifest_path = _modern_fixture(tmp_path)
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     mutate(payload)
     _write_manifest(root, payload)
 
-    with pytest.raises(ConfigValidationError, match=message):
-        load_and_validate_bundle(_config_root(tmp_path, manifest_path))
+    _assert_config_validate_error(_config_root(tmp_path, manifest_path), capsys, message)
 
 
-def test_modern_intake_manifest_rejects_missing_asset(tmp_path: Path) -> None:
+def test_modern_intake_manifest_rejects_missing_asset(tmp_path: Path, capsys) -> None:
     root, manifest_path = _modern_fixture(tmp_path)
     (root / "sample_001.png").unlink()
 
-    with pytest.raises(ConfigValidationError, match="asset is missing"):
-        load_and_validate_bundle(_config_root(tmp_path, manifest_path))
+    _assert_config_validate_error(_config_root(tmp_path, manifest_path), capsys, "asset is missing")
 
 
-def test_modern_intake_manifest_rejects_checksum_mismatch(tmp_path: Path) -> None:
+def test_modern_intake_manifest_rejects_checksum_mismatch(tmp_path: Path, capsys) -> None:
     root, manifest_path = _modern_fixture(tmp_path)
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     payload["records"][0]["sha256"] = "0" * 64
     _write_manifest(root, payload)
 
-    with pytest.raises(ConfigValidationError, match="sha256 mismatch"):
-        load_and_validate_bundle(_config_root(tmp_path, manifest_path))
+    _assert_config_validate_error(_config_root(tmp_path, manifest_path), capsys, "sha256 mismatch")
 
 
-def test_modern_intake_manifest_rejects_symlink_asset_escape(tmp_path: Path) -> None:
+def test_modern_intake_manifest_rejects_symlink_asset_escape(tmp_path: Path, capsys) -> None:
     root, manifest_path = _modern_fixture(tmp_path)
     outside_asset = tmp_path / "outside.png"
     _write_fixture_image(outside_asset)
@@ -220,21 +235,19 @@ def test_modern_intake_manifest_rejects_symlink_asset_escape(tmp_path: Path) -> 
     payload["records"][0]["sha256"] = sha256_file(outside_asset)
     _write_manifest(root, payload)
 
-    with pytest.raises(ConfigValidationError, match="escapes manifest directory"):
-        load_and_validate_bundle(_config_root(tmp_path, manifest_path))
+    _assert_config_validate_error(_config_root(tmp_path, manifest_path), capsys, "escapes manifest directory")
 
 
-def test_modern_intake_manifest_rejects_media_type_mismatch(tmp_path: Path) -> None:
+def test_modern_intake_manifest_rejects_media_type_mismatch(tmp_path: Path, capsys) -> None:
     root, manifest_path = _modern_fixture(tmp_path)
     payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     payload["records"][0]["media_type"] = "image/jpeg"
     _write_manifest(root, payload)
 
-    with pytest.raises(ConfigValidationError, match="media type mismatch"):
-        load_and_validate_bundle(_config_root(tmp_path, manifest_path))
+    _assert_config_validate_error(_config_root(tmp_path, manifest_path), capsys, "media type mismatch")
 
 
-def test_modern_intake_manifest_rejects_unreadable_asset_content(tmp_path: Path) -> None:
+def test_modern_intake_manifest_rejects_unreadable_asset_content(tmp_path: Path, capsys) -> None:
     root, manifest_path = _modern_fixture(tmp_path)
     asset_path = root / "sample_001.png"
     asset_path.write_text("not really an image", encoding="utf-8")
@@ -242,8 +255,7 @@ def test_modern_intake_manifest_rejects_unreadable_asset_content(tmp_path: Path)
     payload["records"][0]["sha256"] = sha256_file(asset_path)
     _write_manifest(root, payload)
 
-    with pytest.raises(ConfigValidationError, match="not a readable JPEG/PNG"):
-        load_and_validate_bundle(_config_root(tmp_path, manifest_path))
+    _assert_config_validate_error(_config_root(tmp_path, manifest_path), capsys, "not a readable JPEG/PNG")
 
 
 def test_modern_intake_source_must_be_review_only(tmp_path: Path) -> None:
