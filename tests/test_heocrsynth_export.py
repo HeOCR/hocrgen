@@ -75,6 +75,7 @@ def test_export_synthetic_creates_heocrsynth_shaped_tree(tmp_path: Path, capsys)
 
     release_record = _json(output_dir / "manifests" / "release_record.json")
     release_summary = _json(output_dir / "manifests" / "release_summary.json")
+    benchmark_reference_versioning = _json(output_dir / "manifests" / "benchmark_reference_versioning.json")
     item_manifest = _json(output_dir / "manifests" / "item_manifest.json")
     synthetic_composition = _json(output_dir / "manifests" / "synthetic_composition.json")
     benchmark_manifest = _json(output_dir / "manifests" / "benchmark_manifest.json")
@@ -91,13 +92,20 @@ def test_export_synthetic_creates_heocrsynth_shaped_tree(tmp_path: Path, capsys)
     assert release_record["included_sources"] == ["project_synthetic"]
     assert release_summary["exported_real_items"] == 0
     assert release_summary["exported_synthetic_items"] == 2
+    assert release_summary["release_ready_count"] == 2
     assert release_summary["synthetic_only"] is True
+    assert release_summary["upstream_build_counts"]["release_ready_count"] == 4
+    assert "accepted_count" not in release_summary
+    assert "normalized_count" not in release_summary
+    assert "retained_count" not in release_summary
     assert synthetic_composition["real_items"] == 0
     assert synthetic_composition["synthetic_items"] == 2
     assert synthetic_composition["synthetic_fraction"] == 1.0
     assert synthetic_composition["by_provider_version"] == {"fixture-f4c-v1": 2}
     assert annotation_pilot["pilot_item_count"] == 0
     assert {item["item_id"] for item in benchmark_manifest["items"]} == {"project_synthetic:synthetic-0"}
+    assert benchmark_reference_versioning["export_scope"] == "selected_synthetic_items"
+    assert benchmark_reference_versioning["checked_count"] == 1
     assert "synthetic-only HeOCRsynth" in dataset_card
     assert "not a mixed real+synthetic HeOCR release" in dataset_card
     assert "Mixed real+synthetic HeOCR releases remain handled by `export-alpha`." in release_notes
@@ -173,6 +181,30 @@ def test_export_synthetic_payload_is_synthetic_only_and_portable(tmp_path: Path,
             assert not Path(asset["release_asset_path"]).is_absolute()
             assert (output_dir / asset["release_asset_path"]).exists()
             assert (output_dir / asset["release_preview_path"]).exists()
+
+
+def test_export_synthetic_rejects_source_filter_before_pipeline(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+
+    exit_code = main(
+        [
+            "export-synthetic",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--source",
+            "project_synthetic",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert "--source is not supported for export-synthetic" in payload["error"]
+    assert not (tmp_path / "work").exists()
 
 
 def test_export_synthetic_can_target_heocrsynth_repo_checkout(tmp_path: Path, capsys) -> None:

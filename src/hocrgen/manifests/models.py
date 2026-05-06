@@ -215,8 +215,11 @@ class ExportedAssetRecord(ManifestModel):
     release_preview_path: str | None = None
 
 
-class AlphaExportedItemRecord(PrivacyScannedItemRecord):
+class ExportedItemRecord(PrivacyScannedItemRecord):
     exported_assets: list[ExportedAssetRecord] = Field(default_factory=list)
+
+
+AlphaExportedItemRecord = ExportedItemRecord
 
 
 def validate_release_relative_manifest_path(path: str, *, field_label: str) -> str:

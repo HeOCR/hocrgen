@@ -537,6 +537,15 @@ def handle_export_alpha(args: argparse.Namespace) -> int:
 
 
 def handle_export_synthetic(args: argparse.Namespace) -> int:
+    if args.source:
+        _print_json(
+            {
+                "status": "error",
+                "error": "--source is not supported for export-synthetic; the command runs the full release pipeline and filters the governed synthetic handoff after build-release",
+            }
+        )
+        return 1
+
     try:
         bundle = _load_bundle(args.config_root)
     except ConfigValidationError as exc:

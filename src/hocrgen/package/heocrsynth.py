@@ -13,11 +13,11 @@ from hocrgen.config.models import ReleaseProfile, SourceConfig
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.manifests.io import write_json
 from hocrgen.manifests.models import (
-    AlphaExportedItemRecord,
     CuratedItemRecord,
     DuplicateClusterRecord,
     DuplicateRelationRecord,
     ExportedAssetRecord,
+    ExportedItemRecord,
     PrivacyScannedItemRecord,
     ReleaseDiffRecord,
     ReviewQueueRecord,
@@ -140,6 +140,10 @@ def export_synthetic_release(
         benchmark_inputs.reference_status,
         selected_ids,
     )
+    selected_benchmark_reference_versioning = _filter_synthetic_benchmark_reference_versioning(
+        benchmark_inputs.reference_versioning,
+        selected_benchmark_reference_manifest,
+    )
     selected_benchmark_leakage_risk = _filter_synthetic_benchmark_leakage_risk(
         benchmark_inputs.leakage_risk,
         selected_ids,
@@ -196,7 +200,6 @@ def export_synthetic_release(
         exported_at=exported_at,
     )
     release_summary = {
-        "accepted_count": build_release_summary["accepted_count"],
         "blocked_count": len(synthetic_blocked_items),
         "dataset_id": "HeOCRsynth",
         "exported_item_count": len(exported_items),
@@ -204,16 +207,22 @@ def export_synthetic_release(
         "exported_synthetic_items": len(exported_items),
         "is_dry_run": build_release_summary["is_dry_run"],
         "max_synthetic_items": config.max_synthetic_items,
-        "normalized_count": build_release_summary["normalized_count"],
         "profile_id": profile_id,
         "real_items": 0,
         "release_kind": "synthetic_only",
-        "release_ready_count": build_release_summary["release_ready_count"],
-        "retained_count": build_release_summary["retained_count"],
+        "release_ready_count": len(exported_items),
         "review_required_count": len(synthetic_review_required_items),
         "split_counts": split_counts,
         "synthetic_items": len(exported_items),
         "synthetic_only": True,
+        "upstream_build_counts": {
+            "accepted_count": build_release_summary["accepted_count"],
+            "blocked_count": build_release_summary["blocked_count"],
+            "normalized_count": build_release_summary["normalized_count"],
+            "release_ready_count": build_release_summary["release_ready_count"],
+            "retained_count": build_release_summary["retained_count"],
+            "review_required_count": build_release_summary["review_required_count"],
+        },
         "synthetic_composition": synthetic_composition,
         "annotation_manifest": {
             "annotated_item_count": annotation_manifest.annotated_item_count,
@@ -247,7 +256,7 @@ def export_synthetic_release(
                 else 0
             ),
             "versioning_status": (
-                benchmark_inputs.reference_versioning or {}
+                selected_benchmark_reference_versioning or {}
             ).get("status", "not_available"),
         },
         "version": config.version,
@@ -307,8 +316,8 @@ def export_synthetic_release(
             manifests_dir / "benchmark_reference_status.json",
             selected_benchmark_reference_status.model_dump(mode="json"),
         )
-    if benchmark_inputs.reference_versioning is not None:
-        write_json(manifests_dir / "benchmark_reference_versioning.json", benchmark_inputs.reference_versioning)
+    if selected_benchmark_reference_versioning is not None:
+        write_json(manifests_dir / "benchmark_reference_versioning.json", selected_benchmark_reference_versioning)
 
     _write_markdown(
         docs_dir / "DATASET_CARD.md",
@@ -368,7 +377,7 @@ def export_synthetic_release(
             ),
             "benchmark_reference_versioning": (
                 "manifests/benchmark_reference_versioning.json"
-                if benchmark_inputs.reference_versioning is not None
+                if selected_benchmark_reference_versioning is not None
                 else None
             ),
             "stage": "export-synthetic",
@@ -415,7 +424,7 @@ def export_synthetic_release(
         ),
         *(
             [manifests_dir / "benchmark_reference_versioning.json"]
-            if benchmark_inputs.reference_versioning is not None
+            if selected_benchmark_reference_versioning is not None
             else []
         ),
         *exported_benchmark_reference_files,
@@ -509,8 +518,8 @@ def _validate_synthetic_export_config(config: SyntheticExportConfig) -> None:
 def _copy_synthetic_export_assets(
     items: list[PrivacyScannedItemRecord],
     synthetic_data_dir: Path,
-) -> list[AlphaExportedItemRecord]:
-    exported_items: list[AlphaExportedItemRecord] = []
+) -> list[ExportedItemRecord]:
+    exported_items: list[ExportedItemRecord] = []
     for item in items:
         if item.split is None:
             raise StageExecutionError(f"release-ready item {item.item_id} is missing a split assignment")
@@ -537,7 +546,7 @@ def _copy_synthetic_export_assets(
                     release_preview_path=release_preview_path,
                 )
             )
-        exported_items.append(AlphaExportedItemRecord(**item.model_dump(mode="python"), exported_assets=exported_assets))
+        exported_items.append(ExportedItemRecord(**item.model_dump(mode="python"), exported_assets=exported_assets))
     return exported_items
 
 
@@ -566,6 +575,36 @@ def _filter_synthetic_benchmark_leakage_risk(
             selected_ids,
         )
     return filtered
+
+
+def _filter_synthetic_benchmark_reference_versioning(
+    reference_versioning: dict[str, Any] | None,
+    reference_manifest: Any,
+) -> dict[str, Any] | None:
+    if reference_versioning is None:
+        return None
+    selected_reference_ids: set[str] = set()
+    selected_item_ids: set[str] = set()
+    if reference_manifest is not None:
+        for item in reference_manifest.items:
+            selected_reference_ids.add(item.reference_id)
+            selected_item_ids.add(item.item_id)
+    filtered_events = [
+        event
+        for event in reference_versioning.get("events", [])
+        if isinstance(event, dict)
+        and (
+            event.get("reference_id") in selected_reference_ids
+            or event.get("item_id") in selected_item_ids
+        )
+    ]
+    return {
+        **reference_versioning,
+        "checked_count": len(selected_reference_ids),
+        "event_count": len(filtered_events),
+        "events": filtered_events,
+        "export_scope": "selected_synthetic_items",
+    }
 
 
 def _selected_resolution_records(records: Any, selected_ids: set[str]) -> list[dict[str, Any]]:
@@ -684,7 +723,7 @@ def _synthetic_audit_item_payload(item: PrivacyScannedItemRecord) -> dict[str, A
 def _dataset_card(
     version: str,
     profile: ReleaseProfile,
-    items: list[AlphaExportedItemRecord],
+    items: list[ExportedItemRecord],
     review_required_items: list[PrivacyScannedItemRecord],
     blocked_items: list[PrivacyScannedItemRecord],
     included_sources: list[str],
@@ -752,7 +791,8 @@ def _release_notes(
             f"- Exported items: {release_summary['exported_item_count']}",
             "- Exported real items: 0",
             f"- Exported synthetic items: {release_summary['exported_synthetic_items']}",
-            f"- Upstream release-ready items: {release_summary['release_ready_count']}",
+            f"- Synthetic release-ready items: {release_summary['release_ready_count']}",
+            f"- Upstream mixed-build release-ready items: {release_summary['upstream_build_counts']['release_ready_count']}",
             f"- Synthetic review-required items excluded from payload: {release_summary['review_required_count']}",
             f"- Synthetic blocked items excluded from payload: {release_summary['blocked_count']}",
             "- Release kind: `synthetic_only`",

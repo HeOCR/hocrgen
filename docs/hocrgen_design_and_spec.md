@@ -1079,7 +1079,8 @@ The HeOCRsynth export must:
 - preserve synthetic disclosure, hocrsyngen provider metadata, rendering metadata, and Hebrew coverage metadata
 - reject selected synthetic items missing the metadata required to distinguish generated provenance from real-source provenance
 - write payload assets under `data/synthetic/<split>/<item_id>/`
-- filter item, split, benchmark, annotation, review, blocked, duplicate, source-stat, composition, diff, and handoff artifacts to the selected synthetic scope
+- run the full configured release pipeline before filtering, so source-limited invocation is not allowed for this handoff command
+- filter item, split, benchmark, benchmark reference versioning, annotation, review, blocked, duplicate, source-stat, composition, diff, and handoff artifacts to the selected synthetic scope
 - emit `release_record.json` with `dataset_id: HeOCRsynth`, `release_kind: synthetic_only`, `synthetic_only: true`, and `real_items: 0`
 - keep mixed `HeOCR` release behavior in `export-alpha` unchanged
 

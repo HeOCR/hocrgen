@@ -36,6 +36,7 @@ Synthetic-only `HeOCRsynth` releases are a separate release stream from mixed `H
 
 - be produced by `hocrgen export-synthetic`, not by copying raw hocrsyngen generator directories
 - include only release-ready synthetic items from existing hocrgen pipeline state
+- run the full configured hocrgen pipeline before filtering; source-limited synthetic exports are rejected because they can bypass mixed release gates such as benchmark membership validation
 - keep payload assets under `data/synthetic/<split>/<item_id>/`
 - preserve `PROJECT-SYNTHETIC`, synthetic disclosure, hocrsyngen provider metadata, rendering metadata, and Hebrew coverage metadata
 - use release records with `dataset_id: HeOCRsynth`, `release_kind: synthetic_only`, `synthetic_only: true`, and `real_items: 0`

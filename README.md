@@ -370,8 +370,9 @@ hocrgen export-synthetic \
 The synthetic exporter:
 
 - copies only release-ready synthetic items with `PROJECT-SYNTHETIC` licensing into `data/synthetic/<split>/<item_id>/`
+- runs the full configured release pipeline before filtering; `--source` is intentionally unsupported because source-limited builds can invalidate benchmark and review gates
 - rejects synthetic items that are missing synthetic disclosure or hocrsyngen provider, rendering, and Hebrew coverage metadata
-- filters public manifests, benchmark artifacts, review/audit artifacts, annotation artifacts, release diffs, and docs to the selected synthetic scope
+- filters public manifests, benchmark artifacts, benchmark reference versioning, review/audit artifacts, annotation artifacts, release diffs, and docs to the selected synthetic scope
 - writes `release_record.json` with `dataset_id: HeOCRsynth`, `release_kind: synthetic_only`, `synthetic_only: true`, and `real_items: 0`
 - keeps real NLI, Pinkas, BiblIA, and modern handwriting items out of the synthetic-only payload and audit manifests
 - writes HeOCRsynth-specific `CHANGELOG.md`, `DATASET_CARD.md`, `RELEASE_NOTES.md`, `PROVENANCE.md`, `BENCHMARK_CARD.md`, and `HANDOFF.md`
