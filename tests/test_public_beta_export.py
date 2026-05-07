@@ -23,6 +23,9 @@ from hocrgen.package.public_beta import (
     _benchmark_reference_item_required_action,
     _blocked_gate_ids_by_closure_category,
     _blocker_closure_plan,
+    _privacy_review_closure_entry,
+    _privacy_review_f6d_assessment,
+    _source_status_evidence,
     _stabilize_public_beta_readiness_artifacts,
     _takedown_blocker_action,
     _takedown_gate,
@@ -99,7 +102,7 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
         (output_dir / "manifests" / "public_beta_repo_owned_blocker_report.json").read_text(encoding="utf-8")
     )
     assert report["planning_notation"] == "F5b"
-    assert report["current_planning_notation"] == "F6c"
+    assert report["current_planning_notation"] == "F6d"
     assert report["readiness_contract_notation"] == "F5a"
     assert report["valid_statuses"] == ["pass", "blocked"]
     assert report["readiness_status"] == "blocked"
@@ -116,7 +119,7 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     takedown_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "takedown_removal")
     assert takedown_gate["status"] == "pass"
     assert "configured public and private" in takedown_gate["rationale"]
-    assert closure_plan["planning_notation"] == "F6c"
+    assert closure_plan["planning_notation"] == "F6d"
     assert closure_plan["source_readiness_report"] == "manifests/public_beta_readiness_report.json"
     assert closure_plan["readiness_status"] == "blocked"
     assert closure_plan["summary"]["external_input_dependent"] == 2
@@ -131,7 +134,7 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert "takedown_removal" not in blockers_by_gate
     assert closure_plan["known_hard_blockers"][0]["gate_id"] == "synthetic_target_scale"
     assert closure_plan["known_hard_blockers"][0]["do_not_relax"] is True
-    assert repo_owned_report["planning_notation"] == "F6c"
+    assert repo_owned_report["planning_notation"] == "F6d"
     assert repo_owned_report["repo_owned_status"] == "blocked"
     assert repo_owned_report["repo_owned_blocked_gate_ids"] == [
         "privacy_review",
@@ -147,6 +150,56 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert repo_entries["privacy_review"]["counts"]["suggested_decision"] == {
         "needs_classification_review": 1,
     }
+    assert repo_entries["privacy_review"]["counts"]["decision_source"] == {"default_unresolved": 1}
+    assert repo_entries["privacy_review"]["counts"]["decision_outcome"] == {"unresolved": 1}
+    assert repo_entries["privacy_review"]["counts"]["decision_audit_item_count"] == 1
+    assert repo_entries["privacy_review"]["counts"]["missing_decision_audit"] == 0
+    assert repo_entries["privacy_review"]["decision_audit_coverage"] == {
+        "status": "pass",
+        "covered_item_count": 1,
+        "missing_item_count": 0,
+        "missing_item_ids": [],
+    }
+    assert repo_entries["privacy_review"]["f6d_assessment"] == {
+        "planning_notation": "F6d",
+        "assessment_status": "blocked_unresolved_review_required_items",
+        "closure_state": "requires_repo_tracked_review_config_or_source_status_evidence",
+        "readiness_contract": (
+            "Privacy/review readiness can pass only when the governed candidate pool has no review-required, "
+            "blocked, unresolved privacy, unresolved consent, or unresolved takedown states after repo-tracked "
+            "review decisions, config changes, or source-status changes."
+        ),
+        "review_required_item_count": 1,
+        "blocked_item_count": 0,
+        "unresolved_decision_count": 1,
+        "default_unresolved_decision_count": 1,
+        "missing_decision_audit_count": 0,
+        "missing_decision_audit_item_ids": [],
+        "decision_audit_coverage_status": "pass",
+        "limitation_disclosure": (
+            "1 review-required item(s) remain unresolved; no repo-tracked review decision, privacy config change, "
+            "or source-status change currently closes the gate"
+        ),
+        "blocked_gate_preserved": True,
+    }
+    assert repo_entries["privacy_review"]["source_status_evidence"] == [
+        {
+            "source_id": "biblia_open",
+            "status": "allowed",
+            "default_public_release": True,
+            "requires_manual_review": False,
+            "operational_status": "active",
+            "included_in_profile": True,
+            "excluded_from_profile": False,
+        }
+    ]
+    assert repo_entries["privacy_review"]["review_required_items"][0]["decision_source"] == "default_unresolved"
+    assert repo_entries["privacy_review"]["review_required_items"][0]["decision_outcome"] == "unresolved"
+    assert "reviewer" not in repo_entries["privacy_review"]["review_required_items"][0]
+    assert "decision_rationale" not in repo_entries["privacy_review"]["review_required_items"][0]
+    assert "decision_timestamp" not in repo_entries["privacy_review"]["review_required_items"][0]
+    assert repo_entries["privacy_review"]["blocked_items"] == []
+    assert repo_entries["privacy_review"]["blocked_item_ids"] == []
     assert repo_entries["benchmark_references"]["counts"]["reference_ready"] == 1
     assert repo_entries["benchmark_references"]["counts"]["blocked_or_draft"] == 2
     assert repo_entries["benchmark_references"]["f6c_assessment"] == {
@@ -323,6 +376,186 @@ def test_export_public_beta_archive_is_rooted_at_versioned_release_dir(tmp_path:
     assert "public-beta-v0/manifests/archive_manifest.json" not in names
     assert "public-beta-v0/manifests/checksum_manifest.json" not in names
     assert not any(name.startswith("public-beta-v0/archives/") for name in names)
+
+
+def _privacy_item(
+    *,
+    item_id: str,
+    source_id: str = "example_source",
+    privacy_flag: str = "review_required",
+    privacy_reasons: list[str] | None = None,
+    classification_review_reasons: list[str] | None = None,
+) -> SimpleNamespace:
+    return SimpleNamespace(
+        item_id=item_id,
+        source_id=source_id,
+        privacy_flag=SimpleNamespace(value=privacy_flag),
+        privacy_reasons=privacy_reasons or ["contains_personal_data"],
+        classification_review_reasons=classification_review_reasons or ["manual_review_required"],
+    )
+
+
+def test_privacy_review_closure_entry_reports_blocked_items_with_auditable_detail() -> None:
+    blocked_item = _privacy_item(
+        item_id="example_source:blocked-001",
+        privacy_flag="blocked",
+        privacy_reasons=["unresolved_sensitive_content"],
+        classification_review_reasons=["privacy_block"],
+    )
+
+    entry = _privacy_review_closure_entry(
+        gate={
+            "status": "blocked",
+            "evidence_paths": ["build_release/privacy_scan.json", "build_release/decision_audit.json"],
+            "rationale": "blocked item remains",
+        },
+        review_required_items=[],
+        blocked_items=[blocked_item],
+        selected_review_queue=[
+            SimpleNamespace(
+                item_id="example_source:blocked-001",
+                suggested_decision="exclude_from_public",
+                review_reasons=["privacy_block"],
+            )
+        ],
+        decision_audit=[
+            SimpleNamespace(
+                item_id="example_source:blocked-001",
+                decision_source="repo_review",
+                outcome="unresolved",
+                decision="exclude_from_public",
+                reviewer="privacy-reviewer",
+                timestamp="2026-05-08T00:00:00Z",
+                rationale="Sensitive content still requires exclusion evidence.",
+            )
+        ],
+        source_registry=SimpleNamespace(
+            sources=[
+                SimpleNamespace(
+                    id="example_source",
+                    status=SimpleNamespace(value="allowed"),
+                    default_public_release=True,
+                    requires_manual_review=True,
+                    source_operations=SimpleNamespace(operational_status=SimpleNamespace(value="active")),
+                )
+            ]
+        ),
+        profile=SimpleNamespace(include_sources=["example_source"], exclude_sources=[]),
+    )
+
+    assert entry["counts"]["blocked"] == 1
+    assert entry["counts"]["missing_decision_audit"] == 0
+    assert entry["decision_audit_coverage"]["status"] == "pass"
+    assert entry["blocked_item_ids"] == ["example_source:blocked-001"]
+    assert entry["blocked_items"] == [
+        {
+            "item_id": "example_source:blocked-001",
+            "source_id": "example_source",
+            "privacy_flag": "blocked",
+            "privacy_reasons": ["unresolved_sensitive_content"],
+            "classification_review_reasons": ["privacy_block"],
+            "suggested_decision": "exclude_from_public",
+            "review_reasons": ["privacy_block"],
+            "decision_source": "repo_review",
+            "decision_outcome": "unresolved",
+            "decision": "exclude_from_public",
+        }
+    ]
+    assert entry["f6d_assessment"]["assessment_status"] == "blocked_blocked_items_present"
+    assert entry["f6d_assessment"]["closure_state"] == (
+        "requires_repo_tracked_review_config_or_source_status_evidence"
+    )
+
+
+def test_privacy_review_closure_entry_fails_closed_when_decision_audit_is_missing() -> None:
+    review_item = _privacy_item(item_id="example_source:review-001")
+
+    entry = _privacy_review_closure_entry(
+        gate={
+            "status": "blocked",
+            "evidence_paths": ["build_release/privacy_scan.json", "build_release/decision_audit.json"],
+            "rationale": "review item remains",
+        },
+        review_required_items=[review_item],
+        blocked_items=[],
+        selected_review_queue=[
+            SimpleNamespace(
+                item_id="example_source:review-001",
+                suggested_decision="needs_classification_review",
+                review_reasons=["manual_review_required"],
+            )
+        ],
+        decision_audit=[],
+        source_registry=SimpleNamespace(sources=[]),
+        profile=SimpleNamespace(include_sources=[], exclude_sources=[]),
+    )
+
+    assert entry["counts"]["review_required"] == 1
+    assert entry["counts"]["decision_audit_item_count"] == 0
+    assert entry["counts"]["missing_decision_audit"] == 1
+    assert entry["decision_audit_coverage"] == {
+        "status": "blocked",
+        "covered_item_count": 0,
+        "missing_item_count": 1,
+        "missing_item_ids": ["example_source:review-001"],
+    }
+    assert entry["review_required_items"][0]["decision_source"] is None
+    assert entry["review_required_items"][0]["decision_outcome"] is None
+    assert entry["f6d_assessment"]["assessment_status"] == "blocked_missing_decision_audit_evidence"
+    assert entry["f6d_assessment"]["closure_state"] == "requires_decision_audit_reconciliation"
+    assert entry["f6d_assessment"]["missing_decision_audit_count"] == 1
+    assert entry["f6d_assessment"]["missing_decision_audit_item_ids"] == ["example_source:review-001"]
+    assert entry["f6d_assessment"]["decision_audit_coverage_status"] == "blocked"
+
+
+def test_privacy_review_f6d_assessment_reports_pass_only_when_no_items_remain() -> None:
+    assessment = _privacy_review_f6d_assessment(
+        gate={"status": "pass"},
+        review_required_items=[],
+        blocked_items=[],
+        relevant_decision_audit=[],
+        missing_decision_audit_item_ids=[],
+    )
+
+    assert assessment["assessment_status"] == "closed_with_no_unresolved_privacy_or_review_items"
+    assert assessment["closure_state"] == "pass"
+    assert assessment["limitation_disclosure"] == "none for currently governed public beta candidates"
+    assert assessment["blocked_gate_preserved"] is False
+
+
+def test_privacy_review_f6d_assessment_flags_inconsistent_blocked_gate_evidence() -> None:
+    assessment = _privacy_review_f6d_assessment(
+        gate={"status": "blocked"},
+        review_required_items=[],
+        blocked_items=[],
+        relevant_decision_audit=[],
+        missing_decision_audit_item_ids=[],
+    )
+
+    assert assessment["assessment_status"] == "blocked_inconsistent_privacy_review_evidence"
+    assert assessment["closure_state"] == "requires_readiness_report_reconciliation"
+    assert assessment["limitation_disclosure"] == (
+        "privacy/review gate is blocked even though no review-required or blocked item evidence was provided"
+    )
+    assert assessment["blocked_gate_preserved"] is True
+
+
+def test_source_status_evidence_uses_consistent_schema_for_unknown_sources() -> None:
+    assert _source_status_evidence(
+        source_registry=SimpleNamespace(sources=[]),
+        profile=SimpleNamespace(include_sources=["missing_source"], exclude_sources=[]),
+        relevant_source_ids={"missing_source"},
+    ) == [
+        {
+            "source_id": "missing_source",
+            "status": "unknown",
+            "default_public_release": None,
+            "requires_manual_review": None,
+            "operational_status": "unknown",
+            "included_in_profile": True,
+            "excluded_from_profile": False,
+        }
+    ]
 
 
 def test_export_public_beta_rejects_output_dir_that_does_not_match_version(tmp_path: Path, capsys) -> None:
@@ -718,6 +951,9 @@ def test_public_beta_readiness_artifacts_rewrite_until_stable(
         review_required_items=[],
         blocked_items=[],
         selected_review_queue=[],
+        decision_audit=[],
+        source_registry=SimpleNamespace(sources=[]),
+        profile=SimpleNamespace(include_sources=[], exclude_sources=[]),
         readiness_report={"readiness_status": "blocked", "iteration": 0, "gates": []},
     )
 
@@ -769,6 +1005,9 @@ def test_public_beta_readiness_artifacts_fail_when_not_stable(
             review_required_items=[],
             blocked_items=[],
             selected_review_queue=[],
+            decision_audit=[],
+            source_registry=SimpleNamespace(sources=[]),
+            profile=SimpleNamespace(include_sources=[], exclude_sources=[]),
             readiness_report={"readiness_status": "blocked", "iteration": 0, "gates": []},
         )
 
@@ -809,6 +1048,9 @@ def test_public_beta_readiness_artifacts_fail_when_archive_does_not_run(
             review_required_items=[],
             blocked_items=[],
             selected_review_queue=[],
+            decision_audit=[],
+            source_registry=SimpleNamespace(sources=[]),
+            profile=SimpleNamespace(include_sources=[], exclude_sources=[]),
             readiness_report=stable_report,
         )
 

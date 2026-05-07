@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F6c"
+CURRENT_COMPLETED_NOTATION = "F6d"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -62,6 +62,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "`F6a` now defines the post-F5 public beta closure roadmap" in agent_plan
     assert "`F6b` now records GitHub private vulnerability reporting" in agent_plan
     assert "`F6c` now evaluates current benchmark-reference evidence" in agent_plan
+    assert "`F6d` now evaluates current privacy/review evidence" in agent_plan
     assert "| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert "| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert "| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
@@ -85,10 +86,10 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
         "F6a": ("completed", ["planning-only"]),
         "F6b": ("completed", ["verified", "takedown/removal"]),
         "F6c": ("completed", ["1 / 3", "reviewed/adjudicated"]),
-        "F6d": ("planned", ["review", "source-status"]),
+        "F6d": ("completed", ["default-unresolved"]),
         "F6e": ("planned", ["source-depth", "normal gates"]),
         "F6f": ("planned", ["generation_manifest.v1"]),
-        "F6g": ("planned", ["F6b-F6f"]),
+        "F6g": ("planned", ["privacy/review closure", "F6e-F6f"]),
     }
     for pr_id, (status, note_tokens) in expected_f6_pr_rows.items():
         row = roadmap_rows[pr_id]
@@ -99,7 +100,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
             assert token in row[5]
     assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
-    assert "`F5a`, `F5b`, `F5c`, `F5d`, `F6a`, `F6b`, and `F6c` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
+    assert "`F5a`, `F5b`, `F5c`, `F5d`, `F6a`, `F6b`, `F6c`, and `F6d` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
 
 
 def test_f3_modern_handwritten_policy_and_intake_are_consistent_and_bounded() -> None:
@@ -455,10 +456,12 @@ def test_f6_post_f5_closure_roadmap_is_documented_and_evidence_gated() -> None:
         "verified private reporting path",
         "reviewed/adjudicated",
         "review/config/source-status changes",
+        "default-unresolved review decision",
+        "`privacy_review` blocked",
         "real public-profile source-depth/composition evidence",
         "larger validated hocrsyngen",
         "generation_manifest.v1",
-        "repo-owned, source-depth, and synthetic-scale inputs",
+        "privacy/review closure, source-depth, and synthetic-scale inputs",
         "2 / 80",
         "source-depth composition",
         "must remain blocked",
@@ -475,6 +478,7 @@ def test_f6_post_f5_closure_roadmap_is_documented_and_evidence_gated() -> None:
     assert "| F6 | Public beta closure and external input integration | F6a, F6b, F6c, F6d, F6e, F6f, F6g |" in roadmap
     assert "For F6a, the required planning notation is:" in release_governance
     assert "For F6b, the required planning notation is:" in release_governance
+    assert "For F6d, the required planning notation is:" in release_governance
     assert "parent milestone: `F6 - Public beta closure and external input integration`" in release_governance
     assert "F6 does not permit hocrgen to import hocrsyngen internals" in design
     assert "Future implementation should follow F6" in pre_alpha
