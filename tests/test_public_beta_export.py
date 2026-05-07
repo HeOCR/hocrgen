@@ -10,7 +10,9 @@ import pytest
 
 from hocrgen.cli import main
 from hocrgen.config.loader import default_config_root
+from hocrgen.core.errors import StageExecutionError
 from hocrgen.package.common import verify_checksum_manifest, write_release_archive
+from hocrgen.package.public_beta import _blocker_closure_plan
 
 
 def _fixture_config_root(tmp_path: Path) -> Path:
@@ -67,9 +69,9 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     closure_plan = json.loads(
         (output_dir / "manifests" / "public_beta_blocker_closure_plan.json").read_text(encoding="utf-8")
     )
-    assert report["planning_notation"] == "F5c"
+    assert report["planning_notation"] == "F5b"
+    assert report["current_planning_notation"] == "F5c"
     assert report["readiness_contract_notation"] == "F5a"
-    assert report["packaging_notation"] == "F5b"
     assert report["valid_statuses"] == ["pass", "blocked"]
     assert report["readiness_status"] == "blocked"
     assert report["publication_allowed"] is False
@@ -333,7 +335,14 @@ def test_export_public_beta_takedown_gate_passes_when_private_reporting_path_is_
     config_root = _fixture_config_root(tmp_path)
     public_beta_config = config_root / "public_beta.yaml"
     public_beta_config.write_text(
-        public_beta_config.read_text(encoding="utf-8").replace("configured: false", "configured: true"),
+        public_beta_config.read_text(encoding="utf-8").replace(
+            "configured: false\n"
+            "  required_operator_action: Enable GitHub private vulnerability reporting for HeOCR/hocrgen or replace this with a configured maintainer-private reporting channel before public beta publication.\n",
+            "configured: true\n"
+            "  verified_at: '2026-05-07'\n"
+            "  verification_method: github_repository_security_settings\n"
+            "  verified_by: test-maintainer\n",
+        ),
         encoding="utf-8",
     )
     output_dir = tmp_path / "exports" / "public-beta-v0"
@@ -367,6 +376,100 @@ def test_export_public_beta_takedown_gate_passes_when_private_reporting_path_is_
     assert synthetic_gate["status"] == "blocked"
     assert "2 / 80" in synthetic_gate["rationale"]
     assert report["readiness_status"] == "blocked"
+
+
+def test_export_public_beta_rejects_unverified_private_reporting_path(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    public_beta_config = config_root / "public_beta.yaml"
+    public_beta_config.write_text(
+        public_beta_config.read_text(encoding="utf-8").replace("configured: false", "configured: true"),
+        encoding="utf-8",
+    )
+
+    exit_code = main(
+        [
+            "export-public-beta",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--output-dir",
+            str(tmp_path / "exports" / "public-beta-v0"),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload["status"] == "error"
+    assert "configured private reporting paths require verification metadata" in payload["error"]
+
+
+def test_public_beta_blocker_closure_plan_fails_closed_for_unmapped_blocked_gate() -> None:
+    readiness_report = {
+        "readiness_status": "blocked",
+        "publication_allowed": False,
+        "gates": [
+            {
+                "gate_id": "new_external_gate",
+                "status": "blocked",
+                "evidence_paths": ["manifests/new_external_gate.json"],
+                "rationale": "A future gate must declare closure metadata.",
+            }
+        ],
+    }
+
+    with pytest.raises(StageExecutionError, match="has no F5c closure metadata"):
+        _blocker_closure_plan(readiness_report=readiness_report, takedown_validation={})
+
+
+def test_alpha_and_synthetic_exports_accept_config_root_without_public_beta_config(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    (config_root / "public_beta.yaml").unlink()
+
+    alpha_exit = main(
+        [
+            "export-alpha",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "alpha-work"),
+            "--output-dir",
+            str(tmp_path / "exports" / "alpha-v0"),
+        ]
+    )
+    alpha_payload = json.loads(capsys.readouterr().out)
+    synthetic_exit = main(
+        [
+            "export-synthetic",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "synthetic-work"),
+            "--output-dir",
+            str(tmp_path / "exports" / "synth-alpha-v0"),
+        ]
+    )
+    synthetic_payload = json.loads(capsys.readouterr().out)
+
+    assert alpha_exit == 0
+    assert alpha_payload["stage"] == "export-alpha"
+    assert synthetic_exit == 0
+    assert synthetic_payload["stage"] == "export-synthetic"
 
 
 @pytest.mark.parametrize(

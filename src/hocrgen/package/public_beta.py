@@ -95,12 +95,66 @@ PUBLIC_BETA_REQUIRED_DOCS = {
     "docs/HANDOFF.md": ["## Stop Conditions", "Do not publish to HeOCR"],
 }
 
-BLOCKER_CLOSURE_CATEGORIES = {
-    "source_depth_composition": "external_input_dependent",
-    "synthetic_target_scale": "external_input_dependent",
-    "privacy_review": "repo_owned_immediately_actionable",
-    "benchmark_references": "repo_owned_immediately_actionable",
-    "takedown_removal": "repo_owned_immediately_actionable",
+BLOCKER_CLOSURE_ACTIONS = {
+    "source_depth_composition": {
+        "category": "external_input_dependent",
+        "owner_scope": "external synthetic-provider input plus repo validation",
+        "closure_state": "requires_external_input",
+        "required_action": (
+            "Rerun public beta packaging after the hocrsyngen target-scale batch is available; do not count "
+            "operator-only source-depth fixtures as public payload evidence unless they are promoted through "
+            "normal release-profile, review, privacy, split, benchmark, and portability gates."
+        ),
+        "closure_artifacts": [
+            "manifests/source_depth_feasibility.json",
+            "manifests/source_stats.json",
+            "docs/DATASET_CARD.md",
+        ],
+    },
+    "synthetic_target_scale": {
+        "category": "external_input_dependent",
+        "owner_scope": "external hocrsyngen batch production",
+        "closure_state": "requires_external_input",
+        "required_action": (
+            "Produce, configure, and validate a larger hocrsyngen batch for the 80 synthetic-control target; "
+            "keep the current 2 / 80 evidence blocked until that batch exists."
+        ),
+        "closure_artifacts": [
+            "manifests/source_depth_feasibility.json",
+            "manifests/source_health.json",
+            "manifests/synthetic_composition.json",
+        ],
+    },
+    "privacy_review": {
+        "category": "repo_owned_immediately_actionable",
+        "owner_scope": "hocrgen review/privacy configuration and operator decisions",
+        "closure_state": "requires_repo_pr_or_review_update",
+        "required_action": (
+            "Resolve or explicitly exclude review-required, blocked, unresolved privacy, consent, and takedown "
+            "states through repo-tracked review/config/source-status changes before claiming public beta readiness."
+        ),
+        "closure_artifacts": [
+            "manifests/privacy_stats.json",
+            "manifests/review_required_items.json",
+            "manifests/blocked_items.json",
+            "manifests/review_queue.json",
+        ],
+    },
+    "benchmark_references": {
+        "category": "repo_owned_immediately_actionable",
+        "owner_scope": "hocrgen benchmark-reference data and disclosure docs",
+        "closure_state": "requires_repo_pr_or_reference_update",
+        "required_action": (
+            "Finalize benchmark-reference status/versioning artifacts or keep the limitation disclosed; public beta "
+            "readiness stays blocked while references are draft, unavailable, blocked, or versioning-incoherent."
+        ),
+        "closure_artifacts": [
+            "manifests/benchmark_reference_manifest.json",
+            "manifests/benchmark_reference_status.json",
+            "manifests/benchmark_reference_versioning.json",
+            "docs/BENCHMARK_CARD.md",
+        ],
+    },
 }
 
 
@@ -392,11 +446,6 @@ def export_public_beta_release(
         release_summary=release_summary,
         readiness_report=readiness_report,
     )
-    blocker_closure_plan = _blocker_closure_plan(
-        readiness_report=readiness_report,
-        takedown_validation=takedown_validation,
-    )
-    write_json(manifests_dir / "public_beta_blocker_closure_plan.json", blocker_closure_plan)
     archive_record = write_release_archive(
         release_root=export_dir,
         version=config.version,
@@ -509,9 +558,9 @@ def _readiness_report(
     readiness_status = "pass" if all(gate["status"] == "pass" for gate in gates) else "blocked"
     return {
         "schema_version": 1,
-        "planning_notation": "F5c",
+        "planning_notation": "F5b",
+        "current_planning_notation": "F5c",
         "readiness_contract_notation": "F5a",
-        "packaging_notation": "F5b",
         "profile_id": profile_id,
         "version": version,
         "valid_statuses": ["pass", "blocked"],
@@ -566,78 +615,11 @@ def _blocker_closure_plan(
 
 def _blocker_plan_entry(gate: dict[str, Any], takedown_validation: dict[str, Any]) -> dict[str, Any]:
     gate_id = gate["gate_id"]
-    category = BLOCKER_CLOSURE_CATEGORIES.get(gate_id, "repo_owned_immediately_actionable")
-    actions = {
-        "source_depth_composition": {
-            "owner_scope": "external synthetic-provider input plus repo validation",
-            "closure_state": "requires_external_input",
-            "required_action": (
-                "Rerun public beta packaging after the hocrsyngen target-scale batch is available; do not count "
-                "operator-only source-depth fixtures as public payload evidence unless they are promoted through "
-                "normal release-profile, review, privacy, split, benchmark, and portability gates."
-            ),
-            "closure_artifacts": [
-                "manifests/source_depth_feasibility.json",
-                "manifests/source_stats.json",
-                "docs/DATASET_CARD.md",
-            ],
-        },
-        "synthetic_target_scale": {
-            "owner_scope": "external hocrsyngen batch production",
-            "closure_state": "requires_external_input",
-            "required_action": (
-                "Produce, configure, and validate a larger hocrsyngen batch for the 80 synthetic-control target; "
-                "keep the current 2 / 80 evidence blocked until that batch exists."
-            ),
-            "closure_artifacts": [
-                "manifests/source_depth_feasibility.json",
-                "manifests/source_health.json",
-                "manifests/synthetic_composition.json",
-            ],
-        },
-        "privacy_review": {
-            "owner_scope": "hocrgen review/privacy configuration and operator decisions",
-            "closure_state": "requires_repo_pr_or_review_update",
-            "required_action": (
-                "Resolve or explicitly exclude review-required, blocked, unresolved privacy, consent, and takedown "
-                "states through repo-tracked review/config/source-status changes before claiming public beta readiness."
-            ),
-            "closure_artifacts": [
-                "manifests/privacy_stats.json",
-                "manifests/review_required_items.json",
-                "manifests/blocked_items.json",
-                "manifests/review_queue.json",
-            ],
-        },
-        "benchmark_references": {
-            "owner_scope": "hocrgen benchmark-reference data and disclosure docs",
-            "closure_state": "requires_repo_pr_or_reference_update",
-            "required_action": (
-                "Finalize benchmark-reference status/versioning artifacts or keep the limitation disclosed; public beta "
-                "readiness stays blocked while references are draft, unavailable, blocked, or versioning-incoherent."
-            ),
-            "closure_artifacts": [
-                "manifests/benchmark_reference_manifest.json",
-                "manifests/benchmark_reference_status.json",
-                "manifests/benchmark_reference_versioning.json",
-                "docs/BENCHMARK_CARD.md",
-            ],
-        },
-        "takedown_removal": _takedown_blocker_action(takedown_validation),
-    }
-    action = actions.get(
-        gate_id,
-        {
-            "owner_scope": "hocrgen public beta export implementation",
-            "closure_state": "requires_repo_pr_or_doc_update",
-            "required_action": f"Resolve the blocked `{gate_id}` readiness gate without relaxing its pass criteria.",
-            "closure_artifacts": gate["evidence_paths"],
-        },
-    )
+    action = _blocker_action(gate_id, takedown_validation)
     return {
         "gate_id": gate_id,
         "status": gate["status"],
-        "category": category,
+        "category": action["category"],
         "owner_scope": action["owner_scope"],
         "closure_state": action["closure_state"],
         "required_action": action["required_action"],
@@ -648,11 +630,20 @@ def _blocker_plan_entry(gate: dict[str, Any], takedown_validation: dict[str, Any
     }
 
 
+def _blocker_action(gate_id: str, takedown_validation: dict[str, Any]) -> dict[str, Any]:
+    if gate_id == "takedown_removal":
+        return _takedown_blocker_action(takedown_validation)
+    if gate_id not in BLOCKER_CLOSURE_ACTIONS:
+        raise StageExecutionError(f"blocked public beta gate has no F5c closure metadata: {gate_id}")
+    return BLOCKER_CLOSURE_ACTIONS[gate_id]
+
+
 def _takedown_blocker_action(takedown_validation: dict[str, Any]) -> dict[str, Any]:
     operator_action = takedown_validation.get("required_operator_action") or (
         "Configure a maintainer-private reporting path before public beta publication."
     )
     return {
+        "category": "repo_owned_immediately_actionable",
         "owner_scope": "hocrgen governance config plus repository maintainer settings",
         "closure_state": (
             "requires_operator_action"

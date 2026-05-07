@@ -224,6 +224,39 @@ class PrivateReportingPathConfig(ReportingPathConfig):
         "github_private_security_advisory",
         "maintainer_private_contact",
     ]
+    verified_at: str = ""
+    verification_method: Literal[
+        "github_repository_security_settings",
+        "maintainer_contact_test",
+        "security_advisory_dry_run",
+        "",
+    ] = ""
+    verified_by: str = ""
+
+    @model_validator(mode="after")
+    def validate_private_reporting_path(self) -> "PrivateReportingPathConfig":
+        if not self.configured:
+            return self
+        missing = [
+            field
+            for field, value in [
+                ("url", self.url),
+                ("verified_at", self.verified_at),
+                ("verification_method", self.verification_method),
+                ("verified_by", self.verified_by),
+            ]
+            if not value
+        ]
+        if missing:
+            joined = ", ".join(missing)
+            raise ValueError(f"configured private reporting paths require verification metadata: {joined}")
+        if self.channel in {"github_private_vulnerability_reporting", "github_private_security_advisory"}:
+            expected_prefix = "https://github.com/"
+            if self.url is None or not self.url.startswith(expected_prefix) or "/security/advisories" not in self.url:
+                raise ValueError(
+                    "configured GitHub private reporting paths must use a GitHub security advisory URL"
+                )
+        return self
 
 
 class PublicBetaGovernanceConfig(ConfigBaseModel):

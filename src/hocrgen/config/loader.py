@@ -138,6 +138,8 @@ def load_privacy_rules(config_root: Path | None = None) -> PrivacyRules:
 def load_public_beta_governance(config_root: Path | None = None) -> PublicBetaGovernanceConfig:
     root = config_root or default_config_root()
     path = root / "public_beta.yaml"
+    if config_root is not None and not path.exists():
+        path = default_config_root() / "public_beta.yaml"
     return _validate("public beta governance", PublicBetaGovernanceConfig, load_yaml_file(path), path)
 
 
