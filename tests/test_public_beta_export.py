@@ -209,6 +209,9 @@ def test_export_public_beta_checksum_manifest_covers_public_payloads_and_archive
     ]:
         assert required_path in entries_by_path
         assert entries_by_path[required_path]["sha256"] == _sha256(output_dir / required_path)
+    assert entries_by_path["manifests/public_beta_repo_owned_blocker_report.json"]["sha256"] == _sha256(
+        output_dir / "manifests" / "public_beta_repo_owned_blocker_report.json"
+    )
 
     archive_record = archive_manifest["archives"][0]
     archive_path = output_dir / archive_record["archive_path"]
@@ -527,8 +530,11 @@ def test_reporting_path_requires_operator_action_when_unconfigured() -> None:
         )
 
 
-def test_private_reporting_path_rejects_disabled_repository_check_when_configured() -> None:
-    with pytest.raises(ValidationError, match="cannot have a disabled repository check"):
+@pytest.mark.parametrize("repository_check_result", ["", "unknown", "disabled"])
+def test_private_reporting_path_requires_enabled_repository_check_when_configured(
+    repository_check_result: str,
+) -> None:
+    with pytest.raises(ValidationError, match="require an enabled repository check"):
         PrivateReportingPathConfig.model_validate(
             {
                 "id": "github_private_vulnerability_reporting",
@@ -541,7 +547,7 @@ def test_private_reporting_path_rejects_disabled_repository_check_when_configure
                 "verified_by": "test-maintainer",
                 "repository_check_at": "2026-05-07",
                 "repository_check_method": "gh_api_private_vulnerability_reporting",
-                "repository_check_result": "disabled",
+                "repository_check_result": repository_check_result,
             }
         )
 

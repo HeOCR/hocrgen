@@ -487,36 +487,60 @@ def export_public_beta_release(
         release_summary=release_summary,
         readiness_report=readiness_report,
     )
-    blocker_closure_plan = _blocker_closure_plan(
-        readiness_report=readiness_report,
-        takedown_validation=takedown_validation,
-    )
-    write_json(manifests_dir / "public_beta_blocker_closure_plan.json", blocker_closure_plan)
-    repo_owned_blocker_report = _repo_owned_blocker_report(
-        readiness_report=readiness_report,
-        review_required_items=review_required_items,
-        blocked_items=blocked_items,
-        selected_review_queue=selected_review_queue,
-        selected_benchmark_reference_status=selected_benchmark_reference_status,
-        benchmark_reference_versioning=benchmark_inputs.reference_versioning,
-        takedown_validation=takedown_validation,
-    )
-    write_json(manifests_dir / "public_beta_repo_owned_blocker_report.json", repo_owned_blocker_report)
-    archive_record = write_release_archive(
-        release_root=export_dir,
-        version=config.version,
-        exclude_paths=FINAL_ARCHIVE_EXCLUDED_PATHS,
-    )
-    archive_manifest = {
-        "schema_version": 1,
-        "archives": [archive_record],
-        "excluded_paths": sorted(FINAL_ARCHIVE_EXCLUDED_PATHS),
-    }
-    write_json(manifests_dir / "archive_manifest.json", archive_manifest)
-    checksum_manifest = build_checksum_manifest(release_root=export_dir, archive_records=[archive_record])
-    verification = verify_checksum_manifest(export_dir, checksum_manifest)
-    checksum_manifest["verification"] = verification
-    write_json(manifests_dir / "checksum_manifest.json", checksum_manifest)
+    archive_record = None
+    for _ in range(3):
+        _write_public_beta_blocker_outputs(
+            manifests_dir=manifests_dir,
+            readiness_report=readiness_report,
+            review_required_items=review_required_items,
+            blocked_items=blocked_items,
+            selected_review_queue=selected_review_queue,
+            selected_benchmark_reference_status=selected_benchmark_reference_status,
+            benchmark_reference_versioning=benchmark_inputs.reference_versioning,
+            takedown_validation=takedown_validation,
+        )
+        archive_record = write_release_archive(
+            release_root=export_dir,
+            version=config.version,
+            exclude_paths=FINAL_ARCHIVE_EXCLUDED_PATHS,
+        )
+        archive_manifest = {
+            "schema_version": 1,
+            "archives": [archive_record],
+            "excluded_paths": sorted(FINAL_ARCHIVE_EXCLUDED_PATHS),
+        }
+        write_json(manifests_dir / "archive_manifest.json", archive_manifest)
+        checksum_manifest = build_checksum_manifest(release_root=export_dir, archive_records=[archive_record])
+        verification = verify_checksum_manifest(export_dir, checksum_manifest)
+        checksum_manifest["verification"] = verification
+        write_json(manifests_dir / "checksum_manifest.json", checksum_manifest)
+        next_readiness_report = _readiness_report(
+            version=config.version,
+            profile_id=profile_id,
+            release_summary=release_summary,
+            build_release_summary=build_release_summary,
+            source_depth_feasibility=source_depth_feasibility,
+            leakage_report=leakage_report,
+            selected_benchmark_reference_status=selected_benchmark_reference_status,
+            benchmark_reference_versioning=benchmark_inputs.reference_versioning,
+            checksum_verification=verification,
+            archive_manifest=archive_manifest,
+            docs_validation=docs_validation,
+            takedown_validation=takedown_validation,
+        )
+        if next_readiness_report == readiness_report:
+            break
+        readiness_report = next_readiness_report
+        _write_readiness_outputs(
+            manifests_dir=manifests_dir,
+            release_record=initial_release_record,
+            release_summary=release_summary,
+            readiness_report=readiness_report,
+        )
+    else:
+        raise StageExecutionError("public beta readiness artifacts did not stabilize after final checksum generation")
+    if archive_record is None:
+        raise StageExecutionError("public beta archive generation did not run")
     readiness_status = readiness_report["readiness_status"]
     publication_allowed = readiness_status == "pass"
 
@@ -654,6 +678,34 @@ def _blocker_action(gate_id: str, takedown_validation: dict[str, Any]) -> dict[s
     if gate_id not in BLOCKER_CLOSURE_ACTIONS:
         raise StageExecutionError(f"blocked public beta gate has no F5d closure metadata: {gate_id}")
     return BLOCKER_CLOSURE_ACTIONS[gate_id]
+
+
+def _write_public_beta_blocker_outputs(
+    *,
+    manifests_dir: Path,
+    readiness_report: dict[str, Any],
+    review_required_items: list[PrivacyScannedItemRecord],
+    blocked_items: list[PrivacyScannedItemRecord],
+    selected_review_queue: list[ReviewQueueRecord],
+    selected_benchmark_reference_status: Any,
+    benchmark_reference_versioning: dict[str, Any] | None,
+    takedown_validation: dict[str, Any],
+) -> None:
+    blocker_closure_plan = _blocker_closure_plan(
+        readiness_report=readiness_report,
+        takedown_validation=takedown_validation,
+    )
+    write_json(manifests_dir / "public_beta_blocker_closure_plan.json", blocker_closure_plan)
+    repo_owned_blocker_report = _repo_owned_blocker_report(
+        readiness_report=readiness_report,
+        review_required_items=review_required_items,
+        blocked_items=blocked_items,
+        selected_review_queue=selected_review_queue,
+        selected_benchmark_reference_status=selected_benchmark_reference_status,
+        benchmark_reference_versioning=benchmark_reference_versioning,
+        takedown_validation=takedown_validation,
+    )
+    write_json(manifests_dir / "public_beta_repo_owned_blocker_report.json", repo_owned_blocker_report)
 
 
 def _repo_owned_blocker_report(

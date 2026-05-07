@@ -267,8 +267,8 @@ class PrivateReportingPathConfig(ReportingPathConfig):
                 raise ValueError(
                     "configured GitHub private reporting paths must use a GitHub security advisory URL"
                 )
-            if self.repository_check_result == "disabled":
-                raise ValueError("configured GitHub private reporting paths cannot have a disabled repository check")
+            if self.repository_check_result != "enabled":
+                raise ValueError("configured GitHub private reporting paths require an enabled repository check")
         return self
 
 
