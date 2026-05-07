@@ -73,6 +73,7 @@ class PublicBetaExportResult:
     item_manifest_path: Path
     readiness_report_path: Path
     blocker_closure_plan_path: Path
+    repo_owned_blocker_report_path: Path
     checksum_manifest_path: Path
     archive_manifest_path: Path
     artifact_paths: list[Path]
@@ -94,6 +95,8 @@ PUBLIC_BETA_REQUIRED_DOCS = {
     "docs/BENCHMARK_CARD.md": ["# Benchmark"],
     "docs/HANDOFF.md": ["## Stop Conditions", "Do not publish to HeOCR"],
 }
+
+REPO_OWNED_PUBLIC_BETA_GATES = {"privacy_review", "benchmark_references", "takedown_removal"}
 
 BLOCKER_CLOSURE_ACTIONS = {
     "source_depth_composition": {
@@ -134,6 +137,7 @@ BLOCKER_CLOSURE_ACTIONS = {
             "states through repo-tracked review/config/source-status changes before claiming public beta readiness."
         ),
         "closure_artifacts": [
+            "manifests/public_beta_repo_owned_blocker_report.json",
             "manifests/privacy_stats.json",
             "manifests/review_required_items.json",
             "manifests/blocked_items.json",
@@ -149,6 +153,7 @@ BLOCKER_CLOSURE_ACTIONS = {
             "readiness stays blocked while references are draft, unavailable, blocked, or versioning-incoherent."
         ),
         "closure_artifacts": [
+            "manifests/public_beta_repo_owned_blocker_report.json",
             "manifests/benchmark_reference_manifest.json",
             "manifests/benchmark_reference_status.json",
             "manifests/benchmark_reference_versioning.json",
@@ -344,6 +349,7 @@ def export_public_beta_release(
                 "item_manifest": "manifests/item_manifest.json",
                 "publication_report": None,
                 "readiness_report": "manifests/public_beta_readiness_report.json",
+                "repo_owned_blocker_report": "manifests/public_beta_repo_owned_blocker_report.json",
                 "release_diff": "manifests/release_diff.json",
                 "release_record": "manifests/release_record.json",
                 "release_summary": "manifests/release_summary.json",
@@ -486,6 +492,16 @@ def export_public_beta_release(
         takedown_validation=takedown_validation,
     )
     write_json(manifests_dir / "public_beta_blocker_closure_plan.json", blocker_closure_plan)
+    repo_owned_blocker_report = _repo_owned_blocker_report(
+        readiness_report=readiness_report,
+        review_required_items=review_required_items,
+        blocked_items=blocked_items,
+        selected_review_queue=selected_review_queue,
+        selected_benchmark_reference_status=selected_benchmark_reference_status,
+        benchmark_reference_versioning=benchmark_inputs.reference_versioning,
+        takedown_validation=takedown_validation,
+    )
+    write_json(manifests_dir / "public_beta_repo_owned_blocker_report.json", repo_owned_blocker_report)
     archive_record = write_release_archive(
         release_root=export_dir,
         version=config.version,
@@ -511,6 +527,7 @@ def export_public_beta_release(
         manifests_dir / "checksum_manifest.json",
         manifests_dir / "public_beta_readiness_report.json",
         manifests_dir / "public_beta_blocker_closure_plan.json",
+        manifests_dir / "public_beta_repo_owned_blocker_report.json",
         export_dir / archive_record["archive_path"],
     ]
     return PublicBetaExportResult(
@@ -520,6 +537,7 @@ def export_public_beta_release(
         item_manifest_path=manifests_dir / "item_manifest.json",
         readiness_report_path=manifests_dir / "public_beta_readiness_report.json",
         blocker_closure_plan_path=manifests_dir / "public_beta_blocker_closure_plan.json",
+        repo_owned_blocker_report_path=manifests_dir / "public_beta_repo_owned_blocker_report.json",
         checksum_manifest_path=manifests_dir / "checksum_manifest.json",
         archive_manifest_path=manifests_dir / "archive_manifest.json",
         artifact_paths=[*artifact_paths, *extra_paths],
@@ -559,7 +577,7 @@ def _readiness_report(
     return {
         "schema_version": 1,
         "planning_notation": "F5b",
-        "current_planning_notation": "F5c",
+        "current_planning_notation": "F5d",
         "readiness_contract_notation": "F5a",
         "profile_id": profile_id,
         "version": version,
@@ -589,7 +607,7 @@ def _blocker_closure_plan(
     category_counts = dict(Counter(blocker["category"] for blocker in blockers))
     return {
         "schema_version": 1,
-        "planning_notation": "F5c",
+        "planning_notation": "F5d",
         "source_readiness_report": "manifests/public_beta_readiness_report.json",
         "readiness_status": readiness_report["readiness_status"],
         "publication_allowed": readiness_report["publication_allowed"],
@@ -634,8 +652,198 @@ def _blocker_action(gate_id: str, takedown_validation: dict[str, Any]) -> dict[s
     if gate_id == "takedown_removal":
         return _takedown_blocker_action(takedown_validation)
     if gate_id not in BLOCKER_CLOSURE_ACTIONS:
-        raise StageExecutionError(f"blocked public beta gate has no F5c closure metadata: {gate_id}")
+        raise StageExecutionError(f"blocked public beta gate has no F5d closure metadata: {gate_id}")
     return BLOCKER_CLOSURE_ACTIONS[gate_id]
+
+
+def _repo_owned_blocker_report(
+    *,
+    readiness_report: dict[str, Any],
+    review_required_items: list[PrivacyScannedItemRecord],
+    blocked_items: list[PrivacyScannedItemRecord],
+    selected_review_queue: list[ReviewQueueRecord],
+    selected_benchmark_reference_status: Any,
+    benchmark_reference_versioning: dict[str, Any] | None,
+    takedown_validation: dict[str, Any],
+) -> dict[str, Any]:
+    gates_by_id = {gate["gate_id"]: gate for gate in readiness_report["gates"]}
+    repo_owned_entries = [
+        _privacy_review_closure_entry(
+            gates_by_id["privacy_review"],
+            review_required_items,
+            blocked_items,
+            selected_review_queue,
+        ),
+        _benchmark_reference_closure_entry(
+            gates_by_id["benchmark_references"],
+            selected_benchmark_reference_status,
+            benchmark_reference_versioning,
+        ),
+        _takedown_closure_entry(gates_by_id["takedown_removal"], takedown_validation),
+    ]
+    blocked_entries = [entry for entry in repo_owned_entries if entry["status"] == "blocked"]
+    external_blocked_gate_ids = [
+        gate["gate_id"]
+        for gate in readiness_report["gates"]
+        if gate["status"] == "blocked" and gate["gate_id"] not in REPO_OWNED_PUBLIC_BETA_GATES
+    ]
+    return {
+        "schema_version": 1,
+        "planning_notation": "F5d",
+        "source_readiness_report": "manifests/public_beta_readiness_report.json",
+        "readiness_status": readiness_report["readiness_status"],
+        "publication_allowed": readiness_report["publication_allowed"],
+        "repo_owned_gate_ids": sorted(REPO_OWNED_PUBLIC_BETA_GATES),
+        "repo_owned_status": "pass" if not blocked_entries else "blocked",
+        "repo_owned_blocked_gate_ids": [entry["gate_id"] for entry in blocked_entries],
+        "external_input_dependent_blocked_gate_ids": external_blocked_gate_ids,
+        "external_input_dependent_treatment": (
+            "kept blocked until real source-depth and hocrsyngen target-scale inputs exist"
+        ),
+        "entries": repo_owned_entries,
+    }
+
+
+def _privacy_review_closure_entry(
+    gate: dict[str, Any],
+    review_required_items: list[PrivacyScannedItemRecord],
+    blocked_items: list[PrivacyScannedItemRecord],
+    selected_review_queue: list[ReviewQueueRecord],
+) -> dict[str, Any]:
+    queue_by_item_id = {entry.item_id: entry for entry in selected_review_queue}
+    review_required_item_entries = []
+    for item in sorted(review_required_items, key=lambda record: record.item_id):
+        queue_entry = queue_by_item_id.get(item.item_id)
+        review_required_item_entries.append(
+            {
+                "item_id": item.item_id,
+                "source_id": item.source_id,
+                "privacy_flag": item.privacy_flag.value,
+                "privacy_reasons": item.privacy_reasons,
+                "classification_review_reasons": item.classification_review_reasons,
+                "suggested_decision": queue_entry.suggested_decision if queue_entry else None,
+                "review_reasons": queue_entry.review_reasons if queue_entry else [],
+            }
+        )
+    suggested_decision_counts = Counter(
+        entry.suggested_decision for entry in selected_review_queue if entry.suggested_decision
+    )
+    privacy_flag_counts = Counter(item.privacy_flag.value for item in review_required_items + blocked_items)
+    return {
+        "gate_id": "privacy_review",
+        "status": gate["status"],
+        "closure_state": (
+            "pass"
+            if gate["status"] == "pass"
+            else "requires_repo_tracked_review_or_source_policy_update"
+        ),
+        "required_action": (
+            "No repo-owned privacy/review action remains for currently exported public beta candidates."
+            if gate["status"] == "pass"
+            else (
+                "Resolve each listed item through repo-tracked review decisions, allow/block overrides, "
+                "privacy config changes, or source-status changes; do not publish while unresolved items remain."
+            )
+        ),
+        "counts": {
+            "review_required": len(review_required_items),
+            "blocked": len(blocked_items),
+            "suggested_decision": dict(sorted(suggested_decision_counts.items())),
+            "privacy_flag": dict(sorted(privacy_flag_counts.items())),
+        },
+        "review_required_items": review_required_item_entries,
+        "blocked_item_ids": [item.item_id for item in sorted(blocked_items, key=lambda record: record.item_id)],
+        "evidence_paths": gate["evidence_paths"],
+        "rationale": gate["rationale"],
+    }
+
+
+def _benchmark_reference_closure_entry(
+    gate: dict[str, Any],
+    selected_benchmark_reference_status: Any,
+    benchmark_reference_versioning: dict[str, Any] | None,
+) -> dict[str, Any]:
+    status_items = list(selected_benchmark_reference_status.items) if selected_benchmark_reference_status is not None else []
+    unresolved_items = []
+    for item in sorted(status_items, key=lambda record: record.item_id):
+        if _benchmark_reference_item_ready(item):
+            continue
+        unresolved_items.append(
+            {
+                "item_id": item.item_id,
+                "source_id": item.source_id,
+                "benchmark_split": item.benchmark_split,
+                "public_reference_status": item.public_reference_status,
+                "adjudication_status": item.adjudication_status,
+                "has_transcription_reference": item.has_transcription_reference,
+                "layout_reference_count": item.layout_reference_count,
+                "reviewer_count": item.reviewer_count,
+                "required_action": _benchmark_reference_item_required_action(item),
+            }
+        )
+    counts = selected_benchmark_reference_status.counts if selected_benchmark_reference_status is not None else {}
+    return {
+        "gate_id": "benchmark_references",
+        "status": gate["status"],
+        "closure_state": (
+            "pass"
+            if gate["status"] == "pass"
+            else "requires_reviewed_or_adjudicated_reference_evidence"
+        ),
+        "required_action": (
+            "No benchmark-reference action remains for currently selected benchmark items."
+            if gate["status"] == "pass"
+            else (
+                "Keep draft, unavailable, blocked, or unadjudicated references blocked; only reviewed/adjudicated "
+                "references with coherent versioning can satisfy public beta readiness."
+            )
+        ),
+        "counts": dict(sorted(counts.items())),
+        "versioning_status": (benchmark_reference_versioning or {}).get("status", "not_available"),
+        "unresolved_items": unresolved_items,
+        "evidence_paths": gate["evidence_paths"],
+        "rationale": gate["rationale"],
+    }
+
+
+def _benchmark_reference_item_ready(item: Any) -> bool:
+    return item.public_reference_status in {"reviewed", "adjudicated"} and item.adjudication_status == "adjudicated"
+
+
+def _benchmark_reference_item_required_action(item: Any) -> str:
+    if item.public_reference_status == "draft":
+        return "Complete review/adjudication and update public_reference_status only after the reference is no longer draft."
+    if item.public_reference_status == "not_available":
+        return "Add real transcription/layout reference evidence and review it, or keep the benchmark limitation disclosed."
+    if item.adjudication_status != "adjudicated":
+        return "Complete adjudication before using this reference as public beta-ready evidence."
+    return "Repair reference status semantics before claiming public beta readiness."
+
+
+def _takedown_closure_entry(gate: dict[str, Any], takedown_validation: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "gate_id": "takedown_removal",
+        "status": gate["status"],
+        "closure_state": (
+            _takedown_blocker_action(takedown_validation)["closure_state"]
+            if gate["status"] == "blocked"
+            else "pass"
+        ),
+        "required_action": (
+            "No takedown/private reporting action remains for current public beta governance config."
+            if gate["status"] == "pass"
+            else _takedown_required_action(takedown_validation)
+        ),
+        "configured_private_reporting_path": takedown_validation.get("configured_private_reporting_path"),
+        "private_reporting_channel": takedown_validation.get("private_reporting_channel"),
+        "private_reporting_path_id": takedown_validation.get("private_reporting_path_id"),
+        "private_reporting_path_label": takedown_validation.get("private_reporting_path_label"),
+        "repository_check": takedown_validation.get("repository_check", {}),
+        "missing": takedown_validation.get("missing", []),
+        "incomplete": takedown_validation.get("incomplete", []),
+        "evidence_paths": gate["evidence_paths"],
+        "rationale": gate["rationale"],
+    }
 
 
 def _takedown_blocker_action(takedown_validation: dict[str, Any]) -> dict[str, Any]:
@@ -649,6 +857,7 @@ def _takedown_blocker_action(takedown_validation: dict[str, Any]) -> dict[str, A
         ),
         "required_action": _takedown_required_action(takedown_validation),
         "closure_artifacts": [
+            "manifests/public_beta_repo_owned_blocker_report.json",
             "src/hocrgen/config/public_beta.yaml",
             "docs/RELEASE_NOTES.md",
             "docs/HANDOFF.md",
@@ -660,10 +869,17 @@ def _takedown_blocker_action(takedown_validation: dict[str, Any]) -> dict[str, A
 
 def _takedown_required_action(takedown_validation: dict[str, Any]) -> str:
     if takedown_validation.get("configured_private_reporting_path") is not True:
-        return str(
+        required_action = str(
             takedown_validation.get("required_operator_action")
             or "Configure a maintainer-private reporting path before public beta publication."
         ).rstrip(".")
+        repository_check = takedown_validation.get("repository_check") or {}
+        if repository_check.get("result") == "disabled" and repository_check.get("checked_at"):
+            required_action = (
+                f"{required_action}; latest repository settings check "
+                f"{repository_check['checked_at']}: private reporting is disabled"
+            )
+        return required_action
     problems = _takedown_doc_problems(takedown_validation)
     if problems:
         return f"Repair takedown workflow documentation: {'; '.join(problems)}"
@@ -909,6 +1125,11 @@ def _validate_takedown_workflow(export_dir: Path, governance: PublicBetaGovernan
         "private_reporting_path_label": private_path.label,
         "public_reporting_path_id": public_path.id,
         "public_reporting_path_label": public_path.label,
+        "repository_check": {
+            "checked_at": private_path.repository_check_at,
+            "method": private_path.repository_check_method,
+            "result": private_path.repository_check_result,
+        },
         "required_operator_action": "" if configured_private_reporting_path else private_path.required_operator_action,
         "evidence_paths": evidence_paths,
         "incomplete": incomplete,
@@ -997,6 +1218,12 @@ def _reporting_path_lines(governance: PublicBetaGovernanceConfig) -> list[str]:
     if private_path.configured:
         lines.append("- Private reporting status: configured in repo governance config.")
     else:
+        if private_path.repository_check_result:
+            lines.append(
+                "- Private reporting repository check: "
+                f"{private_path.repository_check_result} via {private_path.repository_check_method} "
+                f"at {private_path.repository_check_at}."
+            )
         lines.append(f"- Required operator action: {private_path.required_operator_action}")
     return lines
 

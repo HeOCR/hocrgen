@@ -715,6 +715,7 @@ def handle_export_public_beta(args: argparse.Namespace) -> int:
             "profile_id": args.profile,
             "publication_allowed": export_result.publication_allowed,
             "readiness_report": str(export_result.readiness_report_path),
+            "repo_owned_blocker_report": str(export_result.repo_owned_blocker_report_path),
             "readiness_status": export_result.readiness_status,
             "run_dir": str(context.run_dir),
             "run_id": context.run_id,
