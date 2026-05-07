@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F5c"
+CURRENT_COMPLETED_NOTATION = "F5d"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -45,6 +45,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "`F5a` now defines public beta publishability separately from operator trial success" in agent_plan
     assert "`F5b` now implements deliberate public beta packaging and handoff artifacts" in agent_plan
     assert "`F5c` now derives a public beta blocker-closure plan" in agent_plan
+    assert "`F5d` now writes `manifests/public_beta_repo_owned_blocker_report.json`" in agent_plan
     assert f"| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert f"| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
@@ -56,13 +57,14 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "| F2 | Benchmark ground-truth foundation | F2a, F2b |" in roadmap
     assert "| F3 | Modern handwritten acquisition program | F3a, F3b |" in roadmap
     assert "| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d, F4e |" in roadmap
-    assert "| F5 | Public beta and publication readiness | F5a, F5b, F5c | Public beta gates, publication packaging, dataset-card, checksum/archive manifests, takedown-ready export handoff, and blocker-closure sequencing | completed-with-blockers |" in roadmap
+    assert "| F5 | Public beta and publication readiness | F5a, F5b, F5c, F5d | Public beta gates, publication packaging, dataset-card, checksum/archive manifests, takedown-ready export handoff, blocker-closure sequencing, and repo-owned blocker reporting | completed-with-blockers |" in roadmap
     assert "| F5a | F5 | Define public beta readiness gates over source depth, uniqueness, ground truth, review, and portability | no | completed |" in roadmap
     assert "| F5b | F5 | Implement public beta publication packaging and handoff workflow | no | completed | current ref public beta packaging and blocked handoff workflow |" in roadmap
     assert "| F5c | F5 | Close public beta readiness blocker sequencing and repo-owned handoff gaps | no | completed | current ref blocker-closure plan and takedown reporting config |" in roadmap
+    assert "| F5d | F5 | Close repo-owned public beta readiness gates before external scale inputs | no | completed | current ref repo-owned blocker evidence and private-reporting settings check |" in roadmap
     assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
-    assert "`F5a`, `F5b`, and `F5c` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
+    assert "`F5a`, `F5b`, `F5c`, and `F5d` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
 
 
 def test_f3_modern_handwritten_policy_and_intake_are_consistent_and_bounded() -> None:
@@ -321,6 +323,7 @@ def test_f5b_public_beta_packaging_contract_is_documented_and_bounded() -> None:
         "larger validated hocrsyngen manifest batch",
         "valid statuses are only `pass` and `blocked`",
         "public_beta_blocker_closure_plan.json",
+        "public_beta_repo_owned_blocker_report.json",
         "repo_owned_immediately_actionable",
         "external_input_dependent",
         "does not publish to `HeOCR`, Hugging Face, Kaggle, or `HeOCRsynth`",
@@ -359,6 +362,7 @@ def test_f5b_public_beta_packaging_contract_is_documented_and_bounded() -> None:
         "canonical F5a gate matrix",
         "manifests/public_beta_readiness_report.json",
         "manifests/public_beta_blocker_closure_plan.json",
+        "manifests/public_beta_repo_owned_blocker_report.json",
         "src/hocrgen/config/public_beta.yaml",
         "status is `pass`",
         "`blocked` gate must stop repository sync, upload, release tagging, and publication reports",
@@ -371,6 +375,7 @@ def test_f5b_public_beta_packaging_contract_is_documented_and_bounded() -> None:
     for required_design in [
         "manifests/public_beta_readiness_report.json",
         "manifests/public_beta_blocker_closure_plan.json",
+        "manifests/public_beta_repo_owned_blocker_report.json",
         "`gate_id`, `status`, `evidence_paths`, and `rationale`",
         "Valid statuses are `pass` and `blocked`",
         "release-level SHA-256 checksum manifest",
@@ -378,15 +383,18 @@ def test_f5b_public_beta_packaging_contract_is_documented_and_bounded() -> None:
         "recomputes asset and archive digests",
         "do not meet the planned public beta synthetic target scale",
         "must not emit `manifests/publication_report.json`",
+        "item/status-level repo-owned blocker evidence",
     ]:
         assert required_design in design
 
     assert "| F5a | F5 | Define public beta readiness gates over source depth, uniqueness, ground truth, review, and portability | no | completed | current ref public beta readiness gate contract |" in roadmap
     assert "| F5b | F5 | Implement public beta publication packaging and handoff workflow | no | completed | current ref public beta packaging and blocked handoff workflow |" in roadmap
     assert "| F5c | F5 | Close public beta readiness blocker sequencing and repo-owned handoff gaps | no | completed | current ref blocker-closure plan and takedown reporting config |" in roadmap
+    assert "| F5d | F5 | Close repo-owned public beta readiness gates before external scale inputs | no | completed | current ref repo-owned blocker evidence and private-reporting settings check |" in roadmap
     assert "For F5a, the required planning notation is:" in release_governance
     assert "For F5b, the required planning notation is:" in release_governance
     assert "For F5c, the required planning notation is:" in release_governance
+    assert "For F5d, the required planning notation is:" in release_governance
     assert "parent milestone: `F5 - Public beta and publication readiness`" in release_governance
 
 

@@ -232,9 +232,20 @@ class PrivateReportingPathConfig(ReportingPathConfig):
         "",
     ] = ""
     verified_by: str = ""
+    repository_check_at: str = ""
+    repository_check_method: Literal[
+        "gh_api_private_vulnerability_reporting",
+        "manual_repository_settings_review",
+        "",
+    ] = ""
+    repository_check_result: Literal["enabled", "disabled", "unknown", ""] = ""
 
     @model_validator(mode="after")
     def validate_private_reporting_path(self) -> "PrivateReportingPathConfig":
+        if self.repository_check_result and not self.repository_check_at:
+            raise ValueError("repository_check_at is required when repository_check_result is recorded")
+        if self.repository_check_result and not self.repository_check_method:
+            raise ValueError("repository_check_method is required when repository_check_result is recorded")
         if not self.configured:
             return self
         missing = [
@@ -256,6 +267,8 @@ class PrivateReportingPathConfig(ReportingPathConfig):
                 raise ValueError(
                     "configured GitHub private reporting paths must use a GitHub security advisory URL"
                 )
+            if self.repository_check_result != "enabled":
+                raise ValueError("configured GitHub private reporting paths require an enabled repository check")
         return self
 
 

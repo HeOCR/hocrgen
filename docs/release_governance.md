@@ -62,7 +62,7 @@ The governance summary of those gates is:
 - `DATASET_CARD.md`, `PROVENANCE.md`, `CHANGELOG.md`, `RELEASE_NOTES.md`, benchmark docs, and handoff notes describe composition, source mix, synthetic fraction, rights posture, benchmark/reference status, annotation status, validation, limitations, and known blockers
 - rights, privacy, source-owner, takedown, correction, and source-breakage reports have a public or private intake path before publication
 
-F5b implements local publication packaging and handoff verification, not publication itself. The command writes `manifests/checksum_manifest.json`, `manifests/archive_manifest.json`, `manifests/public_beta_readiness_report.json`, beta-specific docs, and a portable version-rooted archive, then verifies asset and archive digests from the handoff tree. F5c adds `manifests/public_beta_blocker_closure_plan.json`, which derives the blocker sequence from the readiness report, separates `repo_owned_immediately_actionable` blockers from `external_input_dependent` blockers, and keeps the hocrsyngen `80` synthetic-control target blocked until a larger validated batch exists. It must not sync a repository, upload to a host, tag a release, or emit a blocked publication report while any readiness gate is unresolved.
+F5b implements local publication packaging and handoff verification, not publication itself. The command writes `manifests/checksum_manifest.json`, `manifests/archive_manifest.json`, `manifests/public_beta_readiness_report.json`, beta-specific docs, and a portable version-rooted archive, then verifies asset and archive digests from the handoff tree. F5c adds `manifests/public_beta_blocker_closure_plan.json`, which derives the blocker sequence from the readiness report, separates `repo_owned_immediately_actionable` blockers from `external_input_dependent` blockers, and keeps the hocrsyngen `80` synthetic-control target blocked until a larger validated batch exists. F5d adds `manifests/public_beta_repo_owned_blocker_report.json`, which records unresolved review/privacy item ids and reasons, benchmark-reference draft/unavailable/adjudication status by item, and takedown/private-reporting settings-check evidence from `src/hocrgen/config/public_beta.yaml`. It must not sync a repository, upload to a host, tag a release, or emit a blocked publication report while any readiness gate is unresolved.
 
 Unknown rights, restricted review-only rights, blocked sources, unresolved privacy flags, and unresolved review decisions must not be promoted into `profile_open_v1`.
 
@@ -96,7 +96,7 @@ Release history should explain removals rather than hiding them. If a correction
 
 ## Removal and takedown workflow
 
-Takedown, privacy, rights, and source-owner concerns must be routed through an issue or maintainer-private report before release changes are made. Non-sensitive corrections should use a public GitHub issue with the appropriate dataset label. Sensitive rights, privacy, or source-owner concerns should use GitHub private vulnerability reporting or a private security advisory when that repository feature is enabled. If no private repository channel is configured, maintainers must arrange an out-of-band private contact path before publishing broader public releases and must avoid asking reporters to disclose sensitive details in a public issue. The repo-owned public beta governance config at `src/hocrgen/config/public_beta.yaml` records the public reporting path, private reporting path label/channel, whether that private path is configured with verification metadata, and the required operator action when it is not.
+Takedown, privacy, rights, and source-owner concerns must be routed through an issue or maintainer-private report before release changes are made. Non-sensitive corrections should use a public GitHub issue with the appropriate dataset label. Sensitive rights, privacy, or source-owner concerns should use GitHub private vulnerability reporting or a private security advisory when that repository feature is enabled. If no private repository channel is configured, maintainers must arrange an out-of-band private contact path before publishing broader public releases and must avoid asking reporters to disclose sensitive details in a public issue. The repo-owned public beta governance config at `src/hocrgen/config/public_beta.yaml` records the public reporting path, private reporting path label/channel, whether that private path is configured with verification metadata, the latest repository settings check when available, and the required operator action when the path is not configured. The current GitHub private vulnerability reporting check is recorded as disabled, so the takedown gate must remain blocked until maintainers enable it or configure and verify another maintainer-private reporting channel.
 
 For modern handwritten contributor material, takedown handling must also check contributor consent artifact ids, institutional batch agreement ids, and any affected aggregate composition metadata. Public release notes should avoid exposing private contributor evidence while still documenting the dataset-visible removal where disclosure is safe.
 
@@ -203,6 +203,12 @@ For F5b, the required planning notation is:
 For F5c, the required planning notation is:
 
 - notation: `F5c`
+- parent milestone: `F5 - Public beta and publication readiness`
+- source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
+
+For F5d, the required planning notation is:
+
+- notation: `F5d`
 - parent milestone: `F5 - Public beta and publication readiness`
 - source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
 

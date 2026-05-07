@@ -5,16 +5,25 @@ import json
 import shutil
 import tarfile
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
 
+import hocrgen.package.public_beta as public_beta
 from hocrgen.cli import main
 from hocrgen.config.loader import default_config_root
-from hocrgen.config.models import ReportingPathConfig
+from hocrgen.config.models import PrivateReportingPathConfig, ReportingPathConfig
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.package.common import verify_checksum_manifest, write_release_archive
-from hocrgen.package.public_beta import _blocker_closure_plan, _takedown_blocker_action, _takedown_gate
+from hocrgen.package.public_beta import (
+    _benchmark_reference_item_required_action,
+    _blocked_gate_ids_by_closure_category,
+    _blocker_closure_plan,
+    _stabilize_public_beta_readiness_artifacts,
+    _takedown_blocker_action,
+    _takedown_gate,
+)
 
 
 def _fixture_config_root(tmp_path: Path) -> Path:
@@ -71,13 +80,22 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     closure_plan = json.loads(
         (output_dir / "manifests" / "public_beta_blocker_closure_plan.json").read_text(encoding="utf-8")
     )
+    repo_owned_report = json.loads(
+        (output_dir / "manifests" / "public_beta_repo_owned_blocker_report.json").read_text(encoding="utf-8")
+    )
     assert report["planning_notation"] == "F5b"
-    assert report["current_planning_notation"] == "F5c"
+    assert report["current_planning_notation"] == "F5d"
     assert report["readiness_contract_notation"] == "F5a"
     assert report["valid_statuses"] == ["pass", "blocked"]
     assert report["readiness_status"] == "blocked"
     assert report["publication_allowed"] is False
-    assert set(report["blocked_gate_ids"]) >= {"synthetic_target_scale", "benchmark_references", "takedown_removal"}
+    assert report["blocked_gate_ids"] == [
+        "source_depth_composition",
+        "synthetic_target_scale",
+        "privacy_review",
+        "benchmark_references",
+        "takedown_removal",
+    ]
     assert {gate["status"] for gate in report["gates"]} <= {"pass", "blocked"}
     synthetic_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "synthetic_target_scale")
     assert "larger validated batch" in synthetic_gate["rationale"]
@@ -85,20 +103,56 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert takedown_gate["status"] == "blocked"
     assert "no repo-configured private reporting path" in takedown_gate["rationale"]
     assert "Enable GitHub private vulnerability reporting" in takedown_gate["rationale"]
-    assert closure_plan["planning_notation"] == "F5c"
+    assert "private reporting is disabled" in takedown_gate["rationale"]
+    assert closure_plan["planning_notation"] == "F5d"
     assert closure_plan["source_readiness_report"] == "manifests/public_beta_readiness_report.json"
     assert closure_plan["readiness_status"] == "blocked"
-    assert closure_plan["summary"]["external_input_dependent"] >= 1
-    assert closure_plan["summary"]["repo_owned_immediately_actionable"] >= 1
+    assert closure_plan["summary"]["external_input_dependent"] == 2
+    assert closure_plan["summary"]["repo_owned_immediately_actionable"] == 3
     blockers_by_gate = {blocker["gate_id"]: blocker for blocker in closure_plan["blockers"]}
+    assert blockers_by_gate["source_depth_composition"]["category"] == "external_input_dependent"
     assert blockers_by_gate["synthetic_target_scale"]["category"] == "external_input_dependent"
     assert blockers_by_gate["synthetic_target_scale"]["closure_state"] == "requires_external_input"
     assert blockers_by_gate["synthetic_target_scale"]["blocks_publication"] is True
+    assert blockers_by_gate["privacy_review"]["category"] == "repo_owned_immediately_actionable"
+    assert blockers_by_gate["benchmark_references"]["category"] == "repo_owned_immediately_actionable"
     assert blockers_by_gate["takedown_removal"]["category"] == "repo_owned_immediately_actionable"
     assert blockers_by_gate["takedown_removal"]["closure_state"] == "requires_operator_action"
     assert "Enable GitHub private vulnerability reporting" in blockers_by_gate["takedown_removal"]["required_action"]
+    assert (
+        "manifests/public_beta_repo_owned_blocker_report.json"
+        in blockers_by_gate["takedown_removal"]["closure_artifacts"]
+    )
     assert closure_plan["known_hard_blockers"][0]["gate_id"] == "synthetic_target_scale"
     assert closure_plan["known_hard_blockers"][0]["do_not_relax"] is True
+    assert repo_owned_report["planning_notation"] == "F5d"
+    assert repo_owned_report["repo_owned_status"] == "blocked"
+    assert repo_owned_report["repo_owned_blocked_gate_ids"] == [
+        "privacy_review",
+        "benchmark_references",
+        "takedown_removal",
+    ]
+    assert repo_owned_report["external_input_dependent_blocked_gate_ids"] == [
+        "source_depth_composition",
+        "synthetic_target_scale",
+    ]
+    repo_entries = {entry["gate_id"]: entry for entry in repo_owned_report["entries"]}
+    assert repo_entries["privacy_review"]["counts"]["review_required"] == 1
+    assert repo_entries["privacy_review"]["counts"]["blocked"] == 0
+    assert repo_entries["privacy_review"]["counts"]["suggested_decision"] == {
+        "needs_classification_review": 1,
+    }
+    assert repo_entries["benchmark_references"]["counts"]["reference_ready"] == 1
+    assert repo_entries["benchmark_references"]["counts"]["blocked_or_draft"] == 2
+    unresolved_by_id = {item["item_id"]: item for item in repo_entries["benchmark_references"]["unresolved_items"]}
+    assert unresolved_by_id["pinkas_open:pinkas-ledger-001"]["public_reference_status"] == "draft"
+    assert unresolved_by_id["project_synthetic:synthetic-0"]["public_reference_status"] == "not_available"
+    assert repo_entries["takedown_removal"]["repository_check"] == {
+        "checked_at": "2026-05-07",
+        "method": "gh_api_private_vulnerability_reporting",
+        "result": "disabled",
+    }
+    assert str(output_dir.resolve()) not in json.dumps(repo_owned_report)
     for gate in report["gates"]:
         assert set(gate) == {"gate_id", "status", "evidence_paths", "rationale"}
         assert gate["evidence_paths"]
@@ -112,6 +166,7 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert release_summary["publication_report_emitted"] is False
     assert "repository sync, upload, release tagging, or publication report emission" in handoff
     assert "GitHub private vulnerability reporting for HeOCR/hocrgen" in handoff
+    assert "Private reporting repository check: disabled" in handoff
     assert str(output_dir.resolve()) not in handoff
 
     summarize_exit = main(["summarize-run", "--run-dir", payload["run_dir"]])
@@ -154,6 +209,7 @@ def test_export_public_beta_checksum_manifest_covers_public_payloads_and_archive
     for required_path in [
         "manifests/public_beta_readiness_report.json",
         "manifests/public_beta_blocker_closure_plan.json",
+        "manifests/public_beta_repo_owned_blocker_report.json",
         "manifests/archive_manifest.json",
         "manifests/release_record.json",
         "manifests/release_summary.json",
@@ -162,6 +218,9 @@ def test_export_public_beta_checksum_manifest_covers_public_payloads_and_archive
     ]:
         assert required_path in entries_by_path
         assert entries_by_path[required_path]["sha256"] == _sha256(output_dir / required_path)
+    assert entries_by_path["manifests/public_beta_repo_owned_blocker_report.json"]["sha256"] == _sha256(
+        output_dir / "manifests" / "public_beta_repo_owned_blocker_report.json"
+    )
 
     archive_record = archive_manifest["archives"][0]
     archive_path = output_dir / archive_record["archive_path"]
@@ -214,6 +273,7 @@ def test_export_public_beta_archive_is_rooted_at_versioned_release_dir(tmp_path:
     assert any(name.startswith("public-beta-v0/manifests/") for name in names)
     assert "public-beta-v0/manifests/public_beta_readiness_report.json" in names
     assert "public-beta-v0/manifests/public_beta_blocker_closure_plan.json" in names
+    assert "public-beta-v0/manifests/public_beta_repo_owned_blocker_report.json" in names
     assert "public-beta-v0/manifests/release_record.json" in names
     assert "public-beta-v0/manifests/release_summary.json" in names
     assert "public-beta-v0/manifests/source_depth_feasibility.json" in names
@@ -339,8 +399,14 @@ def test_export_public_beta_takedown_gate_passes_when_private_reporting_path_is_
     public_beta_config.write_text(
         public_beta_config.read_text(encoding="utf-8").replace(
             "configured: false\n"
+            "  repository_check_at: '2026-05-07'\n"
+            "  repository_check_method: gh_api_private_vulnerability_reporting\n"
+            "  repository_check_result: disabled\n"
             "  required_operator_action: Enable GitHub private vulnerability reporting for HeOCR/hocrgen or replace this with a configured maintainer-private reporting channel before public beta publication.\n",
             "configured: true\n"
+            "  repository_check_at: '2026-05-07'\n"
+            "  repository_check_method: gh_api_private_vulnerability_reporting\n"
+            "  repository_check_result: enabled\n"
             "  verified_at: '2026-05-07'\n"
             "  verification_method: github_repository_security_settings\n"
             "  verified_by: test-maintainer\n",
@@ -387,7 +453,13 @@ def test_export_public_beta_rejects_unverified_private_reporting_path(
     config_root = _fixture_config_root(tmp_path)
     public_beta_config = config_root / "public_beta.yaml"
     public_beta_config.write_text(
-        public_beta_config.read_text(encoding="utf-8").replace("configured: false", "configured: true"),
+        public_beta_config.read_text(encoding="utf-8")
+        .replace("configured: false", "configured: true")
+        .replace("repository_check_result: disabled", "repository_check_result: enabled")
+        .replace(
+            "  required_operator_action: Enable GitHub private vulnerability reporting for HeOCR/hocrgen or replace this with a configured maintainer-private reporting channel before public beta publication.\n",
+            "",
+        ),
         encoding="utf-8",
     )
 
@@ -426,8 +498,172 @@ def test_public_beta_blocker_closure_plan_fails_closed_for_unmapped_blocked_gate
         ],
     }
 
-    with pytest.raises(StageExecutionError, match="has no F5c closure metadata"):
+    with pytest.raises(StageExecutionError, match="has no F5d closure metadata"):
         _blocker_closure_plan(readiness_report=readiness_report, takedown_validation={})
+
+
+def test_external_input_dependent_blocked_gates_are_category_derived(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(
+        public_beta.BLOCKER_CLOSURE_ACTIONS,
+        "future_repo_owned_gate",
+        {
+            "category": "repo_owned_immediately_actionable",
+            "owner_scope": "hocrgen future repo-owned work",
+            "closure_state": "requires_repo_pr_or_review_update",
+            "required_action": "Close the future repo-owned blocker in hocrgen.",
+            "closure_artifacts": ["manifests/public_beta_repo_owned_blocker_report.json"],
+        },
+    )
+    readiness_report = {
+        "gates": [
+            {"gate_id": "source_depth_composition", "status": "blocked"},
+            {"gate_id": "future_repo_owned_gate", "status": "blocked"},
+            {"gate_id": "synthetic_target_scale", "status": "pass"},
+        ]
+    }
+
+    assert _blocked_gate_ids_by_closure_category(
+        readiness_report=readiness_report,
+        takedown_validation={},
+        category="external_input_dependent",
+    ) == ["source_depth_composition"]
+
+
+def test_public_beta_readiness_artifacts_rewrite_until_stable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifests_dir = tmp_path / "manifests"
+    manifests_dir.mkdir()
+    updated_report = {"readiness_status": "blocked", "iteration": 1, "gates": []}
+    recomputed_reports = iter([updated_report, updated_report])
+    written_reports: list[dict[str, object]] = []
+
+    monkeypatch.setattr(public_beta, "_write_public_beta_blocker_outputs", lambda **_: None)
+    monkeypatch.setattr(public_beta, "write_release_archive", lambda **_: {"archive_path": "archives/test.tar.gz"})
+    monkeypatch.setattr(public_beta, "build_checksum_manifest", lambda **_: {"entries": []})
+    monkeypatch.setattr(
+        public_beta,
+        "verify_checksum_manifest",
+        lambda *_: {"status": "pass", "checked_count": 0, "failure_count": 0, "failures": []},
+    )
+    monkeypatch.setattr(public_beta, "_readiness_report", lambda **_: next(recomputed_reports))
+    monkeypatch.setattr(
+        public_beta,
+        "_write_readiness_outputs",
+        lambda **kwargs: written_reports.append(kwargs["readiness_report"]),
+    )
+
+    readiness_report, archive_record = _stabilize_public_beta_readiness_artifacts(
+        export_dir=tmp_path,
+        manifests_dir=manifests_dir,
+        version="public-beta-v0",
+        profile_id="profile_open_v1",
+        release_record=SimpleNamespace(),
+        release_summary={},
+        build_release_summary={},
+        source_depth_feasibility={},
+        leakage_report={},
+        selected_benchmark_reference_status=None,
+        benchmark_reference_versioning=None,
+        docs_validation={},
+        takedown_validation={},
+        review_required_items=[],
+        blocked_items=[],
+        selected_review_queue=[],
+        readiness_report={"readiness_status": "blocked", "iteration": 0, "gates": []},
+    )
+
+    assert readiness_report == updated_report
+    assert archive_record == {"archive_path": "archives/test.tar.gz"}
+    assert written_reports == [updated_report]
+
+
+def test_public_beta_readiness_artifacts_fail_when_not_stable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifests_dir = tmp_path / "manifests"
+    manifests_dir.mkdir()
+    reports = iter(
+        [
+            {"readiness_status": "blocked", "iteration": 1, "gates": []},
+            {"readiness_status": "blocked", "iteration": 2, "gates": []},
+            {"readiness_status": "blocked", "iteration": 3, "gates": []},
+        ]
+    )
+
+    monkeypatch.setattr(public_beta, "_write_public_beta_blocker_outputs", lambda **_: None)
+    monkeypatch.setattr(public_beta, "write_release_archive", lambda **_: {"archive_path": "archives/test.tar.gz"})
+    monkeypatch.setattr(public_beta, "build_checksum_manifest", lambda **_: {"entries": []})
+    monkeypatch.setattr(
+        public_beta,
+        "verify_checksum_manifest",
+        lambda *_: {"status": "pass", "checked_count": 0, "failure_count": 0, "failures": []},
+    )
+    monkeypatch.setattr(public_beta, "_readiness_report", lambda **_: next(reports))
+    monkeypatch.setattr(public_beta, "_write_readiness_outputs", lambda **_: None)
+
+    with pytest.raises(StageExecutionError, match="did not stabilize"):
+        _stabilize_public_beta_readiness_artifacts(
+            export_dir=tmp_path,
+            manifests_dir=manifests_dir,
+            version="public-beta-v0",
+            profile_id="profile_open_v1",
+            release_record=SimpleNamespace(),
+            release_summary={},
+            build_release_summary={},
+            source_depth_feasibility={},
+            leakage_report={},
+            selected_benchmark_reference_status=None,
+            benchmark_reference_versioning=None,
+            docs_validation={},
+            takedown_validation={},
+            review_required_items=[],
+            blocked_items=[],
+            selected_review_queue=[],
+            readiness_report={"readiness_status": "blocked", "iteration": 0, "gates": []},
+        )
+
+
+def test_public_beta_readiness_artifacts_fail_when_archive_does_not_run(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifests_dir = tmp_path / "manifests"
+    manifests_dir.mkdir()
+    stable_report = {"readiness_status": "blocked", "iteration": 0, "gates": []}
+
+    monkeypatch.setattr(public_beta, "_write_public_beta_blocker_outputs", lambda **_: None)
+    monkeypatch.setattr(public_beta, "write_release_archive", lambda **_: None)
+    monkeypatch.setattr(public_beta, "build_checksum_manifest", lambda **_: {"entries": []})
+    monkeypatch.setattr(
+        public_beta,
+        "verify_checksum_manifest",
+        lambda *_: {"status": "pass", "checked_count": 0, "failure_count": 0, "failures": []},
+    )
+    monkeypatch.setattr(public_beta, "_readiness_report", lambda **_: stable_report)
+
+    with pytest.raises(StageExecutionError, match="archive generation did not run"):
+        _stabilize_public_beta_readiness_artifacts(
+            export_dir=tmp_path,
+            manifests_dir=manifests_dir,
+            version="public-beta-v0",
+            profile_id="profile_open_v1",
+            release_record=SimpleNamespace(),
+            release_summary={},
+            build_release_summary={},
+            source_depth_feasibility={},
+            leakage_report={},
+            selected_benchmark_reference_status=None,
+            benchmark_reference_versioning=None,
+            docs_validation={},
+            takedown_validation={},
+            review_required_items=[],
+            blocked_items=[],
+            selected_review_queue=[],
+            readiness_report=stable_report,
+        )
 
 
 def test_public_beta_takedown_action_describes_configured_doc_failures() -> None:
@@ -465,6 +701,82 @@ def test_reporting_path_requires_operator_action_when_unconfigured() -> None:
                 "configured": False,
             }
         )
+
+
+def test_private_reporting_path_requires_repository_check_timestamp_when_result_recorded() -> None:
+    with pytest.raises(ValidationError, match="repository_check_at is required"):
+        PrivateReportingPathConfig.model_validate(
+            {
+                "id": "github_private_vulnerability_reporting",
+                "label": "GitHub private vulnerability reporting",
+                "channel": "github_private_vulnerability_reporting",
+                "configured": False,
+                "required_operator_action": "Enable GitHub private vulnerability reporting.",
+                "repository_check_method": "gh_api_private_vulnerability_reporting",
+                "repository_check_result": "disabled",
+            }
+        )
+
+
+def test_private_reporting_path_requires_repository_check_method_when_result_recorded() -> None:
+    with pytest.raises(ValidationError, match="repository_check_method is required"):
+        PrivateReportingPathConfig.model_validate(
+            {
+                "id": "github_private_vulnerability_reporting",
+                "label": "GitHub private vulnerability reporting",
+                "channel": "github_private_vulnerability_reporting",
+                "configured": False,
+                "required_operator_action": "Enable GitHub private vulnerability reporting.",
+                "repository_check_at": "2026-05-07",
+                "repository_check_result": "disabled",
+            }
+        )
+
+
+@pytest.mark.parametrize("repository_check_result", ["", "unknown", "disabled"])
+def test_private_reporting_path_requires_enabled_repository_check_when_configured(
+    repository_check_result: str,
+) -> None:
+    with pytest.raises(ValidationError, match="require an enabled repository check"):
+        PrivateReportingPathConfig.model_validate(
+            {
+                "id": "github_private_vulnerability_reporting",
+                "label": "GitHub private vulnerability reporting",
+                "channel": "github_private_vulnerability_reporting",
+                "url": "https://github.com/HeOCR/hocrgen/security/advisories/new",
+                "configured": True,
+                "verified_at": "2026-05-07",
+                "verification_method": "github_repository_security_settings",
+                "verified_by": "test-maintainer",
+                "repository_check_at": "2026-05-07",
+                "repository_check_method": "gh_api_private_vulnerability_reporting",
+                "repository_check_result": repository_check_result,
+            }
+        )
+
+
+@pytest.mark.parametrize(
+    ("item", "expected_fragment"),
+    [
+        (
+            SimpleNamespace(public_reference_status="reviewed", adjudication_status="pending"),
+            "Complete adjudication",
+        ),
+        (
+            SimpleNamespace(public_reference_status="adjudicated", adjudication_status="needs_repair"),
+            "Complete adjudication",
+        ),
+        (
+            SimpleNamespace(public_reference_status="blocked", adjudication_status="adjudicated"),
+            "Repair reference status semantics",
+        ),
+    ],
+)
+def test_benchmark_reference_required_action_covers_unready_status_semantics(
+    item: SimpleNamespace,
+    expected_fragment: str,
+) -> None:
+    assert expected_fragment in _benchmark_reference_item_required_action(item)
 
 
 def test_alpha_and_synthetic_exports_accept_config_root_without_public_beta_config(
