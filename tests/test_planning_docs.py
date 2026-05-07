@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F5d"
+CURRENT_COMPLETED_NOTATION = "F6a"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -46,6 +46,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "`F5b` now implements deliberate public beta packaging and handoff artifacts" in agent_plan
     assert "`F5c` now derives a public beta blocker-closure plan" in agent_plan
     assert "`F5d` now writes `manifests/public_beta_repo_owned_blocker_report.json`" in agent_plan
+    assert "`F6a` now defines the post-F5 public beta closure roadmap" in agent_plan
     assert f"| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert f"| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
@@ -58,13 +59,20 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "| F3 | Modern handwritten acquisition program | F3a, F3b |" in roadmap
     assert "| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d, F4e |" in roadmap
     assert "| F5 | Public beta and publication readiness | F5a, F5b, F5c, F5d | Public beta gates, publication packaging, dataset-card, checksum/archive manifests, takedown-ready export handoff, blocker-closure sequencing, and repo-owned blocker reporting | completed-with-blockers |" in roadmap
+    assert "| F6 | Public beta closure and external input integration | F6a, F6b, F6c, F6d, F6e, F6f | Post-F5 closure roadmap, repo-owned blocker closure, larger hocrsyngen batch integration, and final readiness rerun | partial |" in roadmap
     assert "| F5a | F5 | Define public beta readiness gates over source depth, uniqueness, ground truth, review, and portability | no | completed |" in roadmap
     assert "| F5b | F5 | Implement public beta publication packaging and handoff workflow | no | completed | current ref public beta packaging and blocked handoff workflow |" in roadmap
     assert "| F5c | F5 | Close public beta readiness blocker sequencing and repo-owned handoff gaps | no | completed | current ref blocker-closure plan and takedown reporting config |" in roadmap
     assert "| F5d | F5 | Close repo-owned public beta readiness gates before external scale inputs | no | completed | current ref repo-owned blocker evidence and private-reporting settings check |" in roadmap
+    assert "| F6a | F6 | Define post-F5 public beta closure roadmap | no | completed | current ref planning-only post-F5 closure roadmap |" in roadmap
+    assert "| F6b | F6 | Close takedown/private reporting readiness with a verified private path | no | planned | requires maintainer repository-setting or verified private-channel evidence |" in roadmap
+    assert "| F6c | F6 | Close benchmark-reference readiness with reviewed/adjudicated evidence or explicit limitations | no | planned | requires real benchmark-reference status and versioning evidence |" in roadmap
+    assert "| F6d | F6 | Close privacy/review blockers through review/config/source-status changes | no | planned | requires real review or source-status changes |" in roadmap
+    assert "| F6e | F6 | Integrate a larger validated hocrsyngen batch for synthetic target scale | no | planned | requires external validated generation_manifest.v1 input |" in roadmap
+    assert "| F6f | F6 | Re-run public beta readiness after real source-depth and synthetic-scale inputs exist | no | planned | final convergence only after F6b-F6e evidence exists |" in roadmap
     assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
-    assert "`F5a`, `F5b`, `F5c`, and `F5d` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
+    assert "`F5a`, `F5b`, `F5c`, `F5d`, and `F6a` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
 
 
 def test_f3_modern_handwritten_policy_and_intake_are_consistent_and_bounded() -> None:
@@ -396,6 +404,48 @@ def test_f5b_public_beta_packaging_contract_is_documented_and_bounded() -> None:
     assert "For F5c, the required planning notation is:" in release_governance
     assert "For F5d, the required planning notation is:" in release_governance
     assert "parent milestone: `F5 - Public beta and publication readiness`" in release_governance
+
+
+def test_f6_post_f5_closure_roadmap_is_documented_and_evidence_gated() -> None:
+    agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+    release_governance = Path("docs/release_governance.md").read_text(encoding="utf-8")
+    design = Path("docs/hocrgen_design_and_spec.md").read_text(encoding="utf-8")
+    pre_alpha = Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
+    combined = "\n".join([agent_plan, readme, roadmap, release_governance, design, pre_alpha])
+
+    for required in [
+        "`F6a`",
+        "planning-only",
+        "Public beta closure and external input integration",
+        "`F6b`",
+        "`F6c`",
+        "`F6d`",
+        "`F6e`",
+        "`F6f`",
+        "verified private reporting path",
+        "reviewed/adjudicated",
+        "review/config/source-status changes",
+        "larger validated hocrsyngen",
+        "generation_manifest.v1",
+        "real source-depth and synthetic-scale inputs",
+        "2 / 80",
+        "source-depth composition",
+        "must remain blocked",
+        "does not change runtime behavior",
+        "does not publish",
+        "does not relax",
+        "does not import hocrsyngen internals",
+        "GPU/LLM/diffusion",
+    ]:
+        assert required in combined
+
+    assert "| F6 | Public beta closure and external input integration | F6a, F6b, F6c, F6d, F6e, F6f |" in roadmap
+    assert "For F6a, the required planning notation is:" in release_governance
+    assert "parent milestone: `F6 - Public beta closure and external input integration`" in release_governance
+    assert "F6 does not permit hocrgen to import hocrsyngen internals" in design
+    assert "Future implementation should follow F6" in pre_alpha
 
 
 def test_planning_docs_do_not_use_stale_branch_local_status_phrases() -> None:

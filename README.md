@@ -111,6 +111,16 @@ The current public beta packaging output remains blocked; operator trial success
 
 When any gate is `blocked`, `export-public-beta` stops before repository sync, upload, release tagging, or publication-report emission. It does not publish to `HeOCR`, Hugging Face, Kaggle, or `HeOCRsynth`. The known hard blocker remains the larger validated hocrsyngen manifest batch required for the `80` synthetic-control target; current F1c artifacts remain operator-only and do not satisfy public beta readiness by themselves. The current blocker-closure plan keeps source depth and synthetic scale external/input-dependent while the repo-owned blocker report keeps privacy/review closure, benchmark-reference readiness disclosure, and takedown private-reporting setup precise and machine-readable. Current GitHub private vulnerability reporting for `HeOCR/hocrgen` is recorded as disabled in `src/hocrgen/config/public_beta.yaml`, so the takedown gate remains blocked until maintainers enable that path or configure and verify another maintainer-private channel.
 
+`F6a` defines the post-F5 public beta closure roadmap. It is planning-only: it does not change export behavior, readiness status semantics, or publication side effects. The F6 path is:
+
+- `F6b`: close takedown/private reporting readiness only after GitHub private vulnerability reporting is enabled or another maintainer-private channel is configured and verified
+- `F6c`: close benchmark-reference readiness only with real reviewed/adjudicated reference evidence or explicit limitation status
+- `F6d`: close privacy/review blockers only through repo-tracked review decisions, config changes, or source-status changes
+- `F6e`: integrate a larger validated hocrsyngen `generation_manifest.v1` batch through the existing manifest boundary, without calling hocrsyngen runtime internals or adding heavy generator dependencies
+- `F6f`: rerun public beta readiness only after real source-depth and synthetic-scale inputs exist, while preserving every F5a/F5b gate
+
+Until those evidence requirements are met, the `2 / 80` synthetic target-scale blocker, source-depth composition blocker, benchmark/reference limitations, privacy/review blockers, and takedown/private-reporting blocker must remain visible rather than being relaxed or rewritten into readiness.
+
 To promote exploratory entries into runnable local fixtures, use the local operator script:
 
 ```bash
@@ -146,7 +156,7 @@ python scripts/promote_nli_seeds.py \
 - stronger perceptual/semantic duplicate review beyond the current deterministic near-duplicate/source-group split-safety gates
 - OCR-aware privacy screening
 - advanced classification and model-training infrastructure
-- final public beta publication to Hugging Face or the GitHub dataset repo after F5a/F5b/F5c/F5d source-depth, uniqueness, ground-truth, review, portability, documentation, checksum/archive, blocker-sequencing, repo-owned closure reporting, and takedown gates pass
+- final public beta publication to Hugging Face or the GitHub dataset repo after F5/F6 source-depth, uniqueness, ground-truth, review, portability, documentation, checksum/archive, blocker-sequencing, repo-owned closure reporting, external-input, and takedown gates pass
 - publication automation beyond blocked local handoff packaging
 
 ## Splendor knowledge workspace

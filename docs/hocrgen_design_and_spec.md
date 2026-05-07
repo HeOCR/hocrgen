@@ -644,7 +644,7 @@ Outputs:
 - publish artifacts
 - final release record
 
-F5a defines the readiness contract that must pass before this publishing stage is invoked for a mixed `HeOCR` public beta. F5b implements local blocked packaging and handoff verification, not final publication. F5c adds blocker-closure sequencing and repo-owned handoff gap reporting without changing publication side effects. F5d adds item/status-level repo-owned blocker evidence for privacy/review, benchmark references, and takedown/private reporting while preserving external source-depth and synthetic-scale blockers. Operator trial success is not enough: public publishability also requires source-depth/composition evidence, validated synthetic target scale and cap policy, rights/provenance closure, privacy/review closure, duplicate and leakage clearance, benchmark-reference status, annotation-status disclosure, release-relative manifest/checksum/archive portability, public dataset/provenance/changelog docs, and takedown/removal readiness.
+F5a defines the readiness contract that must pass before this publishing stage is invoked for a mixed `HeOCR` public beta. F5b implements local blocked packaging and handoff verification, not final publication. F5c adds blocker-closure sequencing and repo-owned handoff gap reporting without changing publication side effects. F5d adds item/status-level repo-owned blocker evidence for privacy/review, benchmark references, and takedown/private reporting while preserving external source-depth and synthetic-scale blockers. F6a adds the planning-only closure roadmap for those blockers; it does not change the publishing stage or make a blocked export publishable. Operator trial success is not enough: public publishability also requires source-depth/composition evidence, validated synthetic target scale and cap policy, rights/provenance closure, privacy/review closure, duplicate and leakage clearance, benchmark-reference status, annotation-status disclosure, release-relative manifest/checksum/archive portability, public dataset/provenance/changelog docs, and takedown/removal readiness.
 
 ---
 
@@ -1098,6 +1098,8 @@ F5c materializes the current blocker sequencing as `manifests/public_beta_blocke
 
 F5d materializes repo-owned closure evidence as `manifests/public_beta_repo_owned_blocker_report.json`. The report lists unresolved review/privacy item ids and reasons, benchmark-reference readiness by public status and adjudication state, takedown/private-reporting configuration, and repository settings-check evidence. It is an action report, not a readiness override: draft or unavailable benchmark references stay blocked, unresolved review/privacy items stay blocked, and disabled private reporting keeps takedown/removal readiness blocked.
 
+F6a defines the post-F5 closure roadmap without changing runtime behavior. Later F6 implementation PRs must close gates only with real evidence: verified private reporting configuration for takedown readiness, reviewed/adjudicated benchmark-reference artifacts or explicit limitation status for benchmark readiness, repo-tracked review/config/source-status changes for privacy/review closure, and a larger validated hocrsyngen `generation_manifest.v1` batch for synthetic target scale. F6 does not permit hocrgen to import hocrsyngen internals, call hocrsyngen commands, use network services, or add GPU/LLM/diffusion dependencies.
+
 The readiness gate inputs are:
 
 - source depth and composition: deterministic evidence for the candidate pool, with source-depth-only records promoted through normal release gates before public payload inclusion
@@ -1120,6 +1122,8 @@ F5b archive/checksum packaging must produce:
 - a repo-owned blocker report that gives privacy/review, benchmark-reference, and takedown/private-reporting blockers precise closure evidence without changing gate semantics
 
 Current known blocker: the existing F1c synthetic artifacts are operator-only and do not meet the planned public beta synthetic target scale until a larger validated hocrsyngen batch is configured and passes the same gates.
+
+F6 keeps that blocker explicit: the current synthetic target-scale evidence remains `2 / 80` until a real larger hocrsyngen batch exists. Source-depth composition also remains blocked until real input evidence exists. Planning, docs, or blocker reports must not convert either external/input-dependent blocker into readiness.
 
 The current implementation creates local handoff artifacts only. It does not publish to `HeOCR`, Hugging Face, Kaggle, or `HeOCRsynth`, and a blocked run must not emit `manifests/publication_report.json`.
 
