@@ -13,6 +13,10 @@ from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.manifests.models import PrivacyScannedItemRecord
 from hocrgen.package import heocrsynth
+from hocrgen.package.common import (
+    source_snapshot_lines as _source_snapshot_lines,
+    split_sort_key as _split_sort_key,
+)
 from hocrgen.package.heocrsynth import (
     SyntheticExportConfig,
     _copy_synthetic_export_assets,
@@ -20,8 +24,6 @@ from hocrgen.package.heocrsynth import (
     _handoff_doc,
     _is_synthetic_release_diff_baseline,
     _selected_resolution_records,
-    _source_snapshot_lines,
-    _split_sort_key,
     _synthetic_audit_item_payload,
     _synthetic_benchmark_card,
     _synthetic_benchmark_stability_policy,

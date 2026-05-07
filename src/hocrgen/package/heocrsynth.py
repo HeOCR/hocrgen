@@ -9,14 +9,12 @@ from typing import Any
 
 from hocrgen.annotations import build_annotation_manifest
 from hocrgen.config.loader import ConfigBundle
-from hocrgen.config.models import ReleaseProfile, SourceConfig
+from hocrgen.config.models import ReleaseProfile
 from hocrgen.core.errors import StageExecutionError
-from hocrgen.manifests.io import write_json
 from hocrgen.manifests.models import (
     CuratedItemRecord,
     DuplicateClusterRecord,
     DuplicateRelationRecord,
-    ExportedAssetRecord,
     ExportedItemRecord,
     PrivacyScannedItemRecord,
     ReleaseDiffRecord,
@@ -24,32 +22,35 @@ from hocrgen.manifests.models import (
     SplitAssignmentRecord,
     SyntheticReleaseRecord,
 )
-from hocrgen.package.alpha import (
+from hocrgen.package.common import (
     REPO_ROOT,
-    _benchmark_card_for_export,
-    _build_classification_stats,
-    _build_privacy_stats,
-    _build_release_diff,
-    _build_source_stats,
-    _changelog_doc,
-    _copy_benchmark_reference_files,
-    _filter_annotation_pilot_manifest,
-    _filter_benchmark_leakage_risk,
-    _filter_benchmark_reference_manifest,
-    _filter_benchmark_reference_status,
-    _load_annotation_pilot_export_inputs,
-    _load_benchmark_export_inputs,
-    _load_json,
-    _load_models,
-    _natural_sort_key,
-    _ordered_sources,
-    _parse_exported_at,
-    _public_item_payload,
-    _review_queue_payloads,
-    _synthetic_composition_lines,
-    _validate_release_diff_baseline,
-    _write_markdown,
-    _current_commit_sha,
+    ReleaseDocs,
+    StandardReleaseArtifacts,
+    benchmark_card_for_export,
+    build_classification_stats,
+    build_privacy_stats,
+    build_release_diff,
+    build_source_stats,
+    changelog_doc,
+    copy_benchmark_reference_files,
+    copy_export_assets,
+    current_commit_sha,
+    filter_annotation_pilot_manifest,
+    filter_benchmark_leakage_risk,
+    filter_benchmark_reference_manifest,
+    filter_benchmark_reference_status,
+    load_annotation_pilot_export_inputs,
+    load_benchmark_export_inputs,
+    load_json,
+    load_models,
+    natural_sort_key,
+    ordered_sources,
+    parse_exported_at,
+    source_snapshot_lines,
+    split_sort_key,
+    synthetic_composition_lines,
+    validate_release_diff_baseline,
+    write_standard_release_artifacts,
 )
 from hocrgen.synthetic.reporting import synthetic_composition_report
 
@@ -96,17 +97,17 @@ def export_synthetic_release(
             raise StageExecutionError(f"synthetic export directory already exists: {export_dir}")
         _validate_synthetic_overwrite_target(export_dir, config.version)
 
-    release_items = _load_models(build_dir / "item_manifest.json", PrivacyScannedItemRecord)
-    review_required_items = _load_models(build_dir / "review_required_items.json", PrivacyScannedItemRecord)
-    blocked_items = _load_models(build_dir / "blocked_items.json", PrivacyScannedItemRecord)
-    split_manifest = _load_models(build_dir / "split_manifest.json", SplitAssignmentRecord)
-    duplicate_relations = _load_models(build_dir / "duplicate_relations.json", DuplicateRelationRecord)
-    duplicate_clusters = _load_models(build_dir / "duplicate_clusters.json", DuplicateClusterRecord)
-    removed_duplicate_items = _load_models(build_dir / "removed_duplicate_items.json", CuratedItemRecord)
-    review_queue = _load_models(build_dir / "review_queue.json", ReviewQueueRecord)
-    benchmark_inputs = _load_benchmark_export_inputs(build_dir)
-    annotation_pilot_inputs = _load_annotation_pilot_export_inputs(build_dir)
-    build_release_summary = _load_json(build_dir / "release_summary.json")
+    release_items = load_models(build_dir / "item_manifest.json", PrivacyScannedItemRecord)
+    review_required_items = load_models(build_dir / "review_required_items.json", PrivacyScannedItemRecord)
+    blocked_items = load_models(build_dir / "blocked_items.json", PrivacyScannedItemRecord)
+    split_manifest = load_models(build_dir / "split_manifest.json", SplitAssignmentRecord)
+    duplicate_relations = load_models(build_dir / "duplicate_relations.json", DuplicateRelationRecord)
+    duplicate_clusters = load_models(build_dir / "duplicate_clusters.json", DuplicateClusterRecord)
+    removed_duplicate_items = load_models(build_dir / "removed_duplicate_items.json", CuratedItemRecord)
+    review_queue = load_models(build_dir / "review_queue.json", ReviewQueueRecord)
+    benchmark_inputs = load_benchmark_export_inputs(build_dir)
+    annotation_pilot_inputs = load_annotation_pilot_export_inputs(build_dir)
+    build_release_summary = load_json(build_dir / "release_summary.json")
     if build_release_summary.get("near_duplicate_review_status") == "blocked":
         cluster_count = build_release_summary.get("near_duplicate_cluster_count", 0)
         raise StageExecutionError(
@@ -131,12 +132,12 @@ def export_synthetic_release(
     ]
     synthetic_benchmark_policy = _synthetic_benchmark_stability_policy(benchmark_inputs.stability_policy)
     synthetic_benchmark_inputs = replace(benchmark_inputs, stability_policy=synthetic_benchmark_policy)
-    benchmark_card = _synthetic_benchmark_card(_benchmark_card_for_export(synthetic_benchmark_inputs, selected_benchmark_items))
-    selected_benchmark_reference_manifest = _filter_benchmark_reference_manifest(
+    benchmark_card = _synthetic_benchmark_card(benchmark_card_for_export(synthetic_benchmark_inputs, selected_benchmark_items))
+    selected_benchmark_reference_manifest = filter_benchmark_reference_manifest(
         benchmark_inputs.reference_manifest,
         selected_ids,
     )
-    selected_benchmark_reference_status = _filter_benchmark_reference_status(
+    selected_benchmark_reference_status = filter_benchmark_reference_status(
         benchmark_inputs.reference_status,
         selected_ids,
     )
@@ -148,7 +149,7 @@ def export_synthetic_release(
         benchmark_inputs.leakage_risk,
         selected_ids,
     )
-    included_sources = _ordered_sources(profile, {item.source_id for item in selected_items})
+    included_sources = ordered_sources(profile, {item.source_id for item in selected_items})
     selected_split_manifest = [assignment for assignment in split_manifest if assignment.item_id in selected_ids]
     synthetic_review_required_items = [item for item in review_required_items if item.is_synthetic]
     synthetic_blocked_items = [item for item in blocked_items if item.is_synthetic]
@@ -170,24 +171,24 @@ def export_synthetic_release(
     if export_dir.exists():
         shutil.rmtree(export_dir)
     exported_items = _copy_synthetic_export_assets(selected_items, export_dir / "data" / "synthetic")
-    exported_benchmark_reference_files = _copy_benchmark_reference_files(
+    exported_benchmark_reference_files = copy_benchmark_reference_files(
         selected_benchmark_reference_manifest,
         build_dir,
         export_dir,
     )
-    source_stats = _build_source_stats(exported_items, selected_duplicate_relations)
-    classification_stats = _build_classification_stats(exported_items)
-    privacy_stats = _build_privacy_stats(exported_items)
+    source_stats = build_source_stats(exported_items, selected_duplicate_relations)
+    classification_stats = build_classification_stats(exported_items)
+    privacy_stats = build_privacy_stats(exported_items)
     synthetic_composition = synthetic_composition_report(exported_items)
     annotation_manifest = build_annotation_manifest(exported_items, subset_id="heocrsynth_export")
-    exported_annotation_pilot_manifest = _filter_annotation_pilot_manifest(annotation_pilot_inputs.manifest, selected_ids)
+    exported_annotation_pilot_manifest = filter_annotation_pilot_manifest(annotation_pilot_inputs.manifest, selected_ids)
     selected_annotation_pilot_ids = {item.item_id for item in exported_annotation_pilot_manifest.items}
     selected_annotation_pilot_audit = [
         item for item in annotation_pilot_inputs.selection_audit if item.item_id in selected_annotation_pilot_ids
     ]
     split_counts = dict(Counter(item.split for item in exported_items if item.split))
     exported_at = datetime.now(UTC).isoformat()
-    commit_sha = _current_commit_sha()
+    commit_sha = current_commit_sha()
     release_record = SyntheticReleaseRecord(
         version=config.version,
         profile_id=profile_id,
@@ -262,7 +263,7 @@ def export_synthetic_release(
         "version": config.version,
     }
     baseline_dir = _resolve_synthetic_comparison_release(export_dir, config)
-    release_diff = _build_release_diff(
+    release_diff = build_release_diff(
         version=config.version,
         generated_at=exported_at,
         current_items=exported_items,
@@ -274,82 +275,12 @@ def export_synthetic_release(
     )
 
     manifests_dir = export_dir / "manifests"
-    docs_dir = export_dir / "docs"
-    write_json(manifests_dir / "item_manifest.json", {"items": [_public_item_payload(item) for item in exported_items]})
-    write_json(manifests_dir / "split_manifest.json", {"items": [item.model_dump(mode="json") for item in selected_split_manifest]})
-    write_json(manifests_dir / "source_stats.json", source_stats)
-    write_json(manifests_dir / "synthetic_composition.json", synthetic_composition)
-    write_json(manifests_dir / "annotation_manifest.json", annotation_manifest.model_dump(mode="json"))
-    write_json(manifests_dir / "annotation_pilot_manifest.json", exported_annotation_pilot_manifest.model_dump(mode="json"))
-    write_json(
-        manifests_dir / "annotation_pilot_selection_audit.json",
-        {"items": [item.model_dump(mode="json") for item in selected_annotation_pilot_audit]},
-    )
-    write_json(manifests_dir / "classification_stats.json", classification_stats)
-    write_json(manifests_dir / "privacy_stats.json", privacy_stats)
-    write_json(manifests_dir / "release_summary.json", release_summary)
-    write_json(manifests_dir / "duplicate_relations.json", {"items": [item.model_dump(mode="json") for item in selected_duplicate_relations]})
-    write_json(manifests_dir / "duplicate_clusters.json", {"items": [item.model_dump(mode="json") for item in selected_duplicate_clusters]})
-    write_json(manifests_dir / "review_required_items.json", {"items": [_synthetic_audit_item_payload(item) for item in synthetic_review_required_items]})
-    write_json(manifests_dir / "blocked_items.json", {"items": [_synthetic_audit_item_payload(item) for item in synthetic_blocked_items]})
-    write_json(
-        manifests_dir / "review_queue.json",
-        {"items": _review_queue_payloads(selected_review_queue, export_dir)},
-    )
-    write_json(manifests_dir / "release_record.json", release_record.model_dump(mode="json"))
-    write_json(manifests_dir / "release_diff.json", release_diff.model_dump(mode="json"))
-    write_json(manifests_dir / "benchmark_manifest.json", {"items": [item.model_dump(mode="json") for item in selected_benchmark_items]})
-    if selected_benchmark_leakage_risk is not None:
-        write_json(manifests_dir / "benchmark_leakage_risk.json", selected_benchmark_leakage_risk)
-    write_json(
-        manifests_dir / "benchmark_selection_audit.json",
-        {"items": [item.model_dump(mode="json") for item in selected_benchmark_audit]},
-    )
-    write_json(manifests_dir / "benchmark_stability_policy.json", synthetic_benchmark_policy)
-    if selected_benchmark_reference_manifest is not None:
-        write_json(
-            manifests_dir / "benchmark_reference_manifest.json",
-            selected_benchmark_reference_manifest.model_dump(mode="json"),
-        )
-    if selected_benchmark_reference_status is not None:
-        write_json(
-            manifests_dir / "benchmark_reference_status.json",
-            selected_benchmark_reference_status.model_dump(mode="json"),
-        )
-    if selected_benchmark_reference_versioning is not None:
-        write_json(manifests_dir / "benchmark_reference_versioning.json", selected_benchmark_reference_versioning)
-
-    _write_markdown(
-        docs_dir / "DATASET_CARD.md",
-        _dataset_card(config.version, profile, exported_items, synthetic_review_required_items, synthetic_blocked_items, included_sources),
-    )
-    _write_markdown(
-        docs_dir / "RELEASE_NOTES.md",
-        _release_notes(config.version, release_summary, source_stats, included_sources, release_diff),
-    )
-    _write_markdown(docs_dir / "CHANGELOG.md", _changelog_doc(config.version, release_diff))
-    _write_markdown(
-        docs_dir / "PROVENANCE.md",
-        _provenance_doc(bundle, profile, included_sources, exported_at, commit_sha),
-    )
-    _write_markdown(
-        docs_dir / "HANDOFF.md",
-        _handoff_doc(
-            config.version,
-            export_dir,
-            profile,
-            release_summary,
-            included_sources,
-            commit_sha,
-            handoff_repo_root,
-        ),
-    )
-    _write_markdown(docs_dir / "BENCHMARK_CARD.md", benchmark_card)
-
-    summary_path = run_dir / "export_synthetic" / "summary.json"
-    write_json(
-        summary_path,
-        {
+    summary_path, artifact_paths = write_standard_release_artifacts(
+        StandardReleaseArtifacts(
+            export_dir=export_dir,
+            run_dir=run_dir,
+            summary_subdir="export_synthetic",
+            summary_payload={
             "dataset_id": "HeOCRsynth",
             "export_dir": str(export_dir),
             "handoff_repo": str(handoff_repo_root) if handoff_repo_root else None,
@@ -384,58 +315,51 @@ def export_synthetic_release(
             "synthetic_composition": "manifests/synthetic_composition.json",
             "synthetic_only": True,
             "version": config.version,
-        },
+            },
+            exported_items=exported_items,
+            selected_split_manifest=selected_split_manifest,
+            source_stats=source_stats,
+            synthetic_composition=synthetic_composition,
+            annotation_manifest=annotation_manifest,
+            exported_annotation_pilot_manifest=exported_annotation_pilot_manifest,
+            selected_annotation_pilot_audit=selected_annotation_pilot_audit,
+            classification_stats=classification_stats,
+            privacy_stats=privacy_stats,
+            release_summary=release_summary,
+            selected_duplicate_relations=selected_duplicate_relations,
+            selected_duplicate_clusters=selected_duplicate_clusters,
+            review_required_items=synthetic_review_required_items,
+            blocked_items=synthetic_blocked_items,
+            selected_review_queue=selected_review_queue,
+            release_record=release_record,
+            release_diff=release_diff,
+            selected_benchmark_items=selected_benchmark_items,
+            selected_benchmark_leakage_risk=selected_benchmark_leakage_risk,
+            selected_benchmark_audit=selected_benchmark_audit,
+            benchmark_stability_policy=synthetic_benchmark_policy,
+            selected_benchmark_reference_manifest=selected_benchmark_reference_manifest,
+            selected_benchmark_reference_status=selected_benchmark_reference_status,
+            benchmark_reference_versioning=selected_benchmark_reference_versioning,
+            exported_benchmark_reference_files=exported_benchmark_reference_files,
+            docs=ReleaseDocs(
+                dataset_card=_dataset_card(config.version, profile, exported_items, synthetic_review_required_items, synthetic_blocked_items, included_sources),
+                release_notes=_release_notes(config.version, release_summary, source_stats, included_sources, release_diff),
+                changelog=changelog_doc(config.version, release_diff),
+                provenance=_provenance_doc(bundle, profile, included_sources, exported_at, commit_sha),
+                handoff=_handoff_doc(
+                    config.version,
+                    export_dir,
+                    profile,
+                    release_summary,
+                    included_sources,
+                    commit_sha,
+                    handoff_repo_root,
+                ),
+                benchmark_card=benchmark_card,
+            ),
+            audit_item_payload=_synthetic_audit_item_payload,
+        )
     )
-    artifact_paths = [
-        manifests_dir / "item_manifest.json",
-        manifests_dir / "split_manifest.json",
-        manifests_dir / "source_stats.json",
-        manifests_dir / "synthetic_composition.json",
-        manifests_dir / "annotation_manifest.json",
-        manifests_dir / "annotation_pilot_manifest.json",
-        manifests_dir / "annotation_pilot_selection_audit.json",
-        manifests_dir / "classification_stats.json",
-        manifests_dir / "privacy_stats.json",
-        manifests_dir / "release_summary.json",
-        manifests_dir / "duplicate_relations.json",
-        manifests_dir / "duplicate_clusters.json",
-        manifests_dir / "review_required_items.json",
-        manifests_dir / "blocked_items.json",
-        manifests_dir / "review_queue.json",
-        manifests_dir / "release_record.json",
-        manifests_dir / "release_diff.json",
-        manifests_dir / "benchmark_manifest.json",
-        *(
-            [manifests_dir / "benchmark_leakage_risk.json"]
-            if selected_benchmark_leakage_risk is not None
-            else []
-        ),
-        manifests_dir / "benchmark_selection_audit.json",
-        manifests_dir / "benchmark_stability_policy.json",
-        *(
-            [manifests_dir / "benchmark_reference_manifest.json"]
-            if selected_benchmark_reference_manifest is not None
-            else []
-        ),
-        *(
-            [manifests_dir / "benchmark_reference_status.json"]
-            if selected_benchmark_reference_status is not None
-            else []
-        ),
-        *(
-            [manifests_dir / "benchmark_reference_versioning.json"]
-            if selected_benchmark_reference_versioning is not None
-            else []
-        ),
-        *exported_benchmark_reference_files,
-        docs_dir / "DATASET_CARD.md",
-        docs_dir / "CHANGELOG.md",
-        docs_dir / "RELEASE_NOTES.md",
-        docs_dir / "PROVENANCE.md",
-        docs_dir / "HANDOFF.md",
-        docs_dir / "BENCHMARK_CARD.md",
-        summary_path,
-    ]
     return SyntheticExportResult(
         export_dir=export_dir,
         summary_path=summary_path,
@@ -455,7 +379,7 @@ def _select_synthetic_items(
         _validate_synthetic_item_for_export(item)
     return sorted(
         synthetic_items,
-        key=lambda item: (_split_sort_key(item.split), item.source_id, item.item_id),
+        key=lambda item: (split_sort_key(item.split), item.source_id, item.item_id),
     )[: config.max_synthetic_items]
 
 
@@ -519,42 +443,18 @@ def _copy_synthetic_export_assets(
     items: list[PrivacyScannedItemRecord],
     synthetic_data_dir: Path,
 ) -> list[ExportedItemRecord]:
-    exported_items: list[ExportedItemRecord] = []
-    for item in items:
-        if item.split is None:
-            raise StageExecutionError(f"release-ready item {item.item_id} is missing a split assignment")
-        item_dir = synthetic_data_dir / item.split / item.item_id
-        exported_assets: list[ExportedAssetRecord] = []
-        for asset in item.normalized_assets:
-            source_path = Path(asset.normalized_asset_path)
-            target_path = item_dir / source_path.name
-            target_path.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(source_path, target_path)
-            release_preview_path = None
-            if asset.preview_generated and asset.preview_path:
-                preview_source = Path(asset.preview_path)
-                if preview_source.exists():
-                    preview_target = item_dir / "previews" / preview_source.name
-                    preview_target.parent.mkdir(parents=True, exist_ok=True)
-                    shutil.copy2(preview_source, preview_target)
-                    release_preview_path = str(preview_target.relative_to(synthetic_data_dir.parent.parent))
-            exported_assets.append(
-                ExportedAssetRecord(
-                    release_asset_path=str(target_path.relative_to(synthetic_data_dir.parent.parent)),
-                    media_type=asset.media_type,
-                    asset_format=asset.asset_format,
-                    release_preview_path=release_preview_path,
-                )
-            )
-        exported_items.append(ExportedItemRecord(**item.model_dump(mode="python"), exported_assets=exported_assets))
-    return exported_items
+    return copy_export_assets(
+        items,
+        synthetic_data_dir,
+        release_root=synthetic_data_dir.parent.parent,
+    )
 
 
 def _filter_synthetic_benchmark_leakage_risk(
     leakage_risk: dict[str, Any] | None,
     selected_ids: set[str],
 ) -> dict[str, Any] | None:
-    filtered = _filter_benchmark_leakage_risk(leakage_risk, selected_ids)
+    filtered = filter_benchmark_leakage_risk(leakage_risk, selected_ids)
     if filtered is not None:
         filtered["export_scope"] = "selected_synthetic_items"
         policy = filtered.get("policy")
@@ -658,16 +558,16 @@ def _resolve_synthetic_comparison_release(export_dir: Path, config: SyntheticExp
             continue
         if not _is_synthetic_release_diff_baseline(child):
             continue
-        release_record = _load_json(child / "manifests" / "release_record.json")
+        release_record = load_json(child / "manifests" / "release_record.json")
         if release_record.get("version") == config.version:
             continue
-        exported_at = _parse_exported_at(release_record.get("exported_at"))
+        exported_at = parse_exported_at(release_record.get("exported_at"))
         candidates.append((exported_at, child.name, child))
 
     if not candidates:
         return None
 
-    candidates.sort(key=lambda item: (item[0] is not None, item[0] or datetime.min.replace(tzinfo=UTC), _natural_sort_key(item[1])))
+    candidates.sort(key=lambda item: (item[0] is not None, item[0] or datetime.min.replace(tzinfo=UTC), natural_sort_key(item[1])))
     return candidates[-1][2]
 
 
@@ -678,7 +578,7 @@ def _is_synthetic_release_diff_baseline(path: Path) -> bool:
     if not release_record_path.is_file() or not item_manifest_path.is_file():
         return False
     try:
-        release_record = _load_json(release_record_path)
+        release_record = load_json(release_record_path)
     except StageExecutionError:
         return False
     return (
@@ -689,7 +589,7 @@ def _is_synthetic_release_diff_baseline(path: Path) -> bool:
 
 
 def _validate_synthetic_release_diff_baseline(path: Path) -> None:
-    _validate_release_diff_baseline(path)
+    validate_release_diff_baseline(path)
     if not _is_synthetic_release_diff_baseline(path):
         raise StageExecutionError(f"compare-to release path is not a HeOCRsynth synthetic-only release: {path}")
 
@@ -753,10 +653,10 @@ def _dataset_card(
             "- hocrsyngen outputs remain candidate inputs until hocrgen release, review, split, benchmark, and export gates pass.",
             "",
             "## Split Counts",
-            *[f"- `{split}`: {count}" for split, count in sorted(split_counts.items(), key=lambda item: _split_sort_key(item[0]))],
+            *[f"- `{split}`: {count}" for split, count in sorted(split_counts.items(), key=lambda item: split_sort_key(item[0]))],
             "",
             "## Synthetic Composition",
-            *(_synthetic_composition_lines(synthetic_composition)),
+            *(synthetic_composition_lines(synthetic_composition)),
             "",
             "## Known Limitations",
             "- This is a synthetic-only alpha handoff, not a full corpus snapshot.",
@@ -798,13 +698,13 @@ def _release_notes(
             "- Release kind: `synthetic_only`",
             "",
             "## Split Counts",
-            *[f"- `{split}`: {count}" for split, count in sorted(split_counts.items(), key=lambda item: _split_sort_key(item[0]))],
+            *[f"- `{split}`: {count}" for split, count in sorted(split_counts.items(), key=lambda item: split_sort_key(item[0]))],
             "",
             "## Included Synthetic Sources",
             *[f"- `{source_id}`: {source_stats['sources'][source_id]} items" for source_id in included_sources],
             "",
             "## Synthetic Composition",
-            *(_synthetic_composition_lines(synthetic_composition)),
+            *(synthetic_composition_lines(synthetic_composition)),
             "",
             "## Compared To Previous Synthetic Release",
             f"- {comparison_summary}",
@@ -828,7 +728,7 @@ def _provenance_doc(
     registry = {source.id: source for source in bundle.source_registry.sources}
     source_sections: list[str] = []
     for source_id in included_sources:
-        source_sections.extend(_source_snapshot_lines(registry[source_id]))
+        source_sections.extend(source_snapshot_lines(registry[source_id]))
     return "\n".join(
         [
             "# HeOCRsynth Provenance",
@@ -919,26 +819,6 @@ def _synthetic_benchmark_stability_policy(policy: dict[str, Any]) -> dict[str, A
             "that are present in the HeOCRsynth synthetic payload."
         ),
     }
-
-
-def _source_snapshot_lines(source: SourceConfig) -> list[str]:
-    return [
-        f"### `{source.id}`",
-        f"- Name: {source.name}",
-        f"- Fetcher: `{source.fetcher}`",
-        f"- Status: `{source.status.value}`",
-        f"- Allowed content types: {', '.join(f'`{value}`' for value in source.allowed_content_types)}",
-        f"- Normalized license: `{source.normalized_license}`",
-        f"- Rights classification: `{source.rights_classification.value}`",
-        "",
-    ]
-
-
-def _split_sort_key(split: str | None) -> int:
-    split_order = {"train": 0, "validation": 1, "test": 2}
-    if split is None:
-        return len(split_order)
-    return split_order.get(split, len(split_order))
 
 
 def _validate_heocrsynth_repo_root(repo_root: Path) -> Path:

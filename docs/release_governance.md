@@ -161,4 +161,10 @@ For F4d, the required planning notation is:
 - parent milestone: `F4 - External synthetic provider integration`
 - source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
 
+For F4e, the required planning notation is:
+
+- notation: `F4e`
+- parent milestone: `F4 - External synthetic provider integration`
+- source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
+
 Feature and PR work is incomplete until a non-draft PR is open with appropriate labels, a detailed body, and a relevant milestone assignment when one exists.
