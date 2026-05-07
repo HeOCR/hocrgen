@@ -113,11 +113,12 @@ When any gate is `blocked`, `export-public-beta` stops before repository sync, u
 
 `F6a` defines the post-F5 public beta closure roadmap. It is planning-only: it does not change export behavior, readiness status semantics, or publication side effects. The F6 path is:
 
-- `F6b`: close takedown/private reporting readiness only after GitHub private vulnerability reporting is enabled or another maintainer-private channel is configured and verified
-- `F6c`: close benchmark-reference readiness only with real reviewed/adjudicated reference evidence or explicit limitation status
+- `F6b`: close takedown/private reporting readiness only after GitHub private vulnerability reporting is enabled or another maintainer-private channel is configured and verified; keep the gate blocked while that maintainer/private-channel evidence is missing
+- `F6c`: close benchmark-reference readiness only with real reviewed/adjudicated reference evidence; if coverage remains partial or unavailable, preserve that as blocked limitation reporting rather than readiness
 - `F6d`: close privacy/review blockers only through repo-tracked review decisions, config changes, or source-status changes
-- `F6e`: integrate a larger validated hocrsyngen `generation_manifest.v1` batch through the existing manifest boundary, without calling hocrsyngen runtime internals or adding heavy generator dependencies
-- `F6f`: rerun public beta readiness only after real source-depth and synthetic-scale inputs exist, while preserving every F5a/F5b gate
+- `F6e`: close source-depth/composition readiness only after real public-profile candidate evidence exists and source-depth-only records have passed normal profile, review, privacy, split, benchmark, and portability gates
+- `F6f`: integrate a larger validated hocrsyngen `generation_manifest.v1` batch through the existing manifest boundary, without calling hocrsyngen runtime internals or adding heavy generator dependencies
+- `F6g`: rerun public beta readiness only after repo-owned, source-depth, and synthetic-scale inputs exist, while preserving every F5a/F5b gate
 
 Until those evidence requirements are met, the `2 / 80` synthetic target-scale blocker, source-depth composition blocker, benchmark/reference limitations, privacy/review blockers, and takedown/private-reporting blocker must remain visible rather than being relaxed or rewritten into readiness.
 

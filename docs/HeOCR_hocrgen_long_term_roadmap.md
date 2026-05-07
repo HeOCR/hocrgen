@@ -135,7 +135,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | F3 | Modern handwritten acquisition program | F3a, F3b | Rights-clean modern Hebrew handwriting collection policy and operator acquisition workflow | completed |
 | F4 | External synthetic provider integration | F4a, F4b, F4c, F4d, F4e | Synthetic spinout architecture, provider manifest contract, fixture-backed adapter, Hebrew rendering/provider gates, HeOCRsynth export handoff, and shared release export packaging primitives | completed |
 | F5 | Public beta and publication readiness | F5a, F5b, F5c, F5d | Public beta gates, publication packaging, dataset-card, checksum/archive manifests, takedown-ready export handoff, blocker-closure sequencing, and repo-owned blocker reporting | completed-with-blockers |
-| F6 | Public beta closure and external input integration | F6a, F6b, F6c, F6d, F6e, F6f | Post-F5 closure roadmap, repo-owned blocker closure, larger hocrsyngen batch integration, and final readiness rerun | partial |
+| F6 | Public beta closure and external input integration | F6a, F6b, F6c, F6d, F6e, F6f, F6g | Post-F5 closure roadmap, repo-owned blocker closure, source-depth evidence, larger hocrsyngen batch integration, and final readiness rerun | partial |
 
 ## 4.2 PR summary
 
@@ -196,11 +196,12 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | F5c | F5 | Close public beta readiness blocker sequencing and repo-owned handoff gaps | no | completed | current ref blocker-closure plan and takedown reporting config |
 | F5d | F5 | Close repo-owned public beta readiness gates before external scale inputs | no | completed | current ref repo-owned blocker evidence and private-reporting settings check |
 | F6a | F6 | Define post-F5 public beta closure roadmap | no | completed | current ref planning-only post-F5 closure roadmap |
-| F6b | F6 | Close takedown/private reporting readiness with a verified private path | no | planned | requires maintainer repository-setting or verified private-channel evidence |
-| F6c | F6 | Close benchmark-reference readiness with reviewed/adjudicated evidence or explicit limitations | no | planned | requires real benchmark-reference status and versioning evidence |
+| F6b | F6 | Close takedown/private reporting readiness with a verified private path | no | blocked | requires maintainer repository-setting or verified private-channel evidence before implementation can pass |
+| F6c | F6 | Close benchmark-reference readiness with reviewed/adjudicated evidence | no | planned | requires real benchmark-reference artifacts, review status, and versioning evidence; otherwise remains blocked with limitations disclosed |
 | F6d | F6 | Close privacy/review blockers through review/config/source-status changes | no | planned | requires real review or source-status changes |
-| F6e | F6 | Integrate a larger validated hocrsyngen batch for synthetic target scale | no | planned | requires external validated generation_manifest.v1 input |
-| F6f | F6 | Re-run public beta readiness after real source-depth and synthetic-scale inputs exist | no | planned | final convergence only after F6b-F6e evidence exists |
+| F6e | F6 | Close source-depth and composition readiness with real public-profile evidence | no | planned | requires real source-depth/composition candidate evidence promoted through normal gates |
+| F6f | F6 | Integrate a larger validated hocrsyngen batch for synthetic target scale | no | planned | requires external validated generation_manifest.v1 input |
+| F6g | F6 | Re-run public beta readiness after repo-owned, source-depth, and synthetic-scale inputs exist | no | planned | final convergence only after F6b-F6f evidence exists |
 
 ## 4.3 Current critical path
 
@@ -213,7 +214,7 @@ The immediate implementation critical path after `F6a` is:
 5. Keep F2b benchmark-reference ingestion in place as optional ground-truth infrastructure; public beta benchmark claims must disclose reference coverage and status rather than implying complete annotation coverage.
 6. Keep `export-public-beta` blocked until every F5a/F5b gate passes; keep synthetic-only `HeOCRsynth` readiness separate from mixed `HeOCR` readiness.
 7. Use `manifests/public_beta_blocker_closure_plan.json` and `manifests/public_beta_repo_owned_blocker_report.json` as the machine-readable sequencing artifacts for the current blocker set: privacy/review closure, benchmark-reference readiness/status disclosure, and takedown private-reporting setup have item/status-level repo-owned closure evidence, while source-depth composition and the larger validated hocrsyngen batch remain external/input-dependent and must not be faked or relaxed.
-8. Execute F6 in evidence order: `F6b` may close takedown/private reporting only after a verified private reporting path exists, `F6c` may close benchmark-reference readiness only with real reviewed/adjudicated reference evidence or explicit limitation status, `F6d` may close privacy/review blockers only through repo-tracked review/config/source-status changes, `F6e` may integrate synthetic target-scale only after a larger validated hocrsyngen batch exists, and `F6f` may rerun public beta readiness only after real source-depth and synthetic-scale inputs exist.
+8. Execute F6 in evidence order: `F6b` may close takedown/private reporting only after a verified private reporting path exists and otherwise remains blocked on maintainer/private-channel action, `F6c` may close benchmark-reference readiness only with real reviewed/adjudicated reference evidence and otherwise keeps limitations blocked and disclosed, `F6d` may close privacy/review blockers only through repo-tracked review/config/source-status changes, `F6e` may close source-depth/composition only after real public-profile candidate evidence exists and source-depth-only records pass normal gates, `F6f` may integrate synthetic target-scale only after a larger validated hocrsyngen batch exists, and `F6g` may rerun public beta readiness only after repo-owned, source-depth, and synthetic-scale inputs exist.
 
 This prioritization is intentional. `F4a` records the synthetic spinout architecture, and `F4b` makes hocrsyngen manifests the active synthetic input boundary without displacing hocrgen's source-depth and release gates. `B5a` made the alpha mechanically exportable, `B5b1` through `B5b3` closed the portability and content-quality blockers, and `B5b4` froze `alpha-v0` into the separate `HeOCR` repository with a ready-for-review handoff PR. `C5b` then closed the missing review-decision merge path by adding repo-tracked review inputs, a dedicated `review-merge` stage, deterministic post-review gating, and auditable decision artifacts. `C6a` made exported release trees explainable over time through baseline-aware diffs and changelog generation. `D1a` moved routine dry-run maintenance into GitHub Actions with persisted run summaries. `D2a` adds source health, fixture-backed adapter regression coverage, freeze/degrade reporting, and portable source-health check paths where package or config-root references are available so source instability is visible without tying operator artifacts to local install paths unnecessarily. `D3a` defines the first explicitly approved `benchmark_v1` subset with benchmark manifests, selection audit, a stability policy, and usage guidance; the current ref also packages the benchmark approval config so non-editable installs do not depend on a checkout-root `benchmark_data/` directory. `D4a` and `D4b` remain legacy in-repo synthetic generator milestones whose code stays as smoke coverage, but active `project_synthetic` ingestion now comes from hocrsyngen `generation_manifest.v1`. `D5a` adds optional, portable annotation-reference slots and annotation manifests so future transcription work can attach to release items without making transcriptions mandatory for current alpha/public outputs. `E1a` defines source proposal, source-adapter, synthetic asset, dataset issue, external review, and release-governance contribution paths while preserving existing rights, privacy, review, and release gates. `E2a` adds benchmark example loading, JSON/JSONL text prediction evaluation, character error rate and exact-match helpers, coverage reporting, and lightweight leaderboard-ready conventions over the existing `benchmark_v1` artifacts without adding model training infrastructure. `F1a` selects the next post-E4 path as an operator-only beta-scale acquisition trial rather than broad crawling, publication, or a release-candidate export. `F1b` adds an operator-only source-depth feasibility artifact at discovery time and shows that target-scale execution is not yet feasible from committed fixtures alone. `F1b2` defines the Pinkas/BiblIA expansion path as packaged records plus source-health-visible assets, rights/provenance requirements, review requirements, and non-goals before those static sources can count toward F1 scale. `F1b3` adds validated target-scale Pinkas and BiblIA inventory while keeping runnable/cached feasibility separate from inventory readiness. `F1b4` closes the NLI promotion gap with real source-cached fixtures. `F1c` adds the explicit `hocrgen f1-beta-trial --profile profile_open_v1 --dry-run` path, which opts into source-depth-only NLI seeds, packaged Pinkas/BiblIA expansion records, and the configured hocrsyngen synthetic fixture batch while preserving normal bounded public profile behavior. `F1e` turns the F1d benchmark/holdout warning into a typed gate and records the current Pinkas WDL11806 source-group resolution without changing `benchmark_v1` membership. `F2a` defines benchmark ground-truth transcription, layout-label, and reference-manifest guidelines, and `F2b` now implements optional reference ingestion, adjudication/status artifacts, release-relative path validation, item/source/split linkage checks, layout checksum/dimension checks, and correction/supersession versioning gates without making references mandatory for current public or alpha exports.
 
@@ -225,7 +226,7 @@ This prioritization is intentional. `F4a` records the synthetic spinout architec
 
 `F5a` is implemented on the current ref as the readiness-definition contract. It defines mixed `HeOCR` public beta publishability as a separate contract from operator trial success: source depth and composition evidence, synthetic target-scale and cap policy, rights/provenance proof, privacy/review closure, exact/near/source-group/split/benchmark leakage clearance, benchmark-reference readiness, annotation-status disclosure, release-relative manifest/checksum/archive portability, dataset-card/provenance/changelog completeness, and takedown/removal readiness all need to pass before public beta publication. `F5b` is now implemented as `hocrgen export-public-beta`, which runs `build-release`, packages a local mixed `HeOCR` handoff tree, writes `manifests/public_beta_readiness_report.json` with explicit `pass`/`blocked` gates, emits checksum and archive manifests, creates a version-rooted portable archive, generates beta-specific docs, and verifies asset/archive digests from the handoff tree. `F5c` adds `manifests/public_beta_blocker_closure_plan.json`, derives closure work from the readiness report, categorizes blockers as `repo_owned_immediately_actionable` or `external_input_dependent`, and makes the takedown private-reporting path status explicit through `src/hocrgen/config/public_beta.yaml`. `F5d` adds `manifests/public_beta_repo_owned_blocker_report.json`, so unresolved privacy/review items, benchmark-reference draft/unavailable/adjudication states, and the latest private-reporting repository-settings check are recorded separately from external source-depth and synthetic-scale blockers. It does not publish to `HeOCR`, Hugging Face, Kaggle, or `HeOCRsynth`, does not emit a publication report while blocked, and does not relax the existing alpha and synthetic export gates.
 
-`F6a` is implemented on the current ref as a planning-only post-F5 closure roadmap. It adds no runtime behavior, does not edit readiness status semantics, does not publish any artifact, and does not make the current blocked public beta export publishable. The milestone splits the remaining path into repo-owned closure PRs and external/input-dependent PRs so future agents do not collapse blocker reporting into blocker resolution. `F6b` is for takedown/private reporting readiness after a real private reporting path is configured and verified. `F6c` is for benchmark-reference readiness using real reviewed/adjudicated evidence or explicit limitation status. `F6d` is for privacy/review closure through repo-tracked review/config/source-status changes. `F6e` is for integrating a larger validated hocrsyngen `generation_manifest.v1` batch without importing or calling hocrsyngen runtime internals. `F6f` is for rerunning public beta readiness only after the required source-depth and synthetic-scale evidence exists. The `2 / 80` synthetic target-scale blocker and source-depth composition blocker remain blocked until real inputs exist.
+`F6a` is implemented on the current ref as a planning-only post-F5 closure roadmap. It adds no runtime behavior, does not edit readiness status semantics, does not publish any artifact, and does not make the current blocked public beta export publishable. The milestone splits the remaining path into repo-owned closure PRs and external/input-dependent PRs so future agents do not collapse blocker reporting into blocker resolution. `F6b` is for takedown/private reporting readiness after a real private reporting path is configured and verified; until maintainer or verified private-channel evidence exists, it is blocked rather than an ordinary implementation PR. `F6c` is for benchmark-reference readiness using real reviewed/adjudicated evidence; limitation disclosure may keep the blocker honest, but does not pass readiness unless a separate governance PR deliberately changes the contract. `F6d` is for privacy/review closure through repo-tracked review/config/source-status changes. `F6e` is for source-depth/composition closure through real public-profile candidate evidence, not source-depth-only fixtures copied directly to payload. `F6f` is for integrating a larger validated hocrsyngen `generation_manifest.v1` batch without importing or calling hocrsyngen runtime internals. `F6g` is for rerunning public beta readiness only after the required repo-owned, source-depth, and synthetic-scale evidence exists. The `2 / 80` synthetic target-scale blocker and source-depth composition blocker remain blocked until real inputs exist.
 
 The outside reviews under `docs/2026_05_01_outside_review/` reinforce that the repo is pipeline-mature but not yet large-dataset or benchmark-mature. The spinout reviews under `docs/2026_05_02_heocrsyn_spinout/` reinforce a second boundary: advanced synthetic OCR/HTR generation should be its own package and dataset stream, while `hocrgen` remains dependency-light and gate-driven. The post-F1 roadmap therefore treats acquisition scale as only one gate. It also elevates uniqueness/leakage control, benchmark ground truth, modern handwritten acquisition implementation, external synthetic-provider contracts, Hebrew rendering gates, and publication readiness as separate follow-on milestones rather than hidden assumptions inside the `80` real / `80` synthetic trial target.
 
@@ -1299,23 +1300,25 @@ The public beta must remain blocked if any readiness gate above is unresolved, i
 ## Milestone F6 — Public beta closure and external input integration
 
 ### Objective
-Turn the blocked F5 public beta handoff into a concrete closure sequence that separates repo-owned fixes from external/input-dependent scale evidence. F6 exists because `export-public-beta` now reports the blocker set precisely, but reporting a blocker is not the same as closing it.
+Turn the blocked F5 public beta handoff into a concrete closure sequence that separates repo-owned fixes from external/input-dependent scale evidence. F6 is a post-F5 closure milestone in the public-beta track, not a new publication phase and not part of the hocrsyngen generator spinout. It exists because `export-public-beta` now reports the blocker set precisely, but reporting a blocker is not the same as closing it.
 
 ### Scope
 - planning-only roadmap definition for the post-F5 closure path
-- verified takedown/private reporting readiness when maintainer action or an alternate private channel exists
-- benchmark-reference readiness only through reviewed/adjudicated evidence or explicit limitation status
+- verified takedown/private reporting readiness when maintainer action or an alternate private channel exists; blocked while that evidence is missing
+- benchmark-reference readiness only through reviewed/adjudicated evidence, with partial or unavailable coverage disclosed as a blocker unless the readiness contract changes explicitly
 - privacy/review closure only through repo-tracked review, config, or source-status changes
+- source-depth/composition readiness only through real public-profile candidate evidence promoted through normal gates
 - larger validated hocrsyngen batch integration through the existing manifest boundary, not through hocrsyngen runtime calls
-- final public beta readiness rerun only after real source-depth and synthetic-scale inputs exist
+- final public beta readiness rerun only after repo-owned, source-depth, and synthetic-scale inputs exist
 
 ### Planned PRs
 - `F6a`: define post-F5 public beta closure roadmap
-- `F6b`: close takedown/private reporting readiness with a verified private path
-- `F6c`: close benchmark-reference readiness with reviewed/adjudicated evidence or explicit limitations
+- `F6b`: close takedown/private reporting readiness with a verified private path, blocked until maintainer/private-channel evidence exists
+- `F6c`: close benchmark-reference readiness with reviewed/adjudicated evidence; otherwise preserve blocked limitation reporting
 - `F6d`: close privacy/review blockers through review/config/source-status changes
-- `F6e`: integrate a larger validated hocrsyngen batch for synthetic target scale
-- `F6f`: re-run public beta readiness after real source-depth and synthetic-scale inputs exist
+- `F6e`: close source-depth and composition readiness with real public-profile evidence
+- `F6f`: integrate a larger validated hocrsyngen batch for synthetic target scale
+- `F6g`: re-run public beta readiness after repo-owned, source-depth, and synthetic-scale inputs exist
 
 ### Current-ref implementation
 `F6a` is implemented on the current ref as a planning-only roadmap pass. It updates planning docs and planning consistency tests so the next work is no longer implicit after `F5d`. It deliberately does not change runtime behavior, does not change `hocrgen export-public-beta`, does not change `src/hocrgen/config/public_beta.yaml`, does not mark any readiness gate as passed, and does not publish or copy a public beta tree.
@@ -1323,11 +1326,12 @@ Turn the blocked F5 public beta handoff into a concrete closure sequence that se
 ### Required sequencing
 The F6 sequence is evidence-gated:
 
-1. `F6b` can pass the takedown/private reporting gate only if GitHub private vulnerability reporting is enabled for the repository or another maintainer-private channel is configured with verification metadata. If maintainer action is still missing, the gate must remain blocked with machine-readable required action.
-2. `F6c` can close benchmark-reference readiness only when benchmark references have real reviewed/adjudicated artifacts and coherent status/versioning semantics, or when the public beta contract explicitly keeps partial reference coverage disclosed as a limitation. Draft or unavailable references must not be renamed into readiness.
+1. `F6b` can pass the takedown/private reporting gate only if GitHub private vulnerability reporting is enabled for the repository or another maintainer-private channel is configured with verification metadata. If maintainer action is still missing, the PR remains blocked and the gate must remain blocked with machine-readable required action.
+2. `F6c` can close benchmark-reference readiness only when benchmark references have real reviewed/adjudicated artifacts and coherent status/versioning semantics. Partial, draft, or unavailable references may be disclosed as limitations, but those limitations do not pass the readiness gate unless a separate governance PR explicitly changes the public beta contract.
 3. `F6d` can close privacy/review readiness only through repo-tracked review decisions, config changes, or source-status changes. Review-required, blocked, unresolved privacy, modern-handwriting consent, and takedown states must not enter public payloads.
-4. `F6e` can close synthetic target scale only after a larger validated hocrsyngen `generation_manifest.v1` batch exists with relative assets and required provider/rendering/Hebrew metadata. The current `2 / 80` evidence remains blocked until then.
-5. `F6f` can run final public beta readiness convergence only after real source-depth and synthetic-scale inputs exist. It must still leave the export blocked if any F5a/F5b gate fails.
+4. `F6e` can close source-depth/composition readiness only when real public-profile candidate evidence exists and source-depth-only records have passed normal profile, review, privacy, split, benchmark, and portability gates. Source-depth-only fixtures must not be copied directly into public payloads.
+5. `F6f` can close synthetic target scale only after a larger validated hocrsyngen `generation_manifest.v1` batch exists with relative assets and required provider/rendering/Hebrew metadata. The current `2 / 80` evidence remains blocked until then.
+6. `F6g` can run final public beta readiness convergence only after repo-owned, source-depth, and synthetic-scale inputs exist. It must still leave the export blocked if any F5a/F5b gate fails.
 
 ### Non-goals
 F6 does not:
@@ -1340,17 +1344,18 @@ F6 does not:
 - publish to `HeOCR`, Hugging Face, Kaggle, or `HeOCRsynth` while any gate is blocked
 
 ### Exit criteria
-- `F6a` leaves the roadmap with a concrete next PR sequence after `F5d`
+- `F6a` leaves the roadmap with a concrete next PR sequence after `F5d`, including an explicit source-depth/composition PR before final readiness
 - each later F6 PR has a narrow evidence requirement and a clear stop condition
 - public beta remains blocked until all gates pass with real evidence
 - external/input-dependent blockers remain visible rather than being hidden behind repo-owned documentation changes
 
 ### Risks / dependencies
-- maintainer repository settings may be needed before `F6b`
+- maintainer repository settings or verified alternate private-channel evidence are required before `F6b` can pass
 - benchmark-reference review/adjudication capacity may be needed before `F6c`
 - review or source-policy decisions may be needed before `F6d`
-- a larger hocrsyngen batch must exist outside hocrgen before `F6e`
-- `F6f` must not become a pressure valve for merging incomplete readiness
+- real public-profile source-depth/composition evidence must exist before `F6e`
+- a larger hocrsyngen batch must exist outside hocrgen before `F6f`
+- `F6g` must not become a pressure valve for merging incomplete readiness
 
 ---
 
@@ -1609,7 +1614,7 @@ This order emphasizes public-release safety before scale and polish before aggre
 - F4c depends on F4b's fixture-backed `hocrsyngen` manifest ingestion without network, GPU, REST, LLM, diffusion, or heavyweight generator dependencies
 - F4d depends on F4c and an initialized `HeOCRsynth` release-repository layout
 - F5 depends on credible F1-F4 gates, not just successful item acquisition
-- F6 depends on F5 blocker reporting remaining truthful; `F6e` additionally depends on a larger validated hocrsyngen batch existing outside hocrgen before integration
+- F6 depends on F5 blocker reporting remaining truthful; `F6e` depends on real public-profile source-depth/composition evidence, and `F6f` additionally depends on a larger validated hocrsyngen batch existing outside hocrgen before integration
 
 ## Soft dependencies
 - C3 can start before C5, but review hooks become more valuable once C5 exists
@@ -1617,7 +1622,7 @@ This order emphasizes public-release safety before scale and polish before aggre
 - E2 can begin once D3 exists, even before E1 is fully mature
 - F4 planning and provider-contract work can begin in parallel with F1/F2 if it stays deterministic and does not weaken release/export gates
 - hocrsyngen generator work can proceed independently, but hocrgen should not consume it until the manifest contract and fixtures are stable
-- F6b/F6c/F6d can progress independently when their repo-owned evidence exists, but F6f should wait for both repo-owned closure and external/input-dependent source-depth and synthetic-scale inputs
+- F6b/F6c/F6d can progress independently when their repo-owned evidence exists, but F6b is blocked until maintainer/private-channel reporting evidence exists, and F6g should wait for repo-owned closure plus external/input-dependent source-depth and synthetic-scale inputs
 
 ---
 
