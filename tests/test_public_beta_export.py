@@ -23,6 +23,7 @@ from hocrgen.package.public_beta import (
     _stabilize_public_beta_readiness_artifacts,
     _takedown_blocker_action,
     _takedown_gate,
+    _validate_takedown_workflow,
 )
 
 
@@ -147,6 +148,13 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
         "method": "gh_api_private_vulnerability_reporting",
         "result": "enabled",
     }
+    assert repo_entries["takedown_removal"]["verification"]["verified_at"] == "2026-05-07"
+    assert repo_entries["takedown_removal"]["verification"]["method"] == "github_repository_security_settings"
+    assert repo_entries["takedown_removal"]["verification"]["verified_by"] == (
+        "authenticated_gh_api_repo_settings_check"
+    )
+    assert repo_entries["takedown_removal"]["verification"]["valid_until"] == "2026-06-06"
+    assert repo_entries["takedown_removal"]["verification"]["freshness_status"] == "pass"
     assert str(output_dir.resolve()) not in json.dumps(repo_owned_report)
     for gate in report["gates"]:
         assert set(gate) == {"gate_id", "status", "evidence_paths", "rationale"}
@@ -162,7 +170,11 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert "repository sync, upload, release tagging, or publication report emission" in handoff
     assert "GitHub private vulnerability reporting for HeOCR/hocrgen" in handoff
     assert "Private reporting repository check: enabled" in handoff
-    assert "Private reporting verification: github_repository_security_settings" in handoff
+    assert (
+        "Private reporting verification: github_repository_security_settings by "
+        "authenticated_gh_api_repo_settings_check at 2026-05-07"
+    ) in handoff
+    assert "Private reporting verification valid until: 2026-06-06" in handoff
     assert str(output_dir.resolve()) not in handoff
 
     summarize_exit = main(["summarize-run", "--run-dir", payload["run_dir"]])
@@ -400,7 +412,8 @@ def test_export_public_beta_takedown_gate_blocks_when_private_reporting_path_is_
             "  repository_check_result: enabled\n"
             "  verified_at: '2026-05-07'\n"
             "  verification_method: github_repository_security_settings\n"
-            "  verified_by: authenticated_gh_api_repo_settings_check\n",
+            "  verified_by: authenticated_gh_api_repo_settings_check\n"
+            "  verification_valid_until: '2026-06-06'\n",
             "configured: false\n"
             "  repository_check_at: '2026-05-07'\n"
             "  repository_check_method: gh_api_private_vulnerability_reporting\n"
@@ -454,6 +467,7 @@ def test_export_public_beta_rejects_unverified_private_reporting_path(
         .replace("verified_at: '2026-05-07'\n", "")
         .replace("  verification_method: github_repository_security_settings\n", "")
         .replace("  verified_by: authenticated_gh_api_repo_settings_check\n", "")
+        .replace("  verification_valid_until: '2026-06-06'\n", "")
         .replace(
             "  required_operator_action: Enable GitHub private vulnerability reporting for HeOCR/hocrgen or replace this with a configured maintainer-private reporting channel before public beta publication.\n",
             "",
@@ -480,6 +494,110 @@ def test_export_public_beta_rejects_unverified_private_reporting_path(
     assert exit_code == 1
     assert payload["status"] == "error"
     assert "configured private reporting paths require verification metadata" in payload["error"]
+
+
+def test_export_public_beta_takedown_gate_blocks_when_verification_is_stale(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    public_beta_config = config_root / "public_beta.yaml"
+    public_beta_config.write_text(
+        public_beta_config.read_text(encoding="utf-8").replace(
+            "verification_valid_until: '2026-06-06'",
+            "verification_valid_until: '2000-01-01'",
+        ),
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "exports" / "public-beta-v0"
+
+    assert main(
+        [
+            "export-public-beta",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--output-dir",
+            str(output_dir),
+        ]
+    ) == 0
+    capsys.readouterr()
+
+    report = json.loads((output_dir / "manifests" / "public_beta_readiness_report.json").read_text(encoding="utf-8"))
+    closure_plan = json.loads(
+        (output_dir / "manifests" / "public_beta_blocker_closure_plan.json").read_text(encoding="utf-8")
+    )
+    repo_owned_report = json.loads(
+        (output_dir / "manifests" / "public_beta_repo_owned_blocker_report.json").read_text(encoding="utf-8")
+    )
+    takedown_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "takedown_removal")
+    takedown_blocker = next(blocker for blocker in closure_plan["blockers"] if blocker["gate_id"] == "takedown_removal")
+    takedown_entry = next(entry for entry in repo_owned_report["entries"] if entry["gate_id"] == "takedown_removal")
+
+    assert takedown_gate["status"] == "blocked"
+    assert takedown_blocker["closure_state"] == "requires_repository_settings_reverification"
+    assert "Refresh private reporting repository settings verification" in takedown_blocker["required_action"]
+    assert takedown_entry["verification"]["freshness_status"] == "blocked"
+    assert takedown_entry["verification"]["valid_until"] == "2000-01-01"
+
+
+def test_takedown_validation_requires_configured_verification_docs(tmp_path: Path) -> None:
+    for relative_path, text in {
+        "docs/RELEASE_NOTES.md": (
+            "Rights, privacy, source-owner, correction\n"
+            "review/config/source-status changes\n"
+            "GitHub private vulnerability reporting for HeOCR/hocrgen\n"
+        ),
+        "docs/DATASET_CARD.md": (
+            "Takedown and Corrections\n"
+            "GitHub public dataset issue\n"
+            "GitHub private vulnerability reporting for HeOCR/hocrgen\n"
+        ),
+        "docs/HANDOFF.md": (
+            "Stop Conditions\n"
+            "Do not publish to HeOCR\n"
+            "GitHub private vulnerability reporting for HeOCR/hocrgen\n"
+        ),
+        "manifests/release_diff.json": "{}\n",
+    }.items():
+        path = tmp_path / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+
+    governance = SimpleNamespace(
+        public_reporting_path=SimpleNamespace(
+            id="github_public_dataset_issue",
+            label="GitHub public dataset issue",
+        ),
+        private_reporting_path=SimpleNamespace(
+            id="github_private_vulnerability_reporting",
+            label="GitHub private vulnerability reporting for HeOCR/hocrgen",
+            channel="github_private_vulnerability_reporting",
+            configured=True,
+            repository_check_at="2026-05-07",
+            repository_check_method="gh_api_private_vulnerability_reporting",
+            repository_check_result="enabled",
+            verified_at="2026-05-07",
+            verification_method="github_repository_security_settings",
+            verified_by="authenticated_gh_api_repo_settings_check",
+            verification_valid_until="2026-06-06",
+            required_operator_action="",
+        ),
+    )
+
+    validation = _validate_takedown_workflow(tmp_path, governance)
+
+    assert validation["status"] == "blocked"
+    incomplete_paths = {entry["path"]: entry["missing_fragments"] for entry in validation["incomplete"]}
+    assert "Private reporting repository check: enabled" in "\n".join(incomplete_paths["docs/HANDOFF.md"])
+    assert "Private reporting verification: github_repository_security_settings" in "\n".join(
+        incomplete_paths["docs/HANDOFF.md"]
+    )
+    assert "Private reporting verification valid until: 2026-06-06." in incomplete_paths["docs/HANDOFF.md"]
 
 
 def test_public_beta_blocker_closure_plan_fails_closed_for_unmapped_blocked_gate() -> None:
@@ -674,6 +792,7 @@ def test_public_beta_takedown_action_describes_configured_doc_failures() -> None
                 "missing_fragments": ["GitHub private vulnerability reporting for HeOCR/hocrgen"],
             }
         ],
+        "verification": {"freshness_status": "pass"},
         "required_operator_action": "",
         "status": "blocked",
     }
@@ -746,6 +865,7 @@ def test_private_reporting_path_requires_enabled_repository_check_when_configure
                 "verified_at": "2026-05-07",
                 "verification_method": "github_repository_security_settings",
                 "verified_by": "test-maintainer",
+                "verification_valid_until": "2026-06-06",
                 "repository_check_at": "2026-05-07",
                 "repository_check_method": "gh_api_private_vulnerability_reporting",
                 "repository_check_result": repository_check_result,

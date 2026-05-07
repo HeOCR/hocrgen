@@ -16,3 +16,4 @@ private_reporting_path:
   verified_at: '2026-05-07'
   verification_method: github_repository_security_settings
   verified_by: authenticated_gh_api_repo_settings_check
+  verification_valid_until: '2026-06-06'
