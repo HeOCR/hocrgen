@@ -850,27 +850,24 @@ def _privacy_review_closure_entry(
     relevant_item_ids = {item.item_id for item in review_required_items + blocked_items}
     relevant_decision_audit = [entry for entry in decision_audit if entry.item_id in relevant_item_ids]
     decision_audit_by_item_id = {entry.item_id: entry for entry in relevant_decision_audit}
-    review_required_item_entries = []
-    for item in sorted(review_required_items, key=lambda record: record.item_id):
-        queue_entry = queue_by_item_id.get(item.item_id)
-        audit_entry = decision_audit_by_item_id.get(item.item_id)
-        review_required_item_entries.append(
-            {
-                "item_id": item.item_id,
-                "source_id": item.source_id,
-                "privacy_flag": item.privacy_flag.value,
-                "privacy_reasons": item.privacy_reasons,
-                "classification_review_reasons": item.classification_review_reasons,
-                "suggested_decision": queue_entry.suggested_decision if queue_entry else None,
-                "review_reasons": queue_entry.review_reasons if queue_entry else [],
-                "decision_source": audit_entry.decision_source if audit_entry else None,
-                "decision_outcome": audit_entry.outcome if audit_entry else None,
-                "decision": audit_entry.decision if audit_entry else None,
-                "reviewer": audit_entry.reviewer if audit_entry else None,
-                "decision_timestamp": audit_entry.timestamp if audit_entry else None,
-                "decision_rationale": audit_entry.rationale if audit_entry else None,
-            }
+    audited_item_ids = {entry.item_id for entry in relevant_decision_audit}
+    missing_decision_audit_item_ids = sorted(relevant_item_ids - audited_item_ids)
+    review_required_item_entries = [
+        _privacy_review_item_entry(
+            item=item,
+            queue_by_item_id=queue_by_item_id,
+            decision_audit_by_item_id=decision_audit_by_item_id,
         )
+        for item in sorted(review_required_items, key=lambda record: record.item_id)
+    ]
+    blocked_item_entries = [
+        _privacy_review_item_entry(
+            item=item,
+            queue_by_item_id=queue_by_item_id,
+            decision_audit_by_item_id=decision_audit_by_item_id,
+        )
+        for item in sorted(blocked_items, key=lambda record: record.item_id)
+    ]
     suggested_decision_counts = Counter(
         entry.suggested_decision for entry in selected_review_queue if entry.suggested_decision
     )
@@ -882,18 +879,16 @@ def _privacy_review_closure_entry(
         review_required_items=review_required_items,
         blocked_items=blocked_items,
         relevant_decision_audit=relevant_decision_audit,
+        missing_decision_audit_item_ids=missing_decision_audit_item_ids,
     )
+    privacy_review_closed = f6d_assessment["closure_state"] == "pass"
     return {
         "gate_id": "privacy_review",
         "status": gate["status"],
-        "closure_state": (
-            "pass"
-            if gate["status"] == "pass"
-            else f6d_assessment["closure_state"]
-        ),
+        "closure_state": f6d_assessment["closure_state"],
         "required_action": (
             "No repo-owned privacy/review action remains for currently exported public beta candidates."
-            if gate["status"] == "pass"
+            if privacy_review_closed
             else (
                 "Resolve each listed item through repo-tracked review decisions, allow/block overrides, "
                 "privacy config changes, or source-status changes; do not publish while unresolved items remain."
@@ -906,6 +901,14 @@ def _privacy_review_closure_entry(
             "privacy_flag": dict(sorted(privacy_flag_counts.items())),
             "decision_source": dict(sorted(decision_source_counts.items())),
             "decision_outcome": dict(sorted(decision_outcome_counts.items())),
+            "decision_audit_item_count": len(relevant_decision_audit),
+            "missing_decision_audit": len(missing_decision_audit_item_ids),
+        },
+        "decision_audit_coverage": {
+            "status": "blocked" if missing_decision_audit_item_ids else "pass",
+            "covered_item_count": len(relevant_item_ids) - len(missing_decision_audit_item_ids),
+            "missing_item_count": len(missing_decision_audit_item_ids),
+            "missing_item_ids": missing_decision_audit_item_ids,
         },
         "f6d_assessment": f6d_assessment,
         "source_status_evidence": _source_status_evidence(
@@ -914,9 +917,32 @@ def _privacy_review_closure_entry(
             relevant_source_ids={item.source_id for item in review_required_items + blocked_items},
         ),
         "review_required_items": review_required_item_entries,
+        "blocked_items": blocked_item_entries,
         "blocked_item_ids": [item.item_id for item in sorted(blocked_items, key=lambda record: record.item_id)],
         "evidence_paths": gate["evidence_paths"],
         "rationale": gate["rationale"],
+    }
+
+
+def _privacy_review_item_entry(
+    *,
+    item: PrivacyScannedItemRecord,
+    queue_by_item_id: dict[str, ReviewQueueRecord],
+    decision_audit_by_item_id: dict[str, ReviewDecisionAuditRecord],
+) -> dict[str, Any]:
+    queue_entry = queue_by_item_id.get(item.item_id)
+    audit_entry = decision_audit_by_item_id.get(item.item_id)
+    return {
+        "item_id": item.item_id,
+        "source_id": item.source_id,
+        "privacy_flag": item.privacy_flag.value,
+        "privacy_reasons": item.privacy_reasons,
+        "classification_review_reasons": item.classification_review_reasons,
+        "suggested_decision": queue_entry.suggested_decision if queue_entry else None,
+        "review_reasons": queue_entry.review_reasons if queue_entry else [],
+        "decision_source": audit_entry.decision_source if audit_entry else None,
+        "decision_outcome": audit_entry.outcome if audit_entry else None,
+        "decision": audit_entry.decision if audit_entry else None,
     }
 
 
@@ -926,6 +952,7 @@ def _privacy_review_f6d_assessment(
     review_required_items: list[PrivacyScannedItemRecord],
     blocked_items: list[PrivacyScannedItemRecord],
     relevant_decision_audit: list[ReviewDecisionAuditRecord],
+    missing_decision_audit_item_ids: list[str],
 ) -> dict[str, Any]:
     review_required_count = len(review_required_items)
     blocked_count = len(blocked_items)
@@ -935,10 +962,17 @@ def _privacy_review_f6d_assessment(
         for entry in relevant_decision_audit
         if entry.outcome == "unresolved" and entry.decision_source == "default_unresolved"
     )
-    if gate["status"] == "pass":
+    if gate["status"] == "pass" and not review_required_count and not blocked_count and not missing_decision_audit_item_ids:
         assessment_status = "closed_with_no_unresolved_privacy_or_review_items"
         closure_state = "pass"
         limitation = "none for currently governed public beta candidates"
+    elif missing_decision_audit_item_ids:
+        assessment_status = "blocked_missing_decision_audit_evidence"
+        closure_state = "requires_decision_audit_reconciliation"
+        limitation = (
+            f"{len(missing_decision_audit_item_ids)} review/privacy item(s) lack decision-audit evidence; "
+            "reconcile build_release/decision_audit.json before claiming F6d privacy/review closure"
+        )
     elif blocked_count:
         assessment_status = "blocked_blocked_items_present"
         closure_state = "requires_repo_tracked_review_config_or_source_status_evidence"
@@ -970,6 +1004,9 @@ def _privacy_review_f6d_assessment(
         "blocked_item_count": blocked_count,
         "unresolved_decision_count": unresolved_count,
         "default_unresolved_decision_count": default_unresolved_count,
+        "missing_decision_audit_count": len(missing_decision_audit_item_ids),
+        "missing_decision_audit_item_ids": missing_decision_audit_item_ids,
+        "decision_audit_coverage_status": "blocked" if missing_decision_audit_item_ids else "pass",
         "limitation_disclosure": limitation,
         "blocked_gate_preserved": gate["status"] == "blocked",
     }
@@ -986,7 +1023,17 @@ def _source_status_evidence(
     for source_id in sorted(relevant_source_ids):
         source = sources_by_id.get(source_id)
         if source is None:
-            entries.append({"source_id": source_id, "status": "unknown"})
+            entries.append(
+                {
+                    "source_id": source_id,
+                    "status": "unknown",
+                    "default_public_release": None,
+                    "requires_manual_review": None,
+                    "operational_status": "unknown",
+                    "included_in_profile": source_id in profile.include_sources,
+                    "excluded_from_profile": source_id in profile.exclude_sources,
+                }
+            )
             continue
         entries.append(
             {

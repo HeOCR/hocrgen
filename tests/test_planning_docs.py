@@ -89,7 +89,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
         "F6d": ("completed", ["default-unresolved"]),
         "F6e": ("planned", ["source-depth", "normal gates"]),
         "F6f": ("planned", ["generation_manifest.v1"]),
-        "F6g": ("planned", ["F6e-F6f"]),
+        "F6g": ("planned", ["privacy/review closure", "F6e-F6f"]),
     }
     for pr_id, (status, note_tokens) in expected_f6_pr_rows.items():
         row = roadmap_rows[pr_id]
@@ -457,11 +457,11 @@ def test_f6_post_f5_closure_roadmap_is_documented_and_evidence_gated() -> None:
         "reviewed/adjudicated",
         "review/config/source-status changes",
         "default-unresolved review decision",
-        "privacy_review` blocked",
+        "`privacy_review` blocked",
         "real public-profile source-depth/composition evidence",
         "larger validated hocrsyngen",
         "generation_manifest.v1",
-        "repo-owned, source-depth, and synthetic-scale inputs",
+        "privacy/review closure, source-depth, and synthetic-scale inputs",
         "2 / 80",
         "source-depth composition",
         "must remain blocked",

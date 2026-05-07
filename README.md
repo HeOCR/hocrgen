@@ -115,7 +115,7 @@ When any gate is `blocked`, `export-public-beta` stops before repository sync, u
 
 - `F6e`: close source-depth/composition readiness only after real public-profile candidate evidence exists and source-depth-only records have passed normal profile, review, privacy, split, benchmark, and portability gates
 - `F6f`: integrate a larger validated hocrsyngen `generation_manifest.v1` batch through the existing manifest boundary, without calling hocrsyngen runtime internals or adding heavy generator dependencies
-- `F6g`: rerun public beta readiness only after repo-owned, source-depth, and synthetic-scale inputs exist, while preserving every F5a/F5b gate
+- `F6g`: rerun public beta readiness only after privacy/review closure, source-depth, and synthetic-scale inputs exist, while preserving every F5a/F5b gate
 
 Until those evidence requirements are met, the `2 / 80` synthetic target-scale blocker, source-depth composition blocker, benchmark/reference limitations, and privacy/review blockers must remain visible rather than being relaxed or rewritten into readiness.
 
