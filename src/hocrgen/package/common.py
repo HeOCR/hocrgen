@@ -1007,7 +1007,7 @@ def _benchmark_card_for_export(inputs: BenchmarkExportInputs, items: list[Benchm
         review_bar = str(inputs.stability_policy["review_bar"])
         stability_policy = dict(inputs.stability_policy["stability_policy"])
     except (KeyError, TypeError, ValueError, ValidationError) as exc:
-        raise StageExecutionError("alpha export benchmark policy is invalid for card rendering") from exc
+        raise StageExecutionError("release export benchmark policy is invalid for card rendering") from exc
     real_count = sum(1 for item in items if not item.is_synthetic)
     synthetic_count = sum(1 for item in items if item.is_synthetic)
     split_counts: dict[str, int] = {}
