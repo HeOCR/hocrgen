@@ -3,7 +3,7 @@ from __future__ import annotations
 import shutil
 from collections import Counter
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -55,6 +55,8 @@ from hocrgen.package.common import (
 )
 from hocrgen.source_ops import F1_SYNTHETIC_TARGET_COUNT
 from hocrgen.synthetic.reporting import synthetic_composition_report
+
+PUBLIC_BETA_CURRENT_PLANNING_NOTATION = "F6b"
 
 
 @dataclass(frozen=True)
@@ -566,7 +568,7 @@ def _readiness_report(
     return {
         "schema_version": 1,
         "planning_notation": "F5b",
-        "current_planning_notation": "F5d",
+        "current_planning_notation": PUBLIC_BETA_CURRENT_PLANNING_NOTATION,
         "readiness_contract_notation": "F5a",
         "profile_id": profile_id,
         "version": version,
@@ -596,7 +598,7 @@ def _blocker_closure_plan(
     category_counts = dict(Counter(blocker["category"] for blocker in blockers))
     return {
         "schema_version": 1,
-        "planning_notation": "F5d",
+        "planning_notation": PUBLIC_BETA_CURRENT_PLANNING_NOTATION,
         "source_readiness_report": "manifests/public_beta_readiness_report.json",
         "readiness_status": readiness_report["readiness_status"],
         "publication_allowed": readiness_report["publication_allowed"],
@@ -783,7 +785,7 @@ def _repo_owned_blocker_report(
     )
     return {
         "schema_version": 1,
-        "planning_notation": "F5d",
+        "planning_notation": PUBLIC_BETA_CURRENT_PLANNING_NOTATION,
         "source_readiness_report": "manifests/public_beta_readiness_report.json",
         "readiness_status": readiness_report["readiness_status"],
         "publication_allowed": readiness_report["publication_allowed"],
@@ -946,6 +948,7 @@ def _takedown_closure_entry(gate: dict[str, Any], takedown_validation: dict[str,
         "private_reporting_path_id": takedown_validation.get("private_reporting_path_id"),
         "private_reporting_path_label": takedown_validation.get("private_reporting_path_label"),
         "repository_check": takedown_validation.get("repository_check", {}),
+        "verification": takedown_validation.get("verification", {}),
         "missing": takedown_validation.get("missing", []),
         "incomplete": takedown_validation.get("incomplete", []),
         "evidence_paths": gate["evidence_paths"],
@@ -957,11 +960,7 @@ def _takedown_blocker_action(takedown_validation: dict[str, Any]) -> dict[str, A
     return {
         "category": "repo_owned_immediately_actionable",
         "owner_scope": "hocrgen governance config plus repository maintainer settings",
-        "closure_state": (
-            "requires_operator_action"
-            if takedown_validation.get("configured_private_reporting_path") is not True
-            else "requires_repo_pr_or_doc_update"
-        ),
+        "closure_state": _takedown_closure_state(takedown_validation),
         "required_action": _takedown_required_action(takedown_validation),
         "closure_artifacts": [
             "manifests/public_beta_repo_owned_blocker_report.json",
@@ -972,6 +971,15 @@ def _takedown_blocker_action(takedown_validation: dict[str, Any]) -> dict[str, A
             "manifests/release_diff.json",
         ],
     }
+
+
+def _takedown_closure_state(takedown_validation: dict[str, Any]) -> str:
+    if takedown_validation.get("configured_private_reporting_path") is not True:
+        return "requires_operator_action"
+    verification = takedown_validation.get("verification") or {}
+    if verification.get("freshness_status") != "pass":
+        return "requires_repository_settings_reverification"
+    return "requires_repo_pr_or_doc_update"
 
 
 def _takedown_required_action(takedown_validation: dict[str, Any]) -> str:
@@ -987,6 +995,12 @@ def _takedown_required_action(takedown_validation: dict[str, Any]) -> str:
                 f"{repository_check['checked_at']}: private reporting is disabled"
             )
         return required_action
+    verification = takedown_validation.get("verification") or {}
+    if verification.get("freshness_status") != "pass":
+        return (
+            "Refresh private reporting repository settings verification and update "
+            "src/hocrgen/config/public_beta.yaml before claiming takedown readiness."
+        )
     problems = _takedown_doc_problems(takedown_validation)
     if problems:
         return f"Repair takedown workflow documentation: {'; '.join(problems)}"
@@ -1215,6 +1229,23 @@ def _validate_takedown_workflow(export_dir: Path, governance: PublicBetaGovernan
         "docs/DATASET_CARD.md": ["Takedown and Corrections", public_path.label, private_path.label],
         "docs/HANDOFF.md": ["Stop Conditions", "Do not publish to HeOCR", private_path.label],
     }
+    if private_path.configured:
+        configured_fragments = [
+            "Private reporting status: configured in repo governance config.",
+            (
+                "Private reporting repository check: "
+                f"{private_path.repository_check_result} via {private_path.repository_check_method} "
+                f"at {private_path.repository_check_at}."
+            ),
+            (
+                "Private reporting verification: "
+                f"{private_path.verification_method} by {private_path.verified_by} "
+                f"at {private_path.verified_at}."
+            ),
+            f"Private reporting verification valid until: {private_path.verification_valid_until}.",
+        ]
+        for fragments in required_fragments.values():
+            fragments.extend(configured_fragments)
     incomplete: list[dict[str, Any]] = []
     for relative_path, fragments in required_fragments.items():
         path = export_dir / relative_path
@@ -1225,6 +1256,7 @@ def _validate_takedown_workflow(export_dir: Path, governance: PublicBetaGovernan
         if absent_fragments:
             incomplete.append({"path": relative_path, "missing_fragments": absent_fragments})
     configured_private_reporting_path = private_path.configured
+    verification = _private_reporting_verification(private_path)
     return {
         "configured_private_reporting_path": configured_private_reporting_path,
         "private_reporting_channel": private_path.channel,
@@ -1237,11 +1269,42 @@ def _validate_takedown_workflow(export_dir: Path, governance: PublicBetaGovernan
             "method": private_path.repository_check_method,
             "result": private_path.repository_check_result,
         },
+        "verification": verification,
         "required_operator_action": "" if configured_private_reporting_path else private_path.required_operator_action,
         "evidence_paths": evidence_paths,
         "incomplete": incomplete,
         "missing": missing,
-        "status": "pass" if configured_private_reporting_path and not missing and not incomplete else "blocked",
+        "status": (
+            "pass"
+            if configured_private_reporting_path
+            and verification.get("freshness_status") == "pass"
+            and not missing
+            and not incomplete
+            else "blocked"
+        ),
+    }
+
+
+def _private_reporting_verification(private_path: Any) -> dict[str, Any]:
+    status = "blocked"
+    today = date.today()
+    valid_until = private_path.verification_valid_until
+    reason = "verification_valid_until is not configured"
+    if valid_until:
+        parsed_valid_until = date.fromisoformat(valid_until)
+        if parsed_valid_until >= today:
+            status = "pass"
+            reason = "verification is within the configured validity window"
+        else:
+            reason = f"verification expired on {valid_until}"
+    return {
+        "verified_at": private_path.verified_at,
+        "method": private_path.verification_method,
+        "verified_by": private_path.verified_by,
+        "valid_until": valid_until,
+        "freshness_checked_at": today.isoformat(),
+        "freshness_status": status,
+        "freshness_reason": reason,
     }
 
 
@@ -1324,6 +1387,20 @@ def _reporting_path_lines(governance: PublicBetaGovernanceConfig) -> list[str]:
         lines.append(f"- Private reporting URL: {private_path.url}.")
     if private_path.configured:
         lines.append("- Private reporting status: configured in repo governance config.")
+        if private_path.repository_check_result:
+            lines.append(
+                "- Private reporting repository check: "
+                f"{private_path.repository_check_result} via {private_path.repository_check_method} "
+                f"at {private_path.repository_check_at}."
+            )
+        if private_path.verified_at:
+            lines.append(
+                "- Private reporting verification: "
+                f"{private_path.verification_method} by {private_path.verified_by} "
+                f"at {private_path.verified_at}."
+            )
+        if private_path.verification_valid_until:
+            lines.append(f"- Private reporting verification valid until: {private_path.verification_valid_until}.")
     else:
         if private_path.repository_check_result:
             lines.append(

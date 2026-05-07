@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date
 from enum import Enum
 from typing import Any, Literal
 
@@ -232,6 +233,7 @@ class PrivateReportingPathConfig(ReportingPathConfig):
         "",
     ] = ""
     verified_by: str = ""
+    verification_valid_until: str = ""
     repository_check_at: str = ""
     repository_check_method: Literal[
         "gh_api_private_vulnerability_reporting",
@@ -246,6 +248,16 @@ class PrivateReportingPathConfig(ReportingPathConfig):
             raise ValueError("repository_check_at is required when repository_check_result is recorded")
         if self.repository_check_result and not self.repository_check_method:
             raise ValueError("repository_check_method is required when repository_check_result is recorded")
+        for field_name, value in [
+            ("verified_at", self.verified_at),
+            ("verification_valid_until", self.verification_valid_until),
+            ("repository_check_at", self.repository_check_at),
+        ]:
+            if value:
+                try:
+                    date.fromisoformat(value)
+                except ValueError as exc:
+                    raise ValueError(f"{field_name} must use YYYY-MM-DD format") from exc
         if not self.configured:
             return self
         missing = [
@@ -255,6 +267,7 @@ class PrivateReportingPathConfig(ReportingPathConfig):
                 ("verified_at", self.verified_at),
                 ("verification_method", self.verification_method),
                 ("verified_by", self.verified_by),
+                ("verification_valid_until", self.verification_valid_until),
             ]
             if not value
         ]

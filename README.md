@@ -89,7 +89,7 @@ This command opts into source-depth-only NLI seeds and packaged Pinkas/BiblIA ex
 
 ## Public beta readiness
 
-`F5a` defines public beta readiness as a publishability contract. `F5b` implements the local dry-run packaging command for that contract, `F5c` adds machine-readable blocker sequencing for the remaining handoff gaps, and `F5d` adds repo-owned blocker closure evidence before external scale inputs:
+`F5a` defines public beta readiness as a publishability contract. `F5b` implements the local dry-run packaging command for that contract, `F5c` adds machine-readable blocker sequencing for the remaining handoff gaps, `F5d` adds repo-owned blocker closure evidence before external scale inputs, and `F6b` records verified private-reporting evidence for takedown readiness:
 
 ```bash
 hocrgen export-public-beta --profile profile_open_v1 --dry-run
@@ -109,18 +109,17 @@ The current public beta packaging output remains blocked; operator trial success
 - portability and archives: public manifests, release records, checksums, assets, archives, release diffs, and changelogs must be release-relative and free of absolute local paths, `.work/` dependencies, and network-dependent reproducibility assumptions
 - public docs and takedown readiness: `DATASET_CARD.md`, `PROVENANCE.md`, `CHANGELOG.md`, `RELEASE_NOTES.md`, benchmark docs, and handoff notes must state composition, rights, limitations, removal/takedown contact path, configured and verified public/private reporting status from `src/hocrgen/config/public_beta.yaml`, and known blockers
 
-When any gate is `blocked`, `export-public-beta` stops before repository sync, upload, release tagging, or publication-report emission. It does not publish to `HeOCR`, Hugging Face, Kaggle, or `HeOCRsynth`. The known hard blocker remains the larger validated hocrsyngen manifest batch required for the `80` synthetic-control target; current F1c artifacts remain operator-only and do not satisfy public beta readiness by themselves. The current blocker-closure plan keeps source depth and synthetic scale external/input-dependent while the repo-owned blocker report keeps privacy/review closure, benchmark-reference readiness disclosure, and takedown private-reporting setup precise and machine-readable. Current GitHub private vulnerability reporting for `HeOCR/hocrgen` is recorded as disabled in `src/hocrgen/config/public_beta.yaml`, so the takedown gate remains blocked until maintainers enable that path or configure and verify another maintainer-private channel.
+When any gate is `blocked`, `export-public-beta` stops before repository sync, upload, release tagging, or publication-report emission. It does not publish to `HeOCR`, Hugging Face, Kaggle, or `HeOCRsynth`. The known hard blocker remains the larger validated hocrsyngen manifest batch required for the `80` synthetic-control target; current F1c artifacts remain operator-only and do not satisfy public beta readiness by themselves. The current blocker-closure plan keeps source depth and synthetic scale external/input-dependent while the repo-owned blocker report keeps privacy/review closure and benchmark-reference readiness disclosure precise and machine-readable. Current GitHub private vulnerability reporting for `HeOCR/hocrgen` is recorded as enabled and verified in `src/hocrgen/config/public_beta.yaml`, so `takedown_removal` can pass only from that committed verified config evidence. This does not affect the `2 / 80` synthetic target-scale blocker, source-depth composition blocker, benchmark-reference limitations, or privacy/review blockers.
 
-`F6a` defines the post-F5 public beta closure roadmap. It is planning-only: it does not change export behavior, readiness status semantics, or publication side effects. The F6 path is:
+`F6a` defines the post-F5 public beta closure roadmap. `F6b` is now complete on the current ref: it closes takedown/private reporting readiness with the verified GitHub private vulnerability reporting path and leaves the overall public beta export blocked on unrelated gates. The remaining F6 path is:
 
-- `F6b`: close takedown/private reporting readiness only after GitHub private vulnerability reporting is enabled or another maintainer-private channel is configured and verified; keep the gate blocked while that maintainer/private-channel evidence is missing
 - `F6c`: close benchmark-reference readiness only with real reviewed/adjudicated reference evidence; if coverage remains partial or unavailable, preserve that as blocked limitation reporting rather than readiness
 - `F6d`: close privacy/review blockers only through repo-tracked review decisions, config changes, or source-status changes
 - `F6e`: close source-depth/composition readiness only after real public-profile candidate evidence exists and source-depth-only records have passed normal profile, review, privacy, split, benchmark, and portability gates
 - `F6f`: integrate a larger validated hocrsyngen `generation_manifest.v1` batch through the existing manifest boundary, without calling hocrsyngen runtime internals or adding heavy generator dependencies
 - `F6g`: rerun public beta readiness only after repo-owned, source-depth, and synthetic-scale inputs exist, while preserving every F5a/F5b gate
 
-Until those evidence requirements are met, the `2 / 80` synthetic target-scale blocker, source-depth composition blocker, benchmark/reference limitations, privacy/review blockers, and takedown/private-reporting blocker must remain visible rather than being relaxed or rewritten into readiness.
+Until those evidence requirements are met, the `2 / 80` synthetic target-scale blocker, source-depth composition blocker, benchmark/reference limitations, and privacy/review blockers must remain visible rather than being relaxed or rewritten into readiness.
 
 To promote exploratory entries into runnable local fixtures, use the local operator script:
 

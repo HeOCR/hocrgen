@@ -8,6 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import yaml
 from pydantic import ValidationError
 
 import hocrgen.package.public_beta as public_beta
@@ -23,6 +24,7 @@ from hocrgen.package.public_beta import (
     _stabilize_public_beta_readiness_artifacts,
     _takedown_blocker_action,
     _takedown_gate,
+    _validate_takedown_workflow,
 )
 
 
@@ -38,6 +40,17 @@ def _fixture_config_root(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     return config_root
+
+
+def _load_public_beta_config(config_root: Path) -> dict:
+    return yaml.safe_load((config_root / "public_beta.yaml").read_text(encoding="utf-8"))
+
+
+def _write_public_beta_config(config_root: Path, payload: dict) -> None:
+    (config_root / "public_beta.yaml").write_text(
+        yaml.safe_dump(payload, sort_keys=False),
+        encoding="utf-8",
+    )
 
 
 def _sha256(path: Path) -> str:
@@ -84,7 +97,7 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
         (output_dir / "manifests" / "public_beta_repo_owned_blocker_report.json").read_text(encoding="utf-8")
     )
     assert report["planning_notation"] == "F5b"
-    assert report["current_planning_notation"] == "F5d"
+    assert report["current_planning_notation"] == "F6b"
     assert report["readiness_contract_notation"] == "F5a"
     assert report["valid_statuses"] == ["pass", "blocked"]
     assert report["readiness_status"] == "blocked"
@@ -94,21 +107,18 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
         "synthetic_target_scale",
         "privacy_review",
         "benchmark_references",
-        "takedown_removal",
     ]
     assert {gate["status"] for gate in report["gates"]} <= {"pass", "blocked"}
     synthetic_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "synthetic_target_scale")
     assert "larger validated batch" in synthetic_gate["rationale"]
     takedown_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "takedown_removal")
-    assert takedown_gate["status"] == "blocked"
-    assert "no repo-configured private reporting path" in takedown_gate["rationale"]
-    assert "Enable GitHub private vulnerability reporting" in takedown_gate["rationale"]
-    assert "private reporting is disabled" in takedown_gate["rationale"]
-    assert closure_plan["planning_notation"] == "F5d"
+    assert takedown_gate["status"] == "pass"
+    assert "configured public and private" in takedown_gate["rationale"]
+    assert closure_plan["planning_notation"] == "F6b"
     assert closure_plan["source_readiness_report"] == "manifests/public_beta_readiness_report.json"
     assert closure_plan["readiness_status"] == "blocked"
     assert closure_plan["summary"]["external_input_dependent"] == 2
-    assert closure_plan["summary"]["repo_owned_immediately_actionable"] == 3
+    assert closure_plan["summary"]["repo_owned_immediately_actionable"] == 2
     blockers_by_gate = {blocker["gate_id"]: blocker for blocker in closure_plan["blockers"]}
     assert blockers_by_gate["source_depth_composition"]["category"] == "external_input_dependent"
     assert blockers_by_gate["synthetic_target_scale"]["category"] == "external_input_dependent"
@@ -116,21 +126,14 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert blockers_by_gate["synthetic_target_scale"]["blocks_publication"] is True
     assert blockers_by_gate["privacy_review"]["category"] == "repo_owned_immediately_actionable"
     assert blockers_by_gate["benchmark_references"]["category"] == "repo_owned_immediately_actionable"
-    assert blockers_by_gate["takedown_removal"]["category"] == "repo_owned_immediately_actionable"
-    assert blockers_by_gate["takedown_removal"]["closure_state"] == "requires_operator_action"
-    assert "Enable GitHub private vulnerability reporting" in blockers_by_gate["takedown_removal"]["required_action"]
-    assert (
-        "manifests/public_beta_repo_owned_blocker_report.json"
-        in blockers_by_gate["takedown_removal"]["closure_artifacts"]
-    )
+    assert "takedown_removal" not in blockers_by_gate
     assert closure_plan["known_hard_blockers"][0]["gate_id"] == "synthetic_target_scale"
     assert closure_plan["known_hard_blockers"][0]["do_not_relax"] is True
-    assert repo_owned_report["planning_notation"] == "F5d"
+    assert repo_owned_report["planning_notation"] == "F6b"
     assert repo_owned_report["repo_owned_status"] == "blocked"
     assert repo_owned_report["repo_owned_blocked_gate_ids"] == [
         "privacy_review",
         "benchmark_references",
-        "takedown_removal",
     ]
     assert repo_owned_report["external_input_dependent_blocked_gate_ids"] == [
         "source_depth_composition",
@@ -147,11 +150,23 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     unresolved_by_id = {item["item_id"]: item for item in repo_entries["benchmark_references"]["unresolved_items"]}
     assert unresolved_by_id["pinkas_open:pinkas-ledger-001"]["public_reference_status"] == "draft"
     assert unresolved_by_id["project_synthetic:synthetic-0"]["public_reference_status"] == "not_available"
+    assert repo_entries["takedown_removal"]["status"] == "pass"
+    assert repo_entries["takedown_removal"]["required_action"] == (
+        "No takedown/private reporting action remains for current public beta governance config."
+    )
+    assert repo_entries["takedown_removal"]["configured_private_reporting_path"] is True
     assert repo_entries["takedown_removal"]["repository_check"] == {
         "checked_at": "2026-05-07",
         "method": "gh_api_private_vulnerability_reporting",
-        "result": "disabled",
+        "result": "enabled",
     }
+    assert repo_entries["takedown_removal"]["verification"]["verified_at"] == "2026-05-07"
+    assert repo_entries["takedown_removal"]["verification"]["method"] == "github_repository_security_settings"
+    assert repo_entries["takedown_removal"]["verification"]["verified_by"] == (
+        "authenticated_gh_api_repo_settings_check"
+    )
+    assert repo_entries["takedown_removal"]["verification"]["valid_until"] == "2026-06-06"
+    assert repo_entries["takedown_removal"]["verification"]["freshness_status"] == "pass"
     assert str(output_dir.resolve()) not in json.dumps(repo_owned_report)
     for gate in report["gates"]:
         assert set(gate) == {"gate_id", "status", "evidence_paths", "rationale"}
@@ -166,7 +181,12 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert release_summary["publication_report_emitted"] is False
     assert "repository sync, upload, release tagging, or publication report emission" in handoff
     assert "GitHub private vulnerability reporting for HeOCR/hocrgen" in handoff
-    assert "Private reporting repository check: disabled" in handoff
+    assert "Private reporting repository check: enabled" in handoff
+    assert (
+        "Private reporting verification: github_repository_security_settings by "
+        "authenticated_gh_api_repo_settings_check at 2026-05-07"
+    ) in handoff
+    assert "Private reporting verification valid until: 2026-06-06" in handoff
     assert str(output_dir.resolve()) not in handoff
 
     summarize_exit = main(["summarize-run", "--run-dir", payload["run_dir"]])
@@ -390,29 +410,26 @@ def test_public_beta_command_does_not_change_alpha_or_synthetic_export_cli(tmp_p
     assert synthetic_payload["synthetic_only"] is True
 
 
-def test_export_public_beta_takedown_gate_passes_when_private_reporting_path_is_configured(
+def test_export_public_beta_takedown_gate_blocks_when_private_reporting_path_is_unconfigured(
     tmp_path: Path,
     capsys,
 ) -> None:
     config_root = _fixture_config_root(tmp_path)
-    public_beta_config = config_root / "public_beta.yaml"
-    public_beta_config.write_text(
-        public_beta_config.read_text(encoding="utf-8").replace(
-            "configured: false\n"
-            "  repository_check_at: '2026-05-07'\n"
-            "  repository_check_method: gh_api_private_vulnerability_reporting\n"
-            "  repository_check_result: disabled\n"
-            "  required_operator_action: Enable GitHub private vulnerability reporting for HeOCR/hocrgen or replace this with a configured maintainer-private reporting channel before public beta publication.\n",
-            "configured: true\n"
-            "  repository_check_at: '2026-05-07'\n"
-            "  repository_check_method: gh_api_private_vulnerability_reporting\n"
-            "  repository_check_result: enabled\n"
-            "  verified_at: '2026-05-07'\n"
-            "  verification_method: github_repository_security_settings\n"
-            "  verified_by: test-maintainer\n",
-        ),
-        encoding="utf-8",
+    public_beta_payload = _load_public_beta_config(config_root)
+    public_beta_payload["private_reporting_path"].update(
+        {
+            "configured": False,
+            "repository_check_result": "disabled",
+            "required_operator_action": (
+                "Enable GitHub private vulnerability reporting for HeOCR/hocrgen or replace this with a "
+                "configured maintainer-private reporting channel before public beta publication."
+            ),
+        }
     )
+    for key in ("verified_at", "verification_method", "verified_by", "verification_valid_until"):
+        public_beta_payload["private_reporting_path"].pop(key, None)
+    _write_public_beta_config(config_root, public_beta_payload)
+    assert _load_public_beta_config(config_root)["private_reporting_path"]["configured"] is False
     output_dir = tmp_path / "exports" / "public-beta-v0"
 
     assert main(
@@ -438,9 +455,10 @@ def test_export_public_beta_takedown_gate_passes_when_private_reporting_path_is_
     takedown_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "takedown_removal")
     synthetic_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "synthetic_target_scale")
 
-    assert takedown_gate["status"] == "pass"
-    assert "configured public and private" in takedown_gate["rationale"]
-    assert "takedown_removal" not in {blocker["gate_id"] for blocker in closure_plan["blockers"]}
+    assert takedown_gate["status"] == "blocked"
+    assert "no repo-configured private reporting path" in takedown_gate["rationale"]
+    assert "private reporting is disabled" in takedown_gate["rationale"]
+    assert "takedown_removal" in {blocker["gate_id"] for blocker in closure_plan["blockers"]}
     assert synthetic_gate["status"] == "blocked"
     assert "2 / 80" in synthetic_gate["rationale"]
     assert report["readiness_status"] == "blocked"
@@ -454,8 +472,10 @@ def test_export_public_beta_rejects_unverified_private_reporting_path(
     public_beta_config = config_root / "public_beta.yaml"
     public_beta_config.write_text(
         public_beta_config.read_text(encoding="utf-8")
-        .replace("configured: false", "configured: true")
-        .replace("repository_check_result: disabled", "repository_check_result: enabled")
+        .replace("verified_at: '2026-05-07'\n", "")
+        .replace("  verification_method: github_repository_security_settings\n", "")
+        .replace("  verified_by: authenticated_gh_api_repo_settings_check\n", "")
+        .replace("  verification_valid_until: '2026-06-06'\n", "")
         .replace(
             "  required_operator_action: Enable GitHub private vulnerability reporting for HeOCR/hocrgen or replace this with a configured maintainer-private reporting channel before public beta publication.\n",
             "",
@@ -482,6 +502,110 @@ def test_export_public_beta_rejects_unverified_private_reporting_path(
     assert exit_code == 1
     assert payload["status"] == "error"
     assert "configured private reporting paths require verification metadata" in payload["error"]
+
+
+def test_export_public_beta_takedown_gate_blocks_when_verification_is_stale(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    public_beta_config = config_root / "public_beta.yaml"
+    public_beta_config.write_text(
+        public_beta_config.read_text(encoding="utf-8").replace(
+            "verification_valid_until: '2026-06-06'",
+            "verification_valid_until: '2000-01-01'",
+        ),
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "exports" / "public-beta-v0"
+
+    assert main(
+        [
+            "export-public-beta",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--output-dir",
+            str(output_dir),
+        ]
+    ) == 0
+    capsys.readouterr()
+
+    report = json.loads((output_dir / "manifests" / "public_beta_readiness_report.json").read_text(encoding="utf-8"))
+    closure_plan = json.loads(
+        (output_dir / "manifests" / "public_beta_blocker_closure_plan.json").read_text(encoding="utf-8")
+    )
+    repo_owned_report = json.loads(
+        (output_dir / "manifests" / "public_beta_repo_owned_blocker_report.json").read_text(encoding="utf-8")
+    )
+    takedown_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "takedown_removal")
+    takedown_blocker = next(blocker for blocker in closure_plan["blockers"] if blocker["gate_id"] == "takedown_removal")
+    takedown_entry = next(entry for entry in repo_owned_report["entries"] if entry["gate_id"] == "takedown_removal")
+
+    assert takedown_gate["status"] == "blocked"
+    assert takedown_blocker["closure_state"] == "requires_repository_settings_reverification"
+    assert "Refresh private reporting repository settings verification" in takedown_blocker["required_action"]
+    assert takedown_entry["verification"]["freshness_status"] == "blocked"
+    assert takedown_entry["verification"]["valid_until"] == "2000-01-01"
+
+
+def test_takedown_validation_requires_configured_verification_docs(tmp_path: Path) -> None:
+    for relative_path, text in {
+        "docs/RELEASE_NOTES.md": (
+            "Rights, privacy, source-owner, correction\n"
+            "review/config/source-status changes\n"
+            "GitHub private vulnerability reporting for HeOCR/hocrgen\n"
+        ),
+        "docs/DATASET_CARD.md": (
+            "Takedown and Corrections\n"
+            "GitHub public dataset issue\n"
+            "GitHub private vulnerability reporting for HeOCR/hocrgen\n"
+        ),
+        "docs/HANDOFF.md": (
+            "Stop Conditions\n"
+            "Do not publish to HeOCR\n"
+            "GitHub private vulnerability reporting for HeOCR/hocrgen\n"
+        ),
+        "manifests/release_diff.json": "{}\n",
+    }.items():
+        path = tmp_path / relative_path
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
+
+    governance = SimpleNamespace(
+        public_reporting_path=SimpleNamespace(
+            id="github_public_dataset_issue",
+            label="GitHub public dataset issue",
+        ),
+        private_reporting_path=SimpleNamespace(
+            id="github_private_vulnerability_reporting",
+            label="GitHub private vulnerability reporting for HeOCR/hocrgen",
+            channel="github_private_vulnerability_reporting",
+            configured=True,
+            repository_check_at="2026-05-07",
+            repository_check_method="gh_api_private_vulnerability_reporting",
+            repository_check_result="enabled",
+            verified_at="2026-05-07",
+            verification_method="github_repository_security_settings",
+            verified_by="authenticated_gh_api_repo_settings_check",
+            verification_valid_until="2026-06-06",
+            required_operator_action="",
+        ),
+    )
+
+    validation = _validate_takedown_workflow(tmp_path, governance)
+
+    assert validation["status"] == "blocked"
+    incomplete_paths = {entry["path"]: entry["missing_fragments"] for entry in validation["incomplete"]}
+    assert "Private reporting repository check: enabled" in "\n".join(incomplete_paths["docs/HANDOFF.md"])
+    assert "Private reporting verification: github_repository_security_settings" in "\n".join(
+        incomplete_paths["docs/HANDOFF.md"]
+    )
+    assert "Private reporting verification valid until: 2026-06-06." in incomplete_paths["docs/HANDOFF.md"]
 
 
 def test_public_beta_blocker_closure_plan_fails_closed_for_unmapped_blocked_gate() -> None:
@@ -676,6 +800,7 @@ def test_public_beta_takedown_action_describes_configured_doc_failures() -> None
                 "missing_fragments": ["GitHub private vulnerability reporting for HeOCR/hocrgen"],
             }
         ],
+        "verification": {"freshness_status": "pass"},
         "required_operator_action": "",
         "status": "blocked",
     }
@@ -733,6 +858,21 @@ def test_private_reporting_path_requires_repository_check_method_when_result_rec
         )
 
 
+@pytest.mark.parametrize("field_name", ["verified_at", "verification_valid_until", "repository_check_at"])
+def test_private_reporting_path_requires_iso_date_metadata(field_name: str) -> None:
+    payload = {
+        "id": "github_private_vulnerability_reporting",
+        "label": "GitHub private vulnerability reporting",
+        "channel": "github_private_vulnerability_reporting",
+        "configured": False,
+        "required_operator_action": "Enable GitHub private vulnerability reporting.",
+        field_name: "2026/05/07",
+    }
+
+    with pytest.raises(ValidationError, match=f"{field_name} must use YYYY-MM-DD format"):
+        PrivateReportingPathConfig.model_validate(payload)
+
+
 @pytest.mark.parametrize("repository_check_result", ["", "unknown", "disabled"])
 def test_private_reporting_path_requires_enabled_repository_check_when_configured(
     repository_check_result: str,
@@ -748,6 +888,7 @@ def test_private_reporting_path_requires_enabled_repository_check_when_configure
                 "verified_at": "2026-05-07",
                 "verification_method": "github_repository_security_settings",
                 "verified_by": "test-maintainer",
+                "verification_valid_until": "2026-06-06",
                 "repository_check_at": "2026-05-07",
                 "repository_check_method": "gh_api_private_vulnerability_reporting",
                 "repository_check_result": repository_check_result,
