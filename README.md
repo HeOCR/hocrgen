@@ -2,7 +2,7 @@
 
 `hocrgen` is the open-source dataset operations toolchain for the HeOCR project.
 
-This repository now implements a conservative review-readiness, source-operations, benchmark-subset, evaluation-utility, community-contribution, annotation-pilot, multi-release governance, benchmark ground-truth reference, modern handwritten acquisition policy, synthetic-provider validation, and synthetic-only export layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, optional benchmark-reference ingestion and adjudication/status reporting, lightweight text evaluation over benchmark manifests, carefully bounded annotation pilot selection, curated dry-run release assembly, documented contribution safety rails, release/version governance for repeated public exports, mixed HeOCR alpha handoff, and synthetic-only HeOCRsynth handoff.
+This repository now implements a conservative review-readiness, source-operations, benchmark-subset, evaluation-utility, community-contribution, annotation-pilot, multi-release governance, benchmark ground-truth reference, modern handwritten acquisition policy, synthetic-provider validation, synthetic-only export, and public beta readiness-definition layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, optional benchmark-reference ingestion and adjudication/status reporting, lightweight text evaluation over benchmark manifests, carefully bounded annotation pilot selection, curated dry-run release assembly, documented contribution safety rails, release/version governance for repeated public exports, mixed HeOCR alpha handoff, synthetic-only HeOCRsynth handoff, and documented public beta publishability gates.
 
 ## What `hocrgen` can do today
 
@@ -36,6 +36,7 @@ This repository now implements a conservative review-readiness, source-operation
 - document and validate benchmark ground-truth guidance for Hebrew transcription, layout labels, and `benchmark_reference_manifest.v1` reference manifests
 - document the `F3a` rights-clean modern handwritten Hebrew acquisition policy for consent, public-use release terms, provenance, privacy screening, takedown/removal handling, scanning standards, operator review, composition targets, and source-family boundaries
 - document the four-repository synthetic spinout boundary: `hocrsyngen` for generation, `hocrgen` for gates/orchestration/export, `HeOCR` for mixed releases, and `HeOCRsynth` for synthetic-only releases
+- document public beta readiness gates that separate operator trial success from public publishability
 - export synthetic-only HeOCRsynth release handoff trees from governed release-ready pipeline state
 
 ## Supported sources in the current MVP
@@ -82,7 +83,23 @@ To execute the bounded F1c target-scale trial, use the explicit operator command
 hocrgen f1-beta-trial --profile profile_open_v1 --dry-run
 ```
 
-This command opts into source-depth-only NLI seeds and packaged Pinkas/BiblIA expansion records, then runs the currently configured hocrsyngen synthetic fixture samples through the existing build-release gate sequence without broad crawling, publication, public beta export, release-candidate export, or automatic public-profile promotion. It writes `build_release/f1_target_scale_trial_report.json` with acquisition counts, rights outcomes, review outcomes, exact duplicate outcomes, near-duplicate/source-group outcomes, split and benchmark eligibility, benchmark/holdout leakage resolution status, post-review synthetic-cap status, source allocation, source-health status, non-goals, and remaining blockers. Normal `discover`, `build-release`, and `export-alpha` behavior remains bounded unless the operator explicitly runs this trial command. On the current data, target-scale execution is blocked until a validated hocrsyngen batch covers the synthetic target; those blockers are evidence that the gates remain enforceable, not permission to publish.
+This command opts into source-depth-only NLI seeds and packaged Pinkas/BiblIA expansion records, then runs the currently configured hocrsyngen synthetic fixture samples through the existing build-release gate sequence without broad crawling, publication, public beta export, release-candidate export, or automatic public-profile promotion. It writes `build_release/f1_target_scale_trial_report.json` with acquisition counts, rights outcomes, review outcomes, exact duplicate outcomes, near-duplicate/source-group outcomes, split and benchmark eligibility, benchmark/holdout leakage resolution status, post-review synthetic-cap status, source allocation, source-health status, non-goals, and remaining blockers. Normal `discover`, `build-release`, and `export-alpha` behavior remains bounded unless the operator explicitly runs this trial command. On the current data, target-scale execution is blocked until a validated hocrsyngen batch covers the synthetic target; those blockers are evidence that the gates remain enforceable, not permission to publish. The current F1c artifacts remain operator-only and do not satisfy public beta readiness by themselves.
+
+## Public beta readiness
+
+`F5a` defines public beta readiness as a publishability contract, not a new export command. A successful operator trial is necessary evidence, but public beta is not publishable until all of these gates are satisfied and documented:
+
+- source depth and composition: the mixed `HeOCR` candidate set must meet the planned real-source allocation evidence, keep source-depth-only fixtures out of normal publication unless deliberately promoted through release gates, and describe real versus synthetic composition clearly
+- synthetic scale and caps: the planned `80` synthetic-control target requires a larger validated hocrsyngen manifest batch; synthetic items remain bounded by the active public-profile/export cap policy and must never be used to hide real-source gaps
+- rights and provenance: every public item must have normalized release-compatible rights, source/provider provenance, attribution where needed, stable ids, and no unresolved rights review
+- privacy and review: review-required, blocked, unresolved privacy, unresolved modern-handwriting consent, and unresolved takedown states cannot enter the public payload
+- uniqueness and leakage: exact duplicates, near-duplicate risks, source groups, split leakage, and benchmark/holdout overlap must be cleared or explicitly resolved by typed repo-tracked policy before any public beta claim
+- benchmark readiness: benchmark membership must be stable, benchmark-reference status/versioning artifacts must be present for benchmark items, and benchmark-reference limitations must be disclosed
+- annotation expectations: full transcription and layout labels are not mandatory for all public beta items unless a later PR changes the contract; any included annotation or pilot references must be portable, explicit, and status-labeled
+- portability and archives: public manifests, release records, checksums, assets, archives, release diffs, and changelogs must be release-relative and free of absolute local paths, `.work/` dependencies, and network-dependent reproducibility assumptions
+- public docs and takedown readiness: `DATASET_CARD.md`, `PROVENANCE.md`, `CHANGELOG.md`, `RELEASE_NOTES.md`, benchmark docs, and handoff notes must state composition, rights, limitations, removal/takedown contact path, and known blockers
+
+`F5a` does not implement public beta packaging or publication. `F5b` remains the follow-up for a deliberate mixed `HeOCR` public beta publication packaging and handoff workflow.
 
 To promote exploratory entries into runnable local fixtures, use the local operator script:
 
@@ -119,7 +136,7 @@ python scripts/promote_nli_seeds.py \
 - stronger perceptual/semantic duplicate review beyond the current deterministic near-duplicate/source-group split-safety gates
 - OCR-aware privacy screening
 - advanced classification and model-training infrastructure
-- final public beta publication to Hugging Face or the GitHub dataset repo after source-depth, uniqueness, ground-truth, review, and portability gates pass
+- final public beta publication to Hugging Face or the GitHub dataset repo after F5a source-depth, uniqueness, ground-truth, review, portability, documentation, and takedown gates pass and F5b implements the publication handoff workflow
 - full release packaging maturity
 
 ## Splendor knowledge workspace

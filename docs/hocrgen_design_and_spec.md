@@ -644,6 +644,8 @@ Outputs:
 - publish artifacts
 - final release record
 
+F5a defines the readiness contract that must pass before this publishing stage is implemented or invoked for a mixed `HeOCR` public beta. Operator trial success is not enough: public publishability also requires source-depth/composition evidence, validated synthetic target scale and cap policy, rights/provenance closure, privacy/review closure, duplicate and leakage clearance, benchmark-reference status, annotation-status disclosure, release-relative manifest/checksum/archive portability, public dataset/provenance/changelog docs, and takedown/removal readiness. F5a does not add F5b publication behavior.
+
 ---
 
 ## 11. Source adapter design
@@ -1085,6 +1087,33 @@ The HeOCRsynth export must:
 - keep mixed `HeOCR` release behavior in `export-alpha` unchanged
 
 The synthetic-only exporter must not call hocrsyngen internals, a hocrsyngen CLI validator/generator, REST services, network services, GPU, LLM, diffusion, or heavyweight generator dependencies.
+
+### 19.7 Public beta readiness contract
+
+Public beta packaging for the mixed `HeOCR` dataset must be a deliberate F5b workflow, not a side effect of `build-release`, `export-alpha`, `export-synthetic`, or `f1-beta-trial`. F5a defines the contract F5b must enforce.
+
+F5b should materialize the F5a contract as `manifests/public_beta_readiness_report.json`. The report should include one entry per readiness gate with `gate_id`, `status`, `evidence_paths`, and `rationale`. Valid statuses are `pass` and `blocked`; publication must stop before repository sync, upload, tagging, or publication-report emission when any gate is `blocked`.
+
+The readiness gate inputs are:
+
+- source depth and composition: deterministic evidence for the candidate pool, with source-depth-only records promoted through normal release gates before public payload inclusion
+- synthetic target scale and caps: a larger validated hocrsyngen `generation_manifest.v1` batch for the planned synthetic-control target, plus continued enforcement of public-profile/export cap policy
+- rights and provenance: normalized public-compatible rights, raw source/provider/consent evidence, attribution, stable ids, and no unresolved rights-review state
+- privacy and review: exclusion of review-required, blocked, unresolved privacy, unresolved contributor-consent, and unresolved takedown states from payload
+- uniqueness and leakage: exact duplicate, near-duplicate, source-group, split, synthetic-sibling, and benchmark/holdout leakage risks are clear or resolved with typed repo-tracked accepted resolutions
+- benchmark readiness: stable benchmark membership, benchmark-reference manifest/status/versioning artifacts, and explicit disclosure of reference coverage limits
+- annotation expectations: full transcription and layout labels are optional for non-benchmark public beta items unless a later contract changes that; any included references must be release-relative, checksum-linked where applicable, and status-labeled
+- portability: manifests, asset paths, reference paths, checksums, release records, release diffs, changelogs, archives, and handoff docs do not expose absolute local paths, `file://`, `.work/`, path traversal, or network-only assumptions
+- public docs and removal readiness: dataset card, provenance, changelog, release notes, benchmark docs, handoff notes, reporting paths, and takedown/removal workflow are complete before publication
+
+F5b archive/checksum packaging must produce:
+
+- a release-level SHA-256 checksum manifest that covers every public payload asset, public manifest, public doc, benchmark/reference child file, and generated archive
+- an archive manifest naming each generated archive, archive format, byte size, SHA-256 digest, release root, and included top-level paths
+- at least one portable release archive rooted at the versioned release directory, with no absolute paths, no path traversal entries, no `.work/` state, and no generated files outside the release root
+- a verification step that recomputes asset and archive digests from the handoff tree before publication
+
+Current known blocker: the existing F1c synthetic artifacts are operator-only and do not meet the planned public beta synthetic target scale until a larger validated hocrsyngen batch is configured and passes the same gates.
 
 ---
 
