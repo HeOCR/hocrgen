@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F6a"
+CURRENT_COMPLETED_NOTATION = "F6b"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -60,6 +60,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "`F5c` now derives a public beta blocker-closure plan" in agent_plan
     assert "`F5d` now writes `manifests/public_beta_repo_owned_blocker_report.json`" in agent_plan
     assert "`F6a` now defines the post-F5 public beta closure roadmap" in agent_plan
+    assert "`F6b` now records GitHub private vulnerability reporting" in agent_plan
     assert f"| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert f"| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
@@ -81,7 +82,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "| F5d | F5 | Close repo-owned public beta readiness gates before external scale inputs | no | completed | current ref repo-owned blocker evidence and private-reporting settings check |" in roadmap
     expected_f6_pr_rows = {
         "F6a": ("completed", ["planning-only"]),
-        "F6b": ("blocked", ["maintainer", "private-channel"]),
+        "F6b": ("completed", ["verified", "takedown/removal"]),
         "F6c": ("planned", ["review", "versioning", "blocked"]),
         "F6d": ("planned", ["review", "source-status"]),
         "F6e": ("planned", ["source-depth", "normal gates"]),
@@ -97,7 +98,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
             assert token in row[5]
     assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
-    assert "`F5a`, `F5b`, `F5c`, `F5d`, and `F6a` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
+    assert "`F5a`, `F5b`, `F5c`, `F5d`, `F6a`, and `F6b` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
 
 
 def test_f3_modern_handwritten_policy_and_intake_are_consistent_and_bounded() -> None:
@@ -460,9 +461,9 @@ def test_f6_post_f5_closure_roadmap_is_documented_and_evidence_gated() -> None:
         "2 / 80",
         "source-depth composition",
         "must remain blocked",
-        "blocked until maintainer/private-channel",
+        "closes takedown/private reporting readiness with the verified GitHub private vulnerability reporting path",
         "separate governance PR explicitly changes",
-        "does not change runtime behavior",
+        "adds no runtime behavior",
         "does not publish",
         "does not relax",
         "does not import hocrsyngen internals",
@@ -472,6 +473,7 @@ def test_f6_post_f5_closure_roadmap_is_documented_and_evidence_gated() -> None:
 
     assert "| F6 | Public beta closure and external input integration | F6a, F6b, F6c, F6d, F6e, F6f, F6g |" in roadmap
     assert "For F6a, the required planning notation is:" in release_governance
+    assert "For F6b, the required planning notation is:" in release_governance
     assert "parent milestone: `F6 - Public beta closure and external input integration`" in release_governance
     assert "F6 does not permit hocrgen to import hocrsyngen internals" in design
     assert "Future implementation should follow F6" in pre_alpha

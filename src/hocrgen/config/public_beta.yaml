@@ -9,8 +9,10 @@ private_reporting_path:
   label: GitHub private vulnerability reporting for HeOCR/hocrgen
   channel: github_private_vulnerability_reporting
   url: https://github.com/HeOCR/hocrgen/security/advisories/new
-  configured: false
+  configured: true
   repository_check_at: '2026-05-07'
   repository_check_method: gh_api_private_vulnerability_reporting
-  repository_check_result: disabled
-  required_operator_action: Enable GitHub private vulnerability reporting for HeOCR/hocrgen or replace this with a configured maintainer-private reporting channel before public beta publication.
+  repository_check_result: enabled
+  verified_at: '2026-05-07'
+  verification_method: github_repository_security_settings
+  verified_by: authenticated_gh_api_repo_settings_check

@@ -56,6 +56,8 @@ from hocrgen.package.common import (
 from hocrgen.source_ops import F1_SYNTHETIC_TARGET_COUNT
 from hocrgen.synthetic.reporting import synthetic_composition_report
 
+PUBLIC_BETA_CURRENT_PLANNING_NOTATION = "F6b"
+
 
 @dataclass(frozen=True)
 class PublicBetaExportConfig:
@@ -566,7 +568,7 @@ def _readiness_report(
     return {
         "schema_version": 1,
         "planning_notation": "F5b",
-        "current_planning_notation": "F5d",
+        "current_planning_notation": PUBLIC_BETA_CURRENT_PLANNING_NOTATION,
         "readiness_contract_notation": "F5a",
         "profile_id": profile_id,
         "version": version,
@@ -596,7 +598,7 @@ def _blocker_closure_plan(
     category_counts = dict(Counter(blocker["category"] for blocker in blockers))
     return {
         "schema_version": 1,
-        "planning_notation": "F5d",
+        "planning_notation": PUBLIC_BETA_CURRENT_PLANNING_NOTATION,
         "source_readiness_report": "manifests/public_beta_readiness_report.json",
         "readiness_status": readiness_report["readiness_status"],
         "publication_allowed": readiness_report["publication_allowed"],
@@ -783,7 +785,7 @@ def _repo_owned_blocker_report(
     )
     return {
         "schema_version": 1,
-        "planning_notation": "F5d",
+        "planning_notation": PUBLIC_BETA_CURRENT_PLANNING_NOTATION,
         "source_readiness_report": "manifests/public_beta_readiness_report.json",
         "readiness_status": readiness_report["readiness_status"],
         "publication_allowed": readiness_report["publication_allowed"],
@@ -1324,6 +1326,17 @@ def _reporting_path_lines(governance: PublicBetaGovernanceConfig) -> list[str]:
         lines.append(f"- Private reporting URL: {private_path.url}.")
     if private_path.configured:
         lines.append("- Private reporting status: configured in repo governance config.")
+        if private_path.repository_check_result:
+            lines.append(
+                "- Private reporting repository check: "
+                f"{private_path.repository_check_result} via {private_path.repository_check_method} "
+                f"at {private_path.repository_check_at}."
+            )
+        if private_path.verified_at:
+            lines.append(
+                "- Private reporting verification: "
+                f"{private_path.verification_method} at {private_path.verified_at}."
+            )
     else:
         if private_path.repository_check_result:
             lines.append(
