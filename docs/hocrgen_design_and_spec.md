@@ -644,7 +644,7 @@ Outputs:
 - publish artifacts
 - final release record
 
-F5a defines the readiness contract that must pass before this publishing stage is implemented or invoked for a mixed `HeOCR` public beta. Operator trial success is not enough: public publishability also requires source-depth/composition evidence, validated synthetic target scale and cap policy, rights/provenance closure, privacy/review closure, duplicate and leakage clearance, benchmark-reference status, annotation-status disclosure, release-relative manifest/checksum/archive portability, public dataset/provenance/changelog docs, and takedown/removal readiness. F5a does not add F5b publication behavior.
+F5a defines the readiness contract that must pass before this publishing stage is invoked for a mixed `HeOCR` public beta. F5b implements local blocked packaging and handoff verification, not final publication. Operator trial success is not enough: public publishability also requires source-depth/composition evidence, validated synthetic target scale and cap policy, rights/provenance closure, privacy/review closure, duplicate and leakage clearance, benchmark-reference status, annotation-status disclosure, release-relative manifest/checksum/archive portability, public dataset/provenance/changelog docs, and takedown/removal readiness.
 
 ---
 
@@ -1090,9 +1090,9 @@ The synthetic-only exporter must not call hocrsyngen internals, a hocrsyngen CLI
 
 ### 19.7 Public beta readiness contract
 
-Public beta packaging for the mixed `HeOCR` dataset must be a deliberate F5b workflow, not a side effect of `build-release`, `export-alpha`, `export-synthetic`, or `f1-beta-trial`. F5a defines the contract F5b must enforce.
+Public beta packaging for the mixed `HeOCR` dataset must be a deliberate F5b workflow, not a side effect of `build-release`, `export-alpha`, `export-synthetic`, or `f1-beta-trial`. F5a defines the contract that `hocrgen export-public-beta` enforces.
 
-F5b should materialize the F5a contract as `manifests/public_beta_readiness_report.json`. The report should include one entry per readiness gate with `gate_id`, `status`, `evidence_paths`, and `rationale`. Valid statuses are `pass` and `blocked`; publication must stop before repository sync, upload, tagging, or publication-report emission when any gate is `blocked`.
+F5b materializes the F5a contract as `manifests/public_beta_readiness_report.json`. The report includes one entry per readiness gate with `gate_id`, `status`, `evidence_paths`, and `rationale`. Valid statuses are `pass` and `blocked`; publication must stop before repository sync, upload, tagging, or publication-report emission when any gate is `blocked`.
 
 The readiness gate inputs are:
 
@@ -1114,6 +1114,8 @@ F5b archive/checksum packaging must produce:
 - a verification step that recomputes asset and archive digests from the handoff tree before publication
 
 Current known blocker: the existing F1c synthetic artifacts are operator-only and do not meet the planned public beta synthetic target scale until a larger validated hocrsyngen batch is configured and passes the same gates.
+
+The current implementation creates local handoff artifacts only. It does not publish to `HeOCR`, Hugging Face, Kaggle, or `HeOCRsynth`, and a blocked run must not emit `manifests/publication_report.json`.
 
 ---
 

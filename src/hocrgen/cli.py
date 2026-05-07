@@ -23,6 +23,7 @@ from hocrgen.fetchers.hocrsyngen_manifest import validate_hocrsyngen_batch
 from hocrgen.fetchers.modern_handwriting import validate_modern_intake_manifest
 from hocrgen.package.alpha import AlphaExportConfig, export_alpha_release
 from hocrgen.package.heocrsynth import SyntheticExportConfig, export_synthetic_release
+from hocrgen.package.public_beta import PublicBetaExportConfig, export_public_beta_release
 from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_summary
 from hocrgen.review.merge import validate_review_data
 from hocrgen.runs import load_resumed_pipeline_state, render_run_summary_markdown, summarize_run
@@ -184,6 +185,25 @@ def build_parser() -> argparse.ArgumentParser:
         help="Maximum number of synthetic items to include",
     )
     export_synthetic_parser.set_defaults(handler=handle_export_synthetic)
+
+    export_public_beta_parser = subparsers.add_parser(
+        "export-public-beta",
+        help="Package a gated public beta handoff tree without publishing",
+    )
+    _add_pipeline_common_args(
+        export_public_beta_parser,
+        dry_run_help="Run the public beta packaging workflow without publication side effects",
+    )
+    export_public_beta_parser.add_argument("--version", default="public-beta-v0", help="Versioned release folder name")
+    export_public_beta_parser.add_argument("--output-dir", type=Path, default=None, help="Override the public beta export root directory")
+    export_public_beta_parser.add_argument(
+        "--compare-to",
+        type=Path,
+        default=None,
+        help="Optional path to a previous exported public beta release directory to diff against",
+    )
+    export_public_beta_parser.add_argument("--overwrite", action="store_true", help="Replace an existing public beta export directory")
+    export_public_beta_parser.set_defaults(handler=handle_export_public_beta)
 
     f1_trial_parser = subparsers.add_parser(
         "f1-beta-trial",
@@ -608,6 +628,98 @@ def handle_export_synthetic(args: argparse.Namespace) -> int:
             "status": "ok",
             "summary_path": str(run_summary_path),
             "synthetic_only": True,
+        }
+    )
+    return 0
+
+
+def handle_export_public_beta(args: argparse.Namespace) -> int:
+    unsupported_limits: list[str] = []
+    if args.source:
+        unsupported_limits.append("--source")
+    if args.max_items is not None:
+        unsupported_limits.append("--max-items")
+    if args.seed is not None:
+        unsupported_limits.append("--seed")
+    if args.synthetic_template:
+        unsupported_limits.append("--synthetic-template")
+    if args.synthetic_recipe:
+        unsupported_limits.append("--synthetic-recipe")
+    if args.synthetic_degradation_preset:
+        unsupported_limits.append("--synthetic-degradation-preset")
+    if unsupported_limits:
+        _print_json(
+            {
+                "status": "error",
+                "error": (
+                    "export-public-beta packages the full governed public beta candidate set; "
+                    f"unsupported partial-run flags: {', '.join(unsupported_limits)}"
+                ),
+            }
+        )
+        return 1
+
+    try:
+        bundle = _load_bundle(args.config_root)
+    except ConfigValidationError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+
+    if args.profile not in bundle.profiles:
+        _print_json({"status": "error", "error": f"unknown profile: {args.profile}"})
+        return 1
+
+    context = create_run_context(profile_id=args.profile, dry_run=args.dry_run, workdir=args.workdir)
+    logger = configure_logging(context.log_dir / "run.log", verbose=args.verbose)
+    logger.info(
+        "starting public beta export",
+        extra={"run_id": context.run_id, "stage": "export-public-beta", "profile": args.profile, "dry_run": args.dry_run},
+    )
+
+    run_path = write_run_metadata(context)
+    options = _stage_options_from_args(args)
+    try:
+        stage_results = execute_pipeline("build-release", bundle, context, options)
+    except StageExecutionError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+    export_config = PublicBetaExportConfig(
+        version=args.version,
+        output_dir=args.output_dir,
+        compare_to=args.compare_to,
+        overwrite=args.overwrite,
+    )
+    try:
+        export_result = export_public_beta_release(bundle, context.run_dir, args.profile, export_config)
+    except StageExecutionError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+
+    artifacts = [run_path]
+    for result in stage_results:
+        artifacts.append(result.summary_path)
+        artifacts.extend(result.extra_artifacts)
+    artifacts.append(export_result.summary_path)
+    run_summary_path = write_run_summary(context, "export-public-beta", artifacts)
+    logger.info(
+        "public beta export completed",
+        extra={"run_id": context.run_id, "stage": "export-public-beta", "profile": args.profile, "dry_run": args.dry_run},
+    )
+
+    _print_json(
+        {
+            "dataset_id": "HeOCR",
+            "dry_run": args.dry_run,
+            "export_dir": str(export_result.export_dir),
+            "profile_id": args.profile,
+            "publication_allowed": export_result.publication_allowed,
+            "readiness_report": str(export_result.readiness_report_path),
+            "readiness_status": export_result.readiness_status,
+            "run_dir": str(context.run_dir),
+            "run_id": context.run_id,
+            "stage": "export-public-beta",
+            "status": "ok",
+            "summary_path": str(run_summary_path),
         }
     )
     return 0

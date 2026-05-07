@@ -47,7 +47,7 @@ Synthetic-only `HeOCRsynth` releases are a separate release stream from mixed `H
 
 Mixed `HeOCR` public beta publication is a stricter publishability decision than a successful operator trial. The F1c target-scale trial may provide evidence that candidate acquisition and gates can run, but its artifacts are operator-only until the F5a readiness contract is satisfied. In particular, the current F1c synthetic evidence remains blocked for public beta readiness because full synthetic target scale still requires a larger validated hocrsyngen batch.
 
-Before mixed public beta publication, maintainers must verify the canonical F5a gate matrix in [`docs/HeOCR_hocrgen_long_term_roadmap.md`](./HeOCR_hocrgen_long_term_roadmap.md). F5b should emit a machine-readable `public_beta_readiness_report.json` with one entry per gate, source evidence artifact paths, status, and rationale. Public beta publication is allowed only when every gate status is `pass`; a `blocked` gate must stop repository sync, upload, release tagging, and publication reports.
+Before mixed public beta publication, maintainers must verify the canonical F5a gate matrix in [`docs/HeOCR_hocrgen_long_term_roadmap.md`](./HeOCR_hocrgen_long_term_roadmap.md). F5b now emits a machine-readable `manifests/public_beta_readiness_report.json` through `hocrgen export-public-beta`, with one entry per gate, source evidence artifact paths, status, and rationale. Public beta publication is allowed only when every gate status is `pass`; a `blocked` gate must stop repository sync, upload, release tagging, and publication reports.
 
 The governance summary of those gates is:
 
@@ -62,7 +62,7 @@ The governance summary of those gates is:
 - `DATASET_CARD.md`, `PROVENANCE.md`, `CHANGELOG.md`, `RELEASE_NOTES.md`, benchmark docs, and handoff notes describe composition, source mix, synthetic fraction, rights posture, benchmark/reference status, annotation status, validation, limitations, and known blockers
 - rights, privacy, source-owner, takedown, correction, and source-breakage reports have a public or private intake path before publication
 
-F5a does not implement F5b publication packaging, repository sync, upload behavior, release tagging, or a public beta handoff command. Public beta remains blocked while any readiness gate is unresolved.
+F5b implements local publication packaging and handoff verification, not publication itself. The command writes `manifests/checksum_manifest.json`, `manifests/archive_manifest.json`, `manifests/public_beta_readiness_report.json`, beta-specific docs, and a portable version-rooted archive, then verifies asset and archive digests from the handoff tree. It must not sync a repository, upload to a host, tag a release, or emit a blocked publication report while any readiness gate is unresolved.
 
 Unknown rights, restricted review-only rights, blocked sources, unresolved privacy flags, and unresolved review decisions must not be promoted into `profile_open_v1`.
 
@@ -191,6 +191,12 @@ For F4e, the required planning notation is:
 For F5a, the required planning notation is:
 
 - notation: `F5a`
+- parent milestone: `F5 - Public beta and publication readiness`
+- source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
+
+For F5b, the required planning notation is:
+
+- notation: `F5b`
 - parent milestone: `F5 - Public beta and publication readiness`
 - source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
 
