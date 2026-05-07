@@ -40,6 +40,8 @@ The provider contract starts with `hocrsyngen` emitting `generation_manifest.jso
 
 The current `project_synthetic` source is hocrsyngen manifest-backed. It preserves legacy `project_synthetic:synthetic-*` item ids through a validated sample-index compatibility mapping, but exact logical text from the provider manifest is not published as generic item metadata. The old internal generator code remains legacy deterministic smoke coverage until it can be retired safely.
 
+Synthetic-only dataset handoff uses `hocrgen export-synthetic`. The command runs the normal hocrgen gates through `build-release`, selects only release-ready synthetic `PROJECT-SYNTHETIC` items from pipeline state, preserves synthetic disclosure plus hocrsyngen provider/rendering/Hebrew coverage metadata, and writes payload assets under `data/synthetic/<split>/<item_id>/`. This keeps `HeOCRsynth` releases distinct from mixed `HeOCR` releases and prevents raw generator batches from being mistaken for governed public artifacts.
+
 ## Font contributions
 
 Font PRs must include:
@@ -85,7 +87,7 @@ Synthetic assets must remain subject to:
 - source-health expectations for configured fonts and corpora
 - release profile synthetic fraction caps
 - alpha export real-item based synthetic clamps
-- composition reporting in `build-release` and `export-alpha`
+- composition reporting in `build-release`, `export-alpha`, and `export-synthetic`
 - review of license and provenance evidence before merge
 - release-relative and portable export paths
 - explicit synthetic disclosure in mixed `HeOCR` releases and synthetic-only `HeOCRsynth` releases

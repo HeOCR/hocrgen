@@ -32,6 +32,17 @@ Public releases must:
 - keep synthetic data bounded by profile and alpha export caps
 - emit release diffs, changelogs, provenance, dataset cards, and handoff notes
 
+Synthetic-only `HeOCRsynth` releases are a separate release stream from mixed `HeOCR` releases. They must:
+
+- be produced by `hocrgen export-synthetic`, not by copying raw hocrsyngen generator directories
+- include only release-ready synthetic items from existing hocrgen pipeline state
+- run the full configured hocrgen pipeline before filtering; source-limited synthetic exports are rejected because they can bypass mixed release gates such as benchmark membership validation
+- keep payload assets under `data/synthetic/<split>/<item_id>/`
+- preserve `PROJECT-SYNTHETIC`, synthetic disclosure, hocrsyngen provider metadata, rendering metadata, and Hebrew coverage metadata
+- use release records with `dataset_id: HeOCRsynth`, `release_kind: synthetic_only`, `synthetic_only: true`, and `real_items: 0`
+- exclude real-source NLI, Pinkas, BiblIA, modern handwriting, and other non-synthetic items from payload and audit manifests
+- avoid public beta or mixed-dataset readiness claims
+
 Unknown rights, restricted review-only rights, blocked sources, unresolved privacy flags, and unresolved review decisions must not be promoted into `profile_open_v1`.
 
 Modern handwritten contributor material must additionally satisfy the F3a/F3b policy before public-profile use: explicit contributor consent, compatible public-use release terms, rights provenance, contemporary privacy clearance, typed operator intake manifests, source-relative assets, operator review, and a documented takedown/removal path. F3b does not add a default modern handwriting source or collect/package real contributor samples; configured modern intake records remain review-only until explicitly approved.
@@ -141,6 +152,12 @@ For F3a, the required planning notation is:
 For F4c, the required planning notation is:
 
 - notation: `F4c`
+- parent milestone: `F4 - External synthetic provider integration`
+- source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
+
+For F4d, the required planning notation is:
+
+- notation: `F4d`
 - parent milestone: `F4 - External synthetic provider integration`
 - source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
 

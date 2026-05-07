@@ -22,6 +22,7 @@ from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.hocrsyngen_manifest import validate_hocrsyngen_batch
 from hocrgen.fetchers.modern_handwriting import validate_modern_intake_manifest
 from hocrgen.package.alpha import AlphaExportConfig, export_alpha_release
+from hocrgen.package.heocrsynth import SyntheticExportConfig, export_synthetic_release
 from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_summary
 from hocrgen.review.merge import validate_review_data
 from hocrgen.runs import load_resumed_pipeline_state, render_run_summary_markdown, summarize_run
@@ -152,6 +153,37 @@ def build_parser() -> argparse.ArgumentParser:
         help="Maximum number of synthetic items to include, additionally bounded by 2x exported real items",
     )
     export_alpha_parser.set_defaults(handler=handle_export_alpha)
+
+    export_synthetic_parser = subparsers.add_parser(
+        "export-synthetic",
+        help="Export a synthetic-only release tree for the HeOCRsynth repo",
+    )
+    _add_pipeline_common_args(
+        export_synthetic_parser,
+        dry_run_help="Run the fixture/sample-backed synthetic handoff workflow without publishing",
+    )
+    export_synthetic_parser.add_argument("--version", default="synth-alpha-v0", help="Versioned release folder name")
+    export_synthetic_parser.add_argument("--output-dir", type=Path, default=None, help="Override the synthetic export root directory")
+    export_synthetic_parser.add_argument(
+        "--heocrsynth-repo",
+        type=Path,
+        default=None,
+        help="Path to a checked-out HeOCRsynth repo; exports to releases/<version> there",
+    )
+    export_synthetic_parser.add_argument(
+        "--compare-to",
+        type=Path,
+        default=None,
+        help="Optional path to a previous exported synthetic release directory to diff against",
+    )
+    export_synthetic_parser.add_argument("--overwrite", action="store_true", help="Replace an existing synthetic export directory")
+    export_synthetic_parser.add_argument(
+        "--max-synthetic-items",
+        type=int,
+        default=20,
+        help="Maximum number of synthetic items to include",
+    )
+    export_synthetic_parser.set_defaults(handler=handle_export_synthetic)
 
     f1_trial_parser = subparsers.add_parser(
         "f1-beta-trial",
@@ -499,6 +531,83 @@ def handle_export_alpha(args: argparse.Namespace) -> int:
             "stage": "export-alpha",
             "status": "ok",
             "summary_path": str(run_summary_path),
+        }
+    )
+    return 0
+
+
+def handle_export_synthetic(args: argparse.Namespace) -> int:
+    if args.source:
+        _print_json(
+            {
+                "status": "error",
+                "error": "--source is not supported for export-synthetic; the command runs the full release pipeline and filters the governed synthetic handoff after build-release",
+            }
+        )
+        return 1
+
+    try:
+        bundle = _load_bundle(args.config_root)
+    except ConfigValidationError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+
+    if args.profile not in bundle.profiles:
+        _print_json({"status": "error", "error": f"unknown profile: {args.profile}"})
+        return 1
+
+    context = create_run_context(profile_id=args.profile, dry_run=args.dry_run, workdir=args.workdir)
+    logger = configure_logging(context.log_dir / "run.log", verbose=args.verbose)
+    logger.info(
+        "starting synthetic export",
+        extra={"run_id": context.run_id, "stage": "export-synthetic", "profile": args.profile, "dry_run": args.dry_run},
+    )
+
+    run_path = write_run_metadata(context)
+    options = _stage_options_from_args(args)
+    try:
+        stage_results = execute_pipeline("build-release", bundle, context, options)
+    except StageExecutionError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+    export_config = SyntheticExportConfig(
+        version=args.version,
+        output_dir=args.output_dir,
+        heocrsynth_repo=args.heocrsynth_repo,
+        compare_to=args.compare_to,
+        overwrite=args.overwrite,
+        max_synthetic_items=args.max_synthetic_items,
+    )
+    try:
+        export_result = export_synthetic_release(bundle, context.run_dir, args.profile, export_config)
+    except StageExecutionError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+
+    artifacts = [run_path]
+    for result in stage_results:
+        artifacts.append(result.summary_path)
+        artifacts.extend(result.extra_artifacts)
+    artifacts.append(export_result.summary_path)
+    run_summary_path = write_run_summary(context, "export-synthetic", artifacts)
+    logger.info(
+        "synthetic export completed",
+        extra={"run_id": context.run_id, "stage": "export-synthetic", "profile": args.profile, "dry_run": args.dry_run},
+    )
+
+    _print_json(
+        {
+            "dataset_id": "HeOCRsynth",
+            "dry_run": args.dry_run,
+            "export_dir": str(export_result.export_dir),
+            "handoff_repo": str(args.heocrsynth_repo.resolve()) if args.heocrsynth_repo else None,
+            "profile_id": args.profile,
+            "run_dir": str(context.run_dir),
+            "run_id": context.run_id,
+            "stage": "export-synthetic",
+            "status": "ok",
+            "summary_path": str(run_summary_path),
+            "synthetic_only": True,
         }
     )
     return 0
