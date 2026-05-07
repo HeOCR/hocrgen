@@ -64,7 +64,7 @@ The governance summary of those gates is:
 
 F5b implements local publication packaging and handoff verification, not publication itself. The command writes `manifests/checksum_manifest.json`, `manifests/archive_manifest.json`, `manifests/public_beta_readiness_report.json`, beta-specific docs, and a portable version-rooted archive, then verifies asset and archive digests from the handoff tree. F5c adds `manifests/public_beta_blocker_closure_plan.json`, which derives the blocker sequence from the readiness report, separates `repo_owned_immediately_actionable` blockers from `external_input_dependent` blockers, and keeps the hocrsyngen `80` synthetic-control target blocked until a larger validated batch exists. F5d adds `manifests/public_beta_repo_owned_blocker_report.json`, which records unresolved review/privacy item ids and reasons, benchmark-reference draft/unavailable/adjudication status by item, and takedown/private-reporting settings-check evidence from `src/hocrgen/config/public_beta.yaml`. It must not sync a repository, upload to a host, tag a release, or emit a blocked publication report while any readiness gate is unresolved.
 
-F6 is the post-F5 closure roadmap, not a readiness shortcut. `F6a` defines the sequence. `F6b` closes takedown/private reporting readiness only because `src/hocrgen/config/public_beta.yaml` records GitHub private vulnerability reporting for `HeOCR/hocrgen` as enabled and verified by an authenticated GitHub API repository-settings check. Later F6 PRs may close remaining individual blockers only with real evidence: reviewed/adjudicated benchmark references for benchmark readiness, repo-tracked review/config/source-status changes for privacy/review closure, real public-profile source-depth/composition evidence, and a larger validated hocrsyngen `generation_manifest.v1` batch for synthetic target scale. Partial or unavailable benchmark coverage may be disclosed as a limitation, but it must not be renamed into a passing readiness gate unless a separate governance PR explicitly changes the public beta contract. The current `2 / 80` synthetic evidence, source-depth composition gaps, benchmark-reference limitations, and privacy/review blockers must remain blocked until their respective evidence exists.
+F6 is the post-F5 closure roadmap, not a readiness shortcut. `F6a` defines the sequence. `F6b` closes takedown/private reporting readiness only because `src/hocrgen/config/public_beta.yaml` records GitHub private vulnerability reporting for `HeOCR/hocrgen` as enabled and verified by an authenticated GitHub API repository-settings check. `F6c` evaluates benchmark-reference readiness and keeps it blocked because current coverage is only `1 / 3` selected benchmark items with reviewed/adjudicated references. Later F6 PRs may close remaining individual blockers only with real evidence: repo-tracked review/config/source-status changes for privacy/review closure, real public-profile source-depth/composition evidence, and a larger validated hocrsyngen `generation_manifest.v1` batch for synthetic target scale. Partial or unavailable benchmark coverage may be disclosed as a limitation, but it must not be renamed into a passing readiness gate unless a separate governance PR explicitly changes the public beta contract. The current `2 / 80` synthetic evidence, source-depth composition gaps, benchmark-reference limitations, and privacy/review blockers must remain blocked until their respective evidence exists.
 
 Unknown rights, restricted review-only rights, blocked sources, unresolved privacy flags, and unresolved review decisions must not be promoted into `profile_open_v1`.
 
@@ -223,6 +223,12 @@ For F6a, the required planning notation is:
 For F6b, the required planning notation is:
 
 - notation: `F6b`
+- parent milestone: `F6 - Public beta closure and external input integration`
+- source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
+
+For F6c, the required planning notation is:
+
+- notation: `F6c`
 - parent milestone: `F6 - Public beta closure and external input integration`
 - source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
 

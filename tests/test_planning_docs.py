@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F6b"
+CURRENT_COMPLETED_NOTATION = "F6c"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -61,13 +61,14 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "`F5d` now writes `manifests/public_beta_repo_owned_blocker_report.json`" in agent_plan
     assert "`F6a` now defines the post-F5 public beta closure roadmap" in agent_plan
     assert "`F6b` now records GitHub private vulnerability reporting" in agent_plan
-    assert f"| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
-    assert f"| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
-    assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
-    assert f"| E1 | Ecosystem maturity | E1a | Community contribution model | completed |" in roadmap
-    assert f"| E2 | Ecosystem maturity | E2a, E2b | Baselines/evaluation utilities, then live/cached NLI seed acquisition | completed |" in roadmap
-    assert f"| E3 | Ecosystem maturity | E3a | Annotation subset pilots | completed |" in roadmap
-    assert f"| E4 | Ecosystem maturity | E4a | Multi-release governance maturity | completed |" in roadmap
+    assert "`F6c` now evaluates current benchmark-reference evidence" in agent_plan
+    assert "| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
+    assert "| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
+    assert "| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
+    assert "| E1 | Ecosystem maturity | E1a | Community contribution model | completed |" in roadmap
+    assert "| E2 | Ecosystem maturity | E2a, E2b | Baselines/evaluation utilities, then live/cached NLI seed acquisition | completed |" in roadmap
+    assert "| E3 | Ecosystem maturity | E3a | Annotation subset pilots | completed |" in roadmap
+    assert "| E4 | Ecosystem maturity | E4a | Multi-release governance maturity | completed |" in roadmap
     assert "| F1 | Beta-scale acquisition trial | F1a, F1b, F1b2, F1b3, F1b4, F1c, F1d, F1e |" in roadmap
     assert "| F2 | Benchmark ground-truth foundation | F2a, F2b |" in roadmap
     assert "| F3 | Modern handwritten acquisition program | F3a, F3b |" in roadmap
@@ -83,7 +84,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     expected_f6_pr_rows = {
         "F6a": ("completed", ["planning-only"]),
         "F6b": ("completed", ["verified", "takedown/removal"]),
-        "F6c": ("planned", ["review", "versioning", "blocked"]),
+        "F6c": ("completed", ["1 / 3", "reviewed/adjudicated"]),
         "F6d": ("planned", ["review", "source-status"]),
         "F6e": ("planned", ["source-depth", "normal gates"]),
         "F6f": ("planned", ["generation_manifest.v1"]),
@@ -98,7 +99,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
             assert token in row[5]
     assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
-    assert "`F5a`, `F5b`, `F5c`, `F5d`, `F6a`, and `F6b` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
+    assert "`F5a`, `F5b`, `F5c`, `F5d`, `F6a`, `F6b`, and `F6c` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
 
 
 def test_f3_modern_handwritten_policy_and_intake_are_consistent_and_bounded() -> None:
