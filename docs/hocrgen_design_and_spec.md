@@ -644,7 +644,7 @@ Outputs:
 - publish artifacts
 - final release record
 
-F5a defines the readiness contract that must pass before this publishing stage is invoked for a mixed `HeOCR` public beta. F5b implements local blocked packaging and handoff verification, not final publication. Operator trial success is not enough: public publishability also requires source-depth/composition evidence, validated synthetic target scale and cap policy, rights/provenance closure, privacy/review closure, duplicate and leakage clearance, benchmark-reference status, annotation-status disclosure, release-relative manifest/checksum/archive portability, public dataset/provenance/changelog docs, and takedown/removal readiness.
+F5a defines the readiness contract that must pass before this publishing stage is invoked for a mixed `HeOCR` public beta. F5b implements local blocked packaging and handoff verification, not final publication. F5c adds blocker-closure sequencing and repo-owned handoff gap reporting without changing publication side effects. Operator trial success is not enough: public publishability also requires source-depth/composition evidence, validated synthetic target scale and cap policy, rights/provenance closure, privacy/review closure, duplicate and leakage clearance, benchmark-reference status, annotation-status disclosure, release-relative manifest/checksum/archive portability, public dataset/provenance/changelog docs, and takedown/removal readiness.
 
 ---
 
@@ -1094,6 +1094,8 @@ Public beta packaging for the mixed `HeOCR` dataset must be a deliberate F5b wor
 
 F5b materializes the F5a contract as `manifests/public_beta_readiness_report.json`. The report includes one entry per readiness gate with `gate_id`, `status`, `evidence_paths`, and `rationale`. Valid statuses are `pass` and `blocked`; publication must stop before repository sync, upload, tagging, or publication-report emission when any gate is `blocked`.
 
+F5c materializes the current blocker sequencing as `manifests/public_beta_blocker_closure_plan.json`. The plan is derived from the readiness report, separates blocked gates into `repo_owned_immediately_actionable` and `external_input_dependent`, names closure artifacts/actions, and preserves the `2 / 80` hocrsyngen target-scale evidence as blocked until a larger validated batch exists. The takedown/private-reporting path is represented by `src/hocrgen/config/public_beta.yaml`; a private path can pass only when it is configured with channel-specific verification metadata, and that can pass only the takedown gate without affecting source-depth, synthetic-scale, benchmark, review, or portability gates.
+
 The readiness gate inputs are:
 
 - source depth and composition: deterministic evidence for the candidate pool, with source-depth-only records promoted through normal release gates before public payload inclusion
@@ -1112,6 +1114,7 @@ F5b archive/checksum packaging must produce:
 - an archive manifest naming each generated archive, archive format, byte size, SHA-256 digest, release root, and included top-level paths
 - at least one portable release archive rooted at the versioned release directory, with no absolute paths, no path traversal entries, no `.work/` state, and no generated files outside the release root
 - a verification step that recomputes asset and archive digests from the handoff tree before publication
+- a blocker-closure plan that derives required repo-owned and external/input-dependent actions from the current readiness report
 
 Current known blocker: the existing F1c synthetic artifacts are operator-only and do not meet the planned public beta synthetic target scale until a larger validated hocrsyngen batch is configured and passes the same gates.
 

@@ -711,6 +711,7 @@ def handle_export_public_beta(args: argparse.Namespace) -> int:
             "dataset_id": "HeOCR",
             "dry_run": args.dry_run,
             "export_dir": str(export_result.export_dir),
+            "blocker_closure_plan": str(export_result.blocker_closure_plan_path),
             "profile_id": args.profile,
             "publication_allowed": export_result.publication_allowed,
             "readiness_report": str(export_result.readiness_report_path),

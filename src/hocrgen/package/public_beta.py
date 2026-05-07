@@ -9,7 +9,7 @@ from typing import Any
 
 from hocrgen.annotations import build_annotation_manifest
 from hocrgen.config.loader import ConfigBundle
-from hocrgen.config.models import ReleaseProfile
+from hocrgen.config.models import PublicBetaGovernanceConfig, ReleaseProfile
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.manifests.io import write_json
 from hocrgen.manifests.models import (
@@ -72,6 +72,7 @@ class PublicBetaExportResult:
     release_record_path: Path
     item_manifest_path: Path
     readiness_report_path: Path
+    blocker_closure_plan_path: Path
     checksum_manifest_path: Path
     archive_manifest_path: Path
     artifact_paths: list[Path]
@@ -92,6 +93,68 @@ PUBLIC_BETA_REQUIRED_DOCS = {
     "docs/RELEASE_NOTES.md": ["## Publication Status", "## Takedown and Corrections"],
     "docs/BENCHMARK_CARD.md": ["# Benchmark"],
     "docs/HANDOFF.md": ["## Stop Conditions", "Do not publish to HeOCR"],
+}
+
+BLOCKER_CLOSURE_ACTIONS = {
+    "source_depth_composition": {
+        "category": "external_input_dependent",
+        "owner_scope": "external synthetic-provider input plus repo validation",
+        "closure_state": "requires_external_input",
+        "required_action": (
+            "Rerun public beta packaging after the hocrsyngen target-scale batch is available; do not count "
+            "operator-only source-depth fixtures as public payload evidence unless they are promoted through "
+            "normal release-profile, review, privacy, split, benchmark, and portability gates."
+        ),
+        "closure_artifacts": [
+            "manifests/source_depth_feasibility.json",
+            "manifests/source_stats.json",
+            "docs/DATASET_CARD.md",
+        ],
+    },
+    "synthetic_target_scale": {
+        "category": "external_input_dependent",
+        "owner_scope": "external hocrsyngen batch production",
+        "closure_state": "requires_external_input",
+        "required_action": (
+            "Produce, configure, and validate a larger hocrsyngen batch for the 80 synthetic-control target; "
+            "keep the current 2 / 80 evidence blocked until that batch exists."
+        ),
+        "closure_artifacts": [
+            "manifests/source_depth_feasibility.json",
+            "manifests/source_health.json",
+            "manifests/synthetic_composition.json",
+        ],
+    },
+    "privacy_review": {
+        "category": "repo_owned_immediately_actionable",
+        "owner_scope": "hocrgen review/privacy configuration and operator decisions",
+        "closure_state": "requires_repo_pr_or_review_update",
+        "required_action": (
+            "Resolve or explicitly exclude review-required, blocked, unresolved privacy, consent, and takedown "
+            "states through repo-tracked review/config/source-status changes before claiming public beta readiness."
+        ),
+        "closure_artifacts": [
+            "manifests/privacy_stats.json",
+            "manifests/review_required_items.json",
+            "manifests/blocked_items.json",
+            "manifests/review_queue.json",
+        ],
+    },
+    "benchmark_references": {
+        "category": "repo_owned_immediately_actionable",
+        "owner_scope": "hocrgen benchmark-reference data and disclosure docs",
+        "closure_state": "requires_repo_pr_or_reference_update",
+        "required_action": (
+            "Finalize benchmark-reference status/versioning artifacts or keep the limitation disclosed; public beta "
+            "readiness stays blocked while references are draft, unavailable, blocked, or versioning-incoherent."
+        ),
+        "closure_artifacts": [
+            "manifests/benchmark_reference_manifest.json",
+            "manifests/benchmark_reference_status.json",
+            "manifests/benchmark_reference_versioning.json",
+            "docs/BENCHMARK_CARD.md",
+        ],
+    },
 }
 
 
@@ -274,6 +337,7 @@ def export_public_beta_release(
             summary_subdir="export_public_beta",
             summary_payload={
                 "archive_manifest": "manifests/archive_manifest.json",
+                "blocker_closure_plan": "manifests/public_beta_blocker_closure_plan.json",
                 "checksum_manifest": "manifests/checksum_manifest.json",
                 "dataset_id": "HeOCR",
                 "export_dir": str(export_dir),
@@ -312,11 +376,33 @@ def export_public_beta_release(
             benchmark_reference_versioning=benchmark_inputs.reference_versioning,
             exported_benchmark_reference_files=exported_benchmark_reference_files,
             docs=ReleaseDocs(
-                dataset_card=_dataset_card(config.version, profile, exported_items, review_required_items, blocked_items, included_sources),
-                release_notes=_release_notes(config.version, release_summary, source_stats, included_sources, release_diff),
+                dataset_card=_dataset_card(
+                    config.version,
+                    profile,
+                    exported_items,
+                    review_required_items,
+                    blocked_items,
+                    included_sources,
+                    bundle.public_beta_governance,
+                ),
+                release_notes=_release_notes(
+                    config.version,
+                    release_summary,
+                    source_stats,
+                    included_sources,
+                    release_diff,
+                    bundle.public_beta_governance,
+                ),
                 changelog=changelog_doc(config.version, release_diff),
                 provenance=_provenance_doc(bundle, profile, included_sources, exported_at, commit_sha),
-                handoff=_handoff_doc(config.version, profile, release_summary, included_sources, commit_sha),
+                handoff=_handoff_doc(
+                    config.version,
+                    profile,
+                    release_summary,
+                    included_sources,
+                    commit_sha,
+                    bundle.public_beta_governance,
+                ),
                 benchmark_card=benchmark_card,
             ),
             audit_item_payload=audit_item_payload_for_export,
@@ -327,7 +413,7 @@ def export_public_beta_release(
     write_json(manifests_dir / "source_depth_feasibility.json", source_depth_feasibility)
     write_json(manifests_dir / "source_health.json", source_health)
     docs_validation = _validate_public_beta_docs(export_dir)
-    takedown_validation = _validate_takedown_workflow(export_dir)
+    takedown_validation = _validate_takedown_workflow(export_dir, bundle.public_beta_governance)
 
     bootstrap_archive_manifest = {
         "schema_version": 1,
@@ -395,6 +481,11 @@ def export_public_beta_release(
         release_summary=release_summary,
         readiness_report=readiness_report,
     )
+    blocker_closure_plan = _blocker_closure_plan(
+        readiness_report=readiness_report,
+        takedown_validation=takedown_validation,
+    )
+    write_json(manifests_dir / "public_beta_blocker_closure_plan.json", blocker_closure_plan)
     archive_record = write_release_archive(
         release_root=export_dir,
         version=config.version,
@@ -419,6 +510,7 @@ def export_public_beta_release(
         manifests_dir / "archive_manifest.json",
         manifests_dir / "checksum_manifest.json",
         manifests_dir / "public_beta_readiness_report.json",
+        manifests_dir / "public_beta_blocker_closure_plan.json",
         export_dir / archive_record["archive_path"],
     ]
     return PublicBetaExportResult(
@@ -427,6 +519,7 @@ def export_public_beta_release(
         release_record_path=manifests_dir / "release_record.json",
         item_manifest_path=manifests_dir / "item_manifest.json",
         readiness_report_path=manifests_dir / "public_beta_readiness_report.json",
+        blocker_closure_plan_path=manifests_dir / "public_beta_blocker_closure_plan.json",
         checksum_manifest_path=manifests_dir / "checksum_manifest.json",
         archive_manifest_path=manifests_dir / "archive_manifest.json",
         artifact_paths=[*artifact_paths, *extra_paths],
@@ -466,6 +559,8 @@ def _readiness_report(
     return {
         "schema_version": 1,
         "planning_notation": "F5b",
+        "current_planning_notation": "F5c",
+        "readiness_contract_notation": "F5a",
         "profile_id": profile_id,
         "version": version,
         "valid_statuses": ["pass", "blocked"],
@@ -479,6 +574,116 @@ def _readiness_report(
         ),
         "gates": gates,
     }
+
+
+def _blocker_closure_plan(
+    *,
+    readiness_report: dict[str, Any],
+    takedown_validation: dict[str, Any],
+) -> dict[str, Any]:
+    blockers = [
+        _blocker_plan_entry(gate, takedown_validation)
+        for gate in readiness_report["gates"]
+        if gate["status"] == "blocked"
+    ]
+    category_counts = dict(Counter(blocker["category"] for blocker in blockers))
+    return {
+        "schema_version": 1,
+        "planning_notation": "F5c",
+        "source_readiness_report": "manifests/public_beta_readiness_report.json",
+        "readiness_status": readiness_report["readiness_status"],
+        "publication_allowed": readiness_report["publication_allowed"],
+        "valid_categories": ["repo_owned_immediately_actionable", "external_input_dependent"],
+        "summary": {
+            "blocked_gate_count": len(blockers),
+            "repo_owned_immediately_actionable": category_counts.get("repo_owned_immediately_actionable", 0),
+            "external_input_dependent": category_counts.get("external_input_dependent", 0),
+        },
+        "known_hard_blockers": [
+            {
+                "gate_id": "synthetic_target_scale",
+                "required_action": (
+                    "Configure and validate a larger hocrsyngen generation_manifest.v1 batch that covers "
+                    f"{F1_SYNTHETIC_TARGET_COUNT} synthetic-control target items."
+                ),
+                "do_not_relax": True,
+            }
+        ],
+        "blockers": blockers,
+    }
+
+
+def _blocker_plan_entry(gate: dict[str, Any], takedown_validation: dict[str, Any]) -> dict[str, Any]:
+    gate_id = gate["gate_id"]
+    action = _blocker_action(gate_id, takedown_validation)
+    return {
+        "gate_id": gate_id,
+        "status": gate["status"],
+        "category": action["category"],
+        "owner_scope": action["owner_scope"],
+        "closure_state": action["closure_state"],
+        "required_action": action["required_action"],
+        "closure_artifacts": action["closure_artifacts"],
+        "evidence_paths": gate["evidence_paths"],
+        "rationale": gate["rationale"],
+        "blocks_publication": True,
+    }
+
+
+def _blocker_action(gate_id: str, takedown_validation: dict[str, Any]) -> dict[str, Any]:
+    if gate_id == "takedown_removal":
+        return _takedown_blocker_action(takedown_validation)
+    if gate_id not in BLOCKER_CLOSURE_ACTIONS:
+        raise StageExecutionError(f"blocked public beta gate has no F5c closure metadata: {gate_id}")
+    return BLOCKER_CLOSURE_ACTIONS[gate_id]
+
+
+def _takedown_blocker_action(takedown_validation: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "category": "repo_owned_immediately_actionable",
+        "owner_scope": "hocrgen governance config plus repository maintainer settings",
+        "closure_state": (
+            "requires_operator_action"
+            if takedown_validation.get("configured_private_reporting_path") is not True
+            else "requires_repo_pr_or_doc_update"
+        ),
+        "required_action": _takedown_required_action(takedown_validation),
+        "closure_artifacts": [
+            "src/hocrgen/config/public_beta.yaml",
+            "docs/RELEASE_NOTES.md",
+            "docs/HANDOFF.md",
+            "docs/DATASET_CARD.md",
+            "manifests/release_diff.json",
+        ],
+    }
+
+
+def _takedown_required_action(takedown_validation: dict[str, Any]) -> str:
+    if takedown_validation.get("configured_private_reporting_path") is not True:
+        return str(
+            takedown_validation.get("required_operator_action")
+            or "Configure a maintainer-private reporting path before public beta publication."
+        ).rstrip(".")
+    problems = _takedown_doc_problems(takedown_validation)
+    if problems:
+        return f"Repair takedown workflow documentation: {'; '.join(problems)}"
+    return "Repair takedown workflow documentation/configuration so configured private reporting evidence passes validation"
+
+
+def _takedown_doc_problems(takedown_validation: dict[str, Any]) -> list[str]:
+    problems: list[str] = []
+    missing = takedown_validation.get("missing") or []
+    if missing:
+        problems.append(f"missing evidence docs: {', '.join(missing)}")
+    incomplete = takedown_validation.get("incomplete") or []
+    if incomplete:
+        fragments: list[str] = []
+        for entry in incomplete:
+            path = entry.get("path", "unknown")
+            missing_fragments = entry.get("missing_fragments") or []
+            fragments.append(f"{path} missing {', '.join(missing_fragments)}")
+        problems.append(f"incomplete docs: {'; '.join(fragments)}")
+    return problems
 
 
 def _write_readiness_outputs(
@@ -677,13 +882,15 @@ def _validate_public_beta_docs(export_dir: Path) -> dict[str, Any]:
     }
 
 
-def _validate_takedown_workflow(export_dir: Path) -> dict[str, Any]:
+def _validate_takedown_workflow(export_dir: Path, governance: PublicBetaGovernanceConfig) -> dict[str, Any]:
     evidence_paths = ["docs/RELEASE_NOTES.md", "docs/HANDOFF.md", "docs/DATASET_CARD.md", "manifests/release_diff.json"]
     missing = [relative_path for relative_path in evidence_paths if not (export_dir / relative_path).is_file()]
+    private_path = governance.private_reporting_path
+    public_path = governance.public_reporting_path
     required_fragments = {
         "docs/RELEASE_NOTES.md": ["Rights, privacy, source-owner, correction", "review/config/source-status changes"],
-        "docs/DATASET_CARD.md": ["Takedown and Corrections", "private contact path named in the publication PR"],
-        "docs/HANDOFF.md": ["Stop Conditions", "Do not publish to HeOCR"],
+        "docs/DATASET_CARD.md": ["Takedown and Corrections", public_path.label, private_path.label],
+        "docs/HANDOFF.md": ["Stop Conditions", "Do not publish to HeOCR", private_path.label],
     }
     incomplete: list[dict[str, Any]] = []
     for relative_path, fragments in required_fragments.items():
@@ -694,12 +901,19 @@ def _validate_takedown_workflow(export_dir: Path) -> dict[str, Any]:
         absent_fragments = [fragment for fragment in fragments if fragment not in text]
         if absent_fragments:
             incomplete.append({"path": relative_path, "missing_fragments": absent_fragments})
+    configured_private_reporting_path = private_path.configured
     return {
-        "configured_private_reporting_path": False,
+        "configured_private_reporting_path": configured_private_reporting_path,
+        "private_reporting_channel": private_path.channel,
+        "private_reporting_path_id": private_path.id,
+        "private_reporting_path_label": private_path.label,
+        "public_reporting_path_id": public_path.id,
+        "public_reporting_path_label": public_path.label,
+        "required_operator_action": "" if configured_private_reporting_path else private_path.required_operator_action,
         "evidence_paths": evidence_paths,
         "incomplete": incomplete,
         "missing": missing,
-        "status": "blocked",
+        "status": "pass" if configured_private_reporting_path and not missing and not incomplete else "blocked",
     }
 
 
@@ -741,13 +955,50 @@ def _takedown_gate(takedown_validation: dict[str, Any]) -> dict[str, Any]:
     return _gate(
         "takedown_removal",
         status,
-        ["docs/RELEASE_NOTES.md", "docs/HANDOFF.md", "docs/DATASET_CARD.md", "manifests/release_diff.json"],
+        [
+            "src/hocrgen/config/public_beta.yaml",
+            "docs/RELEASE_NOTES.md",
+            "docs/HANDOFF.md",
+            "docs/DATASET_CARD.md",
+            "manifests/release_diff.json",
+        ],
         (
             "Release notes and handoff notes document configured public and private rights/privacy/source-owner correction and takedown paths."
             if status
-            else "Takedown workflow docs exist, but no repo-configured private reporting path is available; publication remains blocked until that handoff path is configured and named."
+            else _takedown_blocked_rationale(takedown_validation)
         ),
     )
+
+
+def _takedown_blocked_rationale(takedown_validation: dict[str, Any]) -> str:
+    required_action = _takedown_required_action(takedown_validation)
+    if takedown_validation.get("configured_private_reporting_path") is True:
+        return (
+            "Takedown workflow has a configured private reporting path, but documentation evidence is incomplete; "
+            f"required action: {required_action}."
+        )
+    return (
+        "Takedown workflow docs exist, but no repo-configured private reporting path is available; "
+        f"required operator action: {required_action}."
+    )
+
+
+def _reporting_path_lines(governance: PublicBetaGovernanceConfig) -> list[str]:
+    public_path = governance.public_reporting_path
+    private_path = governance.private_reporting_path
+    lines = [
+        f"- Public reporting path: {public_path.label}.",
+        f"- Private reporting path: {private_path.label}.",
+    ]
+    if public_path.url:
+        lines.append(f"- Public reporting URL: {public_path.url}.")
+    if private_path.url:
+        lines.append(f"- Private reporting URL: {private_path.url}.")
+    if private_path.configured:
+        lines.append("- Private reporting status: configured in repo governance config.")
+    else:
+        lines.append(f"- Required operator action: {private_path.required_operator_action}")
+    return lines
 
 
 def _dataset_card(
@@ -757,6 +1008,7 @@ def _dataset_card(
     review_required_items: list[PrivacyScannedItemRecord],
     blocked_items: list[PrivacyScannedItemRecord],
     included_sources: list[str],
+    governance: PublicBetaGovernanceConfig,
 ) -> str:
     split_counts = Counter(item.split for item in items if item.split)
     synthetic_composition = synthetic_composition_report(items)
@@ -789,7 +1041,8 @@ def _dataset_card(
             "",
             "## Takedown and Corrections",
             "- Public reports should use the project issue tracker when disclosure is safe.",
-            "- Private rights, privacy, source-owner, or takedown reports should go to the maintainers through the private contact path named in the publication PR.",
+            "- Private rights, privacy, source-owner, or takedown reports must not require sensitive public issue disclosure.",
+            *(_reporting_path_lines(governance)),
             "- Removals must flow through source status, review/config changes, release diffs, changelogs, and release notes.",
             "",
         ]
@@ -802,6 +1055,7 @@ def _release_notes(
     source_stats: dict[str, Any],
     included_sources: list[str],
     release_diff: Any,
+    governance: PublicBetaGovernanceConfig,
 ) -> str:
     split_counts = release_summary["split_counts"]
     synthetic_composition = release_summary["synthetic_composition"]
@@ -831,6 +1085,7 @@ def _release_notes(
             "## Takedown and Corrections",
             "- Rights, privacy, source-owner, correction, and source-breakage reports must be triaged through review/config/source-status changes before any refreshed publication.",
             "- Public removals are reflected in `docs/CHANGELOG.md`, `manifests/release_diff.json`, and this file where disclosure is safe.",
+            *(_reporting_path_lines(governance)),
             "",
             "## Compared To Previous Release",
             f"- Added: {release_diff.counts['added']}; removed: {release_diff.counts['removed']}; changed: {release_diff.counts['changed']}.",
@@ -873,6 +1128,7 @@ def _handoff_doc(
     release_summary: dict[str, Any],
     included_sources: list[str],
     commit_sha: str,
+    governance: PublicBetaGovernanceConfig,
 ) -> str:
     return "\n".join(
         [
@@ -895,6 +1151,9 @@ def _handoff_doc(
             "- If any gate in `manifests/public_beta_readiness_report.json` is `blocked`, stop before repository sync, upload, release tagging, or publication report emission.",
             "- Keep the larger validated hocrsyngen synthetic batch as an explicit blocker until the target-scale gate passes.",
             "- Do not publish to HeOCR, Hugging Face, Kaggle, or HeOCRsynth from this command.",
+            "",
+            "## Takedown and Corrections",
+            *(_reporting_path_lines(governance)),
             "",
         ]
     )
