@@ -18,6 +18,8 @@ from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.manifests.models import (
     AnnotationManifestItemRecord,
     AlphaExportedItemRecord,
+    BenchmarkReferenceManifestRecord,
+    BenchmarkReferenceStatusArtifactRecord,
     LayoutLabelReference,
     NormalizedAssetRecord,
     PrivacyScannedItemRecord,
@@ -32,9 +34,13 @@ from hocrgen.package.common import (
     build_release_diff as _build_release_diff,
     build_source_stats as _build_source_stats,
     changelog_doc as _changelog_doc,
+    copy_benchmark_reference_files as _copy_benchmark_reference_files,
     copy_export_assets as _copy_export_assets,
     copy_review_previews as _copy_review_previews,
     current_commit_sha as _current_commit_sha,
+    filter_benchmark_leakage_risk as _filter_benchmark_leakage_risk,
+    filter_benchmark_reference_manifest as _filter_benchmark_reference_manifest,
+    filter_benchmark_reference_status as _filter_benchmark_reference_status,
     load_baseline_item_manifest as _load_baseline_item_manifest,
     parse_exported_at as _parse_exported_at,
     public_item_payload as _public_item_payload,
@@ -1570,6 +1576,178 @@ def test_copy_export_assets_requires_split_and_copies_preview(tmp_path: Path) ->
     )
     with pytest.raises(StageExecutionError, match="release-ready item test:item-002 is missing a split assignment"):
         _copy_export_assets([missing_split_item], tmp_path / "other-export")
+
+
+def _benchmark_reference_manifest() -> BenchmarkReferenceManifestRecord:
+    return BenchmarkReferenceManifestRecord.model_validate(
+        {
+            "schema_version": "benchmark_reference_manifest.v1",
+            "benchmark_id": "benchmark_v1",
+            "reference_manifest_id": "refs_0001",
+            "release_id": None,
+            "reference_contracts": {
+                "transcription": "benchmark_transcription_reference.v1",
+                "layout": "benchmark_layout_reference.v1",
+            },
+            "items": [
+                {
+                    "reference_id": "ref:keep",
+                    "item_id": "keep:item",
+                    "source_id": "test_source",
+                    "source_item_id": "keep",
+                    "benchmark_split": "test",
+                    "visibility": "public",
+                    "public_reference_status": "reviewed",
+                    "transcription_reference": {
+                        "path": "benchmark/references/keep.json",
+                        "schema_version": "benchmark_transcription_reference.v1",
+                    },
+                    "layout_label_references": [],
+                    "reviewers": ["reviewer"],
+                    "adjudication_status": "adjudicated",
+                },
+                {
+                    "reference_id": "ref:drop",
+                    "item_id": "drop:item",
+                    "source_id": "test_source",
+                    "source_item_id": "drop",
+                    "benchmark_split": "validation",
+                    "visibility": "public",
+                    "public_reference_status": "not_available",
+                    "transcription_reference": None,
+                    "layout_label_references": [],
+                    "reviewers": [],
+                    "adjudication_status": "blocked",
+                },
+            ],
+        }
+    )
+
+
+def _benchmark_reference_status() -> BenchmarkReferenceStatusArtifactRecord:
+    return BenchmarkReferenceStatusArtifactRecord.model_validate(
+        {
+            "benchmark_id": "benchmark_v1",
+            "reference_manifest_id": "refs_0001",
+            "counts": {"reviewed": 1, "not_available": 1},
+            "items": [
+                {
+                    "reference_id": "ref:keep",
+                    "item_id": "keep:item",
+                    "source_id": "test_source",
+                    "source_item_id": "keep",
+                    "benchmark_split": "test",
+                    "visibility": "public",
+                    "public_reference_status": "reviewed",
+                    "adjudication_status": "adjudicated",
+                    "has_transcription_reference": True,
+                    "layout_reference_count": 0,
+                    "reviewer_count": 1,
+                },
+                {
+                    "reference_id": "ref:drop",
+                    "item_id": "drop:item",
+                    "source_id": "test_source",
+                    "source_item_id": "drop",
+                    "benchmark_split": "validation",
+                    "visibility": "public",
+                    "public_reference_status": "not_available",
+                    "adjudication_status": "blocked",
+                    "has_transcription_reference": False,
+                    "layout_reference_count": 0,
+                    "reviewer_count": 0,
+                },
+            ],
+        }
+    )
+
+
+def test_benchmark_reference_filters_handle_missing_and_selected_items() -> None:
+    assert _filter_benchmark_reference_manifest(None, {"keep:item"}) is None
+    assert _filter_benchmark_reference_status(None, {"keep:item"}) is None
+
+    manifest = _filter_benchmark_reference_manifest(_benchmark_reference_manifest(), {"keep:item"})
+    status = _filter_benchmark_reference_status(_benchmark_reference_status(), {"keep:item"})
+
+    assert manifest is not None
+    assert [item.item_id for item in manifest.items] == ["keep:item"]
+    assert status is not None
+    assert [item.item_id for item in status.items] == ["keep:item"]
+    assert status.counts["reviewed"] == 1
+    assert status.counts["adjudication_adjudicated"] == 1
+    assert status.counts["reference_ready"] == 1
+    assert status.counts["blocked_or_draft"] == 0
+
+
+def test_benchmark_leakage_filter_handles_none_and_filters_resolution() -> None:
+    assert _filter_benchmark_leakage_risk(None, {"keep:item"}) is None
+    leakage_risk = {
+        "status": "blocked",
+        "risks": [
+            {
+                "benchmark_item_ids": ["bench:keep", "bench:drop"],
+                "non_benchmark_item_ids": ["keep:item", "drop:item"],
+                "resolution": {
+                    "benchmark_item_ids": ["bench:keep", "bench:drop"],
+                    "non_benchmark_item_ids": ["keep:item", "drop:item"],
+                    "decision": "accepted",
+                },
+            },
+            {
+                "benchmark_item_ids": ["bench:drop"],
+                "non_benchmark_item_ids": ["drop:item"],
+            },
+        ],
+        "resolved_risks": [
+            {
+                "benchmark_item_ids": ["bench:keep"],
+                "non_benchmark_item_ids": ["keep:item"],
+            }
+        ],
+        "stale_resolutions": [
+            {"benchmark_item_ids": ["bench:drop"], "non_benchmark_item_ids": ["drop:item"]},
+            {"benchmark_item_ids": ["bench:keep"], "non_benchmark_item_ids": ["keep:item"]},
+        ],
+        "unresolved_risks": [
+            {
+                "benchmark_item_ids": ["bench:keep"],
+                "non_benchmark_item_ids": ["keep:item"],
+            }
+        ],
+    }
+
+    filtered = _filter_benchmark_leakage_risk(leakage_risk, {"bench:keep", "keep:item"})
+
+    assert filtered is not None
+    assert filtered["export_scope"] == "selected_alpha_items"
+    assert filtered["risk_count"] == 1
+    assert filtered["risks"][0]["benchmark_item_ids"] == ["bench:keep"]
+    assert filtered["risks"][0]["non_benchmark_item_ids"] == ["keep:item"]
+    assert filtered["risks"][0]["holdout_item_ids"] == ["keep:item"]
+    assert filtered["risks"][0]["resolution"]["benchmark_item_ids"] == ["bench:keep"]
+    assert filtered["risks"][0]["resolution"]["non_benchmark_item_ids"] == ["keep:item"]
+    assert filtered["accepted_resolution_count"] == 1
+    assert filtered["unresolved_count"] == 1
+    assert filtered["stale_resolutions"] == [
+        {"benchmark_item_ids": ["bench:keep"], "non_benchmark_item_ids": ["keep:item"]}
+    ]
+    assert filtered["status"] == "blocked"
+
+
+def test_copy_benchmark_reference_files_handles_missing_manifest_and_files(tmp_path: Path) -> None:
+    assert _copy_benchmark_reference_files(None, tmp_path / "build", tmp_path / "export") == []
+
+    manifest = _benchmark_reference_manifest()
+    with pytest.raises(StageExecutionError, match="benchmark reference file is missing"):
+        _copy_benchmark_reference_files(manifest, tmp_path / "build", tmp_path / "export")
+
+    reference_file = tmp_path / "build" / "benchmark" / "references" / "keep.json"
+    reference_file.parent.mkdir(parents=True, exist_ok=True)
+    reference_file.write_text("{}", encoding="utf-8")
+    copied = _copy_benchmark_reference_files(manifest, tmp_path / "build", tmp_path / "export")
+
+    assert copied == [tmp_path / "export" / "benchmark" / "references" / "keep.json"]
+    assert copied[0].read_text(encoding="utf-8") == "{}"
 
 
 def test_build_source_stats_skips_unsplit_items(tmp_path: Path) -> None:
