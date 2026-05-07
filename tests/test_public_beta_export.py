@@ -64,7 +64,12 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert not (output_dir / "manifests" / "publication_report.json").exists()
 
     report = json.loads((output_dir / "manifests" / "public_beta_readiness_report.json").read_text(encoding="utf-8"))
-    assert report["planning_notation"] == "F5b"
+    closure_plan = json.loads(
+        (output_dir / "manifests" / "public_beta_blocker_closure_plan.json").read_text(encoding="utf-8")
+    )
+    assert report["planning_notation"] == "F5c"
+    assert report["readiness_contract_notation"] == "F5a"
+    assert report["packaging_notation"] == "F5b"
     assert report["valid_statuses"] == ["pass", "blocked"]
     assert report["readiness_status"] == "blocked"
     assert report["publication_allowed"] is False
@@ -75,6 +80,21 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     takedown_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "takedown_removal")
     assert takedown_gate["status"] == "blocked"
     assert "no repo-configured private reporting path" in takedown_gate["rationale"]
+    assert "Enable GitHub private vulnerability reporting" in takedown_gate["rationale"]
+    assert closure_plan["planning_notation"] == "F5c"
+    assert closure_plan["source_readiness_report"] == "manifests/public_beta_readiness_report.json"
+    assert closure_plan["readiness_status"] == "blocked"
+    assert closure_plan["summary"]["external_input_dependent"] >= 1
+    assert closure_plan["summary"]["repo_owned_immediately_actionable"] >= 1
+    blockers_by_gate = {blocker["gate_id"]: blocker for blocker in closure_plan["blockers"]}
+    assert blockers_by_gate["synthetic_target_scale"]["category"] == "external_input_dependent"
+    assert blockers_by_gate["synthetic_target_scale"]["closure_state"] == "requires_external_input"
+    assert blockers_by_gate["synthetic_target_scale"]["blocks_publication"] is True
+    assert blockers_by_gate["takedown_removal"]["category"] == "repo_owned_immediately_actionable"
+    assert blockers_by_gate["takedown_removal"]["closure_state"] == "requires_operator_action"
+    assert "Enable GitHub private vulnerability reporting" in blockers_by_gate["takedown_removal"]["required_action"]
+    assert closure_plan["known_hard_blockers"][0]["gate_id"] == "synthetic_target_scale"
+    assert closure_plan["known_hard_blockers"][0]["do_not_relax"] is True
     for gate in report["gates"]:
         assert set(gate) == {"gate_id", "status", "evidence_paths", "rationale"}
         assert gate["evidence_paths"]
@@ -87,6 +107,7 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert release_record["publication_allowed"] is False
     assert release_summary["publication_report_emitted"] is False
     assert "repository sync, upload, release tagging, or publication report emission" in handoff
+    assert "GitHub private vulnerability reporting for HeOCR/hocrgen" in handoff
     assert str(output_dir.resolve()) not in handoff
 
     summarize_exit = main(["summarize-run", "--run-dir", payload["run_dir"]])
@@ -128,6 +149,7 @@ def test_export_public_beta_checksum_manifest_covers_public_payloads_and_archive
     entries_by_path = {entry["path"]: entry for entry in checksum_manifest["entries"]}
     for required_path in [
         "manifests/public_beta_readiness_report.json",
+        "manifests/public_beta_blocker_closure_plan.json",
         "manifests/archive_manifest.json",
         "manifests/release_record.json",
         "manifests/release_summary.json",
@@ -187,6 +209,7 @@ def test_export_public_beta_archive_is_rooted_at_versioned_release_dir(tmp_path:
     assert any(name.startswith("public-beta-v0/docs/") for name in names)
     assert any(name.startswith("public-beta-v0/manifests/") for name in names)
     assert "public-beta-v0/manifests/public_beta_readiness_report.json" in names
+    assert "public-beta-v0/manifests/public_beta_blocker_closure_plan.json" in names
     assert "public-beta-v0/manifests/release_record.json" in names
     assert "public-beta-v0/manifests/release_summary.json" in names
     assert "public-beta-v0/manifests/source_depth_feasibility.json" in names
@@ -301,6 +324,49 @@ def test_public_beta_command_does_not_change_alpha_or_synthetic_export_cli(tmp_p
     assert synthetic_exit == 0
     assert synthetic_payload["stage"] == "export-synthetic"
     assert synthetic_payload["synthetic_only"] is True
+
+
+def test_export_public_beta_takedown_gate_passes_when_private_reporting_path_is_configured(
+    tmp_path: Path,
+    capsys,
+) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    public_beta_config = config_root / "public_beta.yaml"
+    public_beta_config.write_text(
+        public_beta_config.read_text(encoding="utf-8").replace("configured: false", "configured: true"),
+        encoding="utf-8",
+    )
+    output_dir = tmp_path / "exports" / "public-beta-v0"
+
+    assert main(
+        [
+            "export-public-beta",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--output-dir",
+            str(output_dir),
+        ]
+    ) == 0
+    capsys.readouterr()
+
+    report = json.loads((output_dir / "manifests" / "public_beta_readiness_report.json").read_text(encoding="utf-8"))
+    closure_plan = json.loads(
+        (output_dir / "manifests" / "public_beta_blocker_closure_plan.json").read_text(encoding="utf-8")
+    )
+    takedown_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "takedown_removal")
+    synthetic_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "synthetic_target_scale")
+
+    assert takedown_gate["status"] == "pass"
+    assert "configured public and private" in takedown_gate["rationale"]
+    assert "takedown_removal" not in {blocker["gate_id"] for blocker in closure_plan["blockers"]}
+    assert synthetic_gate["status"] == "blocked"
+    assert "2 / 80" in synthetic_gate["rationale"]
+    assert report["readiness_status"] == "blocked"
 
 
 @pytest.mark.parametrize(

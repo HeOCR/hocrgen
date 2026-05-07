@@ -1,0 +1,13 @@
+version: 1
+public_reporting_path:
+  id: github_public_dataset_issue
+  label: GitHub public dataset issue
+  url: https://github.com/HeOCR/hocrgen/issues/new/choose
+  configured: true
+private_reporting_path:
+  id: github_private_vulnerability_reporting
+  label: GitHub private vulnerability reporting for HeOCR/hocrgen
+  channel: github_private_vulnerability_reporting
+  url: https://github.com/HeOCR/hocrgen/security/advisories/new
+  configured: false
+  required_operator_action: Enable GitHub private vulnerability reporting for HeOCR/hocrgen or replace this with a configured maintainer-private reporting channel before public beta publication.

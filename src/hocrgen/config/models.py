@@ -202,3 +202,31 @@ class PrivacyRules(ConfigBaseModel):
     version: Literal[1] = 1
     source_defaults: dict[str, PrivacyFlag] = Field(default_factory=dict)
     rules: list[PrivacyRule] = Field(default_factory=list)
+
+
+class ReportingPathConfig(ConfigBaseModel):
+    id: str = Field(pattern=r"^[a-z0-9_]+$")
+    label: str = Field(min_length=1)
+    url: str | None = None
+    configured: bool = True
+    required_operator_action: str = ""
+
+    @model_validator(mode="after")
+    def validate_reporting_path(self) -> "ReportingPathConfig":
+        if not self.configured and not self.required_operator_action:
+            raise ValueError("required_operator_action is required when a reporting path is not configured")
+        return self
+
+
+class PrivateReportingPathConfig(ReportingPathConfig):
+    channel: Literal[
+        "github_private_vulnerability_reporting",
+        "github_private_security_advisory",
+        "maintainer_private_contact",
+    ]
+
+
+class PublicBetaGovernanceConfig(ConfigBaseModel):
+    version: Literal[1] = 1
+    public_reporting_path: ReportingPathConfig
+    private_reporting_path: PrivateReportingPathConfig

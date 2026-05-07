@@ -9,7 +9,14 @@ import json
 import yaml
 from pydantic import ValidationError
 
-from hocrgen.config.models import LicenseRegistry, PrivacyRules, QualityThresholds, ReleaseProfile, SourceRegistry
+from hocrgen.config.models import (
+    LicenseRegistry,
+    PrivacyRules,
+    PublicBetaGovernanceConfig,
+    QualityThresholds,
+    ReleaseProfile,
+    SourceRegistry,
+)
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 
 
@@ -20,6 +27,7 @@ class ConfigBundle:
     licenses: LicenseRegistry
     quality_thresholds: QualityThresholds
     privacy_rules: PrivacyRules
+    public_beta_governance: PublicBetaGovernanceConfig
     config_root: Path
 
     def resolve_path(self, reference: str | Path) -> Path:
@@ -127,6 +135,12 @@ def load_privacy_rules(config_root: Path | None = None) -> PrivacyRules:
     return _validate("privacy rules", PrivacyRules, load_yaml_file(path), path)
 
 
+def load_public_beta_governance(config_root: Path | None = None) -> PublicBetaGovernanceConfig:
+    root = config_root or default_config_root()
+    path = root / "public_beta.yaml"
+    return _validate("public beta governance", PublicBetaGovernanceConfig, load_yaml_file(path), path)
+
+
 def load_config_bundle(config_root: Path | None = None) -> ConfigBundle:
     root = config_root or default_config_root()
     return ConfigBundle(
@@ -135,6 +149,7 @@ def load_config_bundle(config_root: Path | None = None) -> ConfigBundle:
         licenses=load_license_registry(root),
         quality_thresholds=load_quality_thresholds(root),
         privacy_rules=load_privacy_rules(root),
+        public_beta_governance=load_public_beta_governance(root),
         config_root=root,
     )
 
