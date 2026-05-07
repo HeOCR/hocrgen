@@ -639,9 +639,6 @@ def _blocker_action(gate_id: str, takedown_validation: dict[str, Any]) -> dict[s
 
 
 def _takedown_blocker_action(takedown_validation: dict[str, Any]) -> dict[str, Any]:
-    operator_action = takedown_validation.get("required_operator_action") or (
-        "Configure a maintainer-private reporting path before public beta publication."
-    )
     return {
         "category": "repo_owned_immediately_actionable",
         "owner_scope": "hocrgen governance config plus repository maintainer settings",
@@ -650,7 +647,7 @@ def _takedown_blocker_action(takedown_validation: dict[str, Any]) -> dict[str, A
             if takedown_validation.get("configured_private_reporting_path") is not True
             else "requires_repo_pr_or_doc_update"
         ),
-        "required_action": operator_action,
+        "required_action": _takedown_required_action(takedown_validation),
         "closure_artifacts": [
             "src/hocrgen/config/public_beta.yaml",
             "docs/RELEASE_NOTES.md",
@@ -659,6 +656,34 @@ def _takedown_blocker_action(takedown_validation: dict[str, Any]) -> dict[str, A
             "manifests/release_diff.json",
         ],
     }
+
+
+def _takedown_required_action(takedown_validation: dict[str, Any]) -> str:
+    if takedown_validation.get("configured_private_reporting_path") is not True:
+        return str(
+            takedown_validation.get("required_operator_action")
+            or "Configure a maintainer-private reporting path before public beta publication."
+        ).rstrip(".")
+    problems = _takedown_doc_problems(takedown_validation)
+    if problems:
+        return f"Repair takedown workflow documentation: {'; '.join(problems)}"
+    return "Repair takedown workflow documentation/configuration so configured private reporting evidence passes validation"
+
+
+def _takedown_doc_problems(takedown_validation: dict[str, Any]) -> list[str]:
+    problems: list[str] = []
+    missing = takedown_validation.get("missing") or []
+    if missing:
+        problems.append(f"missing evidence docs: {', '.join(missing)}")
+    incomplete = takedown_validation.get("incomplete") or []
+    if incomplete:
+        fragments: list[str] = []
+        for entry in incomplete:
+            path = entry.get("path", "unknown")
+            missing_fragments = entry.get("missing_fragments") or []
+            fragments.append(f"{path} missing {', '.join(missing_fragments)}")
+        problems.append(f"incomplete docs: {'; '.join(fragments)}")
+    return problems
 
 
 def _write_readiness_outputs(
@@ -940,12 +965,21 @@ def _takedown_gate(takedown_validation: dict[str, Any]) -> dict[str, Any]:
         (
             "Release notes and handoff notes document configured public and private rights/privacy/source-owner correction and takedown paths."
             if status
-            else (
-                "Takedown workflow docs exist, but no repo-configured private reporting path is available; "
-                f"required operator action: "
-                f"{str(takedown_validation.get('required_operator_action', 'configure a private reporting path')).rstrip('.')}."
-            )
+            else _takedown_blocked_rationale(takedown_validation)
         ),
+    )
+
+
+def _takedown_blocked_rationale(takedown_validation: dict[str, Any]) -> str:
+    required_action = _takedown_required_action(takedown_validation)
+    if takedown_validation.get("configured_private_reporting_path") is True:
+        return (
+            "Takedown workflow has a configured private reporting path, but documentation evidence is incomplete; "
+            f"required action: {required_action}."
+        )
+    return (
+        "Takedown workflow docs exist, but no repo-configured private reporting path is available; "
+        f"required operator action: {required_action}."
     )
 
 

@@ -7,12 +7,14 @@ import tarfile
 from pathlib import Path
 
 import pytest
+from pydantic import ValidationError
 
 from hocrgen.cli import main
 from hocrgen.config.loader import default_config_root
+from hocrgen.config.models import ReportingPathConfig
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.package.common import verify_checksum_manifest, write_release_archive
-from hocrgen.package.public_beta import _blocker_closure_plan
+from hocrgen.package.public_beta import _blocker_closure_plan, _takedown_blocker_action, _takedown_gate
 
 
 def _fixture_config_root(tmp_path: Path) -> Path:
@@ -426,6 +428,43 @@ def test_public_beta_blocker_closure_plan_fails_closed_for_unmapped_blocked_gate
 
     with pytest.raises(StageExecutionError, match="has no F5c closure metadata"):
         _blocker_closure_plan(readiness_report=readiness_report, takedown_validation={})
+
+
+def test_public_beta_takedown_action_describes_configured_doc_failures() -> None:
+    takedown_validation = {
+        "configured_private_reporting_path": True,
+        "missing": ["docs/HANDOFF.md"],
+        "incomplete": [
+            {
+                "path": "docs/DATASET_CARD.md",
+                "missing_fragments": ["GitHub private vulnerability reporting for HeOCR/hocrgen"],
+            }
+        ],
+        "required_operator_action": "",
+        "status": "blocked",
+    }
+
+    action = _takedown_blocker_action(takedown_validation)
+    gate = _takedown_gate(takedown_validation)
+
+    assert action["closure_state"] == "requires_repo_pr_or_doc_update"
+    assert "Repair takedown workflow documentation" in action["required_action"]
+    assert "missing evidence docs: docs/HANDOFF.md" in action["required_action"]
+    assert "docs/DATASET_CARD.md missing GitHub private vulnerability reporting" in action["required_action"]
+    assert "configured private reporting path" in gate["rationale"]
+    assert "no repo-configured private reporting path" not in gate["rationale"]
+    assert "required operator action: ." not in gate["rationale"]
+
+
+def test_reporting_path_requires_operator_action_when_unconfigured() -> None:
+    with pytest.raises(ValidationError, match="required_operator_action is required"):
+        ReportingPathConfig.model_validate(
+            {
+                "id": "private_contact",
+                "label": "Private contact",
+                "configured": False,
+            }
+        )
 
 
 def test_alpha_and_synthetic_exports_accept_config_root_without_public_beta_config(
