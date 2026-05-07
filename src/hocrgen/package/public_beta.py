@@ -56,7 +56,7 @@ from hocrgen.package.common import (
 from hocrgen.source_ops import F1_SYNTHETIC_TARGET_COUNT
 from hocrgen.synthetic.reporting import synthetic_composition_report
 
-PUBLIC_BETA_CURRENT_PLANNING_NOTATION = "F6b"
+PUBLIC_BETA_CURRENT_PLANNING_NOTATION = "F6c"
 
 
 @dataclass(frozen=True)
@@ -151,8 +151,9 @@ BLOCKER_CLOSURE_ACTIONS = {
         "owner_scope": "hocrgen benchmark-reference data and disclosure docs",
         "closure_state": "requires_repo_pr_or_reference_update",
         "required_action": (
-            "Finalize benchmark-reference status/versioning artifacts or keep the limitation disclosed; public beta "
-            "readiness stays blocked while references are draft, unavailable, blocked, or versioning-incoherent."
+            "Finalize every selected benchmark item's benchmark-reference status/versioning evidence through real "
+            "review/adjudication artifacts, or keep the limitation disclosed; public beta readiness stays blocked "
+            "while references are draft, unavailable, blocked, unadjudicated, or versioning-incoherent."
         ),
         "closure_artifacts": [
             "manifests/public_beta_repo_owned_blocker_report.json",
@@ -873,9 +874,22 @@ def _benchmark_reference_closure_entry(
     benchmark_reference_versioning: dict[str, Any] | None,
 ) -> dict[str, Any]:
     status_items = list(selected_benchmark_reference_status.items) if selected_benchmark_reference_status is not None else []
+    ready_items = []
     unresolved_items = []
     for item in sorted(status_items, key=lambda record: record.item_id):
         if _benchmark_reference_item_ready(item):
+            ready_items.append(
+                {
+                    "item_id": item.item_id,
+                    "source_id": item.source_id,
+                    "benchmark_split": item.benchmark_split,
+                    "public_reference_status": item.public_reference_status,
+                    "adjudication_status": item.adjudication_status,
+                    "has_transcription_reference": item.has_transcription_reference,
+                    "layout_reference_count": item.layout_reference_count,
+                    "reviewer_count": item.reviewer_count,
+                }
+            )
             continue
         unresolved_items.append(
             {
@@ -909,9 +923,54 @@ def _benchmark_reference_closure_entry(
         ),
         "counts": dict(sorted(counts.items())),
         "versioning_status": (benchmark_reference_versioning or {}).get("status", "not_available"),
+        "f6c_assessment": _benchmark_reference_f6c_assessment(
+            gate=gate,
+            status_items=status_items,
+            unresolved_items=unresolved_items,
+            benchmark_reference_versioning=benchmark_reference_versioning,
+        ),
+        "ready_items": ready_items,
         "unresolved_items": unresolved_items,
         "evidence_paths": gate["evidence_paths"],
         "rationale": gate["rationale"],
+    }
+
+
+def _benchmark_reference_f6c_assessment(
+    *,
+    gate: dict[str, Any],
+    status_items: list[Any],
+    unresolved_items: list[dict[str, Any]],
+    benchmark_reference_versioning: dict[str, Any] | None,
+) -> dict[str, Any]:
+    total_items = len(status_items)
+    ready_count = total_items - len(unresolved_items)
+    versioning_status = (benchmark_reference_versioning or {}).get("status", "not_available")
+    if gate["status"] == "pass":
+        assessment_status = "closed_with_reviewed_adjudicated_evidence"
+        limitation = "none for currently selected benchmark items"
+    elif total_items == 0:
+        assessment_status = "blocked_no_benchmark_reference_status"
+        limitation = "benchmark-reference status artifact is unavailable for selected benchmark items"
+    else:
+        assessment_status = "blocked_partial_or_unavailable_reference_evidence"
+        limitation = (
+            f"{ready_count} / {total_items} selected benchmark item(s) have reviewed/adjudicated references; "
+            f"{len(unresolved_items)} item(s) remain draft, unavailable, blocked, or unadjudicated"
+        )
+    return {
+        "planning_notation": "F6c",
+        "assessment_status": assessment_status,
+        "readiness_contract": (
+            "Every selected benchmark item must have reviewed/adjudicated reference evidence and coherent "
+            "versioning before benchmark-reference readiness can pass."
+        ),
+        "selected_benchmark_item_count": total_items,
+        "reviewed_adjudicated_item_count": ready_count,
+        "unresolved_item_count": len(unresolved_items),
+        "versioning_status": versioning_status,
+        "limitation_disclosure": limitation,
+        "blocked_gate_preserved": gate["status"] == "blocked",
     }
 
 
@@ -1141,10 +1200,14 @@ def _uniqueness_leakage_gate(build_release_summary: dict[str, Any], leakage_repo
 def _benchmark_reference_gate(status_artifact: Any, versioning: dict[str, Any] | None) -> dict[str, Any]:
     ready = 0
     blocked_or_draft = 1
+    total = 0
     if status_artifact is not None:
+        total = len(status_artifact.items)
         ready = status_artifact.counts.get("reference_ready", 0)
         blocked_or_draft = status_artifact.counts.get("blocked_or_draft", 0)
-    status = ready > 0 and blocked_or_draft == 0 and (versioning or {}).get("status") == "ok"
+    unresolved = max(total - ready, blocked_or_draft)
+    versioning_status = (versioning or {}).get("status", "not_available")
+    status = total > 0 and ready == total and unresolved == 0 and versioning_status == "ok"
     return _gate(
         "benchmark_references",
         status,
@@ -1156,9 +1219,14 @@ def _benchmark_reference_gate(status_artifact: Any, versioning: dict[str, Any] |
             "docs/BENCHMARK_CARD.md",
         ],
         (
-            "Benchmark references are reviewed/adjudicated and versioning is coherent."
+            f"Benchmark references are reviewed/adjudicated for all {total} selected benchmark item(s), and versioning is coherent."
             if status
-            else "Benchmark references include draft, unavailable, blocked, or non-coherent reference status and cannot support public beta readiness."
+            else (
+                "Benchmark references cannot support public beta readiness: "
+                f"{ready} / {total} selected benchmark item(s) are reviewed/adjudicated; "
+                f"{unresolved} item(s) remain draft, unavailable, blocked, or unadjudicated; "
+                f"versioning status is {versioning_status}."
+            )
         ),
     )
 

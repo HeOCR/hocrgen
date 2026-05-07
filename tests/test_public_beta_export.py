@@ -18,6 +18,7 @@ from hocrgen.config.models import PrivateReportingPathConfig, ReportingPathConfi
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.package.common import verify_checksum_manifest, write_release_archive
 from hocrgen.package.public_beta import (
+    _benchmark_reference_gate,
     _benchmark_reference_item_required_action,
     _blocked_gate_ids_by_closure_category,
     _blocker_closure_plan,
@@ -97,7 +98,7 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
         (output_dir / "manifests" / "public_beta_repo_owned_blocker_report.json").read_text(encoding="utf-8")
     )
     assert report["planning_notation"] == "F5b"
-    assert report["current_planning_notation"] == "F6b"
+    assert report["current_planning_notation"] == "F6c"
     assert report["readiness_contract_notation"] == "F5a"
     assert report["valid_statuses"] == ["pass", "blocked"]
     assert report["readiness_status"] == "blocked"
@@ -114,7 +115,7 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     takedown_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "takedown_removal")
     assert takedown_gate["status"] == "pass"
     assert "configured public and private" in takedown_gate["rationale"]
-    assert closure_plan["planning_notation"] == "F6b"
+    assert closure_plan["planning_notation"] == "F6c"
     assert closure_plan["source_readiness_report"] == "manifests/public_beta_readiness_report.json"
     assert closure_plan["readiness_status"] == "blocked"
     assert closure_plan["summary"]["external_input_dependent"] == 2
@@ -129,7 +130,7 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert "takedown_removal" not in blockers_by_gate
     assert closure_plan["known_hard_blockers"][0]["gate_id"] == "synthetic_target_scale"
     assert closure_plan["known_hard_blockers"][0]["do_not_relax"] is True
-    assert repo_owned_report["planning_notation"] == "F6b"
+    assert repo_owned_report["planning_notation"] == "F6c"
     assert repo_owned_report["repo_owned_status"] == "blocked"
     assert repo_owned_report["repo_owned_blocked_gate_ids"] == [
         "privacy_review",
@@ -147,6 +148,26 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     }
     assert repo_entries["benchmark_references"]["counts"]["reference_ready"] == 1
     assert repo_entries["benchmark_references"]["counts"]["blocked_or_draft"] == 2
+    assert repo_entries["benchmark_references"]["f6c_assessment"] == {
+        "planning_notation": "F6c",
+        "assessment_status": "blocked_partial_or_unavailable_reference_evidence",
+        "readiness_contract": (
+            "Every selected benchmark item must have reviewed/adjudicated reference evidence and coherent "
+            "versioning before benchmark-reference readiness can pass."
+        ),
+        "selected_benchmark_item_count": 3,
+        "reviewed_adjudicated_item_count": 1,
+        "unresolved_item_count": 2,
+        "versioning_status": "ok",
+        "limitation_disclosure": (
+            "1 / 3 selected benchmark item(s) have reviewed/adjudicated references; "
+            "2 item(s) remain draft, unavailable, blocked, or unadjudicated"
+        ),
+        "blocked_gate_preserved": True,
+    }
+    assert [item["item_id"] for item in repo_entries["benchmark_references"]["ready_items"]] == [
+        "nli_any_use_permitted:nli-ms-seed-006",
+    ]
     unresolved_by_id = {item["item_id"]: item for item in repo_entries["benchmark_references"]["unresolved_items"]}
     assert unresolved_by_id["pinkas_open:pinkas-ledger-001"]["public_reference_status"] == "draft"
     assert unresolved_by_id["project_synthetic:synthetic-0"]["public_reference_status"] == "not_available"
@@ -918,6 +939,53 @@ def test_benchmark_reference_required_action_covers_unready_status_semantics(
     expected_fragment: str,
 ) -> None:
     assert expected_fragment in _benchmark_reference_item_required_action(item)
+
+
+def test_benchmark_reference_gate_requires_all_selected_items_ready() -> None:
+    partial_status = SimpleNamespace(
+        counts={"reference_ready": 1, "blocked_or_draft": 1},
+        items=[
+            SimpleNamespace(
+                item_id="item-reviewed",
+                public_reference_status="reviewed",
+                adjudication_status="adjudicated",
+            ),
+            SimpleNamespace(
+                item_id="item-draft",
+                public_reference_status="draft",
+                adjudication_status="in_review",
+            ),
+        ],
+    )
+
+    gate = _benchmark_reference_gate(partial_status, {"status": "ok"})
+
+    assert gate["status"] == "blocked"
+    assert "1 / 2 selected benchmark item(s) are reviewed/adjudicated" in gate["rationale"]
+    assert "1 item(s) remain draft, unavailable, blocked, or unadjudicated" in gate["rationale"]
+
+
+def test_benchmark_reference_gate_passes_only_with_complete_reviewed_adjudicated_evidence() -> None:
+    complete_status = SimpleNamespace(
+        counts={"reference_ready": 2, "blocked_or_draft": 0},
+        items=[
+            SimpleNamespace(
+                item_id="item-reviewed",
+                public_reference_status="reviewed",
+                adjudication_status="adjudicated",
+            ),
+            SimpleNamespace(
+                item_id="item-adjudicated",
+                public_reference_status="adjudicated",
+                adjudication_status="adjudicated",
+            ),
+        ],
+    )
+
+    gate = _benchmark_reference_gate(complete_status, {"status": "ok"})
+
+    assert gate["status"] == "pass"
+    assert "all 2 selected benchmark item(s)" in gate["rationale"]
 
 
 def test_alpha_and_synthetic_exports_accept_config_root_without_public_beta_config(
