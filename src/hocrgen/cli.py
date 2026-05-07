@@ -634,6 +634,31 @@ def handle_export_synthetic(args: argparse.Namespace) -> int:
 
 
 def handle_export_public_beta(args: argparse.Namespace) -> int:
+    unsupported_limits: list[str] = []
+    if args.source:
+        unsupported_limits.append("--source")
+    if args.max_items is not None:
+        unsupported_limits.append("--max-items")
+    if args.seed is not None:
+        unsupported_limits.append("--seed")
+    if args.synthetic_template:
+        unsupported_limits.append("--synthetic-template")
+    if args.synthetic_recipe:
+        unsupported_limits.append("--synthetic-recipe")
+    if args.synthetic_degradation_preset:
+        unsupported_limits.append("--synthetic-degradation-preset")
+    if unsupported_limits:
+        _print_json(
+            {
+                "status": "error",
+                "error": (
+                    "export-public-beta packages the full governed public beta candidate set; "
+                    f"unsupported partial-run flags: {', '.join(unsupported_limits)}"
+                ),
+            }
+        )
+        return 1
+
     try:
         bundle = _load_bundle(args.config_root)
     except ConfigValidationError as exc:

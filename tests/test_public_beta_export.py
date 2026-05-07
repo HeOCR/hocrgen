@@ -6,6 +6,8 @@ import shutil
 import tarfile
 from pathlib import Path
 
+import pytest
+
 from hocrgen.cli import main
 from hocrgen.config.loader import default_config_root
 
@@ -65,10 +67,13 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert report["valid_statuses"] == ["pass", "blocked"]
     assert report["readiness_status"] == "blocked"
     assert report["publication_allowed"] is False
-    assert set(report["blocked_gate_ids"]) >= {"synthetic_target_scale", "benchmark_references"}
+    assert set(report["blocked_gate_ids"]) >= {"synthetic_target_scale", "benchmark_references", "takedown_removal"}
     assert {gate["status"] for gate in report["gates"]} <= {"pass", "blocked"}
     synthetic_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "synthetic_target_scale")
     assert "larger validated batch" in synthetic_gate["rationale"]
+    takedown_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "takedown_removal")
+    assert takedown_gate["status"] == "blocked"
+    assert "no repo-configured private reporting path" in takedown_gate["rationale"]
     for gate in report["gates"]:
         assert set(gate) == {"gate_id", "status", "evidence_paths", "rationale"}
         assert gate["evidence_paths"]
@@ -111,15 +116,20 @@ def test_export_public_beta_checksum_manifest_covers_public_payloads_and_archive
 
     checksum_manifest = json.loads((output_dir / "manifests" / "checksum_manifest.json").read_text(encoding="utf-8"))
     archive_manifest = json.loads((output_dir / "manifests" / "archive_manifest.json").read_text(encoding="utf-8"))
+    report = json.loads((output_dir / "manifests" / "public_beta_readiness_report.json").read_text(encoding="utf-8"))
     categories = {entry["category"] for entry in checksum_manifest["entries"]}
     assert {"payload_asset", "public_manifest", "public_doc", "benchmark_reference_child_file", "archive"} <= categories
     assert checksum_manifest["verification"]["status"] == "pass"
     assert checksum_manifest["entry_count"] == len(checksum_manifest["entries"])
+    portability_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "portability_checksums_archives")
+    assert portability_gate["status"] == checksum_manifest["verification"]["status"]
 
     entries_by_path = {entry["path"]: entry for entry in checksum_manifest["entries"]}
     for required_path in [
         "manifests/public_beta_readiness_report.json",
         "manifests/archive_manifest.json",
+        "manifests/release_record.json",
+        "manifests/release_summary.json",
         "docs/DATASET_CARD.md",
         "docs/PROVENANCE.md",
     ]:
@@ -156,6 +166,16 @@ def test_export_public_beta_archive_is_rooted_at_versioned_release_dir(tmp_path:
     archive_record = archive_manifest["archives"][0]
     assert archive_record["release_root"] == "public-beta-v0"
     assert archive_record["included_top_level_paths"] == ["data", "docs", "manifests", "references"]
+    assert set(archive_record["excluded_paths"]) >= {
+        "archives/",
+        "manifests/archive_manifest.json",
+        "manifests/checksum_manifest.json",
+    }
+    assert set(archive_manifest["excluded_paths"]) == {
+        "archives/",
+        "manifests/archive_manifest.json",
+        "manifests/checksum_manifest.json",
+    }
 
     with tarfile.open(output_dir / archive_record["archive_path"], "r:gz") as archive:
         names = archive.getnames()
@@ -165,6 +185,13 @@ def test_export_public_beta_archive_is_rooted_at_versioned_release_dir(tmp_path:
     assert any(name.startswith("public-beta-v0/data/") for name in names)
     assert any(name.startswith("public-beta-v0/docs/") for name in names)
     assert any(name.startswith("public-beta-v0/manifests/") for name in names)
+    assert "public-beta-v0/manifests/public_beta_readiness_report.json" in names
+    assert "public-beta-v0/manifests/release_record.json" in names
+    assert "public-beta-v0/manifests/release_summary.json" in names
+    assert "public-beta-v0/manifests/source_depth_feasibility.json" in names
+    assert "public-beta-v0/manifests/archive_manifest.json" not in names
+    assert "public-beta-v0/manifests/checksum_manifest.json" not in names
+    assert not any(name.startswith("public-beta-v0/archives/") for name in names)
 
 
 def test_public_beta_command_does_not_change_alpha_or_synthetic_export_cli(tmp_path: Path, capsys) -> None:
@@ -207,3 +234,47 @@ def test_public_beta_command_does_not_change_alpha_or_synthetic_export_cli(tmp_p
     assert synthetic_exit == 0
     assert synthetic_payload["stage"] == "export-synthetic"
     assert synthetic_payload["synthetic_only"] is True
+
+
+@pytest.mark.parametrize(
+    ("flag_args", "expected_flag"),
+    [
+        (["--source", "nli_any_use_permitted"], "--source"),
+        (["--max-items", "1"], "--max-items"),
+        (["--seed", "123"], "--seed"),
+        (["--synthetic-template", "book_page"], "--synthetic-template"),
+        (["--synthetic-recipe", "default"], "--synthetic-recipe"),
+        (["--synthetic-degradation-preset", "clean"], "--synthetic-degradation-preset"),
+    ],
+)
+def test_export_public_beta_rejects_partial_pipeline_flags(
+    tmp_path: Path,
+    capsys,
+    flag_args: list[str],
+    expected_flag: str,
+) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    output_dir = tmp_path / "exports" / "public-beta-v0"
+
+    exit_code = main(
+        [
+            "export-public-beta",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--output-dir",
+            str(output_dir),
+            *flag_args,
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload["status"] == "error"
+    assert "full governed public beta candidate set" in payload["error"]
+    assert expected_flag in payload["error"]
+    assert not output_dir.exists()

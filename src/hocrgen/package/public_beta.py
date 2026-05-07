@@ -79,6 +79,22 @@ class PublicBetaExportResult:
     publication_allowed: bool
 
 
+FINAL_ARCHIVE_EXCLUDED_PATHS = {
+    "archives/",
+    "manifests/archive_manifest.json",
+    "manifests/checksum_manifest.json",
+}
+
+PUBLIC_BETA_REQUIRED_DOCS = {
+    "docs/DATASET_CARD.md": ["## Scope", "## Synthetic Composition", "## Known Blockers", "## Takedown and Corrections"],
+    "docs/PROVENANCE.md": ["## Source Snapshot", "Publication targets: none"],
+    "docs/CHANGELOG.md": ["# Changelog"],
+    "docs/RELEASE_NOTES.md": ["## Publication Status", "## Takedown and Corrections"],
+    "docs/BENCHMARK_CARD.md": ["# Benchmark"],
+    "docs/HANDOFF.md": ["## Stop Conditions", "Do not publish to HeOCR"],
+}
+
+
 def export_public_beta_release(
     bundle: ConfigBundle,
     run_dir: Path,
@@ -306,15 +322,55 @@ def export_public_beta_release(
     manifests_dir = export_dir / "manifests"
     write_json(manifests_dir / "source_depth_feasibility.json", source_depth_feasibility)
     write_json(manifests_dir / "source_health.json", source_health)
-    archive_record = write_release_archive(release_root=export_dir, version=config.version)
+    docs_validation = _validate_public_beta_docs(export_dir)
+    takedown_validation = _validate_takedown_workflow(export_dir)
+
+    bootstrap_archive_manifest = {
+        "schema_version": 1,
+        "archives": [],
+        "excluded_paths": sorted(FINAL_ARCHIVE_EXCLUDED_PATHS),
+    }
+    bootstrap_verification = {
+        "checked_count": 0,
+        "failure_count": 1,
+        "failures": [{"path": "archives", "reason": "archive_not_finalized"}],
+        "status": "blocked",
+    }
+    readiness_report = _readiness_report(
+        version=config.version,
+        profile_id=profile_id,
+        release_summary=release_summary,
+        build_release_summary=build_release_summary,
+        source_depth_feasibility=source_depth_feasibility,
+        leakage_report=leakage_report,
+        selected_benchmark_reference_status=selected_benchmark_reference_status,
+        benchmark_reference_versioning=benchmark_inputs.reference_versioning,
+        checksum_verification=bootstrap_verification,
+        archive_manifest=bootstrap_archive_manifest,
+        docs_validation=docs_validation,
+        takedown_validation=takedown_validation,
+    )
+    _write_readiness_outputs(
+        manifests_dir=manifests_dir,
+        release_record=initial_release_record,
+        release_summary=release_summary,
+        readiness_report=readiness_report,
+    )
+    archive_record = write_release_archive(
+        release_root=export_dir,
+        version=config.version,
+        exclude_paths=FINAL_ARCHIVE_EXCLUDED_PATHS,
+    )
     archive_manifest = {
         "schema_version": 1,
         "archives": [archive_record],
+        "excluded_paths": sorted(FINAL_ARCHIVE_EXCLUDED_PATHS),
     }
     write_json(manifests_dir / "archive_manifest.json", archive_manifest)
     checksum_manifest = build_checksum_manifest(release_root=export_dir, archive_records=[archive_record])
     verification = verify_checksum_manifest(export_dir, checksum_manifest)
     checksum_manifest["verification"] = verification
+    write_json(manifests_dir / "checksum_manifest.json", checksum_manifest)
     readiness_report = _readiness_report(
         version=config.version,
         profile_id=profile_id,
@@ -326,28 +382,32 @@ def export_public_beta_release(
         benchmark_reference_versioning=benchmark_inputs.reference_versioning,
         checksum_verification=verification,
         archive_manifest=archive_manifest,
+        docs_validation=docs_validation,
+        takedown_validation=takedown_validation,
     )
-    write_json(manifests_dir / "public_beta_readiness_report.json", readiness_report)
-    readiness_status = readiness_report["readiness_status"]
-    publication_allowed = readiness_status == "pass"
-    final_release_record = initial_release_record.model_copy(
-        update={
-            "readiness_status": readiness_status,
-            "publication_allowed": publication_allowed,
-        }
+    _write_readiness_outputs(
+        manifests_dir=manifests_dir,
+        release_record=initial_release_record,
+        release_summary=release_summary,
+        readiness_report=readiness_report,
     )
-    write_json(manifests_dir / "release_record.json", final_release_record.model_dump(mode="json"))
-    release_summary["readiness_status"] = readiness_status
-    release_summary["publication_allowed"] = publication_allowed
-    release_summary["publication_report_emitted"] = False
-    release_summary["publication_blockers"] = [
-        gate["gate_id"] for gate in readiness_report["gates"] if gate["status"] == "blocked"
-    ]
-    write_json(manifests_dir / "release_summary.json", release_summary)
+    archive_record = write_release_archive(
+        release_root=export_dir,
+        version=config.version,
+        exclude_paths=FINAL_ARCHIVE_EXCLUDED_PATHS,
+    )
+    archive_manifest = {
+        "schema_version": 1,
+        "archives": [archive_record],
+        "excluded_paths": sorted(FINAL_ARCHIVE_EXCLUDED_PATHS),
+    }
+    write_json(manifests_dir / "archive_manifest.json", archive_manifest)
     checksum_manifest = build_checksum_manifest(release_root=export_dir, archive_records=[archive_record])
     verification = verify_checksum_manifest(export_dir, checksum_manifest)
     checksum_manifest["verification"] = verification
     write_json(manifests_dir / "checksum_manifest.json", checksum_manifest)
+    readiness_status = readiness_report["readiness_status"]
+    publication_allowed = readiness_status == "pass"
 
     extra_paths = [
         manifests_dir / "source_depth_feasibility.json",
@@ -383,6 +443,8 @@ def _readiness_report(
     benchmark_reference_versioning: dict[str, Any] | None,
     checksum_verification: dict[str, Any],
     archive_manifest: dict[str, Any],
+    docs_validation: dict[str, Any],
+    takedown_validation: dict[str, Any],
 ) -> dict[str, Any]:
     gates = [
         _source_depth_gate(source_depth_feasibility),
@@ -393,8 +455,8 @@ def _readiness_report(
         _benchmark_reference_gate(selected_benchmark_reference_status, benchmark_reference_versioning),
         _annotation_expectations_gate(release_summary),
         _portability_archive_gate(checksum_verification, archive_manifest),
-        _public_docs_gate(),
-        _takedown_gate(),
+        _public_docs_gate(docs_validation),
+        _takedown_gate(takedown_validation),
     ]
     readiness_status = "pass" if all(gate["status"] == "pass" for gate in gates) else "blocked"
     return {
@@ -413,6 +475,32 @@ def _readiness_report(
         ),
         "gates": gates,
     }
+
+
+def _write_readiness_outputs(
+    *,
+    manifests_dir: Path,
+    release_record: PublicBetaReleaseRecord,
+    release_summary: dict[str, Any],
+    readiness_report: dict[str, Any],
+) -> None:
+    readiness_status = readiness_report["readiness_status"]
+    publication_allowed = readiness_status == "pass"
+    final_release_record = release_record.model_copy(
+        update={
+            "readiness_status": readiness_status,
+            "publication_allowed": publication_allowed,
+        }
+    )
+    write_json(manifests_dir / "public_beta_readiness_report.json", readiness_report)
+    write_json(manifests_dir / "release_record.json", final_release_record.model_dump(mode="json"))
+    release_summary["readiness_status"] = readiness_status
+    release_summary["publication_allowed"] = publication_allowed
+    release_summary["publication_report_emitted"] = False
+    release_summary["publication_blockers"] = [
+        gate["gate_id"] for gate in readiness_report["gates"] if gate["status"] == "blocked"
+    ]
+    write_json(manifests_dir / "release_summary.json", release_summary)
 
 
 def _gate(gate_id: str, status: bool, evidence_paths: list[str], rationale: str) -> dict[str, Any]:
@@ -560,10 +648,69 @@ def _portability_archive_gate(checksum_verification: dict[str, Any], archive_man
     )
 
 
-def _public_docs_gate() -> dict[str, Any]:
+def _validate_public_beta_docs(export_dir: Path) -> dict[str, Any]:
+    missing: list[str] = []
+    incomplete: list[dict[str, Any]] = []
+    absolute_path_leaks: list[str] = []
+    export_root = str(export_dir.resolve())
+    for relative_path, required_fragments in PUBLIC_BETA_REQUIRED_DOCS.items():
+        path = export_dir / relative_path
+        if not path.is_file():
+            missing.append(relative_path)
+            continue
+        text = path.read_text(encoding="utf-8")
+        absent_fragments = [fragment for fragment in required_fragments if fragment not in text]
+        if absent_fragments:
+            incomplete.append({"path": relative_path, "missing_fragments": absent_fragments})
+        if export_root in text:
+            absolute_path_leaks.append(relative_path)
+    return {
+        "absolute_path_leaks": absolute_path_leaks,
+        "incomplete": incomplete,
+        "missing": missing,
+        "required_paths": sorted(PUBLIC_BETA_REQUIRED_DOCS),
+        "status": "pass" if not missing and not incomplete and not absolute_path_leaks else "blocked",
+    }
+
+
+def _validate_takedown_workflow(export_dir: Path) -> dict[str, Any]:
+    evidence_paths = ["docs/RELEASE_NOTES.md", "docs/HANDOFF.md", "docs/DATASET_CARD.md", "manifests/release_diff.json"]
+    missing = [relative_path for relative_path in evidence_paths if not (export_dir / relative_path).is_file()]
+    required_fragments = {
+        "docs/RELEASE_NOTES.md": ["Rights, privacy, source-owner, correction", "review/config/source-status changes"],
+        "docs/DATASET_CARD.md": ["Takedown and Corrections", "private contact path named in the publication PR"],
+        "docs/HANDOFF.md": ["Stop Conditions", "Do not publish to HeOCR"],
+    }
+    incomplete: list[dict[str, Any]] = []
+    for relative_path, fragments in required_fragments.items():
+        path = export_dir / relative_path
+        if not path.is_file():
+            continue
+        text = path.read_text(encoding="utf-8")
+        absent_fragments = [fragment for fragment in fragments if fragment not in text]
+        if absent_fragments:
+            incomplete.append({"path": relative_path, "missing_fragments": absent_fragments})
+    return {
+        "configured_private_reporting_path": False,
+        "evidence_paths": evidence_paths,
+        "incomplete": incomplete,
+        "missing": missing,
+        "status": "blocked",
+    }
+
+
+def _public_docs_gate(docs_validation: dict[str, Any]) -> dict[str, Any]:
+    status = docs_validation.get("status") == "pass"
+    problems: list[str] = []
+    if docs_validation.get("missing"):
+        problems.append(f"missing docs: {', '.join(docs_validation['missing'])}")
+    if docs_validation.get("incomplete"):
+        problems.append("required beta doc sections are incomplete")
+    if docs_validation.get("absolute_path_leaks"):
+        problems.append(f"absolute export paths leaked in docs: {', '.join(docs_validation['absolute_path_leaks'])}")
     return _gate(
         "public_docs",
-        True,
+        status,
         [
             "docs/DATASET_CARD.md",
             "docs/PROVENANCE.md",
@@ -572,16 +719,30 @@ def _public_docs_gate() -> dict[str, Any]:
             "docs/BENCHMARK_CARD.md",
             "docs/HANDOFF.md",
         ],
-        "Beta-specific public docs were generated with composition, limitations, and known blocker context.",
+        (
+            "Beta-specific public docs were generated with composition, limitations, known blocker, provenance, benchmark, and handoff context."
+            if status
+            else f"Beta-specific public docs are incomplete: {'; '.join(problems)}."
+        ),
     )
 
 
-def _takedown_gate() -> dict[str, Any]:
+def _takedown_gate(takedown_validation: dict[str, Any]) -> dict[str, Any]:
+    status = (
+        takedown_validation.get("status") == "pass"
+        and takedown_validation.get("configured_private_reporting_path") is True
+        and not takedown_validation.get("missing")
+        and not takedown_validation.get("incomplete")
+    )
     return _gate(
         "takedown_removal",
-        True,
-        ["docs/RELEASE_NOTES.md", "docs/HANDOFF.md", "manifests/release_diff.json"],
-        "Release notes and handoff notes document the rights/privacy/source-owner correction and takedown workflow.",
+        status,
+        ["docs/RELEASE_NOTES.md", "docs/HANDOFF.md", "docs/DATASET_CARD.md", "manifests/release_diff.json"],
+        (
+            "Release notes and handoff notes document configured public and private rights/privacy/source-owner correction and takedown paths."
+            if status
+            else "Takedown workflow docs exist, but no repo-configured private reporting path is available; publication remains blocked until that handoff path is configured and named."
+        ),
     )
 
 
@@ -759,4 +920,3 @@ def _resolve_comparison_release(export_dir: Path, config: PublicBetaExportConfig
         raise StageExecutionError("--compare-to cannot point to the current public beta export directory")
     validate_release_diff_baseline(candidate)
     return candidate
-

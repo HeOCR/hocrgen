@@ -269,24 +269,32 @@ def write_release_archive(
     release_root: Path,
     version: str,
     archive_dir: Path | None = None,
+    exclude_paths: set[str] | None = None,
 ) -> dict[str, Any]:
     archive_dir = archive_dir or release_root / "archives"
     archive_dir.mkdir(parents=True, exist_ok=True)
     archive_path = archive_dir / f"{version}.tar.gz"
     release_root_resolved = release_root.resolve()
     included_top_level_paths: set[str] = set()
+    excluded = {"archives/", *(exclude_paths or set())}
+
+    def is_excluded(relative: str) -> bool:
+        return any(relative == entry.rstrip("/") or relative.startswith(f"{entry.rstrip('/')}/") for entry in excluded)
+
     with tarfile.open(archive_path, "w:gz") as archive:
-        for child in sorted(release_root_resolved.iterdir(), key=lambda item: item.name):
-            if child.name == "archives":
+        for child in sorted(release_root_resolved.rglob("*"), key=lambda item: item.relative_to(release_root_resolved).as_posix()):
+            if not child.is_file():
                 continue
-            if not child.exists():
+            relative = child.relative_to(release_root_resolved).as_posix()
+            if is_excluded(relative):
                 continue
-            included_top_level_paths.add(child.name)
-            archive.add(child, arcname=f"{version}/{child.name}", recursive=True)
+            included_top_level_paths.add(relative.split("/", maxsplit=1)[0])
+            archive.add(child, arcname=f"{version}/{relative}", recursive=False)
     return {
         "archive_name": archive_path.name,
         "archive_path": release_relative_path(archive_path, release_root_resolved),
         "byte_size": archive_path.stat().st_size,
+        "excluded_paths": sorted(excluded),
         "format": "tar.gz",
         "included_top_level_paths": sorted(included_top_level_paths),
         "release_root": release_root_resolved.name,
