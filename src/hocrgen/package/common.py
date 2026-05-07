@@ -10,7 +10,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from hashlib import sha256
 from json import JSONDecodeError
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 from pydantic import ValidationError
@@ -297,7 +297,7 @@ def write_release_archive(
         "excluded_paths": sorted(excluded),
         "format": "tar.gz",
         "included_top_level_paths": sorted(included_top_level_paths),
-        "release_root": release_root_resolved.name,
+        "release_root": version,
         "sha256": sha256_file(archive_path),
     }
 
@@ -340,20 +340,39 @@ def build_checksum_manifest(
 
 def verify_checksum_manifest(release_root: Path, checksum_manifest: dict[str, Any]) -> dict[str, Any]:
     failures: list[dict[str, str]] = []
+    release_root_resolved = release_root.resolve()
     for entry in checksum_manifest.get("entries", []):
-        path = release_root / str(entry.get("path"))
+        relative_path = str(entry.get("path", ""))
+        path = _resolve_checksum_entry_path(release_root_resolved, relative_path)
+        if path is None:
+            failures.append({"path": relative_path, "reason": "unsafe_path"})
+            continue
         if not path.is_file():
-            failures.append({"path": str(entry.get("path")), "reason": "missing"})
+            failures.append({"path": relative_path, "reason": "missing"})
             continue
         digest = sha256_file(path)
         if digest != entry.get("sha256"):
-            failures.append({"path": str(entry.get("path")), "reason": "sha256_mismatch"})
+            failures.append({"path": relative_path, "reason": "sha256_mismatch"})
     return {
         "checked_count": len(checksum_manifest.get("entries", [])),
         "failure_count": len(failures),
         "failures": failures,
         "status": "pass" if not failures else "blocked",
     }
+
+
+def _resolve_checksum_entry_path(release_root: Path, relative_path: str) -> Path | None:
+    if not relative_path:
+        return None
+    parsed = PurePosixPath(relative_path)
+    if parsed.is_absolute() or Path(relative_path).is_absolute() or ".." in parsed.parts:
+        return None
+    candidate = (release_root / Path(*parsed.parts)).resolve()
+    try:
+        candidate.relative_to(release_root)
+    except ValueError:
+        return None
+    return candidate
 
 
 def _checksum_category(path: str, archive_paths: set[str]) -> str:

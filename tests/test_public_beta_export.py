@@ -10,6 +10,7 @@ import pytest
 
 from hocrgen.cli import main
 from hocrgen.config.loader import default_config_root
+from hocrgen.package.common import verify_checksum_manifest, write_release_archive
 
 
 def _fixture_config_root(tmp_path: Path) -> Path:
@@ -192,6 +193,72 @@ def test_export_public_beta_archive_is_rooted_at_versioned_release_dir(tmp_path:
     assert "public-beta-v0/manifests/archive_manifest.json" not in names
     assert "public-beta-v0/manifests/checksum_manifest.json" not in names
     assert not any(name.startswith("public-beta-v0/archives/") for name in names)
+
+
+def test_export_public_beta_rejects_output_dir_that_does_not_match_version(tmp_path: Path, capsys) -> None:
+    config_root = _fixture_config_root(tmp_path)
+    output_dir = tmp_path / "exports" / "not-public-beta-v0"
+
+    exit_code = main(
+        [
+            "export-public-beta",
+            "--profile",
+            "profile_open_v1",
+            "--dry-run",
+            "--config-root",
+            str(config_root),
+            "--workdir",
+            str(tmp_path / "work"),
+            "--output-dir",
+            str(output_dir),
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+
+    assert exit_code == 1
+    assert payload["status"] == "error"
+    assert "output directory must be named public-beta-v0" in payload["error"]
+    assert not output_dir.exists()
+
+
+def test_write_release_archive_records_the_tar_root_name(tmp_path: Path) -> None:
+    release_root = tmp_path / "custom-output-name"
+    (release_root / "docs").mkdir(parents=True)
+    (release_root / "docs" / "README.md").write_text("# release\n", encoding="utf-8")
+
+    archive_record = write_release_archive(release_root=release_root, version="public-beta-v0")
+
+    assert archive_record["release_root"] == "public-beta-v0"
+    with tarfile.open(release_root / archive_record["archive_path"], "r:gz") as archive:
+        names = archive.getnames()
+    assert "public-beta-v0/docs/README.md" in names
+    assert not any(name.startswith("custom-output-name/") for name in names)
+
+
+def test_verify_checksum_manifest_rejects_paths_that_escape_release_root(tmp_path: Path) -> None:
+    release_root = tmp_path / "release"
+    release_root.mkdir()
+    inside = release_root / "inside.txt"
+    inside.write_text("inside\n", encoding="utf-8")
+    outside = tmp_path / "outside.txt"
+    outside.write_text("outside\n", encoding="utf-8")
+    checksum_manifest = {
+        "entries": [
+            {"path": "inside.txt", "sha256": _sha256(inside)},
+            {"path": "../outside.txt", "sha256": _sha256(outside)},
+            {"path": str(outside.resolve()), "sha256": _sha256(outside)},
+        ]
+    }
+
+    verification = verify_checksum_manifest(release_root, checksum_manifest)
+
+    assert verification["status"] == "blocked"
+    assert verification["checked_count"] == 3
+    assert verification["failure_count"] == 2
+    assert verification["failures"] == [
+        {"path": "../outside.txt", "reason": "unsafe_path"},
+        {"path": str(outside.resolve()), "reason": "unsafe_path"},
+    ]
 
 
 def test_public_beta_command_does_not_change_alpha_or_synthetic_export_cli(tmp_path: Path, capsys) -> None:

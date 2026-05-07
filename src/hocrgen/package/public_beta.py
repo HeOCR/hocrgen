@@ -107,6 +107,10 @@ def export_public_beta_release(
     export_dir = (run_dir.parent.parent / "exports" / config.version).resolve()
     if config.output_dir:
         export_dir = config.output_dir.resolve()
+    if export_dir.name != config.version:
+        raise StageExecutionError(
+            f"public beta export output directory must be named {config.version} to match the archive root: {export_dir}"
+        )
     if export_dir.exists():
         if not config.overwrite:
             raise StageExecutionError(f"public beta export directory already exists: {export_dir}")
@@ -563,7 +567,7 @@ def _privacy_review_gate(release_summary: dict[str, Any]) -> dict[str, Any]:
         status,
         ["manifests/privacy_stats.json", "manifests/review_required_items.json", "manifests/blocked_items.json"],
         (
-            "No blocked or review-required items enter the public payload."
+            "No blocked or review-required items remain in the governed candidate pool."
             if status
             else "Blocked or review-required items remain and prevent public beta publication."
         ),
