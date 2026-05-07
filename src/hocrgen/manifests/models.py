@@ -438,6 +438,24 @@ class SyntheticReleaseRecord(ManifestModel):
     schema_version: Literal[1] = 1
 
 
+class PublicBetaReleaseRecord(ManifestModel):
+    dataset_id: Literal["HeOCR"] = "HeOCR"
+    release_kind: Literal["public_beta"] = "public_beta"
+    version: str
+    profile_id: str
+    included_sources: list[str] = Field(default_factory=list)
+    split_counts: dict[str, int] = Field(default_factory=dict)
+    real_items: int
+    synthetic_items: int
+    review_required_count: int
+    blocked_count: int
+    readiness_status: Literal["pass", "blocked"]
+    publication_allowed: bool
+    hocrgen_commit: str
+    exported_at: str
+    schema_version: Literal[1] = 1
+
+
 class ReleaseRemovalRecord(ManifestModel):
     item_id: str
     source_id: str

@@ -4,9 +4,11 @@ import json
 import re
 import shutil
 import subprocess
+import tarfile
 from collections import Counter
 from dataclasses import dataclass
 from datetime import UTC, datetime
+from hashlib import sha256
 from json import JSONDecodeError
 from pathlib import Path
 from typing import Any
@@ -245,6 +247,119 @@ def write_release_docs(docs: ReleaseDocs, docs_dir: Path) -> None:
     write_markdown(docs_dir / "PROVENANCE.md", docs.provenance)
     write_markdown(docs_dir / "HANDOFF.md", docs.handoff)
     write_markdown(docs_dir / "BENCHMARK_CARD.md", docs.benchmark_card)
+
+
+def sha256_file(path: Path) -> str:
+    digest = sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def release_relative_path(path: Path, release_root: Path) -> str:
+    try:
+        return path.resolve().relative_to(release_root.resolve()).as_posix()
+    except ValueError as exc:
+        raise StageExecutionError(f"release artifact escapes release root: {path}") from exc
+
+
+def write_release_archive(
+    *,
+    release_root: Path,
+    version: str,
+    archive_dir: Path | None = None,
+) -> dict[str, Any]:
+    archive_dir = archive_dir or release_root / "archives"
+    archive_dir.mkdir(parents=True, exist_ok=True)
+    archive_path = archive_dir / f"{version}.tar.gz"
+    release_root_resolved = release_root.resolve()
+    included_top_level_paths: set[str] = set()
+    with tarfile.open(archive_path, "w:gz") as archive:
+        for child in sorted(release_root_resolved.iterdir(), key=lambda item: item.name):
+            if child.name == "archives":
+                continue
+            if not child.exists():
+                continue
+            included_top_level_paths.add(child.name)
+            archive.add(child, arcname=f"{version}/{child.name}", recursive=True)
+    return {
+        "archive_name": archive_path.name,
+        "archive_path": release_relative_path(archive_path, release_root_resolved),
+        "byte_size": archive_path.stat().st_size,
+        "format": "tar.gz",
+        "included_top_level_paths": sorted(included_top_level_paths),
+        "release_root": release_root_resolved.name,
+        "sha256": sha256_file(archive_path),
+    }
+
+
+def build_checksum_manifest(
+    *,
+    release_root: Path,
+    archive_records: list[dict[str, Any]] | None = None,
+) -> dict[str, Any]:
+    release_root_resolved = release_root.resolve()
+    entries: list[dict[str, Any]] = []
+    skip_manifest_paths = {
+        "manifests/checksum_manifest.json",
+    }
+    archive_paths = {
+        str(record.get("archive_path"))
+        for record in archive_records or []
+        if record.get("archive_path")
+    }
+    for path in sorted((item for item in release_root_resolved.rglob("*") if item.is_file()), key=lambda item: item.relative_to(release_root_resolved).as_posix()):
+        relative = path.relative_to(release_root_resolved).as_posix()
+        if relative in skip_manifest_paths:
+            continue
+        entries.append(
+            {
+                "path": relative,
+                "category": _checksum_category(relative, archive_paths),
+                "byte_size": path.stat().st_size,
+                "sha256": sha256_file(path),
+            }
+        )
+    return {
+        "schema_version": 1,
+        "algorithm": "sha256",
+        "release_root": release_root_resolved.name,
+        "entry_count": len(entries),
+        "entries": entries,
+    }
+
+
+def verify_checksum_manifest(release_root: Path, checksum_manifest: dict[str, Any]) -> dict[str, Any]:
+    failures: list[dict[str, str]] = []
+    for entry in checksum_manifest.get("entries", []):
+        path = release_root / str(entry.get("path"))
+        if not path.is_file():
+            failures.append({"path": str(entry.get("path")), "reason": "missing"})
+            continue
+        digest = sha256_file(path)
+        if digest != entry.get("sha256"):
+            failures.append({"path": str(entry.get("path")), "reason": "sha256_mismatch"})
+    return {
+        "checked_count": len(checksum_manifest.get("entries", [])),
+        "failure_count": len(failures),
+        "failures": failures,
+        "status": "pass" if not failures else "blocked",
+    }
+
+
+def _checksum_category(path: str, archive_paths: set[str]) -> str:
+    if path in archive_paths or path.startswith("archives/"):
+        return "archive"
+    if path.startswith("data/"):
+        return "payload_asset"
+    if path.startswith("docs/"):
+        return "public_doc"
+    if path.startswith("references/"):
+        return "benchmark_reference_child_file"
+    if path.startswith("manifests/"):
+        return "public_manifest"
+    return "release_file"
 
 
 def release_artifact_paths(
@@ -1089,6 +1204,7 @@ load_annotation_pilot_export_inputs = _load_annotation_pilot_export_inputs
 filter_annotation_pilot_manifest = _filter_annotation_pilot_manifest
 benchmark_card_for_export = _benchmark_card_for_export
 write_markdown = _write_markdown
+checksum_category = _checksum_category
 
 # Backward-compatible names for older tests and callers that reached into the
 # original alpha-private helper surface before F4e.

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F5a"
+CURRENT_COMPLETED_NOTATION = "F5b"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -43,7 +43,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert f"Last completed roadmap action on the current ref: `{CURRENT_COMPLETED_NOTATION}`" in agent_plan
     assert "`F1e` resolves the previously visible F1d benchmark/holdout source-group risk" in agent_plan
     assert "`F5a` now defines public beta publishability separately from operator trial success" in agent_plan
-    assert "next planned critical-path implementation should move to `F5b` public beta publication packaging and handoff workflow" in agent_plan
+    assert "`F5b` now implements deliberate public beta packaging and handoff artifacts" in agent_plan
     assert f"| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert f"| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert f"| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
@@ -55,12 +55,12 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "| F2 | Benchmark ground-truth foundation | F2a, F2b |" in roadmap
     assert "| F3 | Modern handwritten acquisition program | F3a, F3b |" in roadmap
     assert "| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d, F4e |" in roadmap
-    assert "| F5 | Public beta and publication readiness | F5a, F5b | Public beta gates, publication packaging, dataset-card, and takedown-ready export handoff | partial |" in roadmap
+    assert "| F5 | Public beta and publication readiness | F5a, F5b | Public beta gates, publication packaging, dataset-card, checksum/archive manifests, and takedown-ready export handoff | completed-with-blockers |" in roadmap
     assert "| F5a | F5 | Define public beta readiness gates over source depth, uniqueness, ground truth, review, and portability | no | completed |" in roadmap
-    assert "| F5b | F5 | Implement public beta publication packaging and handoff workflow | no | planned | after F5a readiness contract |" in roadmap
+    assert "| F5b | F5 | Implement public beta publication packaging and handoff workflow | no | completed | current ref public beta packaging and blocked handoff workflow |" in roadmap
     assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
-    assert "`F5a` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
+    assert "`F5a`, and `F5b` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
 
 
 def test_f3_modern_handwritten_policy_and_intake_are_consistent_and_bounded() -> None:
@@ -299,7 +299,7 @@ def test_f4e_shared_export_packaging_primitives_are_documented() -> None:
         assert required in combined
 
 
-def test_f5a_public_beta_readiness_contract_is_documented_and_bounded() -> None:
+def test_f5b_public_beta_packaging_contract_is_documented_and_bounded() -> None:
     agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
     readme = Path("README.md").read_text(encoding="utf-8")
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
@@ -308,17 +308,17 @@ def test_f5a_public_beta_readiness_contract_is_documented_and_bounded() -> None:
 
     for required_agent_plan in [
         "`F5a`: public beta readiness is now defined as a publishability contract",
-        "`F5` remains partial until `F5b` implements",
+        "`F5b`: `hocrgen export-public-beta` now packages",
         "larger validated hocrsyngen batch",
     ]:
         assert required_agent_plan in agent_plan
 
     for required_readme in [
         "operator trial success",
-        "not a new export command",
+        "hocrgen export-public-beta --profile profile_open_v1 --dry-run",
         "larger validated hocrsyngen manifest batch",
-        "`F5a` does not implement public beta packaging or publication",
-        "`F5b` remains the follow-up",
+        "valid statuses are only `pass` and `blocked`",
+        "does not publish to `HeOCR`, Hugging Face, Kaggle, or `HeOCRsynth`",
     ]:
         assert required_readme in readme
 
@@ -342,8 +342,8 @@ def test_f5a_public_beta_readiness_contract_is_documented_and_bounded() -> None:
         assert required_roadmap.casefold() in roadmap.casefold()
 
     for non_goal in [
-        "does not implement F5b publication packaging",
-        "does not publish to `HeOCR`, Hugging Face, or `HeOCRsynth`",
+        "perform repository sync, upload, release tagging, or blocked publication-report emission",
+        "publish or copy a public beta tree to `HeOCR`, Hugging Face, Kaggle, or another public host",
         "does not change current `export-alpha` or `export-synthetic` behavior",
         "does not relax rights, privacy, review, dedupe, split, benchmark, synthetic-cap, or export-portability gates",
     ]:
@@ -351,11 +351,12 @@ def test_f5a_public_beta_readiness_contract_is_documented_and_bounded() -> None:
 
     for required_governance in [
         "canonical F5a gate matrix",
-        "public_beta_readiness_report.json",
+        "manifests/public_beta_readiness_report.json",
         "status is `pass`",
         "`blocked` gate must stop repository sync, upload, release tagging, and publication reports",
         "SHA-256 checksum manifests",
         "archive manifests",
+        "hocrgen export-public-beta",
     ]:
         assert required_governance in release_governance
 
@@ -367,12 +368,14 @@ def test_f5a_public_beta_readiness_contract_is_documented_and_bounded() -> None:
         "archive manifest",
         "recomputes asset and archive digests",
         "do not meet the planned public beta synthetic target scale",
+        "must not emit `manifests/publication_report.json`",
     ]:
         assert required_design in design
 
     assert "| F5a | F5 | Define public beta readiness gates over source depth, uniqueness, ground truth, review, and portability | no | completed | current ref public beta readiness gate contract |" in roadmap
-    assert "| F5b | F5 | Implement public beta publication packaging and handoff workflow | no | planned | after F5a readiness contract |" in roadmap
+    assert "| F5b | F5 | Implement public beta publication packaging and handoff workflow | no | completed | current ref public beta packaging and blocked handoff workflow |" in roadmap
     assert "For F5a, the required planning notation is:" in release_governance
+    assert "For F5b, the required planning notation is:" in release_governance
     assert "parent milestone: `F5 - Public beta and publication readiness`" in release_governance
 
 
