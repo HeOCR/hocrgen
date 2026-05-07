@@ -1044,6 +1044,51 @@ def test_benchmark_reference_closure_entry_reports_versioning_only_blocker() -> 
     }
 
 
+def test_benchmark_reference_closure_entry_reports_closed_assessment() -> None:
+    complete_status = SimpleNamespace(
+        counts={"reference_ready": 1, "blocked_or_draft": 0},
+        items=[
+            SimpleNamespace(
+                item_id="item-ready",
+                source_id="source-ready",
+                benchmark_split="train",
+                public_reference_status="reviewed",
+                adjudication_status="adjudicated",
+                has_transcription_reference=True,
+                layout_reference_count=1,
+                reviewer_count=1,
+            ),
+        ],
+    )
+    gate = _benchmark_reference_gate(complete_status, {"status": "ok"})
+
+    entry = _benchmark_reference_closure_entry(gate, complete_status, {"status": "ok"})
+
+    assert gate["status"] == "pass"
+    assert entry["closure_state"] == "pass"
+    assert entry["required_action"] == "No benchmark-reference action remains for currently selected benchmark items."
+    assert entry["unresolved_items"] == []
+    assert entry["f6c_assessment"]["assessment_status"] == "closed_with_reviewed_adjudicated_evidence"
+    assert entry["f6c_assessment"]["closure_state"] == "pass"
+    assert entry["f6c_assessment"]["limitation_disclosure"] == "none for currently selected benchmark items"
+
+
+def test_benchmark_reference_closure_entry_reports_missing_status_artifact() -> None:
+    gate = _benchmark_reference_gate(None, None)
+
+    entry = _benchmark_reference_closure_entry(gate, None, None)
+
+    assert gate["status"] == "blocked"
+    assert entry["closure_state"] == "requires_benchmark_reference_status_artifact"
+    assert entry["ready_items"] == []
+    assert entry["unresolved_items"] == []
+    assert entry["f6c_assessment"]["assessment_status"] == "blocked_no_benchmark_reference_status"
+    assert entry["f6c_assessment"]["closure_state"] == "requires_benchmark_reference_status_artifact"
+    assert entry["f6c_assessment"]["limitation_disclosure"] == (
+        "benchmark-reference status artifact is unavailable for selected benchmark items"
+    )
+
+
 def test_alpha_and_synthetic_exports_accept_config_root_without_public_beta_config(
     tmp_path: Path,
     capsys,
