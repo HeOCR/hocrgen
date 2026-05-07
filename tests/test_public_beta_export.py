@@ -25,6 +25,8 @@ from hocrgen.package.public_beta import (
     _blocker_closure_plan,
     _privacy_review_closure_entry,
     _privacy_review_f6d_assessment,
+    _source_depth_composition_closure_entry,
+    _source_depth_composition_report,
     _source_status_evidence,
     _stabilize_public_beta_readiness_artifacts,
     _takedown_blocker_action,
@@ -102,7 +104,7 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
         (output_dir / "manifests" / "public_beta_repo_owned_blocker_report.json").read_text(encoding="utf-8")
     )
     assert report["planning_notation"] == "F5b"
-    assert report["current_planning_notation"] == "F6d"
+    assert report["current_planning_notation"] == "F6e"
     assert report["readiness_contract_notation"] == "F5a"
     assert report["valid_statuses"] == ["pass", "blocked"]
     assert report["readiness_status"] == "blocked"
@@ -115,17 +117,21 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     ]
     assert {gate["status"] for gate in report["gates"]} <= {"pass", "blocked"}
     synthetic_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "synthetic_target_scale")
+    source_depth_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "source_depth_composition")
+    assert "Public-profile candidate evidence does not yet satisfy" in source_depth_gate["rationale"]
+    assert "operator-only and source-depth-only inventory is not counted" in source_depth_gate["rationale"]
     assert "larger validated batch" in synthetic_gate["rationale"]
     takedown_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "takedown_removal")
     assert takedown_gate["status"] == "pass"
     assert "configured public and private" in takedown_gate["rationale"]
-    assert closure_plan["planning_notation"] == "F6d"
+    assert closure_plan["planning_notation"] == "F6e"
     assert closure_plan["source_readiness_report"] == "manifests/public_beta_readiness_report.json"
     assert closure_plan["readiness_status"] == "blocked"
-    assert closure_plan["summary"]["external_input_dependent"] == 2
-    assert closure_plan["summary"]["repo_owned_immediately_actionable"] == 2
+    assert closure_plan["summary"]["external_input_dependent"] == 1
+    assert closure_plan["summary"]["repo_owned_immediately_actionable"] == 3
     blockers_by_gate = {blocker["gate_id"]: blocker for blocker in closure_plan["blockers"]}
-    assert blockers_by_gate["source_depth_composition"]["category"] == "external_input_dependent"
+    assert blockers_by_gate["source_depth_composition"]["category"] == "repo_owned_immediately_actionable"
+    assert blockers_by_gate["source_depth_composition"]["closure_state"] == "requires_repo_pr_or_source_promotion"
     assert blockers_by_gate["synthetic_target_scale"]["category"] == "external_input_dependent"
     assert blockers_by_gate["synthetic_target_scale"]["closure_state"] == "requires_external_input"
     assert blockers_by_gate["synthetic_target_scale"]["blocks_publication"] is True
@@ -134,17 +140,77 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert "takedown_removal" not in blockers_by_gate
     assert closure_plan["known_hard_blockers"][0]["gate_id"] == "synthetic_target_scale"
     assert closure_plan["known_hard_blockers"][0]["do_not_relax"] is True
-    assert repo_owned_report["planning_notation"] == "F6d"
+    assert repo_owned_report["planning_notation"] == "F6e"
     assert repo_owned_report["repo_owned_status"] == "blocked"
     assert repo_owned_report["repo_owned_blocked_gate_ids"] == [
+        "source_depth_composition",
         "privacy_review",
         "benchmark_references",
     ]
     assert repo_owned_report["external_input_dependent_blocked_gate_ids"] == [
-        "source_depth_composition",
         "synthetic_target_scale",
     ]
     repo_entries = {entry["gate_id"]: entry for entry in repo_owned_report["entries"]}
+    assert repo_entries["source_depth_composition"]["counts"] == {
+        "target_real_item_count": 80,
+        "public_payload_real_item_count": 2,
+        "public_payload_synthetic_item_count": 2,
+        "source_depth_only_payload_item_count": 0,
+    }
+    assert repo_entries["source_depth_composition"]["f6e_assessment"] == {
+        "planning_notation": "F6e",
+        "assessment_status": "blocked_public_profile_candidate_gap",
+        "closure_state": "requires_public_profile_candidate_promotion",
+        "readiness_contract": (
+            "Source-depth/composition readiness can pass only when real public-profile candidate payload items, "
+            "not F1c operator-only or source-depth-only inventory, satisfy the NLI/Pinkas/BiblIA source targets "
+            "after normal release-profile, review, privacy, split, benchmark, and portability gates."
+        ),
+        "limitation_disclosure": (
+            "Public-profile payload source composition is incomplete: nli_any_use_permitted 1 / 27, "
+            "pinkas_open 1 / 27, biblia_open 0 / 26; operator-only and source-depth-only inventory is not "
+            "counted as public beta readiness evidence"
+        ),
+        "blocked_gate_preserved": True,
+    }
+    assert repo_entries["source_depth_composition"]["sources"] == [
+        {
+            "source_id": "nli_any_use_permitted",
+            "target_count": 27,
+            "public_payload_count": 1,
+            "public_payload_gap": 26,
+            "status": "blocked",
+            "profile_included": True,
+            "operator_source_depth_target_scale_candidate_count": 1,
+            "operator_source_depth_runnable_cached_candidate_count": 1,
+            "operator_source_depth_feasibility_status": "needs_promotion",
+            "operator_only_or_source_depth_inventory_not_counted": 0,
+        },
+        {
+            "source_id": "pinkas_open",
+            "target_count": 27,
+            "public_payload_count": 1,
+            "public_payload_gap": 26,
+            "status": "blocked",
+            "profile_included": True,
+            "operator_source_depth_target_scale_candidate_count": 27,
+            "operator_source_depth_runnable_cached_candidate_count": 1,
+            "operator_source_depth_feasibility_status": "needs_target_scale_trial",
+            "operator_only_or_source_depth_inventory_not_counted": 26,
+        },
+        {
+            "source_id": "biblia_open",
+            "target_count": 26,
+            "public_payload_count": 0,
+            "public_payload_gap": 26,
+            "status": "blocked",
+            "profile_included": True,
+            "operator_source_depth_target_scale_candidate_count": 26,
+            "operator_source_depth_runnable_cached_candidate_count": 1,
+            "operator_source_depth_feasibility_status": "needs_target_scale_trial",
+            "operator_only_or_source_depth_inventory_not_counted": 26,
+        },
+    ]
     assert repo_entries["privacy_review"]["counts"]["review_required"] == 1
     assert repo_entries["privacy_review"]["counts"]["blocked"] == 0
     assert repo_entries["privacy_review"]["counts"]["suggested_decision"] == {
@@ -306,6 +372,7 @@ def test_export_public_beta_checksum_manifest_covers_public_payloads_and_archive
         "manifests/public_beta_readiness_report.json",
         "manifests/public_beta_blocker_closure_plan.json",
         "manifests/public_beta_repo_owned_blocker_report.json",
+        "manifests/public_beta_source_depth_composition_report.json",
         "manifests/archive_manifest.json",
         "manifests/release_record.json",
         "manifests/release_summary.json",
@@ -316,6 +383,9 @@ def test_export_public_beta_checksum_manifest_covers_public_payloads_and_archive
         assert entries_by_path[required_path]["sha256"] == _sha256(output_dir / required_path)
     assert entries_by_path["manifests/public_beta_repo_owned_blocker_report.json"]["sha256"] == _sha256(
         output_dir / "manifests" / "public_beta_repo_owned_blocker_report.json"
+    )
+    assert entries_by_path["manifests/public_beta_source_depth_composition_report.json"]["sha256"] == _sha256(
+        output_dir / "manifests" / "public_beta_source_depth_composition_report.json"
     )
 
     archive_record = archive_manifest["archives"][0]
@@ -370,6 +440,7 @@ def test_export_public_beta_archive_is_rooted_at_versioned_release_dir(tmp_path:
     assert "public-beta-v0/manifests/public_beta_readiness_report.json" in names
     assert "public-beta-v0/manifests/public_beta_blocker_closure_plan.json" in names
     assert "public-beta-v0/manifests/public_beta_repo_owned_blocker_report.json" in names
+    assert "public-beta-v0/manifests/public_beta_source_depth_composition_report.json" in names
     assert "public-beta-v0/manifests/release_record.json" in names
     assert "public-beta-v0/manifests/release_summary.json" in names
     assert "public-beta-v0/manifests/source_depth_feasibility.json" in names
@@ -556,6 +627,121 @@ def test_source_status_evidence_uses_consistent_schema_for_unknown_sources() -> 
             "excluded_from_profile": False,
         }
     ]
+
+
+def test_source_depth_composition_report_counts_only_public_profile_payload_candidates() -> None:
+    report = _source_depth_composition_report(
+        profile=SimpleNamespace(
+            id="profile_open_v1",
+            include_sources=["nli_any_use_permitted", "pinkas_open", "biblia_open", "project_synthetic"],
+            exclude_sources=[],
+        ),
+        exported_items=[
+            SimpleNamespace(
+                item_id="nli_any_use_permitted:nli-001",
+                source_id="nli_any_use_permitted",
+                is_synthetic=False,
+                metadata={"f1_source_depth_only": False},
+                raw_metadata={},
+            ),
+            SimpleNamespace(
+                item_id="pinkas_open:pinkas-001",
+                source_id="pinkas_open",
+                is_synthetic=False,
+                metadata={},
+                raw_metadata={},
+            ),
+            SimpleNamespace(
+                item_id="project_synthetic:synthetic-0",
+                source_id="project_synthetic",
+                is_synthetic=True,
+                metadata={},
+                raw_metadata={},
+            ),
+        ],
+        source_depth_feasibility={
+            "artifact_scope": "operator_only",
+            "summary": {
+                "real_target_count": 80,
+                "target_count": 160,
+                "runnable_cached_candidate_count": 31,
+                "target_scale_candidate_count": 82,
+                "target_scale_gap": 78,
+                "overall_feasibility_status": "not_feasible",
+                "not_ready_sources": ["pinkas_open", "biblia_open", "project_synthetic"],
+            },
+            "sources": [
+                {
+                    "source_id": "nli_any_use_permitted",
+                    "target_scale_candidate_count": 27,
+                    "runnable_cached_candidate_count": 27,
+                    "feasibility_status": "feasible",
+                },
+                {
+                    "source_id": "pinkas_open",
+                    "target_scale_candidate_count": 27,
+                    "runnable_cached_candidate_count": 1,
+                    "feasibility_status": "needs_target_scale_trial",
+                },
+                {
+                    "source_id": "biblia_open",
+                    "target_scale_candidate_count": 26,
+                    "runnable_cached_candidate_count": 1,
+                    "feasibility_status": "needs_target_scale_trial",
+                },
+            ],
+        },
+        source_stats={"sources": {"nli_any_use_permitted": 1, "pinkas_open": 1, "project_synthetic": 1}},
+    )
+
+    assert report["status"] == "blocked"
+    assert report["closure_state"] == "requires_public_profile_candidate_promotion"
+    assert report["public_payload_real_item_count"] == 2
+    assert report["public_payload_synthetic_item_count"] == 1
+    assert report["source_depth_only_payload_item_count"] == 0
+    assert report["source_depth_feasibility_artifact_scope"] == "operator_only"
+    assert "operator-only and source-depth-only inventory is not counted" in report["limitation_disclosure"]
+    sources_by_id = {entry["source_id"]: entry for entry in report["sources"]}
+    assert sources_by_id["nli_any_use_permitted"]["public_payload_gap"] == 26
+    assert sources_by_id["pinkas_open"]["operator_only_or_source_depth_inventory_not_counted"] == 26
+    assert sources_by_id["biblia_open"]["public_payload_count"] == 0
+    assert sources_by_id["biblia_open"]["public_payload_gap"] == 26
+
+
+def test_source_depth_composition_report_blocks_source_depth_only_payload_items() -> None:
+    report = _source_depth_composition_report(
+        profile=SimpleNamespace(
+            id="profile_open_v1",
+            include_sources=["nli_any_use_permitted", "pinkas_open", "biblia_open"],
+            exclude_sources=[],
+        ),
+        exported_items=[
+            SimpleNamespace(
+                item_id="nli_any_use_permitted:nli-source-depth-only",
+                source_id="nli_any_use_permitted",
+                is_synthetic=False,
+                metadata={"f1_source_depth_only": True},
+                raw_metadata={},
+            )
+        ],
+        source_depth_feasibility={"artifact_scope": "operator_only", "sources": [], "summary": {}},
+        source_stats={"sources": {"nli_any_use_permitted": 27, "pinkas_open": 27, "biblia_open": 26}},
+    )
+
+    assert report["status"] == "blocked"
+    assert report["assessment_status"] == "blocked_source_depth_only_payload_items_present"
+    assert report["source_depth_only_payload_item_ids"] == ["nli_any_use_permitted:nli-source-depth-only"]
+    closure_entry = _source_depth_composition_closure_entry(
+        {
+            "gate_id": "source_depth_composition",
+            "status": "blocked",
+            "evidence_paths": ["manifests/public_beta_source_depth_composition_report.json"],
+            "rationale": "blocked",
+        },
+        report,
+    )
+    assert closure_entry["f6e_assessment"]["assessment_status"] == "blocked_source_depth_only_payload_items_present"
+    assert closure_entry["f6e_assessment"]["blocked_gate_preserved"] is True
 
 
 def test_export_public_beta_rejects_output_dir_that_does_not_match_version(tmp_path: Path, capsys) -> None:
@@ -906,7 +1092,12 @@ def test_external_input_dependent_blocked_gates_are_category_derived(monkeypatch
         readiness_report=readiness_report,
         takedown_validation={},
         category="external_input_dependent",
-    ) == ["source_depth_composition"]
+    ) == []
+    assert _blocked_gate_ids_by_closure_category(
+        readiness_report=readiness_report,
+        takedown_validation={},
+        category="repo_owned_immediately_actionable",
+    ) == ["source_depth_composition", "future_repo_owned_gate"]
 
 
 def test_public_beta_readiness_artifacts_rewrite_until_stable(
