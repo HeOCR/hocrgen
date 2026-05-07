@@ -18,6 +18,7 @@ from hocrgen.manifests.models import (
     DuplicateRelationRecord,
     PrivacyScannedItemRecord,
     PublicBetaReleaseRecord,
+    ReviewDecisionAuditRecord,
     ReviewQueueRecord,
     SplitAssignmentRecord,
 )
@@ -56,7 +57,7 @@ from hocrgen.package.common import (
 from hocrgen.source_ops import F1_SYNTHETIC_TARGET_COUNT
 from hocrgen.synthetic.reporting import synthetic_composition_report
 
-PUBLIC_BETA_CURRENT_PLANNING_NOTATION = "F6c"
+PUBLIC_BETA_CURRENT_PLANNING_NOTATION = "F6d"
 
 
 @dataclass(frozen=True)
@@ -190,6 +191,7 @@ def export_public_beta_release(
     release_items = load_models(build_dir / "item_manifest.json", PrivacyScannedItemRecord)
     review_required_items = load_models(build_dir / "review_required_items.json", PrivacyScannedItemRecord)
     blocked_items = load_models(build_dir / "blocked_items.json", PrivacyScannedItemRecord)
+    decision_audit = load_models(build_dir / "decision_audit.json", ReviewDecisionAuditRecord)
     split_manifest = load_models(build_dir / "split_manifest.json", SplitAssignmentRecord)
     duplicate_relations = load_models(build_dir / "duplicate_relations.json", DuplicateRelationRecord)
     duplicate_clusters = load_models(build_dir / "duplicate_clusters.json", DuplicateClusterRecord)
@@ -507,6 +509,9 @@ def export_public_beta_release(
         review_required_items=review_required_items,
         blocked_items=blocked_items,
         selected_review_queue=selected_review_queue,
+        decision_audit=decision_audit,
+        source_registry=bundle.source_registry,
+        profile=profile,
         readiness_report=readiness_report,
     )
     readiness_status = readiness_report["readiness_status"]
@@ -655,6 +660,9 @@ def _write_public_beta_blocker_outputs(
     review_required_items: list[PrivacyScannedItemRecord],
     blocked_items: list[PrivacyScannedItemRecord],
     selected_review_queue: list[ReviewQueueRecord],
+    decision_audit: list[ReviewDecisionAuditRecord],
+    source_registry: Any,
+    profile: ReleaseProfile,
     selected_benchmark_reference_status: Any,
     benchmark_reference_versioning: dict[str, Any] | None,
     takedown_validation: dict[str, Any],
@@ -669,6 +677,9 @@ def _write_public_beta_blocker_outputs(
         review_required_items=review_required_items,
         blocked_items=blocked_items,
         selected_review_queue=selected_review_queue,
+        decision_audit=decision_audit,
+        source_registry=source_registry,
+        profile=profile,
         selected_benchmark_reference_status=selected_benchmark_reference_status,
         benchmark_reference_versioning=benchmark_reference_versioning,
         takedown_validation=takedown_validation,
@@ -694,6 +705,9 @@ def _stabilize_public_beta_readiness_artifacts(
     review_required_items: list[PrivacyScannedItemRecord],
     blocked_items: list[PrivacyScannedItemRecord],
     selected_review_queue: list[ReviewQueueRecord],
+    decision_audit: list[ReviewDecisionAuditRecord],
+    source_registry: Any,
+    profile: ReleaseProfile,
     readiness_report: dict[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     archive_record = None
@@ -704,6 +718,9 @@ def _stabilize_public_beta_readiness_artifacts(
             review_required_items=review_required_items,
             blocked_items=blocked_items,
             selected_review_queue=selected_review_queue,
+            decision_audit=decision_audit,
+            source_registry=source_registry,
+            profile=profile,
             selected_benchmark_reference_status=selected_benchmark_reference_status,
             benchmark_reference_versioning=benchmark_reference_versioning,
             takedown_validation=takedown_validation,
@@ -759,6 +776,9 @@ def _repo_owned_blocker_report(
     review_required_items: list[PrivacyScannedItemRecord],
     blocked_items: list[PrivacyScannedItemRecord],
     selected_review_queue: list[ReviewQueueRecord],
+    decision_audit: list[ReviewDecisionAuditRecord],
+    source_registry: Any,
+    profile: ReleaseProfile,
     selected_benchmark_reference_status: Any,
     benchmark_reference_versioning: dict[str, Any] | None,
     takedown_validation: dict[str, Any],
@@ -770,6 +790,9 @@ def _repo_owned_blocker_report(
             review_required_items,
             blocked_items,
             selected_review_queue,
+            decision_audit,
+            source_registry,
+            profile,
         ),
         _benchmark_reference_closure_entry(
             gates_by_id["benchmark_references"],
@@ -819,11 +842,18 @@ def _privacy_review_closure_entry(
     review_required_items: list[PrivacyScannedItemRecord],
     blocked_items: list[PrivacyScannedItemRecord],
     selected_review_queue: list[ReviewQueueRecord],
+    decision_audit: list[ReviewDecisionAuditRecord],
+    source_registry: Any,
+    profile: ReleaseProfile,
 ) -> dict[str, Any]:
     queue_by_item_id = {entry.item_id: entry for entry in selected_review_queue}
+    relevant_item_ids = {item.item_id for item in review_required_items + blocked_items}
+    relevant_decision_audit = [entry for entry in decision_audit if entry.item_id in relevant_item_ids]
+    decision_audit_by_item_id = {entry.item_id: entry for entry in relevant_decision_audit}
     review_required_item_entries = []
     for item in sorted(review_required_items, key=lambda record: record.item_id):
         queue_entry = queue_by_item_id.get(item.item_id)
+        audit_entry = decision_audit_by_item_id.get(item.item_id)
         review_required_item_entries.append(
             {
                 "item_id": item.item_id,
@@ -833,19 +863,33 @@ def _privacy_review_closure_entry(
                 "classification_review_reasons": item.classification_review_reasons,
                 "suggested_decision": queue_entry.suggested_decision if queue_entry else None,
                 "review_reasons": queue_entry.review_reasons if queue_entry else [],
+                "decision_source": audit_entry.decision_source if audit_entry else None,
+                "decision_outcome": audit_entry.outcome if audit_entry else None,
+                "decision": audit_entry.decision if audit_entry else None,
+                "reviewer": audit_entry.reviewer if audit_entry else None,
+                "decision_timestamp": audit_entry.timestamp if audit_entry else None,
+                "decision_rationale": audit_entry.rationale if audit_entry else None,
             }
         )
     suggested_decision_counts = Counter(
         entry.suggested_decision for entry in selected_review_queue if entry.suggested_decision
     )
     privacy_flag_counts = Counter(item.privacy_flag.value for item in review_required_items + blocked_items)
+    decision_source_counts = Counter(entry.decision_source for entry in relevant_decision_audit)
+    decision_outcome_counts = Counter(entry.outcome for entry in relevant_decision_audit)
+    f6d_assessment = _privacy_review_f6d_assessment(
+        gate=gate,
+        review_required_items=review_required_items,
+        blocked_items=blocked_items,
+        relevant_decision_audit=relevant_decision_audit,
+    )
     return {
         "gate_id": "privacy_review",
         "status": gate["status"],
         "closure_state": (
             "pass"
             if gate["status"] == "pass"
-            else "requires_repo_tracked_review_or_source_policy_update"
+            else f6d_assessment["closure_state"]
         ),
         "required_action": (
             "No repo-owned privacy/review action remains for currently exported public beta candidates."
@@ -860,12 +904,102 @@ def _privacy_review_closure_entry(
             "blocked": len(blocked_items),
             "suggested_decision": dict(sorted(suggested_decision_counts.items())),
             "privacy_flag": dict(sorted(privacy_flag_counts.items())),
+            "decision_source": dict(sorted(decision_source_counts.items())),
+            "decision_outcome": dict(sorted(decision_outcome_counts.items())),
         },
+        "f6d_assessment": f6d_assessment,
+        "source_status_evidence": _source_status_evidence(
+            source_registry=source_registry,
+            profile=profile,
+            relevant_source_ids={item.source_id for item in review_required_items + blocked_items},
+        ),
         "review_required_items": review_required_item_entries,
         "blocked_item_ids": [item.item_id for item in sorted(blocked_items, key=lambda record: record.item_id)],
         "evidence_paths": gate["evidence_paths"],
         "rationale": gate["rationale"],
     }
+
+
+def _privacy_review_f6d_assessment(
+    *,
+    gate: dict[str, Any],
+    review_required_items: list[PrivacyScannedItemRecord],
+    blocked_items: list[PrivacyScannedItemRecord],
+    relevant_decision_audit: list[ReviewDecisionAuditRecord],
+) -> dict[str, Any]:
+    review_required_count = len(review_required_items)
+    blocked_count = len(blocked_items)
+    unresolved_count = sum(1 for entry in relevant_decision_audit if entry.outcome == "unresolved")
+    default_unresolved_count = sum(
+        1
+        for entry in relevant_decision_audit
+        if entry.outcome == "unresolved" and entry.decision_source == "default_unresolved"
+    )
+    if gate["status"] == "pass":
+        assessment_status = "closed_with_no_unresolved_privacy_or_review_items"
+        closure_state = "pass"
+        limitation = "none for currently governed public beta candidates"
+    elif blocked_count:
+        assessment_status = "blocked_blocked_items_present"
+        closure_state = "requires_repo_tracked_review_config_or_source_status_evidence"
+        limitation = (
+            f"{blocked_count} blocked item(s) and {review_required_count} review-required item(s) remain; "
+            "blocked items must be resolved or excluded through repo-tracked review/config/source-status evidence"
+        )
+    elif review_required_count:
+        assessment_status = "blocked_unresolved_review_required_items"
+        closure_state = "requires_repo_tracked_review_config_or_source_status_evidence"
+        limitation = (
+            f"{review_required_count} review-required item(s) remain unresolved; "
+            "no repo-tracked review decision, privacy config change, or source-status change currently closes the gate"
+        )
+    else:
+        assessment_status = "blocked_inconsistent_privacy_review_evidence"
+        closure_state = "requires_readiness_report_reconciliation"
+        limitation = "privacy/review gate is blocked even though no review-required or blocked item evidence was provided"
+    return {
+        "planning_notation": "F6d",
+        "assessment_status": assessment_status,
+        "closure_state": closure_state,
+        "readiness_contract": (
+            "Privacy/review readiness can pass only when the governed candidate pool has no review-required, "
+            "blocked, unresolved privacy, unresolved consent, or unresolved takedown states after repo-tracked "
+            "review decisions, config changes, or source-status changes."
+        ),
+        "review_required_item_count": review_required_count,
+        "blocked_item_count": blocked_count,
+        "unresolved_decision_count": unresolved_count,
+        "default_unresolved_decision_count": default_unresolved_count,
+        "limitation_disclosure": limitation,
+        "blocked_gate_preserved": gate["status"] == "blocked",
+    }
+
+
+def _source_status_evidence(
+    *,
+    source_registry: Any,
+    profile: ReleaseProfile,
+    relevant_source_ids: set[str],
+) -> list[dict[str, Any]]:
+    sources_by_id = {source.id: source for source in source_registry.sources}
+    entries: list[dict[str, Any]] = []
+    for source_id in sorted(relevant_source_ids):
+        source = sources_by_id.get(source_id)
+        if source is None:
+            entries.append({"source_id": source_id, "status": "unknown"})
+            continue
+        entries.append(
+            {
+                "source_id": source_id,
+                "status": source.status.value,
+                "default_public_release": source.default_public_release,
+                "requires_manual_review": source.requires_manual_review,
+                "operational_status": source.source_operations.operational_status.value,
+                "included_in_profile": source_id in profile.include_sources,
+                "excluded_from_profile": source_id in profile.exclude_sources,
+            }
+        )
+    return entries
 
 
 def _benchmark_reference_closure_entry(

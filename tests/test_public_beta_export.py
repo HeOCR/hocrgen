@@ -99,7 +99,7 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
         (output_dir / "manifests" / "public_beta_repo_owned_blocker_report.json").read_text(encoding="utf-8")
     )
     assert report["planning_notation"] == "F5b"
-    assert report["current_planning_notation"] == "F6c"
+    assert report["current_planning_notation"] == "F6d"
     assert report["readiness_contract_notation"] == "F5a"
     assert report["valid_statuses"] == ["pass", "blocked"]
     assert report["readiness_status"] == "blocked"
@@ -116,7 +116,7 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     takedown_gate = next(gate for gate in report["gates"] if gate["gate_id"] == "takedown_removal")
     assert takedown_gate["status"] == "pass"
     assert "configured public and private" in takedown_gate["rationale"]
-    assert closure_plan["planning_notation"] == "F6c"
+    assert closure_plan["planning_notation"] == "F6d"
     assert closure_plan["source_readiness_report"] == "manifests/public_beta_readiness_report.json"
     assert closure_plan["readiness_status"] == "blocked"
     assert closure_plan["summary"]["external_input_dependent"] == 2
@@ -131,7 +131,7 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert "takedown_removal" not in blockers_by_gate
     assert closure_plan["known_hard_blockers"][0]["gate_id"] == "synthetic_target_scale"
     assert closure_plan["known_hard_blockers"][0]["do_not_relax"] is True
-    assert repo_owned_report["planning_notation"] == "F6c"
+    assert repo_owned_report["planning_notation"] == "F6d"
     assert repo_owned_report["repo_owned_status"] == "blocked"
     assert repo_owned_report["repo_owned_blocked_gate_ids"] == [
         "privacy_review",
@@ -147,6 +147,40 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert repo_entries["privacy_review"]["counts"]["suggested_decision"] == {
         "needs_classification_review": 1,
     }
+    assert repo_entries["privacy_review"]["counts"]["decision_source"] == {"default_unresolved": 1}
+    assert repo_entries["privacy_review"]["counts"]["decision_outcome"] == {"unresolved": 1}
+    assert repo_entries["privacy_review"]["f6d_assessment"] == {
+        "planning_notation": "F6d",
+        "assessment_status": "blocked_unresolved_review_required_items",
+        "closure_state": "requires_repo_tracked_review_config_or_source_status_evidence",
+        "readiness_contract": (
+            "Privacy/review readiness can pass only when the governed candidate pool has no review-required, "
+            "blocked, unresolved privacy, unresolved consent, or unresolved takedown states after repo-tracked "
+            "review decisions, config changes, or source-status changes."
+        ),
+        "review_required_item_count": 1,
+        "blocked_item_count": 0,
+        "unresolved_decision_count": 1,
+        "default_unresolved_decision_count": 1,
+        "limitation_disclosure": (
+            "1 review-required item(s) remain unresolved; no repo-tracked review decision, privacy config change, "
+            "or source-status change currently closes the gate"
+        ),
+        "blocked_gate_preserved": True,
+    }
+    assert repo_entries["privacy_review"]["source_status_evidence"] == [
+        {
+            "source_id": "biblia_open",
+            "status": "allowed",
+            "default_public_release": True,
+            "requires_manual_review": False,
+            "operational_status": "active",
+            "included_in_profile": True,
+            "excluded_from_profile": False,
+        }
+    ]
+    assert repo_entries["privacy_review"]["review_required_items"][0]["decision_source"] == "default_unresolved"
+    assert repo_entries["privacy_review"]["review_required_items"][0]["decision_outcome"] == "unresolved"
     assert repo_entries["benchmark_references"]["counts"]["reference_ready"] == 1
     assert repo_entries["benchmark_references"]["counts"]["blocked_or_draft"] == 2
     assert repo_entries["benchmark_references"]["f6c_assessment"] == {
@@ -718,6 +752,9 @@ def test_public_beta_readiness_artifacts_rewrite_until_stable(
         review_required_items=[],
         blocked_items=[],
         selected_review_queue=[],
+        decision_audit=[],
+        source_registry=SimpleNamespace(sources=[]),
+        profile=SimpleNamespace(include_sources=[], exclude_sources=[]),
         readiness_report={"readiness_status": "blocked", "iteration": 0, "gates": []},
     )
 
@@ -769,6 +806,9 @@ def test_public_beta_readiness_artifacts_fail_when_not_stable(
             review_required_items=[],
             blocked_items=[],
             selected_review_queue=[],
+            decision_audit=[],
+            source_registry=SimpleNamespace(sources=[]),
+            profile=SimpleNamespace(include_sources=[], exclude_sources=[]),
             readiness_report={"readiness_status": "blocked", "iteration": 0, "gates": []},
         )
 
@@ -809,6 +849,9 @@ def test_public_beta_readiness_artifacts_fail_when_archive_does_not_run(
             review_required_items=[],
             blocked_items=[],
             selected_review_queue=[],
+            decision_audit=[],
+            source_registry=SimpleNamespace(sources=[]),
+            profile=SimpleNamespace(include_sources=[], exclude_sources=[]),
             readiness_report=stable_report,
         )
 
