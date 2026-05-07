@@ -18,6 +18,7 @@ from hocrgen.config.models import PrivateReportingPathConfig, ReportingPathConfi
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.package.common import verify_checksum_manifest, write_release_archive
 from hocrgen.package.public_beta import (
+    _benchmark_reference_closure_entry,
     _benchmark_reference_gate,
     _benchmark_reference_item_required_action,
     _blocked_gate_ids_by_closure_category,
@@ -151,6 +152,7 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert repo_entries["benchmark_references"]["f6c_assessment"] == {
         "planning_notation": "F6c",
         "assessment_status": "blocked_partial_or_unavailable_reference_evidence",
+        "closure_state": "requires_reviewed_or_adjudicated_reference_evidence",
         "readiness_contract": (
             "Every selected benchmark item must have reviewed/adjudicated reference evidence and coherent "
             "versioning before benchmark-reference readiness can pass."
@@ -943,7 +945,7 @@ def test_benchmark_reference_required_action_covers_unready_status_semantics(
 
 def test_benchmark_reference_gate_requires_all_selected_items_ready() -> None:
     partial_status = SimpleNamespace(
-        counts={"reference_ready": 1, "blocked_or_draft": 1},
+        counts={"reference_ready": 2, "blocked_or_draft": 0},
         items=[
             SimpleNamespace(
                 item_id="item-reviewed",
@@ -986,6 +988,60 @@ def test_benchmark_reference_gate_passes_only_with_complete_reviewed_adjudicated
 
     assert gate["status"] == "pass"
     assert "all 2 selected benchmark item(s)" in gate["rationale"]
+
+
+def test_benchmark_reference_closure_entry_reports_versioning_only_blocker() -> None:
+    complete_status = SimpleNamespace(
+        counts={"reference_ready": 2, "blocked_or_draft": 0},
+        items=[
+            SimpleNamespace(
+                item_id="item-a",
+                source_id="source-a",
+                benchmark_split="train",
+                public_reference_status="reviewed",
+                adjudication_status="adjudicated",
+                has_transcription_reference=True,
+                layout_reference_count=1,
+                reviewer_count=1,
+            ),
+            SimpleNamespace(
+                item_id="item-b",
+                source_id="source-b",
+                benchmark_split="train",
+                public_reference_status="adjudicated",
+                adjudication_status="adjudicated",
+                has_transcription_reference=True,
+                layout_reference_count=0,
+                reviewer_count=2,
+            ),
+        ],
+    )
+    gate = _benchmark_reference_gate(complete_status, {"status": "not_available"})
+
+    entry = _benchmark_reference_closure_entry(gate, complete_status, {"status": "not_available"})
+
+    assert gate["status"] == "blocked"
+    assert entry["closure_state"] == "requires_coherent_reference_versioning"
+    assert entry["unresolved_items"] == []
+    assert [item["item_id"] for item in entry["ready_items"]] == ["item-a", "item-b"]
+    assert entry["f6c_assessment"] == {
+        "planning_notation": "F6c",
+        "assessment_status": "blocked_versioning_incoherent",
+        "closure_state": "requires_coherent_reference_versioning",
+        "readiness_contract": (
+            "Every selected benchmark item must have reviewed/adjudicated reference evidence and coherent "
+            "versioning before benchmark-reference readiness can pass."
+        ),
+        "selected_benchmark_item_count": 2,
+        "reviewed_adjudicated_item_count": 2,
+        "unresolved_item_count": 0,
+        "versioning_status": "not_available",
+        "limitation_disclosure": (
+            "All 2 selected benchmark item(s) have reviewed/adjudicated references, "
+            "but benchmark-reference versioning status is not_available"
+        ),
+        "blocked_gate_preserved": True,
+    }
 
 
 def test_alpha_and_synthetic_exports_accept_config_root_without_public_beta_config(

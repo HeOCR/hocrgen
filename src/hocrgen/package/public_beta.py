@@ -905,13 +905,19 @@ def _benchmark_reference_closure_entry(
             }
         )
     counts = selected_benchmark_reference_status.counts if selected_benchmark_reference_status is not None else {}
+    f6c_assessment = _benchmark_reference_f6c_assessment(
+        gate=gate,
+        status_items=status_items,
+        unresolved_items=unresolved_items,
+        benchmark_reference_versioning=benchmark_reference_versioning,
+    )
     return {
         "gate_id": "benchmark_references",
         "status": gate["status"],
         "closure_state": (
             "pass"
             if gate["status"] == "pass"
-            else "requires_reviewed_or_adjudicated_reference_evidence"
+            else f6c_assessment["closure_state"]
         ),
         "required_action": (
             "No benchmark-reference action remains for currently selected benchmark items."
@@ -923,12 +929,7 @@ def _benchmark_reference_closure_entry(
         ),
         "counts": dict(sorted(counts.items())),
         "versioning_status": (benchmark_reference_versioning or {}).get("status", "not_available"),
-        "f6c_assessment": _benchmark_reference_f6c_assessment(
-            gate=gate,
-            status_items=status_items,
-            unresolved_items=unresolved_items,
-            benchmark_reference_versioning=benchmark_reference_versioning,
-        ),
+        "f6c_assessment": f6c_assessment,
         "ready_items": ready_items,
         "unresolved_items": unresolved_items,
         "evidence_paths": gate["evidence_paths"],
@@ -948,19 +949,30 @@ def _benchmark_reference_f6c_assessment(
     versioning_status = (benchmark_reference_versioning or {}).get("status", "not_available")
     if gate["status"] == "pass":
         assessment_status = "closed_with_reviewed_adjudicated_evidence"
+        closure_state = "pass"
         limitation = "none for currently selected benchmark items"
     elif total_items == 0:
         assessment_status = "blocked_no_benchmark_reference_status"
+        closure_state = "requires_benchmark_reference_status_artifact"
         limitation = "benchmark-reference status artifact is unavailable for selected benchmark items"
-    else:
+    elif unresolved_items:
         assessment_status = "blocked_partial_or_unavailable_reference_evidence"
+        closure_state = "requires_reviewed_or_adjudicated_reference_evidence"
         limitation = (
             f"{ready_count} / {total_items} selected benchmark item(s) have reviewed/adjudicated references; "
             f"{len(unresolved_items)} item(s) remain draft, unavailable, blocked, or unadjudicated"
         )
+    else:
+        assessment_status = "blocked_versioning_incoherent"
+        closure_state = "requires_coherent_reference_versioning"
+        limitation = (
+            f"All {total_items} selected benchmark item(s) have reviewed/adjudicated references, "
+            f"but benchmark-reference versioning status is {versioning_status}"
+        )
     return {
         "planning_notation": "F6c",
         "assessment_status": assessment_status,
+        "closure_state": closure_state,
         "readiness_contract": (
             "Every selected benchmark item must have reviewed/adjudicated reference evidence and coherent "
             "versioning before benchmark-reference readiness can pass."
@@ -1198,14 +1210,10 @@ def _uniqueness_leakage_gate(build_release_summary: dict[str, Any], leakage_repo
 
 
 def _benchmark_reference_gate(status_artifact: Any, versioning: dict[str, Any] | None) -> dict[str, Any]:
-    ready = 0
-    blocked_or_draft = 1
-    total = 0
-    if status_artifact is not None:
-        total = len(status_artifact.items)
-        ready = status_artifact.counts.get("reference_ready", 0)
-        blocked_or_draft = status_artifact.counts.get("blocked_or_draft", 0)
-    unresolved = max(total - ready, blocked_or_draft)
+    status_items = list(status_artifact.items) if status_artifact is not None else []
+    total = len(status_items)
+    ready = sum(1 for item in status_items if _benchmark_reference_item_ready(item))
+    unresolved = total - ready
     versioning_status = (versioning or {}).get("status", "not_available")
     status = total > 0 and ready == total and unresolved == 0 and versioning_status == "ok"
     return _gate(
