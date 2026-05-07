@@ -64,6 +64,8 @@ The governance summary of those gates is:
 
 F5b implements local publication packaging and handoff verification, not publication itself. The command writes `manifests/checksum_manifest.json`, `manifests/archive_manifest.json`, `manifests/public_beta_readiness_report.json`, beta-specific docs, and a portable version-rooted archive, then verifies asset and archive digests from the handoff tree. F5c adds `manifests/public_beta_blocker_closure_plan.json`, which derives the blocker sequence from the readiness report, separates `repo_owned_immediately_actionable` blockers from `external_input_dependent` blockers, and keeps the hocrsyngen `80` synthetic-control target blocked until a larger validated batch exists. F5d adds `manifests/public_beta_repo_owned_blocker_report.json`, which records unresolved review/privacy item ids and reasons, benchmark-reference draft/unavailable/adjudication status by item, and takedown/private-reporting settings-check evidence from `src/hocrgen/config/public_beta.yaml`. It must not sync a repository, upload to a host, tag a release, or emit a blocked publication report while any readiness gate is unresolved.
 
+F6 is the post-F5 closure roadmap, not a readiness shortcut. `F6a` defines the sequence only. Later F6 PRs may close individual blockers only with real evidence: a verified private reporting path for takedown/private reporting, reviewed/adjudicated benchmark references for benchmark readiness, repo-tracked review/config/source-status changes for privacy/review closure, real public-profile source-depth/composition evidence, and a larger validated hocrsyngen `generation_manifest.v1` batch for synthetic target scale. Partial or unavailable benchmark coverage may be disclosed as a limitation, but it must not be renamed into a passing readiness gate unless a separate governance PR explicitly changes the public beta contract. The current `2 / 80` synthetic evidence, source-depth composition gaps, benchmark-reference limitations, and privacy/review blockers must remain blocked until their respective evidence exists.
+
 Unknown rights, restricted review-only rights, blocked sources, unresolved privacy flags, and unresolved review decisions must not be promoted into `profile_open_v1`.
 
 Modern handwritten contributor material must additionally satisfy the F3a/F3b policy before public-profile use: explicit contributor consent, compatible public-use release terms, rights provenance, contemporary privacy clearance, typed operator intake manifests, source-relative assets, operator review, and a documented takedown/removal path. F3b does not add a default modern handwriting source or collect/package real contributor samples; configured modern intake records remain review-only until explicitly approved.
@@ -210,6 +212,12 @@ For F5d, the required planning notation is:
 
 - notation: `F5d`
 - parent milestone: `F5 - Public beta and publication readiness`
+- source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
+
+For F6a, the required planning notation is:
+
+- notation: `F6a`
+- parent milestone: `F6 - Public beta closure and external input integration`
 - source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
 
 Feature and PR work is incomplete until a non-draft PR is open with appropriate labels, a detailed body, and a relevant milestone assignment when one exists.
