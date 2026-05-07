@@ -5,16 +5,25 @@ import json
 import shutil
 import tarfile
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 from pydantic import ValidationError
 
+import hocrgen.package.public_beta as public_beta
 from hocrgen.cli import main
 from hocrgen.config.loader import default_config_root
 from hocrgen.config.models import PrivateReportingPathConfig, ReportingPathConfig
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.package.common import verify_checksum_manifest, write_release_archive
-from hocrgen.package.public_beta import _blocker_closure_plan, _takedown_blocker_action, _takedown_gate
+from hocrgen.package.public_beta import (
+    _benchmark_reference_item_required_action,
+    _blocked_gate_ids_by_closure_category,
+    _blocker_closure_plan,
+    _stabilize_public_beta_readiness_artifacts,
+    _takedown_blocker_action,
+    _takedown_gate,
+)
 
 
 def _fixture_config_root(tmp_path: Path) -> Path:
@@ -493,6 +502,170 @@ def test_public_beta_blocker_closure_plan_fails_closed_for_unmapped_blocked_gate
         _blocker_closure_plan(readiness_report=readiness_report, takedown_validation={})
 
 
+def test_external_input_dependent_blocked_gates_are_category_derived(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setitem(
+        public_beta.BLOCKER_CLOSURE_ACTIONS,
+        "future_repo_owned_gate",
+        {
+            "category": "repo_owned_immediately_actionable",
+            "owner_scope": "hocrgen future repo-owned work",
+            "closure_state": "requires_repo_pr_or_review_update",
+            "required_action": "Close the future repo-owned blocker in hocrgen.",
+            "closure_artifacts": ["manifests/public_beta_repo_owned_blocker_report.json"],
+        },
+    )
+    readiness_report = {
+        "gates": [
+            {"gate_id": "source_depth_composition", "status": "blocked"},
+            {"gate_id": "future_repo_owned_gate", "status": "blocked"},
+            {"gate_id": "synthetic_target_scale", "status": "pass"},
+        ]
+    }
+
+    assert _blocked_gate_ids_by_closure_category(
+        readiness_report=readiness_report,
+        takedown_validation={},
+        category="external_input_dependent",
+    ) == ["source_depth_composition"]
+
+
+def test_public_beta_readiness_artifacts_rewrite_until_stable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifests_dir = tmp_path / "manifests"
+    manifests_dir.mkdir()
+    updated_report = {"readiness_status": "blocked", "iteration": 1, "gates": []}
+    recomputed_reports = iter([updated_report, updated_report])
+    written_reports: list[dict[str, object]] = []
+
+    monkeypatch.setattr(public_beta, "_write_public_beta_blocker_outputs", lambda **_: None)
+    monkeypatch.setattr(public_beta, "write_release_archive", lambda **_: {"archive_path": "archives/test.tar.gz"})
+    monkeypatch.setattr(public_beta, "build_checksum_manifest", lambda **_: {"entries": []})
+    monkeypatch.setattr(
+        public_beta,
+        "verify_checksum_manifest",
+        lambda *_: {"status": "pass", "checked_count": 0, "failure_count": 0, "failures": []},
+    )
+    monkeypatch.setattr(public_beta, "_readiness_report", lambda **_: next(recomputed_reports))
+    monkeypatch.setattr(
+        public_beta,
+        "_write_readiness_outputs",
+        lambda **kwargs: written_reports.append(kwargs["readiness_report"]),
+    )
+
+    readiness_report, archive_record = _stabilize_public_beta_readiness_artifacts(
+        export_dir=tmp_path,
+        manifests_dir=manifests_dir,
+        version="public-beta-v0",
+        profile_id="profile_open_v1",
+        release_record=SimpleNamespace(),
+        release_summary={},
+        build_release_summary={},
+        source_depth_feasibility={},
+        leakage_report={},
+        selected_benchmark_reference_status=None,
+        benchmark_reference_versioning=None,
+        docs_validation={},
+        takedown_validation={},
+        review_required_items=[],
+        blocked_items=[],
+        selected_review_queue=[],
+        readiness_report={"readiness_status": "blocked", "iteration": 0, "gates": []},
+    )
+
+    assert readiness_report == updated_report
+    assert archive_record == {"archive_path": "archives/test.tar.gz"}
+    assert written_reports == [updated_report]
+
+
+def test_public_beta_readiness_artifacts_fail_when_not_stable(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifests_dir = tmp_path / "manifests"
+    manifests_dir.mkdir()
+    reports = iter(
+        [
+            {"readiness_status": "blocked", "iteration": 1, "gates": []},
+            {"readiness_status": "blocked", "iteration": 2, "gates": []},
+            {"readiness_status": "blocked", "iteration": 3, "gates": []},
+        ]
+    )
+
+    monkeypatch.setattr(public_beta, "_write_public_beta_blocker_outputs", lambda **_: None)
+    monkeypatch.setattr(public_beta, "write_release_archive", lambda **_: {"archive_path": "archives/test.tar.gz"})
+    monkeypatch.setattr(public_beta, "build_checksum_manifest", lambda **_: {"entries": []})
+    monkeypatch.setattr(
+        public_beta,
+        "verify_checksum_manifest",
+        lambda *_: {"status": "pass", "checked_count": 0, "failure_count": 0, "failures": []},
+    )
+    monkeypatch.setattr(public_beta, "_readiness_report", lambda **_: next(reports))
+    monkeypatch.setattr(public_beta, "_write_readiness_outputs", lambda **_: None)
+
+    with pytest.raises(StageExecutionError, match="did not stabilize"):
+        _stabilize_public_beta_readiness_artifacts(
+            export_dir=tmp_path,
+            manifests_dir=manifests_dir,
+            version="public-beta-v0",
+            profile_id="profile_open_v1",
+            release_record=SimpleNamespace(),
+            release_summary={},
+            build_release_summary={},
+            source_depth_feasibility={},
+            leakage_report={},
+            selected_benchmark_reference_status=None,
+            benchmark_reference_versioning=None,
+            docs_validation={},
+            takedown_validation={},
+            review_required_items=[],
+            blocked_items=[],
+            selected_review_queue=[],
+            readiness_report={"readiness_status": "blocked", "iteration": 0, "gates": []},
+        )
+
+
+def test_public_beta_readiness_artifacts_fail_when_archive_does_not_run(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    manifests_dir = tmp_path / "manifests"
+    manifests_dir.mkdir()
+    stable_report = {"readiness_status": "blocked", "iteration": 0, "gates": []}
+
+    monkeypatch.setattr(public_beta, "_write_public_beta_blocker_outputs", lambda **_: None)
+    monkeypatch.setattr(public_beta, "write_release_archive", lambda **_: None)
+    monkeypatch.setattr(public_beta, "build_checksum_manifest", lambda **_: {"entries": []})
+    monkeypatch.setattr(
+        public_beta,
+        "verify_checksum_manifest",
+        lambda *_: {"status": "pass", "checked_count": 0, "failure_count": 0, "failures": []},
+    )
+    monkeypatch.setattr(public_beta, "_readiness_report", lambda **_: stable_report)
+
+    with pytest.raises(StageExecutionError, match="archive generation did not run"):
+        _stabilize_public_beta_readiness_artifacts(
+            export_dir=tmp_path,
+            manifests_dir=manifests_dir,
+            version="public-beta-v0",
+            profile_id="profile_open_v1",
+            release_record=SimpleNamespace(),
+            release_summary={},
+            build_release_summary={},
+            source_depth_feasibility={},
+            leakage_report={},
+            selected_benchmark_reference_status=None,
+            benchmark_reference_versioning=None,
+            docs_validation={},
+            takedown_validation={},
+            review_required_items=[],
+            blocked_items=[],
+            selected_review_queue=[],
+            readiness_report=stable_report,
+        )
+
+
 def test_public_beta_takedown_action_describes_configured_doc_failures() -> None:
     takedown_validation = {
         "configured_private_reporting_path": True,
@@ -530,6 +703,36 @@ def test_reporting_path_requires_operator_action_when_unconfigured() -> None:
         )
 
 
+def test_private_reporting_path_requires_repository_check_timestamp_when_result_recorded() -> None:
+    with pytest.raises(ValidationError, match="repository_check_at is required"):
+        PrivateReportingPathConfig.model_validate(
+            {
+                "id": "github_private_vulnerability_reporting",
+                "label": "GitHub private vulnerability reporting",
+                "channel": "github_private_vulnerability_reporting",
+                "configured": False,
+                "required_operator_action": "Enable GitHub private vulnerability reporting.",
+                "repository_check_method": "gh_api_private_vulnerability_reporting",
+                "repository_check_result": "disabled",
+            }
+        )
+
+
+def test_private_reporting_path_requires_repository_check_method_when_result_recorded() -> None:
+    with pytest.raises(ValidationError, match="repository_check_method is required"):
+        PrivateReportingPathConfig.model_validate(
+            {
+                "id": "github_private_vulnerability_reporting",
+                "label": "GitHub private vulnerability reporting",
+                "channel": "github_private_vulnerability_reporting",
+                "configured": False,
+                "required_operator_action": "Enable GitHub private vulnerability reporting.",
+                "repository_check_at": "2026-05-07",
+                "repository_check_result": "disabled",
+            }
+        )
+
+
 @pytest.mark.parametrize("repository_check_result", ["", "unknown", "disabled"])
 def test_private_reporting_path_requires_enabled_repository_check_when_configured(
     repository_check_result: str,
@@ -550,6 +753,30 @@ def test_private_reporting_path_requires_enabled_repository_check_when_configure
                 "repository_check_result": repository_check_result,
             }
         )
+
+
+@pytest.mark.parametrize(
+    ("item", "expected_fragment"),
+    [
+        (
+            SimpleNamespace(public_reference_status="reviewed", adjudication_status="pending"),
+            "Complete adjudication",
+        ),
+        (
+            SimpleNamespace(public_reference_status="adjudicated", adjudication_status="needs_repair"),
+            "Complete adjudication",
+        ),
+        (
+            SimpleNamespace(public_reference_status="blocked", adjudication_status="adjudicated"),
+            "Repair reference status semantics",
+        ),
+    ],
+)
+def test_benchmark_reference_required_action_covers_unready_status_semantics(
+    item: SimpleNamespace,
+    expected_fragment: str,
+) -> None:
+    assert expected_fragment in _benchmark_reference_item_required_action(item)
 
 
 def test_alpha_and_synthetic_exports_accept_config_root_without_public_beta_config(
