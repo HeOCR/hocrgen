@@ -8,6 +8,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
+import yaml
 from pydantic import ValidationError
 
 import hocrgen.package.public_beta as public_beta
@@ -39,6 +40,17 @@ def _fixture_config_root(tmp_path: Path) -> Path:
         encoding="utf-8",
     )
     return config_root
+
+
+def _load_public_beta_config(config_root: Path) -> dict:
+    return yaml.safe_load((config_root / "public_beta.yaml").read_text(encoding="utf-8"))
+
+
+def _write_public_beta_config(config_root: Path, payload: dict) -> None:
+    (config_root / "public_beta.yaml").write_text(
+        yaml.safe_dump(payload, sort_keys=False),
+        encoding="utf-8",
+    )
 
 
 def _sha256(path: Path) -> str:
@@ -403,25 +415,21 @@ def test_export_public_beta_takedown_gate_blocks_when_private_reporting_path_is_
     capsys,
 ) -> None:
     config_root = _fixture_config_root(tmp_path)
-    public_beta_config = config_root / "public_beta.yaml"
-    public_beta_config.write_text(
-        public_beta_config.read_text(encoding="utf-8").replace(
-            "configured: true\n"
-            "  repository_check_at: '2026-05-07'\n"
-            "  repository_check_method: gh_api_private_vulnerability_reporting\n"
-            "  repository_check_result: enabled\n"
-            "  verified_at: '2026-05-07'\n"
-            "  verification_method: github_repository_security_settings\n"
-            "  verified_by: authenticated_gh_api_repo_settings_check\n"
-            "  verification_valid_until: '2026-06-06'\n",
-            "configured: false\n"
-            "  repository_check_at: '2026-05-07'\n"
-            "  repository_check_method: gh_api_private_vulnerability_reporting\n"
-            "  repository_check_result: disabled\n"
-            "  required_operator_action: Enable GitHub private vulnerability reporting for HeOCR/hocrgen or replace this with a configured maintainer-private reporting channel before public beta publication.\n",
-        ),
-        encoding="utf-8",
+    public_beta_payload = _load_public_beta_config(config_root)
+    public_beta_payload["private_reporting_path"].update(
+        {
+            "configured": False,
+            "repository_check_result": "disabled",
+            "required_operator_action": (
+                "Enable GitHub private vulnerability reporting for HeOCR/hocrgen or replace this with a "
+                "configured maintainer-private reporting channel before public beta publication."
+            ),
+        }
     )
+    for key in ("verified_at", "verification_method", "verified_by", "verification_valid_until"):
+        public_beta_payload["private_reporting_path"].pop(key, None)
+    _write_public_beta_config(config_root, public_beta_payload)
+    assert _load_public_beta_config(config_root)["private_reporting_path"]["configured"] is False
     output_dir = tmp_path / "exports" / "public-beta-v0"
 
     assert main(
@@ -848,6 +856,21 @@ def test_private_reporting_path_requires_repository_check_method_when_result_rec
                 "repository_check_result": "disabled",
             }
         )
+
+
+@pytest.mark.parametrize("field_name", ["verified_at", "verification_valid_until", "repository_check_at"])
+def test_private_reporting_path_requires_iso_date_metadata(field_name: str) -> None:
+    payload = {
+        "id": "github_private_vulnerability_reporting",
+        "label": "GitHub private vulnerability reporting",
+        "channel": "github_private_vulnerability_reporting",
+        "configured": False,
+        "required_operator_action": "Enable GitHub private vulnerability reporting.",
+        field_name: "2026/05/07",
+    }
+
+    with pytest.raises(ValidationError, match=f"{field_name} must use YYYY-MM-DD format"):
+        PrivateReportingPathConfig.model_validate(payload)
 
 
 @pytest.mark.parametrize("repository_check_result", ["", "unknown", "disabled"])
