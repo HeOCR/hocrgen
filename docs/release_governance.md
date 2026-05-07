@@ -43,6 +43,27 @@ Synthetic-only `HeOCRsynth` releases are a separate release stream from mixed `H
 - exclude real-source NLI, Pinkas, BiblIA, modern handwriting, and other non-synthetic items from payload and audit manifests
 - avoid public beta or mixed-dataset readiness claims
 
+## Public beta readiness gates
+
+Mixed `HeOCR` public beta publication is a stricter publishability decision than a successful operator trial. The F1c target-scale trial may provide evidence that candidate acquisition and gates can run, but its artifacts are operator-only until the F5a readiness contract is satisfied. In particular, the current F1c synthetic evidence remains blocked for public beta readiness because full synthetic target scale still requires a larger validated hocrsyngen batch.
+
+Before mixed public beta publication, maintainers must verify the canonical F5a gate matrix in [`docs/HeOCR_hocrgen_long_term_roadmap.md`](./HeOCR_hocrgen_long_term_roadmap.md). F5b should emit a machine-readable `public_beta_readiness_report.json` with one entry per gate, source evidence artifact paths, status, and rationale. Public beta publication is allowed only when every gate status is `pass`; a `blocked` gate must stop repository sync, upload, release tagging, and publication reports.
+
+The governance summary of those gates is:
+
+- source depth and composition evidence for the planned real-source mix, with source-depth-only fixtures promoted through normal release-profile and review gates before they can count as public payload
+- synthetic target-scale evidence from a validated hocrsyngen `generation_manifest.v1` batch, with synthetic inclusion kept within the active public-profile/export cap policy
+- normalized release-compatible rights, provenance, attribution, consent/provider evidence where applicable, and no unresolved rights-review state for every public item
+- no review-required, blocked, unresolved privacy, unresolved modern-handwriting consent, or unresolved takedown/removal states in the public payload
+- exact duplicate, near-duplicate, source-group, split, synthetic-sibling, and benchmark/holdout leakage risks are clear or resolved by typed repo-tracked accepted resolutions
+- stable benchmark membership plus benchmark-reference status/versioning artifacts, with reference coverage and limitations disclosed
+- optional annotation, pilot, transcription, and layout references are release-relative, status-labeled, and not implied to be complete when they are not mandatory
+- release records, item manifests, SHA-256 checksum manifests, archive manifests, benchmark/reference paths, release diffs, changelogs, and docs are release-relative and do not expose absolute local paths, `.work/` state, `file://` references, or network-dependent reproducibility assumptions
+- `DATASET_CARD.md`, `PROVENANCE.md`, `CHANGELOG.md`, `RELEASE_NOTES.md`, benchmark docs, and handoff notes describe composition, source mix, synthetic fraction, rights posture, benchmark/reference status, annotation status, validation, limitations, and known blockers
+- rights, privacy, source-owner, takedown, correction, and source-breakage reports have a public or private intake path before publication
+
+F5a does not implement F5b publication packaging, repository sync, upload behavior, release tagging, or a public beta handoff command. Public beta remains blocked while any readiness gate is unresolved.
+
 Unknown rights, restricted review-only rights, blocked sources, unresolved privacy flags, and unresolved review decisions must not be promoted into `profile_open_v1`.
 
 Modern handwritten contributor material must additionally satisfy the F3a/F3b policy before public-profile use: explicit contributor consent, compatible public-use release terms, rights provenance, contemporary privacy clearance, typed operator intake manifests, source-relative assets, operator review, and a documented takedown/removal path. F3b does not add a default modern handwriting source or collect/package real contributor samples; configured modern intake records remain review-only until explicitly approved.
@@ -165,6 +186,12 @@ For F4e, the required planning notation is:
 
 - notation: `F4e`
 - parent milestone: `F4 - External synthetic provider integration`
+- source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
+
+For F5a, the required planning notation is:
+
+- notation: `F5a`
+- parent milestone: `F5 - Public beta and publication readiness`
 - source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
 
 Feature and PR work is incomplete until a non-draft PR is open with appropriate labels, a detailed body, and a relevant milestone assignment when one exists.
