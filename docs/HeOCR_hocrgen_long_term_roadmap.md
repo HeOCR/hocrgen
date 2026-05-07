@@ -133,7 +133,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | F1 | Beta-scale acquisition trial | F1a, F1b, F1b2, F1b3, F1b4, F1c, F1d, F1e | Operator-only beta-scale plan, source-depth feasibility/reporting, static-source expansion feasibility, source-depth count expansion, NLI runnable/cached promotion, bounded trial artifacts, near-duplicate/leakage hardening, and benchmark/holdout leakage resolution | completed |
 | F2 | Benchmark ground-truth foundation | F2a, F2b | Transcription/layout guidelines, reference manifests, benchmark references, and adjudication workflow | completed |
 | F3 | Modern handwritten acquisition program | F3a, F3b | Rights-clean modern Hebrew handwriting collection policy and operator acquisition workflow | completed |
-| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d | Synthetic spinout architecture, provider manifest contract, fixture-backed adapter, Hebrew rendering/provider gates, and HeOCRsynth export handoff | completed |
+| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d, F4e | Synthetic spinout architecture, provider manifest contract, fixture-backed adapter, Hebrew rendering/provider gates, HeOCRsynth export handoff, and shared release export packaging primitives | completed |
 | F5 | Public beta and publication readiness | F5a, F5b | Public beta gates, publication packaging, dataset-card, and takedown-ready export handoff | planned |
 
 ## 4.2 PR summary
@@ -189,12 +189,13 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | F4b | F4 | Define and ingest the external `hocrsyngen` generated-sample manifest contract with fixture validation | no | completed | current ref hocrsyngen manifest-backed source PR |
 | F4c | F4 | Add deeper Hebrew rendering/provider metadata gates for `hocrsyngen` batches | no | completed | current ref hocrsyngen provider/rendering gates |
 | F4d | F4 | Add synthetic-only export handoff for `HeOCRsynth` | no | completed | current ref synthetic-only export PR |
+| F4e | F4 | Extract shared release export packaging primitives for alpha and HeOCRsynth releases | no | completed | current ref shared packaging cleanup PR |
 | F5a | F5 | Define public beta readiness gates over source depth, uniqueness, ground truth, review, and portability | no | planned | after F1-F4 foundations |
 | F5b | F5 | Implement public beta publication packaging and handoff workflow | no | planned | after F5a |
 
 ## 4.3 Current critical path
 
-The immediate implementation critical path after `F4d` is:
+The immediate implementation critical path after `F4e` is:
 
 1. Keep the F1c operator-only target-scale trial as evidence that `27` NLI / `27` Pinkas / `26` BiblIA real-source candidates plus currently configured hocrsyngen synthetic fixture samples can be exercised through the existing gates without broad crawling or publication.
 2. Keep `F1d` near-duplicate, source-group, and split-leakage hardening in force before treating the trial as a path toward larger public beta or release-candidate export work.
@@ -1191,9 +1192,10 @@ Persona and condition fields are generator controls only. They must not claim ps
 - `F4b`: define and ingest the external `hocrsyngen` generated-sample manifest contract with fixture validation
 - `F4c`: add deeper Hebrew rendering/provider metadata gates for `hocrsyngen` batches
 - `F4d`: add synthetic-only export handoff for `HeOCRsynth`
+- `F4e`: extract shared release export packaging primitives for alpha and HeOCRsynth release writers
 
 ### Current-ref implementation
-`F4a` is implemented on the current ref as planning and documentation only. `F4b` adds fixture-backed hocrsyngen manifest ingestion. `F4c` hardens the same `generation_manifest.v1` boundary with required provider metadata, dependency-boundary flags, RTL/logical rendering metadata, Hebrew coverage validation, source-health signals, config validation, and synthetic composition reporting. `F4d` adds `hocrgen export-synthetic`, a synthetic-only HeOCRsynth handoff path that selects release-ready `PROJECT-SYNTHETIC` items from existing hocrgen pipeline state, preserves synthetic disclosure and hocrsyngen provider/rendering/Hebrew coverage metadata, writes payload assets under `data/synthetic/<split>/<item_id>/`, and keeps mixed `HeOCR` `export-alpha` releases distinct. F4d does not add acquisition code, hocrsyngen runtime calls, new hocrgen generator dependencies, or changes to current mixed public/alpha selection behavior.
+`F4a` is implemented on the current ref as planning and documentation only. `F4b` adds fixture-backed hocrsyngen manifest ingestion. `F4c` hardens the same `generation_manifest.v1` boundary with required provider metadata, dependency-boundary flags, RTL/logical rendering metadata, Hebrew coverage validation, source-health signals, config validation, and synthetic composition reporting. `F4d` adds `hocrgen export-synthetic`, a synthetic-only HeOCRsynth handoff path that selects release-ready `PROJECT-SYNTHETIC` items from existing hocrgen pipeline state, preserves synthetic disclosure and hocrsyngen provider/rendering/Hebrew coverage metadata, writes payload assets under `data/synthetic/<split>/<item_id>/`, and keeps mixed `HeOCR` `export-alpha` releases distinct. `F4e` extracts shared release export packaging primitives into `hocrgen.package.common` so alpha and HeOCRsynth exporters share release-relative portable payload shaping, stats, review/audit payloads, benchmark/reference filtering, release diffs, changelog rendering, and standard manifest/doc writing while retaining separate mixed `HeOCR` and synthetic-only release policy. F4d/F4e do not add acquisition code, hocrsyngen runtime calls, new hocrgen generator dependencies, or changes to current mixed public/alpha selection behavior.
 
 ### Exit criteria
 - `hocrsyngen` output is treated as candidate synthetic input, not release-ready data by itself

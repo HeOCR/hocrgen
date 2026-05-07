@@ -24,29 +24,31 @@ from hocrgen.manifests.models import (
     ReviewQueueRecord,
     TranscriptionReference,
 )
-from hocrgen.package.alpha import (
-    AlphaExportConfig,
+from hocrgen.package.common import (
     BenchmarkExportInputs,
     REPO_ROOT,
-    _benchmark_card_for_export,
-    _build_release_diff,
-    _changelog_doc,
-    _audit_item_payload,
-    _build_source_stats,
-    _copy_export_assets,
-    _current_commit_sha,
-    _load_baseline_item_manifest,
-    _public_item_payload,
-    _parse_exported_at,
+    audit_item_payload_for_export as _audit_item_payload,
+    benchmark_card_for_export as _benchmark_card_for_export,
+    build_release_diff as _build_release_diff,
+    build_source_stats as _build_source_stats,
+    changelog_doc as _changelog_doc,
+    copy_export_assets as _copy_export_assets,
+    copy_review_previews as _copy_review_previews,
+    current_commit_sha as _current_commit_sha,
+    load_baseline_item_manifest as _load_baseline_item_manifest,
+    parse_exported_at as _parse_exported_at,
+    public_item_payload as _public_item_payload,
+    review_queue_payload as _review_queue_payload,
+    sanitize_portable_value as _sanitize_portable_value,
+    source_priority as _source_priority,
+    split_sort_key as _split_sort_key,
+    synthetic_composition_lines as _synthetic_composition_lines,
+)
+from hocrgen.package.alpha import (
+    AlphaExportConfig,
     _resolve_comparison_release,
-    _review_queue_payload,
-    _copy_review_previews,
     _handoff_doc,
-    _sanitize_portable_value,
     _select_alpha_items,
-    _synthetic_composition_lines,
-    _source_priority,
-    _split_sort_key,
     _validate_heocr_repo_root,
     _validate_overwrite_target,
     export_alpha_release,
@@ -1669,7 +1671,7 @@ def test_public_item_payload_raises_if_sanitizer_does_not_return_object(tmp_path
         _make_item("payload:item", "train", str(asset_path)).model_dump(mode="python")
         | {"exported_assets": []}
     )
-    monkeypatch.setattr("hocrgen.package.alpha._sanitize_portable_value", lambda value: "not-a-dict")
+    monkeypatch.setattr("hocrgen.package.common.sanitize_portable_value", lambda value: "not-a-dict")
     with pytest.raises(StageExecutionError, match="public item payload must serialize to an object"):
         _public_item_payload(item)
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F4d"
+CURRENT_COMPLETED_NOTATION = "F4e"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -53,7 +53,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "| F1 | Beta-scale acquisition trial | F1a, F1b, F1b2, F1b3, F1b4, F1c, F1d, F1e |" in roadmap
     assert "| F2 | Benchmark ground-truth foundation | F2a, F2b |" in roadmap
     assert "| F3 | Modern handwritten acquisition program | F3a, F3b |" in roadmap
-    assert "| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d |" in roadmap
+    assert "| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d, F4e |" in roadmap
     assert "| F5 | Public beta and publication readiness | F5a, F5b |" in roadmap
     assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
@@ -182,6 +182,7 @@ def test_post_f1_roadmap_captures_outside_review_takeaways() -> None:
         "`F4b`",
         "`F4c`",
         "`F4d`",
+        "`F4e`",
         "`F5`",
     ]:
         assert required in combined
@@ -270,6 +271,27 @@ def test_f4d_heocrsynth_export_handoff_is_documented() -> None:
         "real_items: 0",
         "raw generator",
         "mixed `HeOCR`",
+    ]:
+        assert required in combined
+
+
+def test_f4e_shared_export_packaging_primitives_are_documented() -> None:
+    agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+    release_governance = Path("docs/release_governance.md").read_text(encoding="utf-8")
+    combined = "\n".join([agent_plan, readme, roadmap, release_governance])
+
+    for required in [
+        "`F4e`",
+        "shared release export packaging primitives",
+        "hocrgen.package.common",
+        "alpha",
+        "HeOCRsynth",
+        "release-relative",
+        "portable",
+        "mixed `HeOCR`",
+        "synthetic-only",
     ]:
         assert required in combined
 
