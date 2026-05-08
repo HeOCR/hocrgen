@@ -127,11 +127,11 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert closure_plan["planning_notation"] == "F6e"
     assert closure_plan["source_readiness_report"] == "manifests/public_beta_readiness_report.json"
     assert closure_plan["readiness_status"] == "blocked"
-    assert closure_plan["summary"]["external_input_dependent"] == 1
-    assert closure_plan["summary"]["repo_owned_immediately_actionable"] == 3
+    assert closure_plan["summary"]["external_input_dependent"] == 2
+    assert closure_plan["summary"]["repo_owned_immediately_actionable"] == 2
     blockers_by_gate = {blocker["gate_id"]: blocker for blocker in closure_plan["blockers"]}
-    assert blockers_by_gate["source_depth_composition"]["category"] == "repo_owned_immediately_actionable"
-    assert blockers_by_gate["source_depth_composition"]["closure_state"] == "requires_repo_pr_or_source_promotion"
+    assert blockers_by_gate["source_depth_composition"]["category"] == "external_input_dependent"
+    assert blockers_by_gate["source_depth_composition"]["closure_state"] == "requires_public_profile_candidate_input"
     assert blockers_by_gate["synthetic_target_scale"]["category"] == "external_input_dependent"
     assert blockers_by_gate["synthetic_target_scale"]["closure_state"] == "requires_external_input"
     assert blockers_by_gate["synthetic_target_scale"]["blocks_publication"] is True
@@ -143,19 +143,21 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
     assert repo_owned_report["planning_notation"] == "F6e"
     assert repo_owned_report["repo_owned_status"] == "blocked"
     assert repo_owned_report["repo_owned_blocked_gate_ids"] == [
-        "source_depth_composition",
         "privacy_review",
         "benchmark_references",
     ]
     assert repo_owned_report["external_input_dependent_blocked_gate_ids"] == [
+        "source_depth_composition",
         "synthetic_target_scale",
     ]
     repo_entries = {entry["gate_id"]: entry for entry in repo_owned_report["entries"]}
     assert repo_entries["source_depth_composition"]["counts"] == {
         "target_real_item_count": 80,
+        "target_source_item_count": 80,
         "public_payload_real_item_count": 2,
         "public_payload_synthetic_item_count": 2,
         "source_depth_only_payload_item_count": 0,
+        "source_stats_payload_mismatch_count": 0,
     }
     assert repo_entries["source_depth_composition"]["f6e_assessment"] == {
         "planning_notation": "F6e",
@@ -725,7 +727,7 @@ def test_source_depth_composition_report_blocks_source_depth_only_payload_items(
             )
         ],
         source_depth_feasibility={"artifact_scope": "operator_only", "sources": [], "summary": {}},
-        source_stats={"sources": {"nli_any_use_permitted": 27, "pinkas_open": 27, "biblia_open": 26}},
+        source_stats={"sources": {"nli_any_use_permitted": 1}},
     )
 
     assert report["status"] == "blocked"
@@ -742,6 +744,97 @@ def test_source_depth_composition_report_blocks_source_depth_only_payload_items(
     )
     assert closure_entry["f6e_assessment"]["assessment_status"] == "blocked_source_depth_only_payload_items_present"
     assert closure_entry["f6e_assessment"]["blocked_gate_preserved"] is True
+
+
+def test_source_depth_composition_report_blocks_source_stats_payload_mismatch() -> None:
+    report = _source_depth_composition_report(
+        profile=SimpleNamespace(
+            id="profile_open_v1",
+            include_sources=["nli_any_use_permitted", "pinkas_open", "biblia_open"],
+            exclude_sources=[],
+        ),
+        exported_items=[
+            SimpleNamespace(
+                item_id="nli_any_use_permitted:nli-001",
+                source_id="nli_any_use_permitted",
+                is_synthetic=False,
+                metadata={},
+                raw_metadata={},
+            ),
+            SimpleNamespace(
+                item_id="pinkas_open:pinkas-001",
+                source_id="pinkas_open",
+                is_synthetic=False,
+                metadata={},
+                raw_metadata={},
+            ),
+        ],
+        source_depth_feasibility={"artifact_scope": "operator_only", "sources": [], "summary": {}},
+        source_stats={"sources": {"nli_any_use_permitted": 27, "pinkas_open": 27, "biblia_open": 26}},
+    )
+
+    assert report["status"] == "blocked"
+    assert report["assessment_status"] == "blocked_source_stats_payload_mismatch"
+    assert report["source_stats_payload_mismatch_count"] == 3
+    assert report["source_stats_payload_mismatches"] == [
+        {"source_id": "biblia_open", "exported_items_count": 0, "source_stats_count": 26},
+        {"source_id": "nli_any_use_permitted", "exported_items_count": 1, "source_stats_count": 27},
+        {"source_id": "pinkas_open", "exported_items_count": 1, "source_stats_count": 27},
+    ]
+    sources_by_id = {entry["source_id"]: entry for entry in report["sources"]}
+    assert sources_by_id["nli_any_use_permitted"]["public_payload_count"] == 1
+    assert sources_by_id["pinkas_open"]["public_payload_count"] == 1
+    assert sources_by_id["biblia_open"]["public_payload_count"] == 0
+
+
+def test_source_depth_composition_report_blocks_target_contract_mismatch(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setattr(
+        public_beta,
+        "PUBLIC_BETA_REAL_SOURCE_TARGETS",
+        {"nli_any_use_permitted": 1, "pinkas_open": 1, "biblia_open": 1},
+    )
+    exported_items = [
+        SimpleNamespace(
+            item_id="nli_any_use_permitted:nli-001",
+            source_id="nli_any_use_permitted",
+            is_synthetic=False,
+            metadata={},
+            raw_metadata={},
+        ),
+        SimpleNamespace(
+            item_id="pinkas_open:pinkas-001",
+            source_id="pinkas_open",
+            is_synthetic=False,
+            metadata={},
+            raw_metadata={},
+        ),
+        SimpleNamespace(
+            item_id="biblia_open:biblia-001",
+            source_id="biblia_open",
+            is_synthetic=False,
+            metadata={},
+            raw_metadata={},
+        ),
+    ]
+
+    report = _source_depth_composition_report(
+        profile=SimpleNamespace(
+            id="profile_open_v1",
+            include_sources=["nli_any_use_permitted", "pinkas_open", "biblia_open"],
+            exclude_sources=[],
+        ),
+        exported_items=exported_items,
+        source_depth_feasibility={"artifact_scope": "operator_only", "sources": [], "summary": {}},
+        source_stats={"sources": {"nli_any_use_permitted": 1, "pinkas_open": 1, "biblia_open": 1}},
+    )
+
+    assert report["status"] == "blocked"
+    assert report["assessment_status"] == "blocked_source_target_contract_mismatch"
+    assert report["target_real_item_count"] == 80
+    assert report["target_source_item_count"] == 3
+    assert report["target_source_count_matches_real_target"] is False
 
 
 def test_export_public_beta_rejects_output_dir_that_does_not_match_version(tmp_path: Path, capsys) -> None:
@@ -1092,12 +1185,12 @@ def test_external_input_dependent_blocked_gates_are_category_derived(monkeypatch
         readiness_report=readiness_report,
         takedown_validation={},
         category="external_input_dependent",
-    ) == []
+    ) == ["source_depth_composition"]
     assert _blocked_gate_ids_by_closure_category(
         readiness_report=readiness_report,
         takedown_validation={},
         category="repo_owned_immediately_actionable",
-    ) == ["source_depth_composition", "future_repo_owned_gate"]
+    ) == ["future_repo_owned_gate"]
 
 
 def test_public_beta_readiness_artifacts_rewrite_until_stable(
