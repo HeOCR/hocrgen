@@ -27,6 +27,7 @@ from hocrgen.package.public_beta import PublicBetaExportConfig, export_public_be
 from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_summary
 from hocrgen.review.merge import validate_review_data
 from hocrgen.runs import load_resumed_pipeline_state, render_run_summary_markdown, summarize_run
+from hocrgen.synthetic.hocrsyngen_preflight import run_hocrsyngen_preflight
 
 
 STAGE_COMMANDS = (
@@ -130,6 +131,29 @@ def build_parser() -> argparse.ArgumentParser:
     )
     evaluate_benchmark_parser.add_argument("--output", type=Path, default=None, help="Optional path for the JSON report")
     evaluate_benchmark_parser.set_defaults(handler=handle_evaluate_benchmark)
+
+    hocrsyngen_preflight_parser = subparsers.add_parser(
+        "hocrsyngen-preflight",
+        help="Validate a hocrsyngen evidence-run root and write an operator-only hocrgen diagnostic report",
+    )
+    hocrsyngen_preflight_parser.add_argument(
+        "--evidence-root",
+        type=Path,
+        required=True,
+        help="Path to a hocrsyngen evidence-run output root",
+    )
+    hocrsyngen_preflight_parser.add_argument(
+        "--report",
+        type=Path,
+        default=None,
+        help="Diagnostic report path; defaults to <evidence-root>/hocrgen_preflight_report.json",
+    )
+    hocrsyngen_preflight_parser.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace an existing diagnostic report path",
+    )
+    hocrsyngen_preflight_parser.set_defaults(handler=handle_hocrsyngen_preflight)
 
     export_alpha_parser = subparsers.add_parser("export-alpha", help="Export a narrow alpha release tree for the HeOCR repo")
     _add_pipeline_common_args(
@@ -486,6 +510,33 @@ def handle_evaluate_benchmark(args: argparse.Namespace) -> int:
         return 1
 
     _print_json(report)
+    return 0
+
+
+def handle_hocrsyngen_preflight(args: argparse.Namespace) -> int:
+    try:
+        result = run_hocrsyngen_preflight(
+            args.evidence_root,
+            report_path=args.report,
+            overwrite=args.overwrite,
+        )
+    except StageExecutionError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+
+    _print_json(
+        {
+            "status": "ok",
+            "artifact_scope": result.report["artifact_scope"],
+            "release_eligible": result.report["release_eligible"],
+            "report": str(result.report_path),
+            "sample_count": result.report["manifest"]["sample_count"],
+            "page_count": result.report["manifest"]["page_count"],
+            "missing_hocrgen_release_import_metadata": result.report["manifest"][
+                "missing_hocrgen_release_import_metadata"
+            ],
+        }
+    )
     return 0
 
 
