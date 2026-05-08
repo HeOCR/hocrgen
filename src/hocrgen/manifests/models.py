@@ -456,6 +456,75 @@ class PublicBetaReleaseRecord(ManifestModel):
     schema_version: Literal[1] = 1
 
 
+class PublicBetaSourceStatsPayloadMismatchRecord(ManifestModel):
+    source_id: str
+    exported_items_count: int = Field(ge=0)
+    source_stats_count: int = Field(ge=0)
+
+
+class PublicBetaSourceDepthCompositionSourceRecord(ManifestModel):
+    source_id: str
+    target_count: int = Field(ge=0)
+    public_payload_count: int = Field(ge=0)
+    public_payload_gap: int = Field(ge=0)
+    status: Literal["pass", "blocked"]
+    profile_included: bool
+    operator_source_depth_target_scale_candidate_count: int = Field(ge=0)
+    operator_source_depth_runnable_cached_candidate_count: int = Field(ge=0)
+    operator_source_depth_feasibility_status: str
+    operator_only_or_source_depth_inventory_not_counted: int = Field(ge=0)
+
+
+class PublicBetaSourceDepthCompositionReport(ManifestModel):
+    schema_version: Literal[1] = 1
+    planning_notation: Literal["F6e"] = "F6e"
+    artifact_scope: Literal["public_profile_candidate_payload"] = "public_profile_candidate_payload"
+    readiness_contract: str
+    profile_id: str
+    status: Literal["pass", "blocked"]
+    closure_state: Literal[
+        "pass",
+        "requires_public_profile_candidate_input",
+        "requires_public_profile_candidate_promotion",
+        "requires_public_payload_reconciliation",
+        "requires_source_stats_payload_reconciliation",
+        "requires_source_target_contract_reconciliation",
+    ]
+    assessment_status: Literal[
+        "closed_with_public_profile_candidate_evidence",
+        "blocked_public_profile_candidate_gap",
+        "blocked_source_depth_only_payload_items_present",
+        "blocked_source_stats_payload_mismatch",
+        "blocked_source_target_contract_mismatch",
+    ]
+    target_real_item_count: int = Field(ge=0)
+    target_source_item_count: int = Field(ge=0)
+    target_source_count_matches_real_target: bool
+    public_payload_real_item_count: int = Field(ge=0)
+    public_payload_synthetic_item_count: int = Field(ge=0)
+    source_depth_only_payload_item_count: int = Field(ge=0)
+    source_depth_only_payload_item_ids: list[str] = Field(default_factory=list)
+    source_stats_payload_mismatch_count: int = Field(ge=0)
+    source_stats_payload_mismatches: list[PublicBetaSourceStatsPayloadMismatchRecord] = Field(default_factory=list)
+    source_depth_feasibility_artifact_scope: str
+    source_depth_feasibility_summary: dict[str, Any] = Field(default_factory=dict)
+    sources: list[PublicBetaSourceDepthCompositionSourceRecord] = Field(default_factory=list)
+    limitation_disclosure: str
+    blocked_gate_preserved: bool
+
+    @model_validator(mode="after")
+    def validate_report_status(self) -> "PublicBetaSourceDepthCompositionReport":
+        if (self.status == "pass") != (self.closure_state == "pass"):
+            raise ValueError("source-depth/composition status must match closure_state")
+        if self.source_depth_only_payload_item_count != len(self.source_depth_only_payload_item_ids):
+            raise ValueError("source-depth-only count must match listed item ids")
+        if self.source_stats_payload_mismatch_count != len(self.source_stats_payload_mismatches):
+            raise ValueError("source-stats mismatch count must match listed mismatches")
+        if self.status == "pass" and not self.target_source_count_matches_real_target:
+            raise ValueError("passing source-depth/composition report requires a coherent real-source target contract")
+        return self
+
+
 class ReleaseRemovalRecord(ManifestModel):
     item_id: str
     source_id: str
