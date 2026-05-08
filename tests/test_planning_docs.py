@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F6e"
+CURRENT_COMPLETED_NOTATION = "F6f1"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -13,6 +13,7 @@ PLANNING_FILES = [
     Path("docs/source_adapter_contribution_guide.md"),
     Path("docs/synthetic_asset_contribution_guide.md"),
     Path("docs/release_governance.md"),
+    Path("docs/hocrsyngen_adapter_preflight_plan.md"),
 ]
 STALE_BRANCH_LOCAL_PHRASES = [
     "this branch",
@@ -64,6 +65,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "`F6c` now evaluates current benchmark-reference evidence" in agent_plan
     assert "`F6d` now evaluates current privacy/review evidence" in agent_plan
     assert "`F6e` now evaluates current source-depth/composition evidence" in agent_plan
+    assert "`F6f1` now records the hocrsyngen S6 handoff review" in agent_plan
     assert "| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert "| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert "| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
@@ -77,7 +79,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d, F4e |" in roadmap
     assert "| F5 | Public beta and publication readiness | F5a, F5b, F5c, F5d | Public beta gates, publication packaging, dataset-card, checksum/archive manifests, takedown-ready export handoff, blocker-closure sequencing, and repo-owned blocker reporting | completed-with-blockers |" in roadmap
     assert roadmap_rows["F6"][1] == "Public beta closure and external input integration"
-    assert roadmap_rows["F6"][2].split(", ") == ["F6a", "F6b", "F6c", "F6d", "F6e", "F6f", "F6g"]
+    assert roadmap_rows["F6"][2].split(", ") == ["F6a", "F6b", "F6c", "F6d", "F6e", "F6f1", "F6f2", "F6g"]
     assert roadmap_rows["F6"][4] == "partial"
     assert "| F5a | F5 | Define public beta readiness gates over source depth, uniqueness, ground truth, review, and portability | no | completed |" in roadmap
     assert "| F5b | F5 | Implement public beta publication packaging and handoff workflow | no | completed | current ref public beta packaging and blocked handoff workflow |" in roadmap
@@ -89,8 +91,9 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
         "F6c": ("completed", ["1 / 3", "reviewed/adjudicated"]),
         "F6d": ("completed", ["default-unresolved"]),
         "F6e": ("completed", ["public-profile", "operator-only"]),
-        "F6f": ("planned", ["generation_manifest.v1"]),
-        "F6g": ("planned", ["privacy/review closure", "F6e-F6f"]),
+        "F6f1": ("completed", ["hocrsyngen S6", "release/import metadata gap"]),
+        "F6f2": ("planned", ["release/import metadata form", "generation_manifest.v1"]),
+        "F6g": ("planned", ["privacy/review closure", "F6e-F6f2"]),
     }
     for pr_id, (status, note_tokens) in expected_f6_pr_rows.items():
         row = roadmap_rows[pr_id]
@@ -101,7 +104,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
             assert token in row[5]
     assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
-    assert "`F5a`, `F5b`, `F5c`, `F5d`, `F6a`, `F6b`, `F6c`, `F6d`, and `F6e` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
+    assert "`F5a`, `F5b`, `F5c`, `F5d`, `F6a`, `F6b`, `F6c`, `F6d`, `F6e`, and `F6f1` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
 
 
 def test_f3_modern_handwritten_policy_and_intake_are_consistent_and_bounded() -> None:
@@ -452,7 +455,8 @@ def test_f6_post_f5_closure_roadmap_is_documented_and_evidence_gated() -> None:
         "`F6c`",
         "`F6d`",
         "`F6e`",
-        "`F6f`",
+        "`F6f1`",
+        "`F6f2`",
         "`F6g`",
         "verified private reporting path",
         "reviewed/adjudicated",
@@ -462,6 +466,10 @@ def test_f6_post_f5_closure_roadmap_is_documented_and_evidence_gated() -> None:
         "real public-profile source-depth/composition evidence",
         "larger validated hocrsyngen",
         "generation_manifest.v1",
+        "installed-CLI adapter preflight",
+        "release/import metadata",
+        "provider, rendering, and Hebrew coverage metadata",
+        "operator-only diagnostics",
         "privacy/review closure, source-depth, and synthetic-scale inputs",
         "2 / 80",
         "source-depth composition",
@@ -472,17 +480,20 @@ def test_f6_post_f5_closure_roadmap_is_documented_and_evidence_gated() -> None:
         "does not publish",
         "does not relax",
         "does not import hocrsyngen internals",
+        "default release/export paths",
         "GPU/LLM/diffusion",
     ]:
         assert required in combined
 
-    assert "| F6 | Public beta closure and external input integration | F6a, F6b, F6c, F6d, F6e, F6f, F6g |" in roadmap
+    assert "| F6 | Public beta closure and external input integration | F6a, F6b, F6c, F6d, F6e, F6f1, F6f2, F6g |" in roadmap
     assert "For F6a, the required planning notation is:" in release_governance
     assert "For F6b, the required planning notation is:" in release_governance
     assert "For F6d, the required planning notation is:" in release_governance
     assert "For F6e, the required planning notation is:" in release_governance
+    assert "For F6f1, the required planning notation is:" in release_governance
     assert "parent milestone: `F6 - Public beta closure and external input integration`" in release_governance
     assert "F6 does not permit hocrgen to import hocrsyngen internals" in design
+    assert "hocrgen-owned import packet" in Path("docs/hocrsyngen_adapter_preflight_plan.md").read_text(encoding="utf-8")
     assert "Future implementation should follow F6" in pre_alpha
 
 
