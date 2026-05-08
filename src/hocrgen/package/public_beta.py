@@ -1534,14 +1534,7 @@ def _source_depth_composition_closure_entry(
         "gate_id": "source_depth_composition",
         "status": gate["status"],
         "closure_state": closure_state,
-        "required_action": (
-            "No source-depth/composition action remains for current public-profile candidates."
-            if gate["status"] == "pass"
-            else (
-                "Promote enough real NLI, Pinkas, and BiblIA candidates through the normal public profile and "
-                "release gates; do not count F1c operator-only or source-depth-only inventory as public payload readiness."
-            )
-        ),
+        "required_action": _source_depth_composition_required_action(gate["status"], closure_state),
         "counts": {
             "target_real_item_count": report.get("target_real_item_count", F1_REAL_TARGET_COUNT),
             "target_source_item_count": report.get("target_source_item_count", F1_REAL_TARGET_COUNT),
@@ -1574,6 +1567,32 @@ def _source_depth_composition_closure_entry(
         "evidence_paths": gate["evidence_paths"],
         "rationale": gate["rationale"],
     }
+
+
+def _source_depth_composition_required_action(gate_status: str, closure_state: str) -> str:
+    if gate_status == "pass":
+        return "No source-depth/composition action remains for current public-profile candidates."
+    actions = {
+        "requires_public_payload_reconciliation": (
+            "Remove source-depth-only items from the public payload or promote them through the normal public profile, "
+            "review, privacy, split, benchmark, and portability gates before claiming source-depth/composition readiness."
+        ),
+        "requires_source_stats_payload_reconciliation": (
+            "Reconcile source_stats with the exported public payload before evaluating source-depth/composition readiness; "
+            "public payload item counts, not stale or inflated source_stats, must drive the gate."
+        ),
+        "requires_source_target_contract_reconciliation": (
+            "Reconcile the configured NLI/Pinkas/BiblIA source targets with the hard 80-real-item public beta target "
+            "before claiming source-depth/composition readiness."
+        ),
+    }
+    return actions.get(
+        closure_state,
+        (
+            "Promote enough real NLI, Pinkas, and BiblIA candidates through the normal public profile and release gates; "
+            "do not count F1c operator-only or source-depth-only inventory as public payload readiness."
+        ),
+    )
 
 
 def _gate(gate_id: str, status: bool, evidence_paths: list[str], rationale: str) -> dict[str, Any]:

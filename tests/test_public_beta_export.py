@@ -16,6 +16,7 @@ from hocrgen.cli import main
 from hocrgen.config.loader import default_config_root
 from hocrgen.config.models import PrivateReportingPathConfig, ReportingPathConfig
 from hocrgen.core.errors import StageExecutionError
+from hocrgen.manifests.models import PublicBetaSourceDepthCompositionReport
 from hocrgen.package.common import verify_checksum_manifest, write_release_archive
 from hocrgen.package.public_beta import (
     _benchmark_reference_closure_entry,
@@ -710,6 +711,63 @@ def test_source_depth_composition_report_counts_only_public_profile_payload_cand
     assert sources_by_id["biblia_open"]["public_payload_gap"] == 26
 
 
+def test_source_depth_composition_report_passes_with_public_profile_payload_targets() -> None:
+    source_counts = {
+        "nli_any_use_permitted": 27,
+        "pinkas_open": 27,
+        "biblia_open": 26,
+    }
+    exported_items = [
+        SimpleNamespace(
+            item_id=f"{source_id}:item-{index:03d}",
+            source_id=source_id,
+            is_synthetic=False,
+            metadata={},
+            raw_metadata={},
+        )
+        for source_id, count in source_counts.items()
+        for index in range(count)
+    ]
+
+    report = _source_depth_composition_report(
+        profile=SimpleNamespace(
+            id="profile_open_v1",
+            include_sources=["nli_any_use_permitted", "pinkas_open", "biblia_open"],
+            exclude_sources=[],
+        ),
+        exported_items=exported_items,
+        source_depth_feasibility={
+            "artifact_scope": "operator_only",
+            "sources": [
+                {
+                    "source_id": source_id,
+                    "target_scale_candidate_count": count,
+                    "runnable_cached_candidate_count": count,
+                    "feasibility_status": "feasible",
+                }
+                for source_id, count in source_counts.items()
+            ],
+            "summary": {},
+        },
+        source_stats={"sources": source_counts},
+    )
+
+    assert report["status"] == "pass"
+    assert report["assessment_status"] == "closed_with_public_profile_candidate_evidence"
+    assert report["closure_state"] == "pass"
+    assert report["limitation_disclosure"] == "none for current public-profile source-depth/composition evidence"
+    closure_entry = _source_depth_composition_closure_entry(
+        {
+            "gate_id": "source_depth_composition",
+            "status": "pass",
+            "evidence_paths": ["manifests/public_beta_source_depth_composition_report.json"],
+            "rationale": "pass",
+        },
+        report,
+    )
+    assert closure_entry["required_action"] == "No source-depth/composition action remains for current public-profile candidates."
+
+
 def test_source_depth_composition_report_blocks_source_depth_only_payload_items() -> None:
     report = _source_depth_composition_report(
         profile=SimpleNamespace(
@@ -744,6 +802,7 @@ def test_source_depth_composition_report_blocks_source_depth_only_payload_items(
     )
     assert closure_entry["f6e_assessment"]["assessment_status"] == "blocked_source_depth_only_payload_items_present"
     assert closure_entry["f6e_assessment"]["blocked_gate_preserved"] is True
+    assert "Remove source-depth-only items" in closure_entry["required_action"]
 
 
 def test_source_depth_composition_report_blocks_source_stats_payload_mismatch() -> None:
@@ -785,6 +844,16 @@ def test_source_depth_composition_report_blocks_source_stats_payload_mismatch() 
     assert sources_by_id["nli_any_use_permitted"]["public_payload_count"] == 1
     assert sources_by_id["pinkas_open"]["public_payload_count"] == 1
     assert sources_by_id["biblia_open"]["public_payload_count"] == 0
+    closure_entry = _source_depth_composition_closure_entry(
+        {
+            "gate_id": "source_depth_composition",
+            "status": "blocked",
+            "evidence_paths": ["manifests/public_beta_source_depth_composition_report.json"],
+            "rationale": "blocked",
+        },
+        report,
+    )
+    assert "Reconcile source_stats with the exported public payload" in closure_entry["required_action"]
 
 
 def test_source_depth_composition_report_blocks_target_contract_mismatch(
@@ -835,6 +904,96 @@ def test_source_depth_composition_report_blocks_target_contract_mismatch(
     assert report["target_real_item_count"] == 80
     assert report["target_source_item_count"] == 3
     assert report["target_source_count_matches_real_target"] is False
+    closure_entry = _source_depth_composition_closure_entry(
+        {
+            "gate_id": "source_depth_composition",
+            "status": "blocked",
+            "evidence_paths": ["manifests/public_beta_source_depth_composition_report.json"],
+            "rationale": "blocked",
+        },
+        report,
+    )
+    assert "hard 80-real-item public beta target" in closure_entry["required_action"]
+
+
+def test_source_depth_composition_closure_entry_uses_candidate_gap_action() -> None:
+    closure_entry = _source_depth_composition_closure_entry(
+        {
+            "gate_id": "source_depth_composition",
+            "status": "blocked",
+            "evidence_paths": ["manifests/public_beta_source_depth_composition_report.json"],
+            "rationale": "blocked",
+        },
+        {"closure_state": "requires_public_profile_candidate_promotion"},
+    )
+
+    assert "Promote enough real NLI, Pinkas, and BiblIA candidates" in closure_entry["required_action"]
+
+
+def _valid_source_depth_composition_report_payload() -> dict[str, object]:
+    return {
+        "schema_version": 1,
+        "planning_notation": "F6e",
+        "artifact_scope": "public_profile_candidate_payload",
+        "readiness_contract": "contract",
+        "profile_id": "profile_open_v1",
+        "status": "blocked",
+        "closure_state": "requires_public_profile_candidate_promotion",
+        "assessment_status": "blocked_public_profile_candidate_gap",
+        "target_real_item_count": 80,
+        "target_source_item_count": 80,
+        "target_source_count_matches_real_target": True,
+        "public_payload_real_item_count": 2,
+        "public_payload_synthetic_item_count": 2,
+        "source_depth_only_payload_item_count": 0,
+        "source_depth_only_payload_item_ids": [],
+        "source_stats_payload_mismatch_count": 0,
+        "source_stats_payload_mismatches": [],
+        "source_depth_feasibility_artifact_scope": "operator_only",
+        "source_depth_feasibility_summary": {},
+        "sources": [],
+        "limitation_disclosure": "blocked",
+        "blocked_gate_preserved": True,
+    }
+
+
+def test_source_depth_composition_report_model_rejects_status_closure_mismatch() -> None:
+    payload = _valid_source_depth_composition_report_payload()
+    payload["closure_state"] = "pass"
+
+    with pytest.raises(ValidationError, match="status must match closure_state"):
+        PublicBetaSourceDepthCompositionReport.model_validate(payload)
+
+
+def test_source_depth_composition_report_model_rejects_source_depth_only_count_mismatch() -> None:
+    payload = _valid_source_depth_composition_report_payload()
+    payload["source_depth_only_payload_item_count"] = 2
+    payload["source_depth_only_payload_item_ids"] = ["nli_any_use_permitted:source-depth-only"]
+
+    with pytest.raises(ValidationError, match="source-depth-only count"):
+        PublicBetaSourceDepthCompositionReport.model_validate(payload)
+
+
+def test_source_depth_composition_report_model_rejects_source_stats_mismatch_count_mismatch() -> None:
+    payload = _valid_source_depth_composition_report_payload()
+    payload["source_stats_payload_mismatch_count"] = 2
+    payload["source_stats_payload_mismatches"] = [
+        {"source_id": "nli_any_use_permitted", "exported_items_count": 1, "source_stats_count": 27}
+    ]
+
+    with pytest.raises(ValidationError, match="source-stats mismatch count"):
+        PublicBetaSourceDepthCompositionReport.model_validate(payload)
+
+
+def test_source_depth_composition_report_model_rejects_pass_without_coherent_targets() -> None:
+    payload = _valid_source_depth_composition_report_payload()
+    payload["status"] = "pass"
+    payload["closure_state"] = "pass"
+    payload["assessment_status"] = "closed_with_public_profile_candidate_evidence"
+    payload["target_source_count_matches_real_target"] = False
+
+    with pytest.raises(ValidationError, match="coherent real-source target contract"):
+        PublicBetaSourceDepthCompositionReport.model_validate(payload)
 
 
 def test_export_public_beta_rejects_output_dir_that_does_not_match_version(tmp_path: Path, capsys) -> None:
