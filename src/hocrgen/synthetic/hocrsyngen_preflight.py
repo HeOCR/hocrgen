@@ -155,6 +155,14 @@ def run_hocrsyngen_preflight(
     )
     if manifest_path != generated_batch / MANIFEST_FILENAME:
         raise StageExecutionError("candidate evidence generated_manifest_path must resolve to generated_batch/generation_manifest.json")
+    rendering_coverage_path = _validate_generated_report_paths(
+        root,
+        generated_batch,
+        manifest_path,
+        evidence_report,
+        generation_report,
+        validation_report,
+    )
 
     manifest_payload = _read_json_object(manifest_path, "generated generation_manifest.v1")
     try:
@@ -168,12 +176,13 @@ def run_hocrsyngen_preflight(
     _validate_count(generation_report, "generation_report.v1", "page_count", manifest_page_count)
     _validate_count(validation_report, "validation_report.v1", "sample_count", len(manifest.samples))
     _validate_count(validation_report, "validation_report.v1", "page_count", manifest_page_count)
+    _validate_evidence_run_identity(evidence_report, manifest)
 
     checksum_inventory = _verify_checksum_inventory(root)
     catalog_result = _validate_template_catalog_join(manifest, reports["template_catalog_v2"]["payload"])
     asset_checks = _validate_assets(generated_batch, manifest)
     missing_metadata = _missing_release_metadata(manifest_payload)
-    rendering_coverage = _rendering_coverage_reference(root, evidence_report)
+    rendering_coverage = _rendering_coverage_reference(root, rendering_coverage_path)
 
     report = {
         "schema_version": REPORT_SCHEMA_VERSION,
@@ -335,6 +344,71 @@ def _validate_count(payload: dict[str, Any], label: str, field: str, expected: i
         raise StageExecutionError(f"{label} {field} must be {expected}, got {payload.get(field)!r}")
 
 
+def _validate_generated_report_paths(
+    root: Path,
+    generated_batch: Path,
+    manifest_path: Path,
+    evidence_report: dict[str, Any],
+    generation_report: dict[str, Any],
+    validation_report: dict[str, Any],
+) -> Path | None:
+    _validate_report_path(root, generation_report, "generation_report.v1", "output_path", generated_batch)
+    _validate_report_path(root, generation_report, "generation_report.v1", "manifest_path", manifest_path)
+    _validate_report_path(root, validation_report, "validation_report.v1", "path", generated_batch)
+
+    evidence_value = evidence_report.get("rendering_coverage_report_path")
+    generation_value = generation_report.get("rendering_coverage_report_path")
+    if evidence_value is None and generation_value is None:
+        return None
+    if evidence_value is None or generation_value is None:
+        raise StageExecutionError(
+            "candidate evidence and generation_report.v1 must agree on rendering_coverage_report_path presence"
+        )
+    evidence_path = _resolve_evidence_path(root, evidence_value, "rendering_coverage_report_path")
+    generation_path = _resolve_evidence_path(root, generation_value, "generation_report.v1.rendering_coverage_report_path")
+    if evidence_path != generation_path:
+        raise StageExecutionError(
+            "generation_report.v1 rendering_coverage_report_path must match candidate evidence rendering_coverage_report_path"
+        )
+    expected = generated_batch / "rendering_coverage_report.json"
+    if generation_path != expected:
+        raise StageExecutionError(
+            "generation_report.v1 rendering_coverage_report_path must resolve to generated_batch/rendering_coverage_report.json"
+        )
+    return generation_path
+
+
+def _validate_report_path(
+    root: Path,
+    payload: dict[str, Any],
+    label: str,
+    field: str,
+    expected: Path,
+) -> None:
+    path = _resolve_evidence_path(root, payload.get(field), f"{label}.{field}")
+    if path != expected:
+        raise StageExecutionError(f"{label} {field} must resolve to {expected}, got {path}")
+
+
+def _validate_evidence_run_identity(
+    evidence_report: dict[str, Any],
+    manifest: PublicGenerationManifest,
+) -> None:
+    sample_count = len(manifest.samples)
+    if evidence_report.get("count") != sample_count:
+        raise StageExecutionError(
+            f"candidate evidence count must match manifest sample count: expected {sample_count}, got {evidence_report.get('count')!r}"
+        )
+    seed = evidence_report.get("seed")
+    if not isinstance(seed, int):
+        raise StageExecutionError(f"candidate evidence seed must be an integer, got {seed!r}")
+    manifest_seeds = sorted({sample.provenance.seed for sample in manifest.samples})
+    if manifest_seeds != [seed]:
+        raise StageExecutionError(
+            f"candidate evidence seed must match every manifest sample provenance.seed: expected {seed}, got {manifest_seeds}"
+        )
+
+
 def _verify_checksum_inventory(root: Path) -> dict[str, Any]:
     path = root / "SHA256SUMS"
     if not path.is_file():
@@ -485,11 +559,9 @@ def _missing_release_metadata(manifest_payload: dict[str, Any]) -> list[str]:
     return missing
 
 
-def _rendering_coverage_reference(root: Path, evidence_report: dict[str, Any]) -> dict[str, Any]:
-    value = evidence_report.get("rendering_coverage_report_path")
-    if value is None:
+def _rendering_coverage_reference(root: Path, path: Path | None) -> dict[str, Any]:
+    if path is None:
         return {"present": False, "advisory": True}
-    path = _resolve_evidence_path(root, value, "rendering_coverage_report_path")
     if not path.is_file():
         raise StageExecutionError(f"rendering coverage report is missing: {path}")
     payload = _read_json_object(path, "rendering coverage report")

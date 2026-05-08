@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Callable
 from pathlib import Path
 
 import pytest
@@ -88,6 +89,59 @@ def test_hocrsyngen_preflight_rejects_missing_template_catalog_join(tmp_path: Pa
     evidence_root = _write_evidence_root(tmp_path, catalog_recipe_id="different_recipe_v1")
 
     with pytest.raises(StageExecutionError, match="does not join to template_catalog.v2"):
+        run_hocrsyngen_preflight(evidence_root, report_path=tmp_path / "report.json")
+
+
+@pytest.mark.parametrize(
+    ("field", "replacement", "expected_error"),
+    [
+        ("output_path", "other_batch", "generation_report.v1 output_path must resolve"),
+        ("manifest_path", "generated_batch/other_manifest.json", "generation_report.v1 manifest_path must resolve"),
+        (
+            "rendering_coverage_report_path",
+            "generated_batch/other_rendering_coverage_report.json",
+            "rendering_coverage_report_path must match",
+        ),
+    ],
+)
+def test_hocrsyngen_preflight_rejects_stale_generation_report_paths(
+    tmp_path: Path,
+    field: str,
+    replacement: str,
+    expected_error: str,
+) -> None:
+    evidence_root = _write_evidence_root(tmp_path)
+    _update_embedded_report(evidence_root, "generation", lambda payload: payload.update({field: str(evidence_root / replacement)}))
+
+    with pytest.raises(StageExecutionError, match=expected_error):
+        run_hocrsyngen_preflight(evidence_root, report_path=tmp_path / "report.json")
+
+
+def test_hocrsyngen_preflight_rejects_stale_validation_report_path(tmp_path: Path) -> None:
+    evidence_root = _write_evidence_root(tmp_path)
+    _update_embedded_report(
+        evidence_root,
+        "generated_validation",
+        lambda payload: payload.update({"path": str(evidence_root / "other_batch")}),
+    )
+
+    with pytest.raises(StageExecutionError, match="validation_report.v1 path must resolve"):
+        run_hocrsyngen_preflight(evidence_root, report_path=tmp_path / "report.json")
+
+
+def test_hocrsyngen_preflight_rejects_evidence_count_mismatch(tmp_path: Path) -> None:
+    evidence_root = _write_evidence_root(tmp_path)
+    _update_candidate_report(evidence_root, lambda payload: payload.update({"count": 2}))
+
+    with pytest.raises(StageExecutionError, match="candidate evidence count must match manifest sample count"):
+        run_hocrsyngen_preflight(evidence_root, report_path=tmp_path / "report.json")
+
+
+def test_hocrsyngen_preflight_rejects_evidence_seed_mismatch(tmp_path: Path) -> None:
+    evidence_root = _write_evidence_root(tmp_path)
+    _update_candidate_report(evidence_root, lambda payload: payload.update({"seed": 202}))
+
+    with pytest.raises(StageExecutionError, match="candidate evidence seed must match every manifest sample"):
         run_hocrsyngen_preflight(evidence_root, report_path=tmp_path / "report.json")
 
 
@@ -239,6 +293,27 @@ def _write_evidence_root(
 def _write_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+
+
+def _update_embedded_report(evidence_root: Path, key: str, mutate: Callable[[dict], None]) -> None:
+    report_paths = {
+        "generation": evidence_root / "reports" / "generation_report.json",
+        "generated_validation": evidence_root / "reports" / "generated_validation_report.json",
+    }
+    path = report_paths[key]
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert isinstance(payload, dict)
+    mutate(payload)
+    _write_json(path, payload)
+    _update_candidate_report(evidence_root, lambda candidate: candidate["reports"].update({key: payload}))
+
+
+def _update_candidate_report(evidence_root: Path, mutate: Callable[[dict], None]) -> None:
+    path = evidence_root / "candidate_evidence_run_report.json"
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert isinstance(payload, dict)
+    mutate(payload)
+    _write_json(path, payload)
 
 
 def _write_sha256s(root: Path) -> None:
