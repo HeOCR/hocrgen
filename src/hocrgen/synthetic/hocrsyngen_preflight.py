@@ -126,13 +126,15 @@ def run_hocrsyngen_preflight(
         raise StageExecutionError(f"hocrsyngen evidence root does not exist: {evidence_root}")
     if not root.is_dir():
         raise StageExecutionError(f"hocrsyngen evidence root is not a directory: {evidence_root}")
+    if evidence_root.is_symlink():
+        raise StageExecutionError(f"hocrsyngen evidence root must not be a symlink: {evidence_root}")
 
     destination = (report_path or (root / "hocrgen_preflight_report.json")).resolve()
     if destination.exists() and not overwrite:
         raise StageExecutionError(f"hocrsyngen preflight report already exists: {destination}")
 
     evidence_report_path = root / "candidate_evidence_run_report.json"
-    evidence_report = _read_json_object(evidence_report_path, "candidate evidence run report")
+    evidence_report = _read_json_object(root, evidence_report_path, "candidate evidence run report")
     _require_schema(evidence_report, "candidate_evidence_run_report.v1", "candidate evidence run report")
     if evidence_report.get("release_eligible") is not False:
         raise StageExecutionError("candidate evidence run report must declare release_eligible=false")
@@ -164,7 +166,7 @@ def run_hocrsyngen_preflight(
         validation_report,
     )
 
-    manifest_payload = _read_json_object(manifest_path, "generated generation_manifest.v1")
+    manifest_payload = _read_json_object(root, manifest_path, "generated generation_manifest.v1")
     try:
         manifest = PublicGenerationManifest.model_validate(manifest_payload)
     except ValidationError as exc:
@@ -197,7 +199,7 @@ def run_hocrsyngen_preflight(
         "evidence_root": str(root),
         "candidate_evidence_run": {
             "path": _relative_to_root(root, evidence_report_path),
-            "sha256": sha256_file(evidence_report_path),
+            "sha256": _sha256_evidence_file(root, evidence_report_path, "candidate evidence run report"),
             "count": evidence_report.get("count"),
             "seed": evidence_report.get("seed"),
             "generator_version": evidence_report.get("generator_version"),
@@ -207,9 +209,9 @@ def run_hocrsyngen_preflight(
         },
         "source_batch": {
             "path": _relative_to_root(root, generated_batch),
-            "boundary_id": f"sha256:{sha256_file(manifest_path)}",
+            "boundary_id": f"sha256:{_sha256_evidence_file(root, manifest_path, 'generated generation_manifest.v1')}",
             "manifest_path": _relative_to_root(root, manifest_path),
-            "manifest_sha256": sha256_file(manifest_path),
+            "manifest_sha256": _sha256_evidence_file(root, manifest_path, "generated generation_manifest.v1"),
         },
         "manifest": {
             "manifest_version": manifest.manifest_version,
@@ -266,9 +268,8 @@ def run_hocrsyngen_preflight(
     return HocrsyngenPreflightResult(report_path=destination, report=report)
 
 
-def _read_json_object(path: Path, label: str) -> dict[str, Any]:
-    if not path.is_file():
-        raise StageExecutionError(f"{label} is missing: {path}")
+def _read_json_object(root: Path, path: Path, label: str) -> dict[str, Any]:
+    path = _require_evidence_file(root, path, label)
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except JSONDecodeError as exc:
@@ -278,6 +279,33 @@ def _read_json_object(path: Path, label: str) -> dict[str, Any]:
     if not isinstance(payload, dict):
         raise StageExecutionError(f"{label} must serialize to an object: {path}")
     return payload
+
+
+def _sha256_evidence_file(root: Path, path: Path, label: str) -> str:
+    return sha256_file(_require_evidence_file(root, path, label))
+
+
+def _require_evidence_file(root: Path, path: Path, label: str) -> Path:
+    original_path = path if path.is_absolute() else root / path
+    _reject_symlink_components(root, original_path, label)
+    resolved = original_path.resolve()
+    if not resolved.is_relative_to(root):
+        raise StageExecutionError(f"{label} must stay under evidence root: {path}")
+    if not resolved.is_file():
+        raise StageExecutionError(f"{label} is missing: {path}")
+    return resolved
+
+
+def _reject_symlink_components(root: Path, path: Path, label: str) -> None:
+    try:
+        relative = path.relative_to(root)
+    except ValueError:
+        return
+    current = root
+    for part in relative.parts:
+        current = current / part
+        if current.is_symlink():
+            raise StageExecutionError(f"{label} must not be a symlink: {current}")
 
 
 def _require_schema(payload: dict[str, Any], expected: str, label: str) -> None:
@@ -308,7 +336,9 @@ def _resolve_evidence_path(root: Path, value: object, label: str) -> Path:
     if not isinstance(value, str) or not value:
         raise StageExecutionError(f"candidate evidence {label} must be a non-empty path string")
     raw = Path(value)
-    path = raw.resolve() if raw.is_absolute() else (root / raw).resolve()
+    original_path = raw if raw.is_absolute() else root / raw
+    _reject_symlink_components(root, original_path, label)
+    path = original_path.resolve()
     if not path.is_relative_to(root):
         raise StageExecutionError(f"candidate evidence {label} must stay under evidence root: {value}")
     return path
@@ -319,14 +349,14 @@ def _load_reports(root: Path, evidence_report: dict[str, Any]) -> dict[str, dict
     for key, (relative_path, schema_version) in {**REQUIRED_REPORTS, **OPTIONAL_REPORTS}.items():
         path = root / Path(relative_path)
         if key in REQUIRED_REPORTS or path.exists():
-            payload = _read_json_object(path, key)
+            payload = _read_json_object(root, path, key)
             _require_schema(payload, schema_version, key)
             embedded_reports = evidence_report.get("reports")
             if isinstance(embedded_reports, dict) and key in embedded_reports and embedded_reports[key] != payload:
                 raise StageExecutionError(f"candidate evidence embedded report {key} does not match {relative_path}")
             summary: dict[str, Any] = {
                 "path": relative_path,
-                "sha256": sha256_file(path),
+                "sha256": _sha256_evidence_file(root, path, key),
                 "schema_version": payload.get("schema_version"),
             }
             for optional_key in ("sample_count", "page_count", "valid", "fixture_id", "contract"):
@@ -410,7 +440,7 @@ def _validate_evidence_run_identity(
 
 
 def _verify_checksum_inventory(root: Path) -> dict[str, Any]:
-    path = root / "SHA256SUMS"
+    path = _require_evidence_file(root, root / "SHA256SUMS", "SHA256SUMS")
     if not path.is_file():
         raise StageExecutionError(f"hocrsyngen evidence root is missing SHA256SUMS: {path}")
     try:
@@ -428,11 +458,8 @@ def _verify_checksum_inventory(root: Path) -> dict[str, Any]:
         if len(digest) != 64 or any(char not in "0123456789abcdef" for char in digest):
             raise StageExecutionError(f"SHA256SUMS line {line_number} has invalid sha256 digest")
         rel = _portable_relative_path(relative_path, f"SHA256SUMS line {line_number}")
-        file_path = (root / Path(*rel.parts)).resolve()
-        if not file_path.is_relative_to(root):
-            raise StageExecutionError(f"SHA256SUMS line {line_number} escapes evidence root: {relative_path}")
-        if not file_path.is_file():
-            raise StageExecutionError(f"SHA256SUMS line {line_number} references missing file: {relative_path}")
+        file_path = _resolve_evidence_path(root, str(Path(*rel.parts)), f"SHA256SUMS line {line_number}")
+        file_path = _require_evidence_file(root, file_path, f"SHA256SUMS line {line_number}")
         actual = sha256_file(file_path)
         if actual != digest:
             raise StageExecutionError(f"SHA256SUMS mismatch for {relative_path}: expected {digest}, got {actual}")
@@ -441,7 +468,7 @@ def _verify_checksum_inventory(root: Path) -> dict[str, Any]:
         raise StageExecutionError("SHA256SUMS must contain at least one file entry")
     return {
         "path": "SHA256SUMS",
-        "sha256": sha256_file(path),
+        "sha256": _sha256_evidence_file(root, path, "SHA256SUMS"),
         "entry_count": len(entries),
         "verified_count": len(entries),
     }
@@ -501,11 +528,8 @@ def _validate_assets(batch_root: Path, manifest: PublicGenerationManifest) -> li
     for sample in manifest.samples:
         for page in sample.pages:
             rel = _portable_relative_path(page.asset_path, f"{sample.sample_id}.{page.page_id}.asset_path")
-            path = (batch_root / Path(*rel.parts)).resolve()
-            if not path.is_relative_to(batch_root):
-                raise StageExecutionError(f"page asset escapes generated batch root: {page.asset_path}")
-            if not path.is_file():
-                raise StageExecutionError(f"page asset is missing: {page.asset_path}")
+            path = _resolve_evidence_path(batch_root, str(Path(*rel.parts)), f"{sample.sample_id}.{page.page_id}.asset_path")
+            path = _require_evidence_file(batch_root, path, f"{sample.sample_id}.{page.page_id}.asset_path")
             actual_sha256 = sha256_file(path)
             if actual_sha256 != page.sha256:
                 raise StageExecutionError(
@@ -564,12 +588,12 @@ def _rendering_coverage_reference(root: Path, path: Path | None) -> dict[str, An
         return {"present": False, "advisory": True}
     if not path.is_file():
         raise StageExecutionError(f"rendering coverage report is missing: {path}")
-    payload = _read_json_object(path, "rendering coverage report")
+    payload = _read_json_object(root, path, "rendering coverage report")
     return {
         "present": True,
         "advisory": True,
         "path": _relative_to_root(root, path),
-        "sha256": sha256_file(path),
+        "sha256": _sha256_evidence_file(root, path, "rendering coverage report"),
         "coverage_keys": sorted(payload.get("coverage", {}).keys()) if isinstance(payload.get("coverage"), dict) else [],
     }
 

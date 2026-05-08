@@ -145,6 +145,32 @@ def test_hocrsyngen_preflight_rejects_evidence_seed_mismatch(tmp_path: Path) -> 
         run_hocrsyngen_preflight(evidence_root, report_path=tmp_path / "report.json")
 
 
+@pytest.mark.parametrize(
+    "relative_path",
+    [
+        "candidate_evidence_run_report.json",
+        "reports/template_catalog_v2.json",
+        "generated_batch/generation_manifest.json",
+        "generated_batch/rendering_coverage_report.json",
+        "SHA256SUMS",
+        "generated_batch/assets/hocrsyngen-s00000101-000000/page_0001.jpg",
+    ],
+)
+def test_hocrsyngen_preflight_rejects_symlinked_evidence_artifacts(
+    tmp_path: Path,
+    relative_path: str,
+) -> None:
+    evidence_root = _write_evidence_root(tmp_path)
+    target = tmp_path / "outside_artifact"
+    target.write_text("{}", encoding="utf-8")
+    artifact = evidence_root / relative_path
+    artifact.unlink()
+    artifact.symlink_to(target)
+
+    with pytest.raises(StageExecutionError, match="must not be a symlink"):
+        run_hocrsyngen_preflight(evidence_root, report_path=tmp_path / "report.json")
+
+
 def test_hocrsyngen_preflight_refuses_report_overwrite(tmp_path: Path) -> None:
     evidence_root = _write_evidence_root(tmp_path)
     report_path = tmp_path / "report.json"
