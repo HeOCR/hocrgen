@@ -12,12 +12,25 @@ from PIL import Image, UnidentifiedImageError
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 
 from hocrgen.core.errors import StageExecutionError
+from hocrgen.fetchers.hocrsyngen_manifest import (
+    HocrsyngenGenerationManifest,
+    HocrsyngenHebrewCoverage,
+    HocrsyngenRenderingMetadata,
+    _hebrew_coverage as _compute_hocrsyngen_hebrew_coverage,
+)
 from hocrgen.utils.hashing import sha256_file
 
 
 REPORT_SCHEMA_VERSION = "hocrgen_hocrsyngen_preflight_report.v1"
+IMPORT_METADATA_PACKET_SCHEMA_VERSION = "hocrgen_hocrsyngen_import_metadata_packet.v1"
+PROVIDER_RUNTIME_CONTRACT_SCHEMA_VERSION = "hocrgen_hocrsyngen_provider_runtime.v1"
 PLANNING_NOTATION = "F6f2a"
+IMPORT_METADATA_PLANNING_NOTATION = "F6f2"
 MANIFEST_FILENAME = "generation_manifest.json"
+SUPPORTED_RELEASE_IMPORT_LAYOUT_FAMILIES = {
+    "printed_letter": "printed_letter_form",
+    "handwritten_note": "handwritten_note_marginalia",
+}
 
 REQUIRED_REPORTS = {
     "template_catalog_v2": ("reports/template_catalog_v2.json", "template_catalog.v2"),
@@ -109,6 +122,128 @@ class PublicGenerationManifest(PublicHocrsyngenModel):
     samples: list[PublicGeneratedSample] = Field(min_length=1)
 
 
+class ImportMetadataModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class ImportMetadataSourceManifest(ImportMetadataModel):
+    path: str = Field(min_length=1)
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    boundary_id: str = Field(pattern=r"^sha256:[0-9a-f]{64}$")
+    manifest_version: Literal["1.0"]
+    generator_name: Literal["hocrsyngen"]
+    does_not_extend_hocrsyngen_manifest_v1: Literal[True]
+
+    @model_validator(mode="after")
+    def validate_boundary_id(self) -> "ImportMetadataSourceManifest":
+        if self.boundary_id != f"sha256:{self.sha256}":
+            raise ValueError("boundary_id must match source manifest sha256")
+        _portable_relative_path(self.path, "source_manifest.path")
+        return self
+
+
+class ImportMetadataBatchMetadata(ImportMetadataModel):
+    synthetic_disclosure: str = Field(min_length=1)
+
+
+class ImportProviderRuntimeContract(ImportMetadataModel):
+    evidence_status: Literal["validated_from_candidate_evidence_report", "not_provided_by_candidate_evidence_report"]
+    source: str | None
+    used_network: bool | None
+    used_rest_service: bool | None
+    used_gpu: bool | None
+    used_llm: bool | None
+    used_diffusion: bool | None
+
+    @model_validator(mode="after")
+    def validate_runtime_evidence(self) -> "ImportProviderRuntimeContract":
+        flags = (self.used_network, self.used_rest_service, self.used_gpu, self.used_llm, self.used_diffusion)
+        if self.evidence_status == "validated_from_candidate_evidence_report":
+            if self.source != "candidate_evidence_run_report.provider_runtime":
+                raise ValueError("validated provider runtime contract must cite candidate_evidence_run_report.provider_runtime")
+            if flags != (False, False, False, False, False):
+                raise ValueError("validated provider runtime contract must declare all runtime flags false")
+        else:
+            if self.source is not None:
+                raise ValueError("missing provider runtime contract must not cite a source")
+            if any(flag is not None for flag in flags):
+                raise ValueError("missing provider runtime contract must leave runtime flags null")
+        return self
+
+
+class ImportProviderMetadata(ImportMetadataModel):
+    provider_name: Literal["hocrsyngen"]
+    provider_version: str = Field(pattern=r".*\S.*")
+    generation_mode: Literal["offline_manifest_batch"]
+    runtime_contract: ImportProviderRuntimeContract
+
+
+class ImportSampleMetadataSources(ImportMetadataModel):
+    text_metadata: Literal["generation_manifest.v1.samples[].text"]
+    line_count: Literal["generation_manifest.v1.samples[].text.logical_order.splitlines()"]
+    layout_family: Literal["template_catalog.v2 joined by provenance.template_id and provenance.recipe_id"]
+    hebrew_coverage: Literal["computed from NFC logical_order text"]
+    rendering_coverage_report: str | None
+
+
+class ImportSampleMetadata(ImportMetadataModel):
+    sample_id: str = Field(pattern=r"^hocrsyngen-s[0-9]{8}-[0-9]{6}$")
+    rendering_metadata: HocrsyngenRenderingMetadata
+    hebrew_coverage: HocrsyngenHebrewCoverage
+    metadata_sources: ImportSampleMetadataSources
+
+
+class ImportMetadataValidation(ImportMetadataModel):
+    sample_count: int = Field(ge=1)
+    page_count: int = Field(ge=1)
+    provider_version_source: Literal["candidate_evidence_run_report.generator_version matched samples[].generator_version"]
+    generator_versions: list[str] = Field(min_length=1)
+    covers_missing_manifest_metadata: list[str]
+    metadata_valid: Literal[True]
+    validated_against_hocrgen_release_import_model: bool
+    release_import_model_validation_errors: list[str]
+    layout_family_policy: "ImportLayoutFamilyPolicy"
+
+
+class ImportLayoutFamilyPolicy(ImportMetadataModel):
+    supported_base_families: list[str]
+    supported_layout_families: list[str]
+    unsupported_family_behavior: Literal["fail_closed_before_sidecar"]
+
+    @model_validator(mode="after")
+    def validate_layout_policy(self) -> "ImportLayoutFamilyPolicy":
+        if self.supported_base_families != sorted(SUPPORTED_RELEASE_IMPORT_LAYOUT_FAMILIES):
+            raise ValueError("supported_base_families must match hocrgen policy")
+        if self.supported_layout_families != sorted(SUPPORTED_RELEASE_IMPORT_LAYOUT_FAMILIES.values()):
+            raise ValueError("supported_layout_families must match hocrgen policy")
+        return self
+
+
+class HocrsyngenImportMetadataPacket(ImportMetadataModel):
+    schema_version: Literal["hocrgen_hocrsyngen_import_metadata_packet.v1"]
+    planning_notation: Literal["F6f2"]
+    artifact_scope: Literal["operator_only"]
+    release_eligible: Literal[False]
+    release_eligibility_reason: str = Field(min_length=1)
+    source_manifest: ImportMetadataSourceManifest
+    batch_metadata: ImportMetadataBatchMetadata
+    provider_metadata: ImportProviderMetadata
+    samples: list[ImportSampleMetadata] = Field(min_length=1)
+    validation: ImportMetadataValidation
+    non_goals: list[str] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_packet_consistency(self) -> "HocrsyngenImportMetadataPacket":
+        sample_ids = [sample.sample_id for sample in self.samples]
+        if len(set(sample_ids)) != len(sample_ids):
+            raise ValueError("samples must contain unique sample_id values")
+        if self.validation.sample_count != len(self.samples):
+            raise ValueError("validation.sample_count must match samples length")
+        if self.validation.generator_versions != sorted(set(self.validation.generator_versions)):
+            raise ValueError("validation.generator_versions must be sorted and unique")
+        return self
+
+
 @dataclass(frozen=True)
 class HocrsyngenPreflightResult:
     report_path: Path
@@ -119,6 +254,7 @@ def run_hocrsyngen_preflight(
     evidence_root: Path,
     *,
     report_path: Path | None = None,
+    metadata_sidecar_path: Path | None = None,
     overwrite: bool = False,
 ) -> HocrsyngenPreflightResult:
     root = evidence_root.resolve()
@@ -132,6 +268,11 @@ def run_hocrsyngen_preflight(
     destination = (report_path or (root / "hocrgen_preflight_report.json")).resolve()
     if destination.exists() and not overwrite:
         raise StageExecutionError(f"hocrsyngen preflight report already exists: {destination}")
+    metadata_destination = metadata_sidecar_path.resolve() if metadata_sidecar_path is not None else None
+    if metadata_destination is not None and metadata_destination == destination:
+        raise StageExecutionError("hocrsyngen import metadata sidecar path must differ from the preflight report path")
+    if metadata_destination is not None and metadata_destination.exists() and not overwrite:
+        raise StageExecutionError(f"hocrsyngen import metadata sidecar already exists: {metadata_destination}")
 
     evidence_report_path = root / "candidate_evidence_run_report.json"
     evidence_report = _read_json_object(root, evidence_report_path, "candidate evidence run report")
@@ -185,6 +326,17 @@ def run_hocrsyngen_preflight(
     asset_checks = _validate_assets(generated_batch, manifest)
     missing_metadata = _missing_release_metadata(manifest_payload)
     rendering_coverage = _rendering_coverage_reference(root, rendering_coverage_path)
+    import_metadata_packet = _build_import_metadata_packet(
+        root,
+        evidence_report,
+        manifest,
+        manifest_payload,
+        manifest_path,
+        catalog_result,
+        rendering_coverage,
+        missing_metadata,
+    )
+    _validate_import_metadata_packet(root, manifest_path, manifest, import_metadata_packet)
 
     report = {
         "schema_version": REPORT_SCHEMA_VERSION,
@@ -240,6 +392,14 @@ def run_hocrsyngen_preflight(
         },
         "template_catalog": catalog_result,
         "rendering_coverage_report": rendering_coverage,
+        "hocrgen_import_metadata_packet": import_metadata_packet,
+        "hocrgen_import_metadata_sidecar": {
+            "requested": metadata_destination is not None,
+            "written": metadata_destination is not None,
+            "path": str(metadata_destination) if metadata_destination is not None else None,
+            "schema_version": IMPORT_METADATA_PACKET_SCHEMA_VERSION,
+            "release_eligible": False,
+        },
         "samples": [_sample_summary(sample) for sample in manifest.samples],
         "limitations": [
             "raw hocrsyngen output is candidate synthetic input only",
@@ -259,11 +419,7 @@ def run_hocrsyngen_preflight(
         ],
     }
 
-    try:
-        destination.parent.mkdir(parents=True, exist_ok=True)
-        destination.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
-    except OSError as exc:
-        raise StageExecutionError(f"could not write hocrsyngen preflight report to {destination}: {exc}") from exc
+    _write_preflight_artifacts(destination, report, metadata_destination, import_metadata_packet)
 
     return HocrsyngenPreflightResult(report_path=destination, report=report)
 
@@ -283,6 +439,46 @@ def _read_json_object(root: Path, path: Path, label: str) -> dict[str, Any]:
 
 def _sha256_evidence_file(root: Path, path: Path, label: str) -> str:
     return sha256_file(_require_evidence_file(root, path, label))
+
+
+def _write_json_temp(path: Path, payload: dict[str, Any], label: str) -> Path:
+    if path.exists() and path.is_dir():
+        raise StageExecutionError(f"could not write {label} to {path}: path is a directory")
+    temp_path = path.with_name(f".{path.name}.tmp")
+    try:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temp_path.write_text(json.dumps(payload, indent=2, sort_keys=True), encoding="utf-8")
+    except OSError as exc:
+        raise StageExecutionError(f"could not write {label} to {path}: {exc}") from exc
+    return temp_path
+
+
+def _write_preflight_artifacts(
+    report_path: Path,
+    report: dict[str, Any],
+    metadata_sidecar_path: Path | None,
+    metadata_packet: dict[str, Any],
+) -> None:
+    report_temp: Path | None = None
+    sidecar_temp: Path | None = None
+    try:
+        report_temp = _write_json_temp(report_path, report, "hocrsyngen preflight report")
+        if metadata_sidecar_path is not None:
+            sidecar_temp = _write_json_temp(
+                metadata_sidecar_path,
+                metadata_packet,
+                "hocrsyngen import metadata sidecar",
+            )
+            sidecar_temp.replace(metadata_sidecar_path)
+            sidecar_temp = None
+        report_temp.replace(report_path)
+        report_temp = None
+    except OSError as exc:
+        raise StageExecutionError(f"could not publish hocrsyngen preflight artifacts: {exc}") from exc
+    finally:
+        for temp_path in (report_temp, sidecar_temp):
+            if temp_path is not None and temp_path.exists():
+                temp_path.unlink()
 
 
 def _require_evidence_file(root: Path, path: Path, label: str) -> Path:
@@ -596,6 +792,299 @@ def _rendering_coverage_reference(root: Path, path: Path | None) -> dict[str, An
         "sha256": _sha256_evidence_file(root, path, "rendering coverage report"),
         "coverage_keys": sorted(payload.get("coverage", {}).keys()) if isinstance(payload.get("coverage"), dict) else [],
     }
+
+
+def _build_import_metadata_packet(
+    root: Path,
+    evidence_report: dict[str, Any],
+    manifest: PublicGenerationManifest,
+    manifest_payload: dict[str, Any],
+    manifest_path: Path,
+    catalog_result: dict[str, Any],
+    rendering_coverage: dict[str, Any],
+    missing_metadata: list[str],
+) -> dict[str, Any]:
+    provider_metadata = _derive_provider_metadata(evidence_report, manifest)
+    catalog_by_sample = {
+        str(join["sample_id"]): join
+        for join in catalog_result.get("joins", [])
+        if isinstance(join, dict) and isinstance(join.get("sample_id"), str)
+    }
+    samples = []
+    for sample in manifest.samples:
+        catalog_join = catalog_by_sample.get(sample.sample_id)
+        if catalog_join is None:
+            raise StageExecutionError(f"missing template catalog join for import metadata sample: {sample.sample_id}")
+        rendering_metadata = _derive_rendering_metadata(sample, catalog_join)
+        hebrew_coverage = _derive_hebrew_coverage(sample)
+        samples.append(
+            {
+                "sample_id": sample.sample_id,
+                "rendering_metadata": rendering_metadata,
+                "hebrew_coverage": hebrew_coverage,
+                "metadata_sources": {
+                    "text_metadata": "generation_manifest.v1.samples[].text",
+                    "line_count": "generation_manifest.v1.samples[].text.logical_order.splitlines()",
+                    "layout_family": "template_catalog.v2 joined by provenance.template_id and provenance.recipe_id",
+                    "hebrew_coverage": "computed from NFC logical_order text",
+                    "rendering_coverage_report": rendering_coverage.get("path") if rendering_coverage.get("present") else None,
+                },
+            }
+        )
+
+    sample_page_count = sum(len(sample.pages) for sample in manifest.samples)
+    manifest_sha256 = _sha256_evidence_file(root, manifest_path, "generated generation_manifest.v1")
+    synthetic_disclosure = _derive_batch_synthetic_disclosure(manifest_payload, manifest)
+    release_import_validation_errors = _release_import_model_validation_errors(
+        manifest,
+        provider_metadata,
+        samples,
+        synthetic_disclosure,
+    )
+    packet = {
+        "schema_version": IMPORT_METADATA_PACKET_SCHEMA_VERSION,
+        "planning_notation": IMPORT_METADATA_PLANNING_NOTATION,
+        "artifact_scope": "operator_only",
+        "release_eligible": False,
+        "release_eligibility_reason": (
+            "hocrgen-owned import metadata packet only; it does not admit the batch past review, dedupe, "
+            "split, benchmark, cap, export, publication, or public-beta gates"
+        ),
+        "source_manifest": {
+            "path": _relative_to_root(root, manifest_path),
+            "sha256": manifest_sha256,
+            "boundary_id": f"sha256:{manifest_sha256}",
+            "manifest_version": manifest.manifest_version,
+            "generator_name": manifest.generator_name,
+            "does_not_extend_hocrsyngen_manifest_v1": True,
+        },
+        "batch_metadata": {
+            "synthetic_disclosure": synthetic_disclosure,
+        },
+        "provider_metadata": provider_metadata,
+        "samples": samples,
+        "validation": {
+            "sample_count": len(samples),
+            "page_count": sample_page_count,
+            "provider_version_source": "candidate_evidence_run_report.generator_version matched samples[].generator_version",
+            "generator_versions": sorted({sample.generator_version for sample in manifest.samples}),
+            "covers_missing_manifest_metadata": missing_metadata,
+            "metadata_valid": True,
+            "validated_against_hocrgen_release_import_model": not release_import_validation_errors,
+            "release_import_model_validation_errors": release_import_validation_errors,
+            "layout_family_policy": {
+                "supported_base_families": sorted(SUPPORTED_RELEASE_IMPORT_LAYOUT_FAMILIES),
+                "supported_layout_families": sorted(SUPPORTED_RELEASE_IMPORT_LAYOUT_FAMILIES.values()),
+                "unsupported_family_behavior": "fail_closed_before_sidecar",
+            },
+        },
+        "non_goals": [
+            "does not mutate hocrsyngen generation_manifest.v1",
+            "does not import hocrsyngen private Python internals",
+            "does not call hocrsyngen runtime commands",
+            "does not wire this batch into build-release, export-alpha, export-synthetic, or export-public-beta",
+            "does not relax review, dedupe, split, benchmark, cap, export, publication, or public-beta gates",
+        ],
+    }
+    return HocrsyngenImportMetadataPacket.model_validate(packet).model_dump(mode="json")
+
+
+def _derive_provider_metadata(
+    evidence_report: dict[str, Any],
+    manifest: PublicGenerationManifest,
+) -> dict[str, Any]:
+    evidence_version = evidence_report.get("generator_version")
+    if not isinstance(evidence_version, str) or not evidence_version.strip():
+        raise StageExecutionError("candidate evidence generator_version is required to derive provider metadata")
+    manifest_versions = sorted({sample.generator_version for sample in manifest.samples})
+    if manifest_versions != [evidence_version]:
+        raise StageExecutionError(
+            "candidate evidence generator_version must match all manifest samples before deriving provider metadata: "
+            f"expected {evidence_version!r}, got {manifest_versions}"
+        )
+    return ImportProviderMetadata(
+        provider_name="hocrsyngen",
+        provider_version=evidence_version,
+        generation_mode="offline_manifest_batch",
+        runtime_contract=_derive_provider_runtime_contract(evidence_report),
+    ).model_dump(mode="json")
+
+
+def _derive_provider_runtime_contract(evidence_report: dict[str, Any]) -> dict[str, Any]:
+    runtime = evidence_report.get("provider_runtime")
+    if runtime is None:
+        return ImportProviderRuntimeContract(
+            evidence_status="not_provided_by_candidate_evidence_report",
+            source=None,
+            used_network=None,
+            used_rest_service=None,
+            used_gpu=None,
+            used_llm=None,
+            used_diffusion=None,
+        ).model_dump(mode="json")
+    if not isinstance(runtime, dict):
+        raise StageExecutionError("candidate evidence provider_runtime must be an object when present")
+    if runtime.get("schema_version") != PROVIDER_RUNTIME_CONTRACT_SCHEMA_VERSION:
+        raise StageExecutionError(
+            f"candidate evidence provider_runtime must declare schema_version={PROVIDER_RUNTIME_CONTRACT_SCHEMA_VERSION}"
+        )
+    flags = {
+        flag: runtime.get(flag)
+        for flag in ("used_network", "used_rest_service", "used_gpu", "used_llm", "used_diffusion")
+    }
+    if any(value is not False for value in flags.values()):
+        raise StageExecutionError("candidate evidence provider_runtime must explicitly declare all runtime flags false")
+    return ImportProviderRuntimeContract(
+        evidence_status="validated_from_candidate_evidence_report",
+        source="candidate_evidence_run_report.provider_runtime",
+        **flags,
+    ).model_dump(mode="json")
+
+
+def _derive_rendering_metadata(
+    sample: PublicGeneratedSample,
+    catalog_join: dict[str, Any],
+) -> dict[str, Any]:
+    return HocrsyngenRenderingMetadata(
+        text_order="logical",
+        page_direction=sample.text.direction,
+        line_direction=sample.text.direction,
+        bidi_handling="logical_rtl_paragraphs",
+        font_shaping="provider_shaped_hebrew_text",
+        layout_family=_derive_layout_family(sample, catalog_join),
+        line_count=len(sample.text.logical_order.splitlines()),
+    ).model_dump(mode="json")
+
+
+def _derive_layout_family(sample: PublicGeneratedSample, catalog_join: dict[str, Any]) -> str:
+    recipe_id = sample.provenance.recipe_id
+    template_id = sample.provenance.template_id
+    base_family = catalog_join.get("base_family")
+    if isinstance(base_family, str) and base_family in SUPPORTED_RELEASE_IMPORT_LAYOUT_FAMILIES:
+        return SUPPORTED_RELEASE_IMPORT_LAYOUT_FAMILIES[base_family]
+    for supported_base_family, layout_family in SUPPORTED_RELEASE_IMPORT_LAYOUT_FAMILIES.items():
+        if recipe_id.startswith(layout_family):
+            return layout_family
+    raise StageExecutionError(
+        "unsupported hocrgen release-import layout family for "
+        f"sample {sample.sample_id}: template={template_id!r}, recipe={recipe_id!r}, base_family={base_family!r}; "
+        f"supported base families are {sorted(SUPPORTED_RELEASE_IMPORT_LAYOUT_FAMILIES)}"
+    )
+
+
+def _derive_hebrew_coverage(sample: PublicGeneratedSample) -> dict[str, bool]:
+    return HocrsyngenHebrewCoverage(**_compute_hocrsyngen_hebrew_coverage(sample.text.logical_order)).model_dump(
+        mode="json"
+    )
+
+
+def _derive_batch_synthetic_disclosure(
+    manifest_payload: dict[str, Any],
+    manifest: PublicGenerationManifest,
+) -> str:
+    value = manifest_payload.get("synthetic_disclosure")
+    if isinstance(value, str) and value.strip():
+        return value
+    sample_values = {sample.synthetic_disclosure for sample in manifest.samples if sample.synthetic_disclosure.strip()}
+    if len(sample_values) == 1:
+        return next(iter(sample_values))
+    raise StageExecutionError("cannot derive a single batch synthetic_disclosure for hocrgen import metadata")
+
+
+def _validate_import_metadata_packet(
+    root: Path,
+    manifest_path: Path,
+    manifest: PublicGenerationManifest,
+    packet: dict[str, Any],
+) -> None:
+    try:
+        typed_packet = HocrsyngenImportMetadataPacket.model_validate(packet)
+    except ValidationError as exc:
+        raise StageExecutionError(f"hocrgen import metadata packet validation failed: {exc}") from exc
+    manifest_sha256 = _sha256_evidence_file(root, manifest_path, "generated generation_manifest.v1")
+    if typed_packet.source_manifest.sha256 != manifest_sha256:
+        raise StageExecutionError("hocrgen import metadata packet source_manifest.sha256 does not match manifest")
+    if typed_packet.source_manifest.path != _relative_to_root(root, manifest_path):
+        raise StageExecutionError("hocrgen import metadata packet source_manifest.path does not match manifest")
+
+    packet_sample_ids = [sample.sample_id for sample in typed_packet.samples]
+    manifest_sample_ids = [sample.sample_id for sample in manifest.samples]
+    if packet_sample_ids != manifest_sample_ids:
+        raise StageExecutionError("hocrgen import metadata packet sample ids must match manifest order exactly")
+    if typed_packet.validation.page_count != sum(len(sample.pages) for sample in manifest.samples):
+        raise StageExecutionError("hocrgen import metadata packet validation.page_count does not match manifest")
+    if typed_packet.validation.generator_versions != sorted({sample.generator_version for sample in manifest.samples}):
+        raise StageExecutionError("hocrgen import metadata packet validation.generator_versions does not match manifest")
+    actual_errors = _release_import_model_validation_errors(
+        manifest,
+        typed_packet.provider_metadata.model_dump(mode="json"),
+        [sample.model_dump(mode="json") for sample in typed_packet.samples],
+        typed_packet.batch_metadata.synthetic_disclosure,
+    )
+    if actual_errors != typed_packet.validation.release_import_model_validation_errors:
+        raise StageExecutionError(
+            "hocrgen import metadata packet release-import validation errors do not match computed validation"
+        )
+    if typed_packet.validation.validated_against_hocrgen_release_import_model != (not actual_errors):
+        raise StageExecutionError(
+            "hocrgen import metadata packet release-import validation flag does not match computed validation"
+        )
+
+
+def _release_import_model_validation_errors(
+    manifest: PublicGenerationManifest,
+    provider_metadata: dict[str, Any],
+    packet_samples: list[dict[str, Any]],
+    synthetic_disclosure: str,
+) -> list[str]:
+    runtime_contract = provider_metadata.get("runtime_contract") if isinstance(provider_metadata, dict) else None
+    if not isinstance(runtime_contract, dict) or runtime_contract.get("evidence_status") != "validated_from_candidate_evidence_report":
+        return [
+            "provider_runtime contract is not provided by candidate_evidence_run_report; "
+            "used_network/used_rest_service/used_gpu/used_llm/used_diffusion remain unproven"
+        ]
+    flat_provider_metadata = {
+        "provider_name": provider_metadata.get("provider_name"),
+        "provider_version": provider_metadata.get("provider_version"),
+        "generation_mode": provider_metadata.get("generation_mode"),
+        "used_network": runtime_contract.get("used_network"),
+        "used_rest_service": runtime_contract.get("used_rest_service"),
+        "used_gpu": runtime_contract.get("used_gpu"),
+        "used_llm": runtime_contract.get("used_llm"),
+        "used_diffusion": runtime_contract.get("used_diffusion"),
+    }
+    metadata_by_sample = {sample["sample_id"]: sample for sample in packet_samples}
+    hardened_samples = []
+    for sample in manifest.samples:
+        metadata = metadata_by_sample[sample.sample_id]
+        hardened_samples.append(
+            {
+                "sample_id": sample.sample_id,
+                "pages": [page.model_dump(mode="json") for page in sample.pages],
+                "text": sample.text.model_dump(mode="json"),
+                "rendering_metadata": metadata["rendering_metadata"],
+                "hebrew_coverage": metadata["hebrew_coverage"],
+                "generator_version": sample.generator_version,
+                "recipe_id": sample.recipe_id,
+                "provenance": sample.provenance.model_dump(mode="json"),
+                "license": sample.license,
+                "synthetic_disclosure": sample.synthetic_disclosure,
+                "controls": sample.controls.model_dump(mode="json"),
+            }
+        )
+    hardened_payload: dict[str, Any] = {
+        "manifest_version": manifest.manifest_version,
+        "generator_name": manifest.generator_name,
+        "provider_metadata": flat_provider_metadata,
+        "license": manifest.license,
+        "synthetic_disclosure": synthetic_disclosure,
+        "samples": hardened_samples,
+    }
+    try:
+        HocrsyngenGenerationManifest.model_validate(hardened_payload)
+    except ValidationError as exc:
+        return [f"hocrgen release/import model validation failed: {exc}"]
+    return []
 
 
 def _sample_summary(sample: PublicGeneratedSample) -> dict[str, Any]:

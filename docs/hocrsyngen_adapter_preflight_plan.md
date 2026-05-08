@@ -10,9 +10,12 @@
 - implementation notation: `F6f2a`
 - implementation status on this ref: completed (operator-only evidence-root reader; no release-path integration)
 
+- metadata notation: `F6f2`
+- metadata status on this ref: completed (hocrgen-owned import metadata packet; operator-only; no release-path integration)
+
 ## Purpose
 
-`F6f1` defines the hocrgen-side preflight required before hocrgen can safely consume current hocrsyngen S6 outputs. It is a diagnostic adapter plan, not a release-path integration. `F6f2a` implements the first hocrgen-side reader for evidence roots produced outside hocrgen. It adds `hocrgen hocrsyngen-preflight`, but does not change `project_synthetic`, does not change `build-release`, `export-alpha`, `export-synthetic`, or `export-public-beta`, and does not relax current hocrgen synthetic release gates.
+`F6f1` defines the hocrgen-side preflight required before hocrgen can safely consume current hocrsyngen S6 outputs. It is a diagnostic adapter plan, not a release-path integration. `F6f2a` implements the first hocrgen-side reader for evidence roots produced outside hocrgen. `F6f2` defines the hocrgen-owned release/import metadata packet computed from those validated evidence roots. Together these slices add `hocrgen hocrsyngen-preflight`, but do not change `project_synthetic`, do not change `build-release`, `export-alpha`, `export-synthetic`, or `export-public-beta`, and do not relax current hocrgen synthetic release gates.
 
 The key finding from the S6 handoff review is that hocrsyngen is ready to emit deterministic candidate Hebrew OCR/HTR batches through installed public CLI surfaces, but raw hocrsyngen `generation_manifest.v1` output is not yet in the hocrgen hardened release/import metadata form expected by the current default synthetic source path.
 
@@ -54,7 +57,7 @@ The hocrgen-side hardened validator failure that motivates `F6f1` was explicit a
 
 hocrgen must either compute/import the missing provider, rendering, and Hebrew coverage metadata downstream, or define a separate hocrgen-owned import packet or sidecar. That hocrgen-owned form can cite hocrsyngen public manifests, validation reports, generation reports, template catalogs, optional rendering coverage reports, and downstream review/cap/profile evidence. It must not become a hocrsyngen manifest v1 extension by accident.
 
-`F6f1` therefore plans an operator-only preflight that reports this metadata gap explicitly. `F6f2a` implements the read-only evidence-root half of that preflight and treats missing hocrgen release/import metadata as a diagnostic limitation rather than a command failure. `F6f2` remains the later integration step that can wire a larger target-scale batch into hocrgen only after that downstream import metadata form is settled.
+`F6f1` therefore plans an operator-only preflight that reports this metadata gap explicitly. `F6f2a` implements the read-only evidence-root half of that preflight and treats missing hocrgen release/import metadata as a diagnostic limitation rather than a command failure. `F6f2` settles the downstream import metadata form as a separate hocrgen-owned sidecar/import packet, while still leaving target-scale release-path admission to later evidence-gated work.
 
 ## Implemented hocrgen CLI Contract
 
@@ -63,6 +66,7 @@ hocrgen must either compute/import the missing provider, rendering, and Hebrew c
 - Command name: `hocrgen hocrsyngen-preflight`
 - Required input argument: `--evidence-root PATH`, pointing at a hocrsyngen evidence-run output root produced outside hocrgen
 - Diagnostic report path: `--report PATH`, defaulting to `${evidence_root}/hocrgen_preflight_report.json`
+- Optional hocrgen import metadata sidecar path: `--metadata-sidecar PATH`
 - Overwrite policy: refuse an existing diagnostic report path unless `--overwrite` is supplied
 - Exit `0`: the evidence root, public JSON validations, manifest validation, asset path checks, asset hash recomputation, asset readability/dimension checks, SHA-256 inventory, and `template_catalog.v2` joins pass, and the diagnostic report is written with `release_eligible: false`
 - Exit `1`: malformed/missing JSON, invalid public manifest, failed asset/hash/catalog checks, missing required evidence, unsafe evidence-root path references, failed validation report, or report write failure
@@ -111,11 +115,35 @@ The implemented report is explicitly diagnostic and includes:
 - asset path policy and asset hash recomputation policy
 - template catalog version and `(template_id, recipe_id)` join results
 - optional rendering coverage report reference and checksum when present
+- `hocrgen_hocrsyngen_import_metadata_packet.v1` metadata packet content and optional sidecar path when `--metadata-sidecar` is supplied
 - controls retained from `controls.persona` and `controls.condition` without inferring real identity, authorship, medical, psychological, disability, demographic, sensitive-attribute, or real-source provenance meaning
 - limitations for missing downstream realism evidence, utility evidence, diversity/domain-shift evidence, release cap records, review evidence sidecars, candidate profile/mix records, and hocrgen-owned release/import metadata
 - explicit `release_eligible: false`
 
 Missing hocrgen-side `provider_metadata`, `rendering_metadata`, and `hebrew_coverage` must be reported as missing release/import metadata for the current hocrgen release path. The diagnostic preflight can still validate public hocrsyngen manifest/assets/catalog behavior, but it must not silently promote raw hocrsyngen output into hocrgen release eligibility.
+
+## F6f2 Import Metadata Packet
+
+`F6f2` defines the hocrgen-owned sidecar/import packet as `hocrgen_hocrsyngen_import_metadata_packet.v1`. The packet is computed by hocrgen from the already validated evidence root and public hocrsyngen artifacts. It is not a hocrsyngen `generation_manifest.v1` extension and must not be written back into the hocrsyngen manifest.
+
+The packet includes:
+
+- `schema_version: hocrgen_hocrsyngen_import_metadata_packet.v1`
+- planning notation `F6f2`
+- `artifact_scope: operator_only`
+- `release_eligible: false`
+- source manifest path, SHA-256, boundary id, manifest version, generator name, and an explicit `does_not_extend_hocrsyngen_manifest_v1` flag
+- batch-level synthetic disclosure derived from the public manifest or its sample disclosures
+- hocrgen provider metadata: provider name/version, offline manifest-batch mode, and a nested runtime contract that records whether `used_network`, `used_rest_service`, `used_gpu`, `used_llm`, and `used_diffusion` were explicitly evidenced by `candidate_evidence_run_report.provider_runtime`
+- one entry per public manifest sample keyed by `sample_id`
+- per-sample rendering metadata derived from public logical RTL text metadata, line count, and template-catalog joins
+- per-sample Hebrew coverage booleans computed from NFC logical-order text
+- typed validation metadata proving sample/page counts, source-manifest identity, sidecar schema, sample ordering, and layout-family policy match hocrgen's current expectations
+- a release/import model projection result; current evidence roots without `provider_runtime` remain schema-valid operator packets but report `validated_against_hocrgen_release_import_model: false` because no hocrgen-owned evidence proves the no-network/no-REST/no-GPU/no-LLM/no-diffusion runtime flags
+
+The packet covers the current hocrgen release/import metadata gap for provider identity/version, per-sample rendering metadata, and per-sample Hebrew coverage. It does not invent runtime-provider provenance. If an evidence root lacks the explicit `hocrgen_hocrsyngen_provider_runtime.v1` contract, the packet records those runtime flags as unproven and keeps the release/import model projection false. It does not close public beta readiness, does not make a batch release-eligible, and does not admit any sample past review, dedupe, split, benchmark, cap, export, publication, or public-beta gates.
+
+The current hocrgen release/import rendering policy supports only `template_catalog.v2` base families `printed_letter` and `handwritten_note`, mapped to `printed_letter_form` and `handwritten_note_marginalia`. Other valid hocrsyngen catalog families, including archive-card and ledger families, fail closed before sidecar emission until a later PR explicitly expands hocrgen's release/import rendering model.
 
 ## Non-Goals
 
@@ -130,6 +158,17 @@ Missing hocrgen-side `provider_metadata`, `rendering_metadata`, and `hebrew_cove
 - treat successful hocrsyngen generation or validation as release eligibility
 - ask hocrsyngen to add hocrgen-owned release/import metadata fields to `generation_manifest.v1`
 
-## F6f2 Entry Criteria
+`F6f2` does not:
 
-`F6f2` should not start until hocrgen has a settled downstream import metadata form. That form can be computed by hocrgen or represented as a hocrgen-owned sidecar/import packet, but it must preserve current public-boundary constraints and keep review, dedupe, split, benchmark, caps, export, publication, and governance in hocrgen.
+- wire the larger 80-sample candidate evidence root into `project_synthetic`
+- change `build-release`, `export-alpha`, `export-synthetic`, or `export-public-beta`
+- relax current hocrgen release-path gates
+- import hocrsyngen private Python internals
+- call hocrsyngen CLI commands from default release/export paths
+- require REST, GPU, LLM, diffusion, or network services
+- treat a valid metadata packet as release eligibility
+- mutate hocrsyngen `generation_manifest.v1`
+
+## Remaining Integration Boundary
+
+The downstream import metadata form is now settled as a hocrgen-owned sidecar/import packet. Later release-path integration still requires explicit evidence-gated work: a selected larger validated hocrsyngen batch must be admitted through hocrgen configuration and existing review, dedupe, split, benchmark, cap, export, publication, and governance gates before synthetic target scale can pass. `F6g` must not rerun public beta readiness as passing until privacy/review closure, source-depth evidence, and synthetic-scale release-path evidence exist.

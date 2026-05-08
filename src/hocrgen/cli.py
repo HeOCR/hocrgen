@@ -149,6 +149,12 @@ def build_parser() -> argparse.ArgumentParser:
         help="Diagnostic report path; defaults to <evidence-root>/hocrgen_preflight_report.json",
     )
     hocrsyngen_preflight_parser.add_argument(
+        "--metadata-sidecar",
+        type=Path,
+        default=None,
+        help="Optional hocrgen-owned import metadata packet path",
+    )
+    hocrsyngen_preflight_parser.add_argument(
         "--overwrite",
         action="store_true",
         help="Replace an existing diagnostic report path",
@@ -518,6 +524,7 @@ def handle_hocrsyngen_preflight(args: argparse.Namespace) -> int:
         result = run_hocrsyngen_preflight(
             args.evidence_root,
             report_path=args.report,
+            metadata_sidecar_path=args.metadata_sidecar,
             overwrite=args.overwrite,
         )
     except StageExecutionError as exc:
@@ -532,6 +539,14 @@ def handle_hocrsyngen_preflight(args: argparse.Namespace) -> int:
             "report": str(result.report_path),
             "sample_count": result.report["manifest"]["sample_count"],
             "page_count": result.report["manifest"]["page_count"],
+            "hocrgen_import_metadata_packet": {
+                "schema_version": result.report["hocrgen_import_metadata_packet"]["schema_version"],
+                "metadata_valid": result.report["hocrgen_import_metadata_packet"]["validation"]["metadata_valid"],
+                "release_import_model_valid": result.report["hocrgen_import_metadata_packet"]["validation"][
+                    "validated_against_hocrgen_release_import_model"
+                ],
+                "sidecar": result.report["hocrgen_import_metadata_sidecar"]["path"],
+            },
             "missing_hocrgen_release_import_metadata": result.report["manifest"][
                 "missing_hocrgen_release_import_metadata"
             ],

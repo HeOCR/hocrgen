@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F6f2a"
+CURRENT_COMPLETED_NOTATION = "F6f2"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -67,6 +67,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "`F6e` now evaluates current source-depth/composition evidence" in agent_plan
     assert "`F6f1` now records the hocrsyngen S6 handoff review" in agent_plan
     assert "`F6f2a` now implements the operator-only `hocrgen hocrsyngen-preflight` evidence-root reader" in agent_plan
+    assert "`F6f2` now defines the hocrgen-owned `hocrgen_hocrsyngen_import_metadata_packet.v1`" in agent_plan
     assert "| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert "| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert "| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
@@ -94,7 +95,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
         "F6e": ("completed", ["public-profile", "operator-only"]),
         "F6f1": ("completed", ["hocrsyngen S6", "release/import metadata gap"]),
         "F6f2a": ("completed", ["operator-only", "release_eligible=false"]),
-        "F6f2": ("planned", ["release/import metadata form", "generation_manifest.v1"]),
+        "F6f2": ("completed", ["hocrgen_hocrsyngen_import_metadata_packet.v1", "release_eligible=false"]),
         "F6g": ("planned", ["privacy/review closure", "F6e-F6f2"]),
     }
     for pr_id, (status, note_tokens) in expected_f6_pr_rows.items():
@@ -106,7 +107,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
             assert token in row[5]
     assert f"The immediate implementation critical path after `{CURRENT_COMPLETED_NOTATION}` is:" in roadmap
     assert "Roadmap notation is location-based" in readme
-    assert "`F5a`, `F5b`, `F5c`, `F5d`, `F6a`, `F6b`, `F6c`, `F6d`, `F6e`, `F6f1`, and `F6f2a` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
+    assert "`F5a`, `F5b`, `F5c`, `F5d`, `F6a`, `F6b`, `F6c`, `F6d`, `F6e`, `F6f1`, `F6f2a`, and `F6f2` are complete on the current ref" in Path("docs/pre_alpha_freeze_plan.md").read_text(encoding="utf-8")
 
 
 def test_f3_modern_handwritten_policy_and_intake_are_consistent_and_bounded() -> None:
@@ -497,6 +498,7 @@ def test_f6_post_f5_closure_roadmap_is_documented_and_evidence_gated() -> None:
     assert "For F6e, the required planning notation is:" in release_governance
     assert "For F6f1, the required planning notation is:" in release_governance
     assert "For F6f2a, the required planning notation is:" in release_governance
+    assert "For F6f2, the required planning notation is:" in release_governance
     assert "parent milestone: `F6 - Public beta closure and external input integration`" in release_governance
     assert "F6 does not permit hocrgen to import hocrsyngen internals" in design
     assert "hocrgen-owned import packet" in Path("docs/hocrsyngen_adapter_preflight_plan.md").read_text(encoding="utf-8")
@@ -533,6 +535,7 @@ def test_f6f1_hocrsyngen_adapter_preflight_plan_locks_operator_boundary() -> Non
         "`--count N --seed S`",
         "`--rendering-coverage-report`",
         "`--report PATH`",
+        "`--metadata-sidecar PATH`",
         "`--overwrite`",
         "`--timeout-seconds N`",
         "Exit `0`",
@@ -545,19 +548,22 @@ def test_f6f1_hocrsyngen_adapter_preflight_plan_locks_operator_boundary() -> Non
         "status on this ref: completed (planning-only baseline)",
         "implementation notation: `F6f2a`",
         "implementation status on this ref: completed (operator-only evidence-root reader; no release-path integration)",
+        "metadata notation: `F6f2`",
+        "metadata status on this ref: completed (hocrgen-owned import metadata packet; operator-only; no release-path integration)",
+        "`hocrgen_hocrsyngen_import_metadata_packet.v1`",
         "two deliberately separate shapes",
         "The public hocrsyngen `generation_manifest.v1` shape",
         "The hocrgen-hardened fixture/import form",
         "The existing hocrgen adapter expects the hardened fixture/import form",
-        "adds `hocrgen hocrsyngen-preflight`",
+        "add `hocrgen hocrsyngen-preflight`",
         "The implemented command does not call hocrsyngen",
-        "does not change `project_synthetic`",
-        "does not change `build-release`, `export-alpha`, `export-synthetic`, or `export-public-beta`",
+        "do not change `project_synthetic`",
+        "do not change `build-release`, `export-alpha`, `export-synthetic`, or `export-public-beta`",
         "must not call `project_synthetic`, `build-release`, `export-alpha`, `export-synthetic`, or `export-public-beta`",
         "call hocrsyngen CLI commands from default release/export paths",
         "not a request for hocrsyngen to mutate public manifest v1",
         "ask hocrsyngen to add hocrgen-owned release/import metadata fields to `generation_manifest.v1`",
-        "`F6f2` should not start until hocrgen has a settled downstream import metadata form",
+        "The downstream import metadata form is now settled as a hocrgen-owned sidecar/import packet",
     ]:
         assert required_boundary in preflight_plan
 
