@@ -5,7 +5,7 @@
 - notation: `F6f1`
 - parent milestone: `F6 - Public beta closure and external input integration`
 - source: `docs/HeOCR_hocrgen_long_term_roadmap.md`
-- status on this ref: planning-only
+- status on this ref: completed (planning-only; no runtime behavior)
 
 ## Purpose
 
@@ -27,7 +27,7 @@ The installed hocrsyngen CLI surfaces that hocrgen can use for a future prefligh
 
 The live S6 review confirmed that these surfaces expose `template_catalog.v1`, `template_catalog.v2`, `contract_fixture_catalog.v1`, `contract_fixture_export.v1`, `generation_report.v1`, `validation_report.v1`, valid public `generation_manifest.v1` manifests, portable relative POSIX asset paths, canonical sample/page ids, SHA-256 page hashes, logical-order UTF-8 Hebrew text, NFC normalization, and `(template_id, recipe_id)` values that can join to `template_catalog.v2`.
 
-The compatibility gap is hocrgen-side: current hocrgen release-path validation expects additional hardened release/import metadata, including top-level `provider_metadata`, per-sample `rendering_metadata`, and per-sample `hebrew_coverage`. hocrsyngen public `generation_manifest.v1` intentionally does not include those fields, and hocrgen should not ask hocrsyngen to mutate manifest v1 to satisfy hocrgen's current hardened model.
+The compatibility gap is hocrgen-side and comes from two deliberately separate shapes. The public hocrsyngen `generation_manifest.v1` shape is the upstream batch contract emitted by hocrsyngen. The hocrgen-hardened fixture/import form is the current hocrgen release-path adapter shape derived from that public batch plus hocrgen-owned release/import metadata. The existing hocrgen adapter expects the hardened fixture/import form and therefore validates additional metadata, including top-level `provider_metadata`, per-sample `rendering_metadata`, and per-sample `hebrew_coverage`. hocrsyngen public `generation_manifest.v1` intentionally does not include those fields, and hocrgen should not ask hocrsyngen to mutate manifest v1 to satisfy hocrgen's current hardened model.
 
 ## Observed S6 Handoff Evidence
 

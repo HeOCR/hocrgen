@@ -536,6 +536,11 @@ def test_f6f1_hocrsyngen_adapter_preflight_plan_locks_operator_boundary() -> Non
         assert required_contract in preflight_plan
 
     for required_boundary in [
+        "status on this ref: completed (planning-only; no runtime behavior)",
+        "two deliberately separate shapes",
+        "The public hocrsyngen `generation_manifest.v1` shape",
+        "The hocrgen-hardened fixture/import form",
+        "The existing hocrgen adapter expects the hardened fixture/import form",
         "does not implement this command on this ref",
         "does not implement the preflight command on this ref",
         "does not change `project_synthetic`",
