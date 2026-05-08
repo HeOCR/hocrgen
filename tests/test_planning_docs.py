@@ -497,6 +497,58 @@ def test_f6_post_f5_closure_roadmap_is_documented_and_evidence_gated() -> None:
     assert "Future implementation should follow F6" in pre_alpha
 
 
+def test_f6f1_hocrsyngen_adapter_preflight_plan_locks_operator_boundary() -> None:
+    preflight_plan = Path("docs/hocrsyngen_adapter_preflight_plan.md").read_text(encoding="utf-8")
+
+    for required_evidence in [
+        "schema_version: template_catalog.v1",
+        "schema_version: template_catalog.v2",
+        "schema_version: contract_fixture_catalog.v1",
+        "schema_version: contract_fixture_export.v1",
+        "schema_version: generation_report.v1",
+        "schema_version: validation_report.v1",
+        "sample_count: 4",
+        "page_count: 4",
+        "hocrsyngen generation_manifest.v1 validation failed",
+        "missing `provider_metadata`",
+        "missing `samples.0.rendering_metadata`",
+        "missing `samples.0.hebrew_coverage`",
+        "missing `samples.1.rendering_metadata`",
+        "missing `samples.1.hebrew_coverage`",
+    ]:
+        assert required_evidence in preflight_plan
+
+    for required_contract in [
+        "`hocrgen hocrsyngen-preflight`",
+        "`--output-dir PATH`",
+        "`--hocrsyngen-executable PATH_OR_NAME`",
+        "`--mode fixture|generate`",
+        "`--count N --seed S`",
+        "`--rendering-coverage-report`",
+        "`--report PATH`",
+        "`--overwrite`",
+        "`--timeout-seconds N`",
+        "Exit `0`",
+        "Exit `1`",
+        "Exit `2`",
+        "`release_eligible: false`",
+    ]:
+        assert required_contract in preflight_plan
+
+    for required_boundary in [
+        "does not implement this command on this ref",
+        "does not implement the preflight command on this ref",
+        "does not change `project_synthetic`",
+        "does not change `build-release`, `export-alpha`, `export-synthetic`, or `export-public-beta`",
+        "must not call `project_synthetic`, `build-release`, `export-alpha`, `export-synthetic`, or `export-public-beta`",
+        "call hocrsyngen CLI commands from default release/export paths",
+        "not a request for hocrsyngen to mutate public manifest v1",
+        "ask hocrsyngen to add hocrgen-owned release/import metadata fields to `generation_manifest.v1`",
+        "`F6f2` should not start until hocrgen has a settled downstream import metadata form",
+    ]:
+        assert required_boundary in preflight_plan
+
+
 def test_planning_docs_do_not_use_stale_branch_local_status_phrases() -> None:
     for path in PLANNING_FILES:
         text = path.read_text(encoding="utf-8").casefold()

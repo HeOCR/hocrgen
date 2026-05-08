@@ -38,7 +38,7 @@ Synthetic-only `HeOCRsynth` releases are a separate release stream from mixed `H
 - include only release-ready synthetic items from existing hocrgen pipeline state
 - run the full configured hocrgen pipeline before filtering; source-limited synthetic exports are rejected because they can bypass mixed release gates such as benchmark membership validation
 - keep payload assets under `data/synthetic/<split>/<item_id>/`
-- preserve `PROJECT-SYNTHETIC`, synthetic disclosure, hocrsyngen provider metadata, rendering metadata, and Hebrew coverage metadata
+- preserve `PROJECT-SYNTHETIC`, synthetic disclosure, and the hocrgen-side provider/rendering/Hebrew coverage metadata attached to hocrsyngen-backed items
 - use release records with `dataset_id: HeOCRsynth`, `release_kind: synthetic_only`, `synthetic_only: true`, and `real_items: 0`
 - exclude real-source NLI, Pinkas, BiblIA, modern handwriting, and other non-synthetic items from payload and audit manifests
 - avoid public beta or mixed-dataset readiness claims

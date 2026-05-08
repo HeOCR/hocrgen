@@ -831,7 +831,7 @@ Font assets should be treated as first-class governed inputs. In practice, this 
 
 The build should fail if an asset lacks a manifest entry or uses a non-allowed license.
 
-For hocrsyngen-backed inputs, hocrgen validates the provider manifest and assets but does not call the generator package. The hardened `generation_manifest.v1` boundary requires provider, rendering, and Hebrew coverage metadata to be internally consistent with the logical text before source health can pass. Niqqud and mixed-LTR absence remain reportable coverage limitations rather than release-readiness claims.
+For hocrsyngen-backed inputs, hocrgen validates the public provider manifest and assets but does not call the generator package. The current hardened hocrgen fixture/import boundary additionally requires hocrgen-owned provider, rendering, and Hebrew coverage metadata to be internally consistent with the logical text before source health can pass; those fields are not requirements on public hocrsyngen `generation_manifest.v1`. Niqqud and mixed-LTR absence remain reportable coverage limitations rather than release-readiness claims.
 
 ---
 
@@ -1078,7 +1078,7 @@ Current removal manifests may use coarse machine-readable reasons, but release n
 The HeOCRsynth export must:
 
 - select only release-ready synthetic items with `PROJECT-SYNTHETIC`
-- preserve synthetic disclosure, hocrsyngen provider metadata, rendering metadata, and Hebrew coverage metadata
+- preserve synthetic disclosure and the hocrgen-side provider/rendering/Hebrew coverage metadata attached to hocrsyngen-backed items
 - reject selected synthetic items missing the metadata required to distinguish generated provenance from real-source provenance
 - write payload assets under `data/synthetic/<split>/<item_id>/`
 - run the full configured release pipeline before filtering, so source-limited invocation is not allowed for this handoff command

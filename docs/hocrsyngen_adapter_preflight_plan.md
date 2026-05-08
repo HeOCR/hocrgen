@@ -9,7 +9,7 @@
 
 ## Purpose
 
-`F6f1` defines the hocrgen-side preflight required before hocrgen can safely consume current hocrsyngen S6 outputs. It is a diagnostic adapter plan, not a release-path integration. It does not add a command, does not change `project_synthetic`, does not change `build-release`, `export-alpha`, `export-synthetic`, or `export-public-beta`, and does not relax current hocrgen synthetic release gates.
+`F6f1` defines the hocrgen-side preflight required before hocrgen can safely consume current hocrsyngen S6 outputs. It is a diagnostic adapter plan, not a release-path integration. It does not implement the preflight command on this ref, does not add a command, does not change `project_synthetic`, does not change `build-release`, `export-alpha`, `export-synthetic`, or `export-public-beta`, and does not relax current hocrgen synthetic release gates.
 
 The key finding from the S6 handoff review is that hocrsyngen is ready to emit deterministic candidate Hebrew OCR/HTR batches through installed public CLI surfaces, but raw hocrsyngen `generation_manifest.v1` output is not yet in the hocrgen hardened release/import metadata form expected by the current default synthetic source path.
 
@@ -29,15 +29,53 @@ The live S6 review confirmed that these surfaces expose `template_catalog.v1`, `
 
 The compatibility gap is hocrgen-side: current hocrgen release-path validation expects additional hardened release/import metadata, including top-level `provider_metadata`, per-sample `rendering_metadata`, and per-sample `hebrew_coverage`. hocrsyngen public `generation_manifest.v1` intentionally does not include those fields, and hocrgen should not ask hocrsyngen to mutate manifest v1 to satisfy hocrgen's current hardened model.
 
+## Observed S6 Handoff Evidence
+
+The S6 handoff review exercised hocrsyngen from installed CLI surfaces on hocrsyngen `main` in an operator-local temporary directory. The temporary output path is not a hocrgen release artifact; the durable evidence is the command contract and observed JSON shape below.
+
+| Command shape | Observed JSON contract/evidence |
+| --- | --- |
+| `hocrsyngen templates --format json` | `schema_version: template_catalog.v1`; `template_count: 7` |
+| `hocrsyngen templates --format json --catalog-version v2` | `schema_version: template_catalog.v2`; `template_count: 7` |
+| `hocrsyngen contracts --format json` | `schema_version: contract_fixture_catalog.v1`; fixture `generation_manifest_v1_fixture_batch`; `sample_count: 2`; `page_count: 2` |
+| `hocrsyngen contracts export --fixture-id generation_manifest_v1_fixture_batch --output PATH --format json` | `schema_version: contract_fixture_export.v1`; exported `generation_manifest.json`; `sample_count: 2`; `page_count: 2` |
+| `hocrsyngen validate PATH --format json` against the exported fixture | `schema_version: validation_report.v1`; `valid: true`; `sample_count: 2`; `page_count: 2` |
+| `hocrsyngen generate --count 4 --seed 101 --output PATH --rendering-coverage-report --format json` | `schema_version: generation_report.v1`; `sample_count: 4`; `page_count: 4`; `rendering_coverage_report_path` present |
+| `hocrsyngen validate PATH --format json` against the generated batch | `schema_version: validation_report.v1`; `valid: true`; `sample_count: 4`; `page_count: 4` |
+
+The public exported manifest shape observed in that review had top-level keys `generator_name`, `license`, `manifest_version`, `samples`, and `synthetic_disclosure`; sample keys `controls`, `generator_version`, `license`, `pages`, `provenance`, `recipe_id`, `sample_id`, `synthetic_disclosure`, and `text`; and page keys `asset_path`, `height`, `media_type`, `page_id`, `sha256`, and `width`.
+
+The hocrgen-side hardened validator failure that motivates `F6f1` was explicit and expected for public hocrsyngen output: `hocrsyngen generation_manifest.v1 validation failed`, with missing `provider_metadata`, missing `samples.0.rendering_metadata`, missing `samples.0.hebrew_coverage`, missing `samples.1.rendering_metadata`, and missing `samples.1.hebrew_coverage`. That failure is not a request for hocrsyngen to mutate public manifest v1; it is the evidence that hocrgen needs a downstream import metadata form or downstream metadata computation before `F6f2`.
+
 ## Boundary Decision
 
 hocrgen must either compute/import the missing provider, rendering, and Hebrew coverage metadata downstream, or define a separate hocrgen-owned import packet or sidecar. That hocrgen-owned form can cite hocrsyngen public manifests, validation reports, generation reports, template catalogs, optional rendering coverage reports, and downstream review/cap/profile evidence. It must not become a hocrsyngen manifest v1 extension by accident.
 
 `F6f1` therefore plans an operator-only preflight that reports this metadata gap explicitly. `F6f2` remains the later integration step that can wire a larger target-scale batch into hocrgen only after that downstream import metadata form is settled.
 
+## Planned hocrgen CLI Contract
+
+`F6f1` does not implement this command on this ref, but it names the future operator surface so `F6f2` does not fork into incompatible preflight interpretations.
+
+- Command name: `hocrgen hocrsyngen-preflight`
+- Required output argument: `--output-dir PATH`
+- hocrsyngen executable selection: `--hocrsyngen-executable PATH_OR_NAME`, defaulting to `hocrsyngen` resolved from `PATH`; the future implementation should execute it as an argument vector, not through shell parsing
+- Mode: `--mode fixture|generate`, defaulting to `fixture`
+- Fixture mode: runs the packaged fixture export for `generation_manifest_v1_fixture_batch` into `${output_dir}/source_batch` and records the contracts catalog/export JSON under `${output_dir}/reports/`
+- Generate mode: requires `--count N --seed S`, writes the generated batch into `${output_dir}/source_batch`, and may accept `--rendering-coverage-report` to retain advisory rendering coverage JSON
+- Diagnostic report path: `--report PATH`, defaulting to `${output_dir}/hocrsyngen_preflight_report.json`
+- Raw hocrsyngen JSON retention: write command JSON outputs under `${output_dir}/reports/` with checksums referenced from the diagnostic report
+- Overwrite policy: refuse existing output directories, `source_batch`, retained raw reports, or diagnostic report paths unless `--overwrite` is supplied; overwrite should replace only command-owned output subtrees
+- Timeout policy: `--timeout-seconds N`, defaulting to `120`
+- Exit `0`: all installed-CLI calls, public JSON validations, manifest validation, asset path checks, asset hash recomputation, asset readability/dimension checks, and `template_catalog.v2` joins pass, and the diagnostic report is written with `release_eligible: false`
+- Exit `1`: hocrsyngen command failure, malformed/missing JSON, invalid public manifest, failed asset/hash/catalog checks, missing required evidence, or missing hocrgen release/import metadata; write a diagnostic report when possible
+- Exit `2`: local usage/setup failure before batch validation, including invalid arguments, unsafe output paths, missing executable, or overwrite refusal
+
+The future command must remain operator-only. It must not call `project_synthetic`, `build-release`, `export-alpha`, `export-synthetic`, or `export-public-beta`; it must not mutate hocrgen config; and exit `0` must still mean diagnostic preflight success rather than release eligibility.
+
 ## Future Preflight Workflow
 
-A future hocrgen operator command or workflow should:
+The future `hocrgen hocrsyngen-preflight` operator command should:
 
 1. Call installed hocrsyngen CLI commands only.
 2. Capture and validate `template_catalog.v2`.
