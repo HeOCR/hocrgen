@@ -32,8 +32,6 @@ public-domain-hand-written-hebrew-scans   → real-handwriting page-level scan c
 - `hocrgen` continues to consume `hocrsyngen` output only as fixture-backed candidate input through the existing `project_synthetic` source and through the operator-only `hocrgen hocrsyngen-preflight` evidence-root reader; raw hocrsyngen batches stay candidate inputs and are not release-eligible by themselves.
 - See [`docs/heocr_ecosystem_overview.md`](./docs/heocr_ecosystem_overview.md) for per-repository scope, rights-inheritance behavior through the chain, and contract boundaries.
 
-This documentation update does not affect the hard `2 / 80` synthetic target-scale blocker, the source-depth/composition blocker, the benchmark-reference blocker, or the privacy/review blocker.
-
 ## What `hocrgen` can do today
 
 - validate typed source, profile, and license config

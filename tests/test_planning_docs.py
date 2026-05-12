@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F4f"
+CURRENT_COMPLETED_NOTATION = "F6f2"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -347,36 +347,43 @@ def test_f4e_shared_export_packaging_primitives_are_documented() -> None:
 
 
 def test_f4f_heocr_ecosystem_upstream_chain_is_documented() -> None:
-    ecosystem = Path("docs/heocr_ecosystem_overview.md").read_text(encoding="utf-8")
+    ecosystem_path = Path("docs/heocr_ecosystem_overview.md")
+    assert ecosystem_path.exists(), "heocr_ecosystem_overview.md must exist"
+    ecosystem = ecosystem_path.read_text(encoding="utf-8")
     agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
     readme = Path("README.md").read_text(encoding="utf-8")
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
-    design = Path("docs/hocrgen_design_and_spec.md").read_text(encoding="utf-8")
-    synthetic_guide = Path("docs/synthetic_asset_contribution_guide.md").read_text(encoding="utf-8")
-    release_governance = Path("docs/release_governance.md").read_text(encoding="utf-8")
-    combined = "\n".join(
-        [ecosystem, agent_plan, readme, roadmap, design, synthetic_guide, release_governance]
-    )
 
+    # Chain order: section headers must appear in upstream-to-downstream order
+    assert ecosystem.index("### 3.1") < ecosystem.index("### 3.2") < ecosystem.index("### 3.3") < ecosystem.index("### 3.4")
+    assert "### 3.1 `public-domain-hand-written-hebrew-scans`" in ecosystem
+    assert "### 3.2 `hletterscriptgen`" in ecosystem
+    assert "### 3.3 `hletterscript`" in ecosystem
+    assert "### 3.4 `hocrsyngen`" in ecosystem
+
+    # Specific contracts that the ecosystem doc must name
     for required in [
-        "`F4f`",
-        "public-domain-hand-written-hebrew-scans",
-        "hletterscriptgen",
-        "hletterscript",
         "letter_set.v1",
-        "hocrsyngen",
-        "HeOCRsynth",
-        "mixed real+synthetic",
-        "synthetic-only",
         "generation_manifest.v1",
+        "hocrgen_hocrsyngen_import_metadata_packet.v1",
         "PROJECT-SYNTHETIC",
-        "candidate synthetic inputs",
-        "does not import",
-        "documentation-only",
-        "does not affect",
-        "2 / 80",
+        "four-repository",
+        "`F4f`",
+        "`F4a`",
     ]:
-        assert required in combined
+        assert required in ecosystem, f"ecosystem doc missing: {required}"
+
+    # The new doc must be registered in llms.txt
+    assert "docs/heocr_ecosystem_overview.md" in Path("llms.txt").read_text(encoding="utf-8")
+
+    # README must reference the ecosystem doc
+    assert "docs/heocr_ecosystem_overview.md" in readme
+
+    # Roadmap F4 milestone row must include F4f
+    assert "| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d, F4e, F4f |" in roadmap
+
+    # Agent-plan must mention F4f
+    assert "`F4f`" in agent_plan
 
 
 def test_f4a_four_repository_boundary_remains_visible_after_f4f_extension() -> None:
@@ -389,6 +396,7 @@ def test_f4a_four_repository_boundary_remains_visible_after_f4f_extension() -> N
     assert "four-repository" in synthetic_guide
     assert "four-repository synthetic spinout" in roadmap
     assert "four-repository" in ecosystem
+    assert "`F4a`" in ecosystem
 
 
 def test_f5b_public_beta_packaging_contract_is_documented_and_bounded() -> None:
