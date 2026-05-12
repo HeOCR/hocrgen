@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 
-CURRENT_COMPLETED_NOTATION = "F6f2"
+CURRENT_COMPLETED_NOTATION = "F4f"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
@@ -78,7 +78,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "| F1 | Beta-scale acquisition trial | F1a, F1b, F1b2, F1b3, F1b4, F1c, F1d, F1e |" in roadmap
     assert "| F2 | Benchmark ground-truth foundation | F2a, F2b |" in roadmap
     assert "| F3 | Modern handwritten acquisition program | F3a, F3b |" in roadmap
-    assert "| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d, F4e |" in roadmap
+    assert "| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d, F4e, F4f |" in roadmap
     assert "| F5 | Public beta and publication readiness | F5a, F5b, F5c, F5d | Public beta gates, publication packaging, dataset-card, checksum/archive manifests, takedown-ready export handoff, blocker-closure sequencing, and repo-owned blocker reporting | completed-with-blockers |" in roadmap
     assert roadmap_rows["F6"][1] == "Public beta closure and external input integration"
     assert roadmap_rows["F6"][2].split(", ") == ["F6a", "F6b", "F6c", "F6d", "F6e", "F6f1", "F6f2a", "F6f2", "F6g"]
@@ -344,6 +344,51 @@ def test_f4e_shared_export_packaging_primitives_are_documented() -> None:
         "synthetic-only",
     ]:
         assert required in combined
+
+
+def test_f4f_heocr_ecosystem_upstream_chain_is_documented() -> None:
+    ecosystem = Path("docs/heocr_ecosystem_overview.md").read_text(encoding="utf-8")
+    agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+    design = Path("docs/hocrgen_design_and_spec.md").read_text(encoding="utf-8")
+    synthetic_guide = Path("docs/synthetic_asset_contribution_guide.md").read_text(encoding="utf-8")
+    release_governance = Path("docs/release_governance.md").read_text(encoding="utf-8")
+    combined = "\n".join(
+        [ecosystem, agent_plan, readme, roadmap, design, synthetic_guide, release_governance]
+    )
+
+    for required in [
+        "`F4f`",
+        "public-domain-hand-written-hebrew-scans",
+        "hletterscriptgen",
+        "hletterscript",
+        "letter_set.v1",
+        "hocrsyngen",
+        "HeOCRsynth",
+        "mixed real+synthetic",
+        "synthetic-only",
+        "generation_manifest.v1",
+        "PROJECT-SYNTHETIC",
+        "candidate synthetic inputs",
+        "does not import",
+        "documentation-only",
+        "does not affect",
+        "2 / 80",
+    ]:
+        assert required in combined
+
+
+def test_f4a_four_repository_boundary_remains_visible_after_f4f_extension() -> None:
+    """`F4f` extends `F4a` upstream; the original four-repo boundary must remain visible."""
+
+    synthetic_guide = Path("docs/synthetic_asset_contribution_guide.md").read_text(encoding="utf-8")
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+    ecosystem = Path("docs/heocr_ecosystem_overview.md").read_text(encoding="utf-8")
+
+    assert "four-repository" in synthetic_guide
+    assert "four-repository synthetic spinout" in roadmap
+    assert "four-repository" in ecosystem
 
 
 def test_f5b_public_beta_packaging_contract_is_documented_and_bounded() -> None:

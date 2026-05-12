@@ -4,6 +4,36 @@
 
 This repository now implements a conservative review-readiness, source-operations, benchmark-subset, evaluation-utility, community-contribution, annotation-pilot, multi-release governance, benchmark ground-truth reference, modern handwritten acquisition policy, synthetic-provider validation, synthetic-only export, and public beta packaging/readiness layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, optional benchmark-reference ingestion and adjudication/status reporting, lightweight text evaluation over benchmark manifests, carefully bounded annotation pilot selection, curated dry-run release assembly, documented contribution safety rails, release/version governance for repeated public exports, mixed HeOCR alpha handoff, synthetic-only HeOCRsynth handoff, and blocked public beta publication handoff packaging with checksums, archives, a machine-readable blocker-closure plan, and a repo-owned blocker report.
 
+## HeOCR ecosystem
+
+`hocrgen` is one repository in a seven-repository HeOCR ecosystem. `F4f` records the wider chain that surrounds the original `F4a` four-repository synthetic spinout boundary without changing any runtime behavior, readiness gate, or release path:
+
+```
+public-domain-hand-written-hebrew-scans   → real-handwriting page-level scan corpus (JSONL indexes, per-scan rights)
+            │
+            ▼
+        hletterscriptgen                  → framework: crops scans into per-letter glyph variants (letter_set.v1)
+            │
+            ▼
+          hletterscript                   → dataset: per-writer Hebrew letter-glyph image sets (Git LFS)
+            │
+            ▼
+            hocrsyngen                    → composes glyphs into synthetic Hebrew pages, emits generation_manifest.v1
+            │  (candidate generation_manifest.v1 batches)
+            ▼
+            hocrgen                       → orchestration, governance, review, dedupe, split, benchmark, caps, export
+        ┌───┴───┐
+        ▼       ▼
+      HeOCR  HeOCRsynth                   → public dataset releases (mixed real+synthetic vs synthetic-only)
+```
+
+- Real-source acquisition for the mixed `HeOCR` stream (`nli_any_use_permitted`, `pinkas_open`, `biblia_open`, and the operator-only modern handwriting intake) is independent of the upstream synthetic chain and continues to flow into `hocrgen` directly through its existing source adapters.
+- `hocrgen` does not import code from `public-domain-hand-written-hebrew-scans`, `hletterscriptgen`, `hletterscript`, or `hocrsyngen`, does not call upstream CLIs from default release/export commands, and does not re-validate upstream rights, glyph extraction, or per-image checksums.
+- `hocrgen` continues to consume `hocrsyngen` output only as fixture-backed candidate input through the existing `project_synthetic` source and through the operator-only `hocrgen hocrsyngen-preflight` evidence-root reader; raw hocrsyngen batches stay candidate inputs and are not release-eligible by themselves.
+- See [`docs/heocr_ecosystem_overview.md`](./docs/heocr_ecosystem_overview.md) for per-repository scope, rights-inheritance behavior through the chain, and contract boundaries.
+
+This documentation update does not affect the hard `2 / 80` synthetic target-scale blocker, the source-depth/composition blocker, the benchmark-reference blocker, or the privacy/review blocker.
+
 ## What `hocrgen` can do today
 
 - validate typed source, profile, and license config
@@ -35,7 +65,7 @@ This repository now implements a conservative review-readiness, source-operation
 - document multi-release governance for version semantics, removals/takedowns, additive schema migration, source deprecation, benchmark stability, and compatibility statements
 - document and validate benchmark ground-truth guidance for Hebrew transcription, layout labels, and `benchmark_reference_manifest.v1` reference manifests
 - document the `F3a` rights-clean modern handwritten Hebrew acquisition policy for consent, public-use release terms, provenance, privacy screening, takedown/removal handling, scanning standards, operator review, composition targets, and source-family boundaries
-- document the four-repository synthetic spinout boundary: `hocrsyngen` for generation, `hocrgen` for gates/orchestration/export, `HeOCR` for mixed releases, and `HeOCRsynth` for synthetic-only releases
+- document the wider HeOCR ecosystem chain that surrounds `hocrgen`: `public-domain-hand-written-hebrew-scans` for real-handwriting page scans, `hletterscriptgen` for per-letter glyph extraction tooling, `hletterscript` for per-writer glyph-image sets, `hocrsyngen` for synthetic Hebrew page generation, `hocrgen` for gates/orchestration/export, `HeOCR` for mixed real+synthetic releases, and `HeOCRsynth` for synthetic-only releases
 - package blocked public beta handoff trees with explicit readiness gates, checksums, archives, and beta docs
 - emit a public beta blocker-closure plan that separates repo-owned blockers from external/input-dependent blockers without relaxing any gate
 - emit a repo-owned public beta blocker report with item/status-level privacy-review, benchmark-reference, and takedown/private-reporting closure evidence

@@ -162,6 +162,18 @@ It should not be responsible for training OCR models, though it may later emit b
    - state tracking
    - GitHub Actions workflows
 
+### 5.2 HeOCR ecosystem context
+
+`hocrgen` is one repository inside a wider HeOCR ecosystem. The original `F4a` four-repository synthetic spinout boundary (`hocrsyngen`, `hocrgen`, `HeOCR`, `HeOCRsynth`) is documented under the synthetic provider integration milestone. `F4f` records the additional upstream repositories that surround that boundary:
+
+- `public-domain-hand-written-hebrew-scans` — rights-clean modern-handwriting page-scan corpus with JSONL-indexed per-scan rights evidence
+- `hletterscriptgen` — framework and `letter_set.v1` JSON Schema that crops upstream scans into per-letter glyph variants
+- `hletterscript` — per-writer Hebrew letter-glyph image dataset (Git LFS image bytes; 22 base letters plus 5 finals)
+
+The synthetic provenance chain is therefore `public-domain-hand-written-hebrew-scans → hletterscriptgen → hletterscript → hocrsyngen → hocrgen → HeOCR / HeOCRsynth`. Real-source acquisition (`nli_any_use_permitted`, `pinkas_open`, `biblia_open`, and operator-only modern handwriting intake) continues to flow into `hocrgen` directly through the existing source adapters and is independent of this upstream synthetic chain.
+
+`hocrgen` does not import code from `public-domain-hand-written-hebrew-scans`, `hletterscriptgen`, `hletterscript`, or `hocrsyngen`, does not call upstream CLIs from default release or export paths, and does not re-validate upstream rights, glyph extraction, or per-image checksums. Those checks remain upstream responsibilities; `hocrgen` continues to enforce its own per-item rights, privacy, review, dedupe, split, benchmark, synthetic-cap, and export-portability gates over candidate inputs. See [`heocr_ecosystem_overview.md`](./heocr_ecosystem_overview.md) for the full per-repository scope and rights-inheritance behavior.
+
 ---
 
 ## 6. Core concepts

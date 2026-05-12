@@ -29,12 +29,20 @@ The project should not accept:
 
 ## External generator boundary
 
-The four-repository boundary is:
+The original `F4a` four-repository boundary is:
 
 - `hocrsyngen`: Python package and CLI for generating synthetic Hebrew OCR/HTR sample units and manifests.
 - `hocrgen`: orchestration, governance, rights/provenance disclosure, privacy, review, dedupe, split, benchmark, synthetic caps, and export portability.
 - `HeOCR`: mixed real+synthetic public dataset releases exported by `hocrgen`.
 - `HeOCRsynth`: synthetic-only dataset releases exported by `hocrgen`.
+
+`F4f` records the wider HeOCR ecosystem upstream chain that feeds `hocrsyngen` without changing this hocrgen-side boundary or any release gate:
+
+- `public-domain-hand-written-hebrew-scans`: the rights-clean modern-handwriting page-scan corpus, JSONL-indexed with per-scan rights evidence.
+- `hletterscriptgen`: framework and `letter_set.v1` JSON Schema for cropping those scans into per-letter glyph variants.
+- `hletterscript`: per-writer Hebrew letter-glyph image dataset (27 forms; 22 base letters plus the 5 finals), Git LFS for image bytes.
+
+`hocrgen` consumes `hocrsyngen` `generation_manifest.v1` batches only. It does not import code from `public-domain-hand-written-hebrew-scans`, `hletterscriptgen`, `hletterscript`, or `hocrsyngen`, does not call upstream CLIs from default release/export commands, and does not re-validate upstream rights, glyph extraction, or per-image checksums; those checks remain the upstream repositories' responsibilities. See [`heocr_ecosystem_overview.md`](./heocr_ecosystem_overview.md) for the full chain, per-repository scope, and rights-inheritance behavior.
 
 The provider contract starts with `hocrsyngen` emitting public `generation_manifest.json` plus relative image assets. Public manifest v1 includes sample id, page assets, logical-order UTF-8 text, script/language/direction metadata, generator version, recipe id, seed/provenance, license `PROJECT-SYNTHETIC`, synthetic disclosure, and optional persona/condition controls. hocrgen reads fixture-backed `generation_manifest.v1` batches and validates them on its side, including unique sample/page/asset identities. The current hocrgen hardened release/import form additionally requires hocrgen-owned provider metadata, offline manifest-batch generation mode, explicit no-network/no-REST/no-GPU/no-LLM/no-diffusion flags, rendering metadata for logical RTL Hebrew pages, and computed Hebrew coverage metadata before mapping samples into hocrgen item ids. Operator preflight sidecars must not invent those runtime flags; when the evidence root lacks an explicit provider-runtime contract, the sidecar records them as unproven and keeps release/import projection false. It should not call `hocrsyngen generate`, `hocrsyngen validate`, a live service, or require network, GPU, LLM, diffusion, or heavyweight generator dependencies in baseline tests or release builds. hocrsyngen CLI JSON reports are command reports only, not hocrgen release manifests.
 

@@ -43,6 +43,8 @@ Synthetic-only `HeOCRsynth` releases are a separate release stream from mixed `H
 - exclude real-source NLI, Pinkas, BiblIA, modern handwriting, and other non-synthetic items from payload and audit manifests
 - avoid public beta or mixed-dataset readiness claims
 
+The synthetic provenance chain that ultimately produces `PROJECT-SYNTHETIC` items inside `HeOCR` and `HeOCRsynth` releases is the wider HeOCR ecosystem chain documented by `F4f` in [`heocr_ecosystem_overview.md`](./heocr_ecosystem_overview.md): `public-domain-hand-written-hebrew-scans` → `hletterscriptgen` → `hletterscript` → `hocrsyngen` → `hocrgen` → `HeOCR` / `HeOCRsynth`. `hocrgen` continues to consume only governed `hocrsyngen` `generation_manifest.v1` batches and does not import upstream code, call upstream CLIs from default release/export commands, or re-validate upstream rights, glyph extraction, or per-image checksums; those checks remain upstream responsibilities, and the hocrgen-side normalized rights values (`PD-IL`, `CC-BY-4.0`, `CC-BY-SA-4.0`, `HEOCR-CONSENT-OPEN`, `PROJECT-SYNTHETIC`) plus existing per-item provenance disclosure remain the release-time contract.
+
 ## Public beta readiness gates
 
 Mixed `HeOCR` public beta publication is a stricter publishability decision than a successful operator trial. The F1c target-scale trial may provide evidence that candidate acquisition and gates can run, but its artifacts are operator-only until the F5a readiness contract is satisfied. In particular, the current F1c synthetic evidence remains blocked for public beta readiness because full synthetic target scale still requires a larger validated hocrsyngen batch.
