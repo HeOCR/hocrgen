@@ -48,6 +48,7 @@ Operational docs
 - `docs/HeOCR_hocrgen_long_term_roadmap.md` — milestone/PR roadmap and critical path
 - `docs/hocrgen_design_and_spec.md` — system design and architectural boundaries
 - `docs/hocrgen_normalization_and_qa.md` — normalization and QA artifact behavior
+- `docs/heocr_ecosystem_overview.md` — wider HeOCR ecosystem chain (`public-domain-hand-written-hebrew-scans` → `hletterscriptgen` → `hletterscript` → `hocrsyngen` → `hocrgen` → `HeOCR` / `HeOCRsynth`) and per-repository scope
 
 PR workflow note
 

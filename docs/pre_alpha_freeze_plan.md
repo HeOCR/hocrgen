@@ -123,7 +123,7 @@ This milestone is now implemented in `hocrgen` via the dedicated `review-merge` 
 - evaluation utilities
 - community contribution maturity
 
-`C6a`, `D1a`, `D2a`, `D3a`, `D4a`, `D4b`, `D5a`, `E1a`, `E2a`, `E2b`, `E3a`, `E4a`, `F5a`, `F5b`, `F5c`, `F5d`, `F6a`, `F6b`, `F6c`, `F6d`, `F6e`, `F6f1`, `F6f2a`, and `F6f2` are complete on the current ref. The next planned work after this document should follow the F6 closure roadmap and open issue state.
+`C6a`, `D1a`, `D2a`, `D3a`, `D4a`, `D4b`, `D5a`, `E1a`, `E2a`, `E2b`, `E3a`, `E4a`, `F5a`, `F5b`, `F5c`, `F5d`, `F6a`, `F6b`, `F6c`, `F6d`, `F6e`, `F6f1`, `F6f2a`, and `F6f2` are complete on the current ref. `F4f` is also complete on the current ref as a documentation-only HeOCR ecosystem upstream-chain pass that records the `public-domain-hand-written-hebrew-scans` → `hletterscriptgen` → `hletterscript` upstream of `hocrsyngen` without changing runtime behavior or any readiness gate. The next planned work after this document should follow the F6 closure roadmap and open issue state.
 
 ## Working Rules For The Pre-Alpha Sequence
 

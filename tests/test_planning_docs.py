@@ -78,7 +78,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "| F1 | Beta-scale acquisition trial | F1a, F1b, F1b2, F1b3, F1b4, F1c, F1d, F1e |" in roadmap
     assert "| F2 | Benchmark ground-truth foundation | F2a, F2b |" in roadmap
     assert "| F3 | Modern handwritten acquisition program | F3a, F3b |" in roadmap
-    assert "| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d, F4e |" in roadmap
+    assert "| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d, F4e, F4f |" in roadmap
     assert "| F5 | Public beta and publication readiness | F5a, F5b, F5c, F5d | Public beta gates, publication packaging, dataset-card, checksum/archive manifests, takedown-ready export handoff, blocker-closure sequencing, and repo-owned blocker reporting | completed-with-blockers |" in roadmap
     assert roadmap_rows["F6"][1] == "Public beta closure and external input integration"
     assert roadmap_rows["F6"][2].split(", ") == ["F6a", "F6b", "F6c", "F6d", "F6e", "F6f1", "F6f2a", "F6f2", "F6g"]
@@ -344,6 +344,59 @@ def test_f4e_shared_export_packaging_primitives_are_documented() -> None:
         "synthetic-only",
     ]:
         assert required in combined
+
+
+def test_f4f_heocr_ecosystem_upstream_chain_is_documented() -> None:
+    ecosystem_path = Path("docs/heocr_ecosystem_overview.md")
+    assert ecosystem_path.exists(), "heocr_ecosystem_overview.md must exist"
+    ecosystem = ecosystem_path.read_text(encoding="utf-8")
+    agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
+    readme = Path("README.md").read_text(encoding="utf-8")
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+
+    # Chain order: section headers must appear in upstream-to-downstream order
+    assert ecosystem.index("### 3.1") < ecosystem.index("### 3.2") < ecosystem.index("### 3.3") < ecosystem.index("### 3.4")
+    assert "### 3.1 `public-domain-hand-written-hebrew-scans`" in ecosystem
+    assert "### 3.2 `hletterscriptgen`" in ecosystem
+    assert "### 3.3 `hletterscript`" in ecosystem
+    assert "### 3.4 `hocrsyngen`" in ecosystem
+
+    # Specific contracts that the ecosystem doc must name
+    for required in [
+        "letter_set.v1",
+        "generation_manifest.v1",
+        "hocrgen_hocrsyngen_import_metadata_packet.v1",
+        "PROJECT-SYNTHETIC",
+        "four-repository",
+        "`F4f`",
+        "`F4a`",
+    ]:
+        assert required in ecosystem, f"ecosystem doc missing: {required}"
+
+    # The new doc must be registered in llms.txt
+    assert "docs/heocr_ecosystem_overview.md" in Path("llms.txt").read_text(encoding="utf-8")
+
+    # README must reference the ecosystem doc
+    assert "docs/heocr_ecosystem_overview.md" in readme
+
+    # Roadmap F4 milestone row must include F4f
+    assert "| F4 | External synthetic provider integration | F4a, F4b, F4c, F4d, F4e, F4f |" in roadmap
+
+    # Agent-plan must mention F4f
+    assert "`F4f`" in agent_plan
+
+
+def test_f4a_four_repository_boundary_remains_visible_after_f4f_extension() -> None:
+    """`F4f` extends `F4a` upstream; the original four-repo boundary must remain visible."""
+
+    synthetic_guide = Path("docs/synthetic_asset_contribution_guide.md").read_text(encoding="utf-8")
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+    ecosystem = Path("docs/heocr_ecosystem_overview.md").read_text(encoding="utf-8")
+
+    assert "four-repository" in synthetic_guide
+    assert "four-repository synthetic spinout" in roadmap
+    assert "four-repository" in ecosystem
+    assert "`F4a`" in ecosystem
 
 
 def test_f5b_public_beta_packaging_contract_is_documented_and_bounded() -> None:
