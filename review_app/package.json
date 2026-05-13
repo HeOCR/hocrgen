@@ -1,0 +1,15 @@
+{
+  "name": "heocr-review",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "echo 'No build step required'",
+    "validate": "node --check scripts/seed_batch.mjs && node --check scripts/export_decisions.mjs"
+  },
+  "dependencies": {
+    "sharp": "^0.33.0"
+  },
+  "devDependencies": {
+    "wrangler": "^3.0.0"
+  }
+}

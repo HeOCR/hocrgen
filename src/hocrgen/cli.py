@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
 from pathlib import Path
 from typing import Sequence
 
@@ -9,7 +10,7 @@ from hocrgen.annotation_pilots import load_annotation_pilot_config
 from hocrgen.benchmark import load_benchmark_config
 from hocrgen.benchmark_references import load_benchmark_reference_manifest, validate_benchmark_reference_files
 from hocrgen.config.loader import ConfigBundle, load_and_validate_bundle
-from hocrgen.core.context import create_run_context
+from hocrgen.core.context import DEFAULT_WORKDIR, create_run_context
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.core.logging import configure_logging
 from hocrgen.evaluation import (
@@ -160,6 +161,30 @@ def build_parser() -> argparse.ArgumentParser:
         help="Replace an existing diagnostic report path",
     )
     hocrsyngen_preflight_parser.set_defaults(handler=handle_hocrsyngen_preflight)
+
+    export_review_queue_parser = subparsers.add_parser(
+        "export-review-queue",
+        help="Copy an existing run's review_queue.json out to a portable path for operator review tooling",
+    )
+    export_review_queue_parser.add_argument(
+        "--run-dir",
+        type=Path,
+        default=None,
+        help="Run directory containing build_release/review_queue.json; if omitted, the most recent run under --workdir is used",
+    )
+    export_review_queue_parser.add_argument(
+        "--workdir",
+        type=Path,
+        default=None,
+        help=f"Work directory root to search for runs (defaults to {DEFAULT_WORKDIR})",
+    )
+    export_review_queue_parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Destination path for the review queue JSON (parent directories are created; existing files are overwritten)",
+    )
+    export_review_queue_parser.set_defaults(handler=handle_export_review_queue)
 
     export_alpha_parser = subparsers.add_parser("export-alpha", help="Export a narrow alpha release tree for the HeOCR repo")
     _add_pipeline_common_args(
@@ -550,6 +575,47 @@ def handle_hocrsyngen_preflight(args: argparse.Namespace) -> int:
             "missing_hocrgen_release_import_metadata": result.report["manifest"][
                 "missing_hocrgen_release_import_metadata"
             ],
+        }
+    )
+    return 0
+
+
+def _find_latest_run_with_queue(work_dir: Path) -> Path:
+    if not work_dir.exists() or not work_dir.is_dir():
+        raise StageExecutionError(f"work dir {work_dir} does not exist")
+    queue_files = list(work_dir.glob("**/build_release/review_queue.json"))
+    if not queue_files:
+        raise StageExecutionError(f"no run with build_release/review_queue.json found under {work_dir}")
+    # Run ids are ISO-8601 timestamps (e.g. 20260513T204045456013Z) so a
+    # lexical sort of the run-dir name gives chronological order. This is
+    # more reliable than mtime, which is perturbed by rsync/touch/editors.
+    queue_files.sort(key=lambda p: p.parent.parent.name, reverse=True)
+    return queue_files[0].parent.parent
+
+
+def handle_export_review_queue(args: argparse.Namespace) -> int:
+    try:
+        if args.run_dir is not None:
+            run_dir = Path(args.run_dir)
+        else:
+            work_dir = Path(args.workdir) if args.workdir else DEFAULT_WORKDIR
+            run_dir = _find_latest_run_with_queue(work_dir)
+        queue_path = run_dir / "build_release" / "review_queue.json"
+        if not queue_path.exists():
+            raise StageExecutionError(f"no review_queue.json found in {run_dir}")
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(queue_path, output)
+    except StageExecutionError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+
+    _print_json(
+        {
+            "status": "ok",
+            "queue_path": str(queue_path),
+            "output": str(output),
+            "run_dir": str(run_dir),
         }
     )
     return 0

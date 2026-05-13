@@ -1,0 +1,8 @@
+name = "heocr-review"
+compatibility_date = "2024-09-23"
+pages_build_output_dir = "public"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "heocr-review-db"
+database_id = "REPLACE_AFTER_SETUP"
