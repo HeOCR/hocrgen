@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import shutil
+import sys
 from pathlib import Path
 from typing import Sequence
 
@@ -160,6 +162,24 @@ def build_parser() -> argparse.ArgumentParser:
         help="Replace an existing diagnostic report path",
     )
     hocrsyngen_preflight_parser.set_defaults(handler=handle_hocrsyngen_preflight)
+
+    export_review_queue_parser = subparsers.add_parser(
+        "export-review-queue",
+        help="Copy an existing run's review_queue.json out to a portable path for operator review tooling",
+    )
+    export_review_queue_parser.add_argument(
+        "--run-dir",
+        type=Path,
+        default=None,
+        help="Run directory under .work/; if omitted, the most recent run with build_release/review_queue.json is used",
+    )
+    export_review_queue_parser.add_argument(
+        "--output",
+        type=Path,
+        required=True,
+        help="Destination path for the review queue JSON (parent directories are created; existing files are overwritten)",
+    )
+    export_review_queue_parser.set_defaults(handler=handle_export_review_queue)
 
     export_alpha_parser = subparsers.add_parser("export-alpha", help="Export a narrow alpha release tree for the HeOCR repo")
     _add_pipeline_common_args(
@@ -552,6 +572,32 @@ def handle_hocrsyngen_preflight(args: argparse.Namespace) -> int:
             ],
         }
     )
+    return 0
+
+
+def _find_latest_run_with_queue(work_dir: Path) -> Path:
+    if not work_dir.exists() or not work_dir.is_dir():
+        raise SystemExit(f"error: work dir {work_dir} does not exist")
+    queue_files = sorted(
+        work_dir.glob("**/build_release/review_queue.json"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True,
+    )
+    if not queue_files:
+        raise SystemExit(f"error: no run with build_release/review_queue.json found under {work_dir}")
+    return queue_files[0].parent.parent
+
+
+def handle_export_review_queue(args: argparse.Namespace) -> int:
+    run_dir = Path(args.run_dir) if args.run_dir else _find_latest_run_with_queue(Path(".work"))
+    queue_path = run_dir / "build_release" / "review_queue.json"
+    if not queue_path.exists():
+        print(f"error: no review_queue.json found in {run_dir}", file=sys.stderr)
+        return 1
+    output = Path(args.output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(queue_path, output)
+    print(f"Exported review queue ({queue_path}) -> {output}")
     return 0
 
 

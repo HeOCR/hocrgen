@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HeOCR Review</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="dashboard">
+    <header class="page-header">
+      <h1>HeOCR Review</h1>
+      <p class="subtitle">hocrgen operator dashboard</p>
+    </header>
+
+    <main>
+      <section class="stats-grid" id="stats-grid">
+        <div class="stat-card" data-key="dataset_version">
+          <div class="stat-label">Dataset version</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card" data-key="milestone">
+          <div class="stat-label">Current milestone</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card" data-key="active_blockers">
+          <div class="stat-label">Active beta blockers</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card" data-key="total_candidates">
+          <div class="stat-label">Total candidates</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card" data-key="real_items">
+          <div class="stat-label">Real items</div>
+          <div class="stat-value">—</div>
+          <div class="stat-sub" id="real-items-sub"></div>
+        </div>
+        <div class="stat-card" data-key="synthetic_items">
+          <div class="stat-label">Synthetic items</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card" data-key="release_ready_items">
+          <div class="stat-label">Release-ready items</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card" data-key="benchmark_coverage">
+          <div class="stat-label">Benchmark coverage</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card" data-key="last_batch_seeded_at">
+          <div class="stat-label">Last batch seeded</div>
+          <div class="stat-value">—</div>
+        </div>
+        <div class="stat-card" id="queue-depth-card">
+          <div class="stat-label">Review queue depth</div>
+          <div class="stat-value">—</div>
+          <div class="stat-sub">items pending decision</div>
+        </div>
+      </section>
+
+      <div class="primary-action">
+        <a id="start-review" class="btn btn-primary btn-disabled" href="#" aria-disabled="true">No batch pending</a>
+      </div>
+    </main>
+
+    <footer class="page-footer">
+      heocr-review · <span id="reviewer-email">—</span>
+    </footer>
+
+    <script src="/app.js"></script>
+  </body>
+</html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HeOCR Review · Batch</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body class="review">
+    <header class="review-bar" id="review-bar">
+      <div class="review-bar-left">
+        <a href="/" class="back-link">← Back to dashboard</a>
+        <span class="batch-label" id="batch-label">Loading…</span>
+      </div>
+      <div class="review-bar-right">
+        <span class="progress" id="progress">0 / 0 decided</span>
+        <div class="filter-tabs" role="tablist">
+          <button class="filter-tab active" data-filter="all">All</button>
+          <button class="filter-tab" data-filter="undecided">Undecided</button>
+          <button class="filter-tab" data-filter="decided">Decided</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="review-list" id="review-list">
+      <div class="empty-state" id="empty-state" hidden>No items in this view.</div>
+    </main>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
