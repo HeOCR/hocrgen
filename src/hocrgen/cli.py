@@ -10,7 +10,7 @@ from hocrgen.annotation_pilots import load_annotation_pilot_config
 from hocrgen.benchmark import load_benchmark_config
 from hocrgen.benchmark_references import load_benchmark_reference_manifest, validate_benchmark_reference_files
 from hocrgen.config.loader import ConfigBundle, load_and_validate_bundle
-from hocrgen.core.context import create_run_context
+from hocrgen.core.context import DEFAULT_WORKDIR, create_run_context
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.core.logging import configure_logging
 from hocrgen.evaluation import (
@@ -176,7 +176,7 @@ def build_parser() -> argparse.ArgumentParser:
         "--workdir",
         type=Path,
         default=None,
-        help="Work directory root to search for runs (defaults to .work)",
+        help=f"Work directory root to search for runs (defaults to {DEFAULT_WORKDIR})",
     )
     export_review_queue_parser.add_argument(
         "--output",
@@ -598,7 +598,7 @@ def handle_export_review_queue(args: argparse.Namespace) -> int:
         if args.run_dir is not None:
             run_dir = Path(args.run_dir)
         else:
-            work_dir = Path(args.workdir) if args.workdir else Path(".work")
+            work_dir = Path(args.workdir) if args.workdir else DEFAULT_WORKDIR
             run_dir = _find_latest_run_with_queue(work_dir)
         queue_path = run_dir / "build_release" / "review_queue.json"
         if not queue_path.exists():
