@@ -39,7 +39,7 @@ async function initDashboard() {
       startBtn.classList.remove("btn-disabled");
       startBtn.removeAttribute("aria-disabled");
       startBtn.href = "/review.html";
-      startBtn.textContent = `Start Review →`;
+      startBtn.textContent = "Start Review →";
     } else {
       startBtn.textContent = "No batch pending";
     }
@@ -90,6 +90,13 @@ function renderDashboardStats(payload) {
 // ----- review page -----
 
 const DECISION_KEYS = ["approve", "reject", "defer", "needs_legal_review", "needs_privacy_review"];
+const DECISION_LABELS = {
+  approve: "Approve",
+  reject: "Reject",
+  defer: "Defer",
+  needs_legal_review: "Needs Legal",
+  needs_privacy_review: "Needs Privacy",
+};
 
 async function initReview() {
   try {
@@ -131,24 +138,7 @@ function buildItemCard(batch, item) {
   if (item.decided) card.classList.add("saved");
   card.tabIndex = 0;
 
-  const thumbLink = document.createElement("a");
-  thumbLink.className = "thumb-link";
-  thumbLink.href = `/api/image?id=${encodeURIComponent(item.review_item_id)}`;
-  thumbLink.target = "_blank";
-  thumbLink.rel = "noopener";
-
-  if (item.preview_b64) {
-    const img = document.createElement("img");
-    img.src = `data:image/jpeg;base64,${item.preview_b64}`;
-    img.alt = item.title ?? item.item_id;
-    thumbLink.appendChild(img);
-  } else {
-    const placeholder = document.createElement("div");
-    placeholder.className = "thumb-placeholder";
-    placeholder.textContent = `(no preview · ${item.source_id})`;
-    thumbLink.appendChild(placeholder);
-  }
-  card.appendChild(thumbLink);
+  card.appendChild(buildThumbLink(item));
 
   const meta = document.createElement("div");
   meta.className = "item-meta";
@@ -163,83 +153,12 @@ function buildItemCard(batch, item) {
   ids.textContent = `${item.item_id} · ${item.source_id}`;
   meta.appendChild(ids);
 
-  const chips = document.createElement("div");
-  chips.className = "chips";
-  for (const reason of item.review_reasons ?? []) {
-    const chip = document.createElement("span");
-    chip.className = "chip";
-    if (reason.startsWith("privacy:")) chip.classList.add("privacy");
-    else if (reason.startsWith("policy:")) chip.classList.add("policy");
-    else if (reason.startsWith("classification:")) chip.classList.add("classification");
-    chip.textContent = reason;
-    chips.appendChild(chip);
-  }
-  meta.appendChild(chips);
-
-  const suggested = document.createElement("div");
-  suggested.className = "suggested";
-  suggested.innerHTML = `hocrgen suggests: <strong>${item.suggested_decision}</strong>`;
-  const flag = document.createElement("span");
-  flag.className = "privacy-badge";
-  flag.textContent = `privacy: ${item.privacy_flag}`;
-  suggested.appendChild(flag);
-  meta.appendChild(suggested);
-
-  const decisionRow = document.createElement("div");
-  decisionRow.className = "decision-row";
-  const labels = {
-    approve: "Approve",
-    reject: "Reject",
-    defer: "Defer",
-    needs_legal_review: "Needs Legal",
-    needs_privacy_review: "Needs Privacy",
-  };
-  for (const key of DECISION_KEYS) {
-    const btn = document.createElement("button");
-    btn.type = "button";
-    btn.className = "decision-btn";
-    btn.dataset.decision = key;
-    btn.textContent = labels[key];
-    btn.addEventListener("click", () => toggleDecision(card, key));
-    decisionRow.appendChild(btn);
-  }
-  meta.appendChild(decisionRow);
-
-  const rationaleRow = document.createElement("div");
-  rationaleRow.className = "field-row";
-  const rationaleLabel = document.createElement("label");
-  rationaleLabel.textContent = "Rationale (required)";
-  const rationaleArea = document.createElement("textarea");
-  rationaleArea.className = "rationale";
-  rationaleArea.rows = 2;
-  rationaleArea.addEventListener("input", () => refreshSaveState(card));
-  rationaleRow.appendChild(rationaleLabel);
-  rationaleRow.appendChild(rationaleArea);
-  meta.appendChild(rationaleRow);
-
-  const notesRow = document.createElement("div");
-  notesRow.className = "field-row";
-  const notesLabel = document.createElement("label");
-  notesLabel.textContent = "Notes (optional)";
-  const notesArea = document.createElement("textarea");
-  notesArea.className = "notes";
-  notesArea.rows = 2;
-  notesRow.appendChild(notesLabel);
-  notesRow.appendChild(notesArea);
-  meta.appendChild(notesRow);
-
-  const saveRow = document.createElement("div");
-  saveRow.className = "save-row";
-  const saveBtn = document.createElement("button");
-  saveBtn.className = "save-btn";
-  saveBtn.disabled = true;
-  saveBtn.textContent = "Save";
-  saveBtn.addEventListener("click", () => saveDecision(batch, card));
-  saveRow.appendChild(saveBtn);
-  const status = document.createElement("span");
-  status.className = "save-status";
-  saveRow.appendChild(status);
-  meta.appendChild(saveRow);
+  meta.appendChild(buildChips(item.review_reasons ?? []));
+  meta.appendChild(buildSuggestedRow(item));
+  meta.appendChild(buildDecisionRow(card));
+  meta.appendChild(buildRationaleRow(card));
+  meta.appendChild(buildNotesRow());
+  meta.appendChild(buildSaveRow(batch, card));
 
   card.appendChild(meta);
 
@@ -250,14 +169,126 @@ function buildItemCard(batch, item) {
   return card;
 }
 
+function buildThumbLink(item) {
+  const thumbLink = document.createElement("a");
+  thumbLink.className = "thumb-link";
+  thumbLink.href = `/api/image?id=${encodeURIComponent(item.review_item_id)}&kind=full`;
+  thumbLink.target = "_blank";
+  thumbLink.rel = "noopener";
+
+  if (item.has_preview) {
+    const img = document.createElement("img");
+    img.loading = "lazy";
+    img.src = `/api/image?id=${encodeURIComponent(item.review_item_id)}&kind=preview`;
+    img.alt = item.title ?? item.item_id;
+    thumbLink.appendChild(img);
+  } else {
+    const placeholder = document.createElement("div");
+    placeholder.className = "thumb-placeholder";
+    placeholder.textContent = `(no preview · ${item.source_id})`;
+    thumbLink.appendChild(placeholder);
+  }
+  return thumbLink;
+}
+
+function buildChips(reasons) {
+  const chips = document.createElement("div");
+  chips.className = "chips";
+  for (const reason of reasons) {
+    const chip = document.createElement("span");
+    chip.className = "chip";
+    if (reason.startsWith("privacy:")) chip.classList.add("privacy");
+    else if (reason.startsWith("policy:")) chip.classList.add("policy");
+    else if (reason.startsWith("classification:")) chip.classList.add("classification");
+    chip.textContent = reason;
+    chips.appendChild(chip);
+  }
+  return chips;
+}
+
+function buildSuggestedRow(item) {
+  const suggested = document.createElement("div");
+  suggested.className = "suggested";
+  suggested.appendChild(document.createTextNode("hocrgen suggests: "));
+  const strong = document.createElement("strong");
+  strong.textContent = item.suggested_decision ?? "—";
+  suggested.appendChild(strong);
+  const flag = document.createElement("span");
+  flag.className = "privacy-badge";
+  flag.textContent = `privacy: ${item.privacy_flag}`;
+  suggested.appendChild(flag);
+  return suggested;
+}
+
+function buildDecisionRow(card) {
+  const decisionRow = document.createElement("div");
+  decisionRow.className = "decision-row";
+  for (const key of DECISION_KEYS) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "decision-btn";
+    btn.dataset.decision = key;
+    btn.textContent = DECISION_LABELS[key];
+    btn.addEventListener("click", () => toggleDecision(card, key));
+    decisionRow.appendChild(btn);
+  }
+  return decisionRow;
+}
+
+function buildRationaleRow(card) {
+  const row = document.createElement("div");
+  row.className = "field-row";
+  const label = document.createElement("label");
+  label.textContent = "Rationale (required)";
+  const area = document.createElement("textarea");
+  area.className = "rationale";
+  area.rows = 2;
+  area.addEventListener("input", () => refreshSaveState(card));
+  row.appendChild(label);
+  row.appendChild(area);
+  return row;
+}
+
+function buildNotesRow() {
+  const row = document.createElement("div");
+  row.className = "field-row";
+  const label = document.createElement("label");
+  label.textContent = "Notes (optional)";
+  const area = document.createElement("textarea");
+  area.className = "notes";
+  area.rows = 2;
+  row.appendChild(label);
+  row.appendChild(area);
+  return row;
+}
+
+function buildSaveRow(batch, card) {
+  const saveRow = document.createElement("div");
+  saveRow.className = "save-row";
+  const saveBtn = document.createElement("button");
+  saveBtn.type = "button";
+  saveBtn.className = "save-btn";
+  saveBtn.disabled = true;
+  saveBtn.textContent = "Save";
+  saveBtn.addEventListener("click", () => saveDecision(batch, card));
+  const editBtn = document.createElement("button");
+  editBtn.type = "button";
+  editBtn.className = "edit-btn";
+  editBtn.textContent = "Edit decision";
+  editBtn.hidden = true;
+  editBtn.addEventListener("click", () => enterEditMode(card));
+  const status = document.createElement("span");
+  status.className = "save-status";
+  saveRow.appendChild(saveBtn);
+  saveRow.appendChild(editBtn);
+  saveRow.appendChild(status);
+  return saveRow;
+}
+
 function toggleDecision(card, key) {
   if (card.classList.contains("saved")) return;
   const current = card.dataset.decision;
-  if (current === key) {
-    card.dataset.decision = "";
-  } else {
-    card.dataset.decision = key;
-  }
+  card.dataset.decision = current === key ? "" : key;
   for (const btn of card.querySelectorAll(".decision-btn")) {
     btn.classList.toggle("active", btn.dataset.decision === card.dataset.decision);
   }
@@ -272,7 +303,7 @@ function refreshSaveState(card) {
   const rationaleLabel = card.querySelector(".field-row label");
   saveBtn.disabled = !(decision && rationale.length > 0);
   if (rationaleLabel) {
-    rationaleLabel.classList.toggle("required-missing", decision && rationale.length === 0);
+    rationaleLabel.classList.toggle("required-missing", Boolean(decision) && rationale.length === 0);
   }
 }
 
@@ -327,6 +358,25 @@ function disableCardEditing(card) {
     btn.disabled = true;
   }
   card.querySelector(".save-btn").disabled = true;
+  card.querySelector(".save-btn").hidden = true;
+  const editBtn = card.querySelector(".edit-btn");
+  if (editBtn) editBtn.hidden = false;
+}
+
+function enterEditMode(card) {
+  card.classList.remove("saved");
+  card.dataset.decided = "false";
+  for (const btn of card.querySelectorAll(".decision-btn")) {
+    btn.disabled = false;
+  }
+  const saveBtn = card.querySelector(".save-btn");
+  saveBtn.hidden = false;
+  const editBtn = card.querySelector(".edit-btn");
+  if (editBtn) editBtn.hidden = true;
+  const status = card.querySelector(".save-status");
+  if (status) status.textContent = "";
+  refreshSaveState(card);
+  updateProgress();
 }
 
 function updateProgress() {
@@ -386,7 +436,7 @@ function setupKeyboardShortcuts() {
 
     if (event.key === "Enter" && focusedCard) {
       const saveBtn = focusedCard.querySelector(".save-btn");
-      if (saveBtn && !saveBtn.disabled) {
+      if (saveBtn && !saveBtn.disabled && !saveBtn.hidden) {
         event.preventDefault();
         saveBtn.click();
       }

@@ -7,11 +7,14 @@ export async function onRequestGet(context) {
   const reviewer = context.request.headers.get("Cf-Access-Authenticated-User-Email") ?? "dev@local";
   const db = context.env.DB;
 
+  // Deliberately omit preview_b64 / full_image_b64 / raw_record here.
+  // Previews are served separately via /api/image so the browser can cache them
+  // and the items response stays small.
   const itemsResult = await db
     .prepare(
       `SELECT review_item_id, item_id, source_id, canonical_item_id, title, source_url,
               review_reasons, suggested_decision, privacy_flag,
-              preview_b64
+              (preview_b64 IS NOT NULL) AS has_preview
        FROM review_items
        WHERE batch_id = ?
        ORDER BY id ASC`
@@ -50,7 +53,7 @@ export async function onRequestGet(context) {
       review_reasons: reasons,
       suggested_decision: row.suggested_decision,
       privacy_flag: row.privacy_flag,
-      preview_b64: row.preview_b64,
+      has_preview: row.has_preview === 1,
       decided: decision !== null,
       decision: decision
         ? {

@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 // Export review decisions from the heocr-review D1 database into
-// review_data/manual_decisions/<review_item_id>.json, matching the
+// review_data/manual_decisions/<sanitized_review_item_id>.json, matching the
 // ReviewDecisionRecord shape in src/hocrgen/manifests/models.py.
+//
+// review_item_id values look like "review:<item_id>"; the colon is portable on
+// macOS/Linux but breaks Windows tooling. We replace any character outside
+// [A-Za-z0-9._-] with "_" for the filename. The original id is preserved in
+// the JSON payload.
 //
 // Usage:
 //   node review_app/scripts/export_decisions.mjs \
@@ -11,9 +16,13 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve, join } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
 
-const ARGS = parseArgs(process.argv.slice(2));
+import { parseArgs, runWrangler, fail } from "./_lib.mjs";
+
+const ARGS = parseArgs({
+  "batch-id": { type: "string" },
+  "output-dir": { type: "string" },
+});
 if (!ARGS["batch-id"]) {
   fail("missing required --batch-id <batch_id>");
 }
@@ -41,7 +50,7 @@ for (const row of rows) {
     rationale: row.rationale,
     notes: row.notes ?? null,
   };
-  const outPath = join(OUTPUT_DIR, `${row.review_item_id}.json`);
+  const outPath = join(OUTPUT_DIR, `${sanitizeForFilename(row.review_item_id)}.json`);
   writeFileSync(outPath, JSON.stringify(record, null, 2) + "\n", "utf-8");
   written += 1;
 }
@@ -52,15 +61,16 @@ if (written === 0) {
 }
 
 function parseWranglerJson(text) {
-  // wrangler d1 execute --json prints an array of result objects with a `results` field.
-  // Fall back to scanning the output if it is wrapped in informational lines.
   const trimmed = text.trim();
-  const firstBracket = trimmed.indexOf("[");
-  const lastBracket = trimmed.lastIndexOf("]");
-  if (firstBracket === -1 || lastBracket === -1) {
-    fail(`could not parse wrangler --json output:\n${text}`);
+  let payload;
+  try {
+    payload = JSON.parse(trimmed);
+  } catch (err) {
+    fail(`could not parse wrangler --json output (${err.message}):\n${text}`);
   }
-  const payload = JSON.parse(trimmed.slice(firstBracket, lastBracket + 1));
+  if (!Array.isArray(payload)) {
+    fail(`unexpected wrangler --json output shape:\n${text}`);
+  }
   const out = [];
   for (const block of payload) {
     if (Array.isArray(block?.results)) {
@@ -70,37 +80,6 @@ function parseWranglerJson(text) {
   return out;
 }
 
-function runWrangler(args) {
-  const result = spawnSync("npx", ["wrangler", ...args], {
-    stdio: ["ignore", "pipe", "pipe"],
-    env: process.env,
-  });
-  if (result.status !== 0) {
-    const stderr = result.stderr?.toString() ?? "";
-    const stdout = result.stdout?.toString() ?? "";
-    fail(`wrangler ${args.join(" ")} failed:\n${stderr}\n${stdout}`);
-  }
-  return result.stdout?.toString() ?? "";
-}
-
-function parseArgs(argv) {
-  const out = {};
-  for (let i = 0; i < argv.length; i += 1) {
-    const token = argv[i];
-    if (!token.startsWith("--")) continue;
-    const key = token.slice(2);
-    const next = argv[i + 1];
-    if (next === undefined || next.startsWith("--")) {
-      out[key] = true;
-    } else {
-      out[key] = next;
-      i += 1;
-    }
-  }
-  return out;
-}
-
-function fail(message) {
-  console.error(`error: ${message}`);
-  process.exit(1);
+function sanitizeForFilename(value) {
+  return String(value).replace(/[^A-Za-z0-9._-]/g, "_");
 }

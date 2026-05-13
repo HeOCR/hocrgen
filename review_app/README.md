@@ -60,13 +60,27 @@ This directory is intentionally not under `src/`. It contains no Python code, no
    ```
 
 9. In the Cloudflare dashboard, go to **Workers & Pages → heocr-review → Settings → Cloudflare Access** and enable Access. Create an Access application for `heocr-review.pages.dev` and add a policy named "Allow shaypal5@gmail.com" with email OTP (no SSO required). Repeat the policy for any branch-preview hostnames Cloudflare generates if you intend to expose them.
-10. Verify the gate is active:
+10. In the same dashboard, under **Settings → Environment variables**, add `ALLOWED_REVIEWER_EMAILS=shaypal5@gmail.com` (comma-separated; the middleware refuses any other email as defense in depth against an over-broad Access policy).
+11. Verify the gate is active:
 
     ```sh
     curl -I https://heocr-review.pages.dev/
     ```
 
     The response must be a Cloudflare Access challenge (302/HTML), not `200 OK`. If you see `200 OK`, Access is not yet enforcing — fix the policy before treating the app as private.
+
+## Local development
+
+Cloudflare provides `wrangler pages dev` for running the site locally without going through Access:
+
+```sh
+cd review_app
+HEOCR_REVIEW_DEV_BYPASS=true npx wrangler pages dev public
+```
+
+`HEOCR_REVIEW_DEV_BYPASS=true` skips the middleware's Access checks. Use it **only** for local development — never set it in the Pages dashboard.
+
+For a more realistic local round-trip you can also seed a local D1 database with `npx wrangler d1 migrations apply heocr-review-db --local` and run the seed/export scripts against `--local` (this requires editing the scripts to add a `--local` flag — out of scope for v0).
 
 ## Operator runbook
 
@@ -114,5 +128,16 @@ This prints row counts for `review_batches`, `review_items`, `review_decisions`,
 - Never commit `~/.config/heocr/cloudflare_api_token.env`. It is intentionally outside the repo.
 - Never commit anything written to `review_exports/` — that directory is `.gitignore`d.
 - Verify Cloudflare Access protects every hostname Cloudflare assigns (stable, branch, PR preview) before treating the app as private. A fresh deploy is unprotected until the Access application policy is in place.
+- The middleware enforces two layers on top of Access: a presence check on `Cf-Access-Jwt-Assertion` (rejects requests that did not traverse Access), and an `ALLOWED_REVIEWER_EMAILS` allowlist (rejects emails that Access lets through but should not be reviewers). Full JWKS-backed JWT signature verification is a known follow-up.
 - The `database_id` in `wrangler.toml` is not a secret and may be committed once it is set.
 - The mini-site has no append-only audit log on its own. The export step is the durable record: decisions are not "final" until they land in `review_data/manual_decisions/` on a git-tracked branch.
+
+## Known limitations (v0)
+
+These are deliberate v0 trade-offs, called out so they don't surprise the next person who touches this code.
+
+- **Image storage is base64-in-D1, not R2.** Each preview and full-resolution JPEG is base64-encoded into a TEXT column. This wastes ~33% storage and forces a base64 decode in the Worker on every image fetch. The right fix is to migrate binary assets to R2 and store only metadata in D1; this is a follow-up, not a v0 blocker. The `/api/image` endpoint sets aggressive `Cache-Control` so the per-request decode cost is paid once per browser per image.
+- **Seed atomicity is per-statement-file.** Batch metadata (close-old, insert-new, stats) all land in a single `wrangler d1 execute --file`, which is atomic on D1's side. Per-item INSERTs run as separate `--file` invocations because base64 blobs can push the combined SQL past D1's 5 MB per-file limit. If a per-item INSERT fails mid-batch, the partial batch stays `active` and the operator must clean up manually before re-seeding.
+- **`pipeline_stats` is a generic key-value table.** It is acceptable for one-screen dashboard rendering and is intentionally not schematized.
+- **`review_items.raw_record` is stored but never served.** It is reserved for a future per-item detail view; the items list endpoint deliberately omits it.
+- **SQL is built with manual single-quote escaping** in the seed and export scripts. Wrangler's CLI does not expose bound parameters for `--file`. Operator input is trusted; the D1 HTTP API would be the right place to introduce parameterized statements.

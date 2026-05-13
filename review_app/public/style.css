@@ -365,6 +365,21 @@ textarea {
   cursor: not-allowed;
 }
 
+.edit-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--fg-muted);
+  padding: 8px 14px;
+  border-radius: var(--radius);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.edit-btn:hover {
+  color: var(--fg);
+  border-color: var(--fg-muted);
+}
+
 .save-status {
   font-size: 13px;
   color: var(--green);

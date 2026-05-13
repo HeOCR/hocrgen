@@ -14,10 +14,19 @@
 import { readFileSync, existsSync, mkdtempSync, writeFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { spawnSync } from "node:child_process";
 import sharp from "sharp";
 
-const ARGS = parseArgs(process.argv.slice(2));
+import { parseArgs, runWrangler, sqlValue, fail } from "./_lib.mjs";
+
+const ARGS = parseArgs({
+  "queue-file": { type: "string" },
+  "run-dir": { type: "string" },
+  "batch-label": { type: "string" },
+  "dataset-version": { type: "string" },
+  "milestone": { type: "string" },
+  "active-blockers": { type: "string" },
+  "benchmark-coverage": { type: "string" },
+});
 if (!ARGS["queue-file"]) {
   fail("missing required --queue-file PATH");
 }
@@ -25,10 +34,6 @@ if (!ARGS["queue-file"]) {
 const QUEUE_FILE = resolve(ARGS["queue-file"]);
 const RUN_DIR = ARGS["run-dir"] ? resolve(ARGS["run-dir"]) : null;
 const BATCH_LABEL = ARGS["batch-label"] ?? null;
-const DATASET_VERSION = ARGS["dataset-version"] ?? null;
-const MILESTONE = ARGS["milestone"] ?? null;
-const ACTIVE_BLOCKERS = ARGS["active-blockers"] ?? null;
-const BENCHMARK_COVERAGE = ARGS["benchmark-coverage"] ?? null;
 
 const BATCH_ID = `batch-${new Date().toISOString().replace(/[-:]/g, "").replace(/\.\d+Z$/, "Z")}`;
 const NOW_ISO = new Date().toISOString();
@@ -62,45 +67,53 @@ for (const item of items) {
 
 const statsRows = collectStats({
   runDir: RUN_DIR,
-  datasetVersion: DATASET_VERSION,
-  milestone: MILESTONE,
-  activeBlockers: ACTIVE_BLOCKERS,
-  benchmarkCoverage: BENCHMARK_COVERAGE,
+  datasetVersion: ARGS["dataset-version"] ?? null,
+  milestone: ARGS["milestone"] ?? null,
+  activeBlockers: ARGS["active-blockers"] ?? null,
+  benchmarkCoverage: ARGS["benchmark-coverage"] ?? null,
   batchLabel: BATCH_LABEL,
   batchId: BATCH_ID,
   itemCount: preparedItems.length,
 });
 
-const sqlChunks = [];
-
-sqlChunks.push(
+// Phase 1: batch metadata + stats — small enough to fit in one --file execute,
+// so it is atomic per file. This eliminates the previous race window where the
+// old batch was already closed but the new one had not yet been inserted.
+const metaStatements = [
   `UPDATE review_batches SET status = 'closed' WHERE status = 'active';`,
-);
-sqlChunks.push(
   `INSERT INTO review_batches (batch_id, batch_label, seeded_at, item_count, status) VALUES (${sqlValue(BATCH_ID)}, ${sqlValue(BATCH_LABEL)}, ${sqlValue(NOW_ISO)}, ${preparedItems.length}, 'active');`,
-);
-for (const row of preparedItems) {
-  sqlChunks.push(
-    `INSERT INTO review_items (batch_id, review_item_id, item_id, source_id, canonical_item_id, title, source_url, review_reasons, suggested_decision, privacy_flag, preview_b64, full_image_b64, raw_record) VALUES (${sqlValue(BATCH_ID)}, ${sqlValue(row.review_item_id)}, ${sqlValue(row.item_id)}, ${sqlValue(row.source_id)}, ${sqlValue(row.canonical_item_id)}, ${sqlValue(row.title)}, ${sqlValue(row.source_url)}, ${sqlValue(row.review_reasons)}, ${sqlValue(row.suggested_decision)}, ${sqlValue(row.privacy_flag)}, ${sqlValue(row.preview_b64)}, ${sqlValue(row.full_image_b64)}, ${sqlValue(row.raw_record)});`,
-  );
-}
+];
 for (const [key, value] of Object.entries(statsRows)) {
   if (value == null) continue;
-  sqlChunks.push(
+  metaStatements.push(
     `INSERT INTO pipeline_stats (key, value, updated_at) VALUES (${sqlValue(key)}, ${sqlValue(String(value))}, ${sqlValue(NOW_ISO)}) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at;`,
   );
 }
 
-// D1 has SQL length limits and the per-item rows can be large (base64-encoded
-// images). Execute each statement individually using --file PATH so we never
-// quote large blobs through the shell.
+// Phase 2: per-item INSERTs are kept as separate --file invocations because
+// base64 image blobs can push a combined file past D1's 5MB per-file limit.
+// If a per-item insert fails the partial batch remains active and the operator
+// must intervene manually (either rerun after fixing the cause or DELETE the
+// partial batch); see review_app/README.md "Storage limitations" for context.
+const itemStatements = preparedItems.map(
+  (row) =>
+    `INSERT INTO review_items (batch_id, review_item_id, item_id, source_id, canonical_item_id, title, source_url, review_reasons, suggested_decision, privacy_flag, preview_b64, full_image_b64, raw_record) VALUES (${sqlValue(BATCH_ID)}, ${sqlValue(row.review_item_id)}, ${sqlValue(row.item_id)}, ${sqlValue(row.source_id)}, ${sqlValue(row.canonical_item_id)}, ${sqlValue(row.title)}, ${sqlValue(row.source_url)}, ${sqlValue(row.review_reasons)}, ${sqlValue(row.suggested_decision)}, ${sqlValue(row.privacy_flag)}, ${sqlValue(row.preview_b64)}, ${sqlValue(row.full_image_b64)}, ${sqlValue(row.raw_record)});`,
+);
+
 let executed = 0;
 const tmpDir = mkdtempSync(join(tmpdir(), "heocr-review-seed-"));
 try {
-  for (const stmt of sqlChunks) {
-    const tmpFile = join(tmpDir, `stmt-${executed}.sql`);
-    writeFileSync(tmpFile, stmt + "\n", "utf-8");
-    runWrangler(["d1", "execute", "heocr-review-db", "--remote", "--file", tmpFile]);
+  // Phase 1: atomic batch metadata.
+  const metaFile = join(tmpDir, "00-batch-metadata.sql");
+  writeFileSync(metaFile, metaStatements.join("\n") + "\n", "utf-8");
+  runWrangler(["d1", "execute", "heocr-review-db", "--remote", "--file", metaFile]);
+  executed += metaStatements.length;
+
+  // Phase 2: per-item inserts.
+  for (const [idx, stmt] of itemStatements.entries()) {
+    const itemFile = join(tmpDir, `item-${idx}.sql`);
+    writeFileSync(itemFile, stmt + "\n", "utf-8");
+    runWrangler(["d1", "execute", "heocr-review-db", "--remote", "--file", itemFile]);
     executed += 1;
   }
 } finally {
@@ -187,45 +200,4 @@ function readJsonIfExists(path) {
     console.warn(`failed to parse ${path}: ${err.message}`);
     return null;
   }
-}
-
-function runWrangler(args) {
-  const result = spawnSync("npx", ["wrangler", ...args], {
-    stdio: ["ignore", "pipe", "pipe"],
-    env: process.env,
-  });
-  if (result.status !== 0) {
-    const stderr = result.stderr?.toString() ?? "";
-    const stdout = result.stdout?.toString() ?? "";
-    fail(`wrangler ${args.join(" ")} failed:\n${stderr}\n${stdout}`);
-  }
-  return result.stdout?.toString() ?? "";
-}
-
-function sqlValue(value) {
-  if (value === null || value === undefined) return "NULL";
-  if (typeof value === "number") return String(value);
-  return "'" + String(value).replace(/'/g, "''") + "'";
-}
-
-function parseArgs(argv) {
-  const out = {};
-  for (let i = 0; i < argv.length; i += 1) {
-    const token = argv[i];
-    if (!token.startsWith("--")) continue;
-    const key = token.slice(2);
-    const next = argv[i + 1];
-    if (next === undefined || next.startsWith("--")) {
-      out[key] = true;
-    } else {
-      out[key] = next;
-      i += 1;
-    }
-  }
-  return out;
-}
-
-function fail(message) {
-  console.error(`error: ${message}`);
-  process.exit(1);
 }

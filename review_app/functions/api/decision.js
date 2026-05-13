@@ -8,6 +8,11 @@ const VALID_DECISIONS = new Set([
 
 export async function onRequestPost(context) {
   const reviewer = context.request.headers.get("Cf-Access-Authenticated-User-Email") ?? "dev@local";
+  const contentType = context.request.headers.get("Content-Type") ?? "";
+  if (!contentType.toLowerCase().startsWith("application/json")) {
+    return new Response("Content-Type must be application/json", { status: 415 });
+  }
+
   let body;
   try {
     body = await context.request.json();
@@ -37,7 +42,7 @@ export async function onRequestPost(context) {
       `INSERT INTO review_decisions
          (review_item_id, item_id, batch_id, reviewer_email, decision, rationale, notes, decided_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-       ON CONFLICT(review_item_id, reviewer_email) DO UPDATE SET
+       ON CONFLICT(review_item_id, batch_id, reviewer_email) DO UPDATE SET
          decision = excluded.decision,
          rationale = excluded.rationale,
          notes = excluded.notes,

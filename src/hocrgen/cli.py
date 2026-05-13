@@ -3,7 +3,6 @@ from __future__ import annotations
 import argparse
 import json
 import shutil
-import sys
 from pathlib import Path
 from typing import Sequence
 
@@ -171,7 +170,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--run-dir",
         type=Path,
         default=None,
-        help="Run directory under .work/; if omitted, the most recent run with build_release/review_queue.json is used",
+        help="Run directory containing build_release/review_queue.json; if omitted, the most recent run under --workdir is used",
+    )
+    export_review_queue_parser.add_argument(
+        "--workdir",
+        type=Path,
+        default=None,
+        help="Work directory root to search for runs (defaults to .work)",
     )
     export_review_queue_parser.add_argument(
         "--output",
@@ -577,27 +582,42 @@ def handle_hocrsyngen_preflight(args: argparse.Namespace) -> int:
 
 def _find_latest_run_with_queue(work_dir: Path) -> Path:
     if not work_dir.exists() or not work_dir.is_dir():
-        raise SystemExit(f"error: work dir {work_dir} does not exist")
-    queue_files = sorted(
-        work_dir.glob("**/build_release/review_queue.json"),
-        key=lambda p: p.stat().st_mtime,
-        reverse=True,
-    )
+        raise StageExecutionError(f"work dir {work_dir} does not exist")
+    queue_files = list(work_dir.glob("**/build_release/review_queue.json"))
     if not queue_files:
-        raise SystemExit(f"error: no run with build_release/review_queue.json found under {work_dir}")
+        raise StageExecutionError(f"no run with build_release/review_queue.json found under {work_dir}")
+    # Run ids are ISO-8601 timestamps (e.g. 20260513T204045456013Z) so a
+    # lexical sort of the run-dir name gives chronological order. This is
+    # more reliable than mtime, which is perturbed by rsync/touch/editors.
+    queue_files.sort(key=lambda p: p.parent.parent.name, reverse=True)
     return queue_files[0].parent.parent
 
 
 def handle_export_review_queue(args: argparse.Namespace) -> int:
-    run_dir = Path(args.run_dir) if args.run_dir else _find_latest_run_with_queue(Path(".work"))
-    queue_path = run_dir / "build_release" / "review_queue.json"
-    if not queue_path.exists():
-        print(f"error: no review_queue.json found in {run_dir}", file=sys.stderr)
+    try:
+        if args.run_dir is not None:
+            run_dir = Path(args.run_dir)
+        else:
+            work_dir = Path(args.workdir) if args.workdir else Path(".work")
+            run_dir = _find_latest_run_with_queue(work_dir)
+        queue_path = run_dir / "build_release" / "review_queue.json"
+        if not queue_path.exists():
+            raise StageExecutionError(f"no review_queue.json found in {run_dir}")
+        output = Path(args.output)
+        output.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(queue_path, output)
+    except StageExecutionError as exc:
+        _print_json({"status": "error", "error": str(exc)})
         return 1
-    output = Path(args.output)
-    output.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copy2(queue_path, output)
-    print(f"Exported review queue ({queue_path}) -> {output}")
+
+    _print_json(
+        {
+            "status": "ok",
+            "queue_path": str(queue_path),
+            "output": str(output),
+            "run_dir": str(run_dir),
+        }
+    )
     return 0
 
 
