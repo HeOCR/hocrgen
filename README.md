@@ -1,8 +1,55 @@
 # hocrgen
 
-`hocrgen` is the open-source dataset operations toolchain for the HeOCR project.
+[![Validate](https://github.com/HeOCR/hocrgen/actions/workflows/validate.yml/badge.svg)](https://github.com/HeOCR/hocrgen/actions/workflows/validate.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-This repository now implements a conservative review-readiness, source-operations, benchmark-subset, evaluation-utility, community-contribution, annotation-pilot, multi-release governance, benchmark ground-truth reference, modern handwritten acquisition policy, synthetic-provider validation, synthetic-only export, and public beta packaging/readiness layer on top of the earlier acquisition, normalization, technical-QA, and exact-curation milestones. The current implementation remains intentionally fixture/sample-driven, but it now performs real source ingestion, source health checks, rights filtering, asset materialization, technical normalization, exact item-level deduplication, lightweight heuristic classification, metadata-based privacy screening, review-queue export, deterministic split assignment over release-ready items, benchmark v1 selection, optional benchmark-reference ingestion and adjudication/status reporting, lightweight text evaluation over benchmark manifests, carefully bounded annotation pilot selection, curated dry-run release assembly, documented contribution safety rails, release/version governance for repeated public exports, mixed HeOCR alpha handoff, synthetic-only HeOCRsynth handoff, and blocked public beta publication handoff packaging with checksums, archives, a machine-readable blocker-closure plan, and a repo-owned blocker report.
+`hocrgen` is the open-source dataset operations and release-governance
+toolchain for the HeOCR project. It turns rights-reviewed Hebrew OCR/HTR source
+candidates into auditable dry-run release artifacts for the mixed `HeOCR`
+dataset and the synthetic-only `HeOCRsynth` stream.
+
+Use this repository when you need to inspect or run the HeOCR acquisition,
+rights, privacy, review, dedupe, split, benchmark, and export gates. Use the
+downstream `HeOCR` and `HeOCRsynth` repositories when you need the published
+dataset payloads themselves.
+
+> **Current status:** public-beta packaging exists, but publication remains
+> deliberately blocked until source-depth/composition, synthetic-scale,
+> benchmark-reference, and privacy/review evidence satisfy the readiness gates.
+> The repository is sample/fixture-backed by default and keeps CI network-free.
+
+## First commands
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+pip install -e '.[dev]'
+hocrgen config validate
+hocrgen build-release --profile profile_open_v1 --dry-run
+```
+
+The dry run writes a fully auditable release-prep tree under `.work/hocrgen/`
+without publishing to `HeOCR`, Hugging Face, Kaggle, or `HeOCRsynth`.
+
+## Documentation map
+
+| Need | Start here |
+|---|---|
+| Ecosystem boundaries | [`docs/heocr_ecosystem_overview.md`](./docs/heocr_ecosystem_overview.md) |
+| Pipeline design and artifact contracts | [`docs/hocrgen_design_and_spec.md`](./docs/hocrgen_design_and_spec.md) |
+| Normalization and technical QA | [`docs/hocrgen_normalization_and_qa.md`](./docs/hocrgen_normalization_and_qa.md) |
+| Source-adapter contributions | [`docs/source_adapter_contribution_guide.md`](./docs/source_adapter_contribution_guide.md) |
+| Synthetic asset contributions | [`docs/synthetic_asset_contribution_guide.md`](./docs/synthetic_asset_contribution_guide.md) |
+| Release governance | [`docs/release_governance.md`](./docs/release_governance.md) |
+| Modern handwriting intake policy | [`docs/modern_handwritten_acquisition_policy.md`](./docs/modern_handwritten_acquisition_policy.md) |
+| Public beta closure roadmap | [`docs/HeOCR_hocrgen_long_term_roadmap.md`](./docs/HeOCR_hocrgen_long_term_roadmap.md) |
+
+## License
+
+`hocrgen` is distributed under the [MIT License](./LICENSE). Individual source
+items and generated dataset payloads carry their own normalized rights metadata
+and release eligibility status; the software license does not override item-level
+rights, privacy, review, takedown, or benchmark gates.
 
 ## HeOCR ecosystem
 
