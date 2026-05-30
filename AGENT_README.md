@@ -3,7 +3,7 @@
 This file preserves the detailed operational README content for maintainers,
 agents, and release operators who need the full command surface, roadmap
 context, and gate-by-gate detail. The concise human-facing project gateway lives
-in [`README.md`](./README.md).
+in `README.md`.
 
 [![Validate](https://github.com/HeOCR/hocrgen/actions/workflows/validate.yml/badge.svg)](https://github.com/HeOCR/hocrgen/actions/workflows/validate.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
@@ -245,7 +245,7 @@ This repository includes a repo-native Splendor workspace for future coding-agen
 - [`planning/`](./planning/) for future Splendor task, milestone, decision, and question records
 - [`reports/`](./reports/) for Splendor lint and health reports
 
-The initial workspace registers and ingests high-signal hocrgen sources: `AGENTS.md`, `README.md`, `llms.txt`, `.agent-plan.md`, core docs under `docs/`, JSON schemas under `schemas/`, GitHub workflows, config files under `src/hocrgen/config/`, source operations, pipeline/CLI, benchmark/evaluation, annotation, review, release/export, fetcher, and NLI promotion modules. It intentionally does not register binary sample assets. The current local Splendor build used for this setup does not ingest TOML yet, so `pyproject.toml` remains part of normal repo context but is not included in the committed Splendor source set.
+The initial workspace registers and ingests high-signal hocrgen sources: `AGENTS.md`, `README.md`, `AGENT_README.md`, `llms.txt`, `.agent-plan.md`, core docs under `docs/`, JSON schemas under `schemas/`, GitHub workflows, config files under `src/hocrgen/config/`, source operations, pipeline/CLI, benchmark/evaluation, annotation, review, release/export, fetcher, and NLI promotion modules. It intentionally does not register binary sample assets. The current local Splendor build used for this setup does not ingest TOML yet, so `pyproject.toml` remains part of normal repo context but is not included in the committed Splendor source set.
 
 Treat `state/`, `wiki/sources/`, and `reports/` as generated Splendor artifacts. Do not hand-edit generated source summaries, manifests, queue/run records, or reports; update registered sources and regenerate the workspace through Splendor instead.
 
@@ -778,7 +778,8 @@ hocrgen evaluate-benchmark --benchmark-manifest <benchmark_manifest.json> --pred
 When implementation work is being driven from the roadmap or another concrete plan, the PR itself should update the current-state and human-facing planning documents in the same branch. In practice, a planned PR should usually include:
 
 - `.agent-plan.md` for the immediate execution state and next-step tracker
-- `README.md` when current capabilities, workflow expectations, or operator guidance changed
+- `AGENT_README.md` when current capabilities, workflow expectations, or operator guidance changed
+- `README.md` only when the public gateway, current status, quick start, or documentation map changed
 - the relevant planning docs under [`docs/`](./docs/) when milestone state, critical path, or implementation sequencing changed
 
 Planned PR metadata should also follow a stable notation rule:

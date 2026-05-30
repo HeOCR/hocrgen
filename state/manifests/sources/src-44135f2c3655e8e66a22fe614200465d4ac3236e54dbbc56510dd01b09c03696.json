@@ -1,5 +1,6 @@
 {
   "added_at": "2026-05-02T09:13:27+00:00",
+  "aliases": [],
   "checksum": "44135f2c3655e8e66a22fe614200465d4ac3236e54dbbc56510dd01b09c03696",
   "derived_artifacts": [],
   "discovered_by": null,
@@ -11,6 +12,7 @@
   "linked_pages": [
     "wiki/sources/src-44135f2c3655e8e66a22fe614200465d4ac3236e54dbbc56510dd01b09c03696.md"
   ],
+  "logical_id": null,
   "materialized_at": null,
   "origin_url": null,
   "original_path": ".agent-plan.md",
@@ -49,5 +51,7 @@
   "status": "ingested",
   "storage_mode": "none",
   "storage_path": null,
+  "superseded_by": "src-20cddb60346dc50775ffc07577f27c040dcfbac67224afe3d2e8ae2376ccf7ae",
+  "supersedes": [],
   "title": ".agent plan"
 }

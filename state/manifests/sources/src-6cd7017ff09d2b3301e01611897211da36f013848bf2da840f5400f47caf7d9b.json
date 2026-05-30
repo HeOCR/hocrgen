@@ -1,5 +1,6 @@
 {
   "added_at": "2026-05-02T09:09:15+00:00",
+  "aliases": [],
   "checksum": "6cd7017ff09d2b3301e01611897211da36f013848bf2da840f5400f47caf7d9b",
   "derived_artifacts": [],
   "discovered_by": null,
@@ -11,6 +12,7 @@
   "linked_pages": [
     "wiki/sources/src-6cd7017ff09d2b3301e01611897211da36f013848bf2da840f5400f47caf7d9b.md"
   ],
+  "logical_id": null,
   "materialized_at": null,
   "origin_url": null,
   "original_path": "README.md",
@@ -49,5 +51,7 @@
   "status": "ingested",
   "storage_mode": "none",
   "storage_path": null,
+  "superseded_by": "src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f",
+  "supersedes": [],
   "title": "README"
 }

@@ -1,0 +1,61 @@
+{
+  "added_at": "2026-05-30T17:32:46+00:00",
+  "aliases": [
+    ".agent-plan.md"
+  ],
+  "checksum": "20cddb60346dc50775ffc07577f27c040dcfbac67224afe3d2e8ae2376ccf7ae",
+  "derived_artifacts": [],
+  "discovered_by": null,
+  "generated_by_run_ids": [
+    "run-src-20cddb60346dc50775ffc07577f27c040dcfbac67224afe3d2e8ae2376ccf7ae-20260530T173246310583Z"
+  ],
+  "kind": "source",
+  "last_run_id": "run-src-20cddb60346dc50775ffc07577f27c040dcfbac67224afe3d2e8ae2376ccf7ae-20260530T173246310583Z",
+  "linked_pages": [
+    "wiki/sources/src-20cddb60346dc50775ffc07577f27c040dcfbac67224afe3d2e8ae2376ccf7ae.md"
+  ],
+  "logical_id": "source:.agent-plan.md",
+  "materialized_at": null,
+  "origin_url": null,
+  "original_path": ".agent-plan.md",
+  "path": ".agent-plan.md",
+  "pipeline_version": "0.5.2",
+  "provenance_links": [
+    {
+      "note": null,
+      "page_id": "src-20cddb60346dc50775ffc07577f27c040dcfbac67224afe3d2e8ae2376ccf7ae",
+      "path_ref": "wiki/sources/src-20cddb60346dc50775ffc07577f27c040dcfbac67224afe3d2e8ae2376ccf7ae.md",
+      "role": "generated-page",
+      "run_id": null,
+      "source_id": null
+    },
+    {
+      "note": null,
+      "page_id": null,
+      "path_ref": null,
+      "role": "output",
+      "run_id": "run-src-20cddb60346dc50775ffc07577f27c040dcfbac67224afe3d2e8ae2376ccf7ae-20260530T173246310583Z",
+      "source_id": "src-20cddb60346dc50775ffc07577f27c040dcfbac67224afe3d2e8ae2376ccf7ae"
+    }
+  ],
+  "review_state": "unreviewed",
+  "reviewed_at": null,
+  "reviewed_by": null,
+  "schema_version": "1",
+  "source_class": null,
+  "source_commit": "990a9852c0397eca09482c266860652aec95d25a",
+  "source_commit_capture": null,
+  "source_id": "src-20cddb60346dc50775ffc07577f27c040dcfbac67224afe3d2e8ae2376ccf7ae",
+  "source_labels": [],
+  "source_ref": ".agent-plan.md",
+  "source_ref_kind": "workspace_path",
+  "source_type": "md",
+  "status": "ingested",
+  "storage_mode": "none",
+  "storage_path": null,
+  "superseded_by": null,
+  "supersedes": [
+    "src-44135f2c3655e8e66a22fe614200465d4ac3236e54dbbc56510dd01b09c03696"
+  ],
+  "title": ".agent plan"
+}

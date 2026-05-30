@@ -1,0 +1,67 @@
+{
+  "contradiction_ids": [],
+  "errors": [],
+  "finished_at": "2026-05-30T17:32:46.303706+00:00",
+  "input_refs": [
+    "state/manifests/sources/src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f.json",
+    "README.md"
+  ],
+  "job_id": "ingest-src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f",
+  "job_type": "ingest_source",
+  "kind": "run",
+  "output_refs": [
+    "wiki/sources/src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f.md",
+    "wiki/index.md",
+    "wiki/log.md"
+  ],
+  "page_ids": [
+    "src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f"
+  ],
+  "page_refs": [
+    "wiki/sources/src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f.md"
+  ],
+  "pipeline_version": "0.5.2",
+  "provenance_links": [
+    {
+      "note": null,
+      "page_id": null,
+      "path_ref": "state/manifests/sources/src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f.json",
+      "role": "input",
+      "run_id": null,
+      "source_id": "src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f"
+    },
+    {
+      "note": null,
+      "page_id": null,
+      "path_ref": "README.md",
+      "role": "input",
+      "run_id": null,
+      "source_id": "src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f"
+    },
+    {
+      "note": null,
+      "page_id": "src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f",
+      "path_ref": "wiki/sources/src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f.md",
+      "role": "generated-page",
+      "run_id": null,
+      "source_id": null
+    },
+    {
+      "note": null,
+      "page_id": "src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f",
+      "path_ref": null,
+      "role": "output",
+      "run_id": "run-src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f-20260530T173246300734Z",
+      "source_id": null
+    }
+  ],
+  "run_id": "run-src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f-20260530T173246300734Z",
+  "schema_version": "1",
+  "source_ids": [
+    "src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f"
+  ],
+  "started_at": "2026-05-30T17:32:46.300751+00:00",
+  "status": "succeeded",
+  "task_ids": [],
+  "warnings": []
+}
