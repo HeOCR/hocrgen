@@ -2,7 +2,7 @@
 
 A private Cloudflare Pages + D1 review mini-site for the hocrgen pipeline. It is operator tooling, not part of the public pipeline: a single reviewer (`shaypal5@gmail.com`) signs in through Cloudflare Access, makes approve/reject/defer decisions on items emitted by `hocrgen` into a `review_queue.json`, and exports those decisions back into `review_data/manual_decisions/` so the next `hocrgen build-release` can consume them.
 
-Created by [Shay Palachy Affek ](http://www.shaypalachy.com/).
+Created by [Shay Palachy Affek](http://www.shaypalachy.com/).
 
 This directory is intentionally not under `src/`. It contains no Python code, no tests, and no roadmap milestone notation.
 
@@ -146,4 +146,4 @@ These are deliberate v0 trade-offs, called out so they don't surprise the next p
 
 ## Credits
 
-Created by [Shay Palachy Affek ](http://www.shaypalachy.com/) [GitHub](https://github.com/shaypal5)
+Created by [Shay Palachy Affek](http://www.shaypalachy.com/) [GitHub](https://github.com/shaypal5)
