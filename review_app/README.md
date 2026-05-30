@@ -146,4 +146,4 @@ These are deliberate v0 trade-offs, called out so they don't surprise the next p
 
 ## Credits
 
-Created by [Shay Palachy Affek](http://www.shaypalachy.com/) [GitHub](https://github.com/shaypal5)
+Created by [Shay Palachy Affek ](http://www.shaypalachy.com/) [[GitHub](https://github.com/shaypal5)]
