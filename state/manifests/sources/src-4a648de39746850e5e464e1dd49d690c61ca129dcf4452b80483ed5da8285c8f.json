@@ -53,7 +53,7 @@
   "status": "ingested",
   "storage_mode": "none",
   "storage_path": null,
-  "superseded_by": null,
+  "superseded_by": "src-a68495607c910c275cd1d7af46588a2ca4ea8d86267678924098e7c911e63c09",
   "supersedes": [
     "src-6cd7017ff09d2b3301e01611897211da36f013848bf2da840f5400f47caf7d9b"
   ],

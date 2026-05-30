@@ -2,6 +2,8 @@
 
 A private Cloudflare Pages + D1 review mini-site for the hocrgen pipeline. It is operator tooling, not part of the public pipeline: a single reviewer (`shaypal5@gmail.com`) signs in through Cloudflare Access, makes approve/reject/defer decisions on items emitted by `hocrgen` into a `review_queue.json`, and exports those decisions back into `review_data/manual_decisions/` so the next `hocrgen build-release` can consume them.
 
+Created by [Shay Palachy Affek](http://www.shaypalachy.com/).
+
 This directory is intentionally not under `src/`. It contains no Python code, no tests, and no roadmap milestone notation.
 
 ## Stack
@@ -141,3 +143,7 @@ These are deliberate v0 trade-offs, called out so they don't surprise the next p
 - **`pipeline_stats` is a generic key-value table.** It is acceptable for one-screen dashboard rendering and is intentionally not schematized.
 - **`review_items.raw_record` is stored but never served.** It is reserved for a future per-item detail view; the items list endpoint deliberately omits it.
 - **SQL is built with manual single-quote escaping** in the seed and export scripts. Wrangler's CLI does not expose bound parameters for `--file`. Operator input is trusted; the D1 HTTP API would be the right place to introduce parameterized statements.
+
+## Credits
+
+Created by [Shay Palachy Affek](http://www.shaypalachy.com/) [GitHub](https://github.com/shaypal5)

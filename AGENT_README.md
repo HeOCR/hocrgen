@@ -5,6 +5,8 @@ agents, and release operators who need the full command surface, roadmap
 context, and gate-by-gate detail. The concise human-facing project gateway lives
 in `README.md`.
 
+Created by [Shay Palachy Affek](http://www.shaypalachy.com/).
+
 [![Validate](https://github.com/HeOCR/hocrgen/actions/workflows/validate.yml/badge.svg)](https://github.com/HeOCR/hocrgen/actions/workflows/validate.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -896,3 +898,7 @@ artifact handoff between GitHub Actions jobs.
 - Release governance: [`docs/release_governance.md`](./docs/release_governance.md)
 - Pre-alpha freeze plan: [`docs/pre_alpha_freeze_plan.md`](./docs/pre_alpha_freeze_plan.md)
 - Normalization and QA notes: [`docs/hocrgen_normalization_and_qa.md`](./docs/hocrgen_normalization_and_qa.md)
+
+## Credits
+
+Created by [Shay Palachy Affek](http://www.shaypalachy.com/) [GitHub](https://github.com/shaypal5)

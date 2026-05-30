@@ -53,7 +53,7 @@
   "status": "ingested",
   "storage_mode": "none",
   "storage_path": null,
-  "superseded_by": null,
+  "superseded_by": "src-786a1081aafa9ea8c06d71dd94ff539eef3fe632979b8c7144f27a256816b936",
   "supersedes": [],
   "title": "AGENT README"
 }

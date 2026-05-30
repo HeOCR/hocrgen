@@ -20,6 +20,8 @@ This wiki is maintained by Splendor.
 
 - [.agent plan](sources/src-20cddb60346dc50775ffc07577f27c040dcfbac67224afe3d2e8ae2376ccf7ae.md) (`src-20cddb60346dc50775ffc07577f27c040dcfbac67224afe3d2e8ae2376ccf7ae`) status=active review=machine-generated
 - [.agent plan](sources/src-44135f2c3655e8e66a22fe614200465d4ac3236e54dbbc56510dd01b09c03696.md) (`src-44135f2c3655e8e66a22fe614200465d4ac3236e54dbbc56510dd01b09c03696`) status=active review=machine-generated
+- [AGENT README](sources/src-786a1081aafa9ea8c06d71dd94ff539eef3fe632979b8c7144f27a256816b936.md) (`src-786a1081aafa9ea8c06d71dd94ff539eef3fe632979b8c7144f27a256816b936`) status=active review=machine-generated
+- [AGENT README](sources/src-d76584cdf5f24a57d29f4cf7975f507f06596b643bdc913e6f6828553b0434cf.md) (`src-d76584cdf5f24a57d29f4cf7975f507f06596b643bdc913e6f6828553b0434cf`) status=active review=machine-generated
 - [AGENT README](sources/src-f1084cd3c6c8b369da14d966345c9c9093f01f5959153e9ec66bae3a766d4ef0.md) (`src-f1084cd3c6c8b369da14d966345c9c9093f01f5959153e9ec66bae3a766d4ef0`) status=active review=machine-generated
 - [AGENTS](sources/src-fa52cdd3e6c19f649a98f5e9483727a825afe4d4aebaf0c394ed65b275bdd192.md) (`src-fa52cdd3e6c19f649a98f5e9483727a825afe4d4aebaf0c394ed65b275bdd192`) status=active review=machine-generated
 - [alpha](sources/src-83f63fa5b1a448ac62b77c5b43dd15c78d21a2fa020d203622f16e17f34c0e10.md) (`src-83f63fa5b1a448ac62b77c5b43dd15c78d21a2fa020d203622f16e17f34c0e10`) status=active review=machine-generated
@@ -64,6 +66,8 @@ This wiki is maintained by Splendor.
 - [queue](sources/src-d35450808b548f78d689a33e3f28a788ebd93da5ee5e2296a60082db4906d6d2.md) (`src-d35450808b548f78d689a33e3f28a788ebd93da5ee5e2296a60082db4906d6d2`) status=active review=machine-generated
 - [README](sources/src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f.md) (`src-4a648de39746850e5e464e1dd49d690c61ca129dcf4452b80483ed5da8285c8f`) status=active review=machine-generated
 - [README](sources/src-6cd7017ff09d2b3301e01611897211da36f013848bf2da840f5400f47caf7d9b.md) (`src-6cd7017ff09d2b3301e01611897211da36f013848bf2da840f5400f47caf7d9b`) status=active review=machine-generated
+- [README](sources/src-90a17df548306ce356e4f49cf3f065099e432c7f0f22a6f771881ed2e86f51bb.md) (`src-90a17df548306ce356e4f49cf3f065099e432c7f0f22a6f771881ed2e86f51bb`) status=active review=machine-generated
+- [README](sources/src-a68495607c910c275cd1d7af46588a2ca4ea8d86267678924098e7c911e63c09.md) (`src-a68495607c910c275cd1d7af46588a2ca4ea8d86267678924098e7c911e63c09`) status=active review=machine-generated
 - [release governance](sources/src-45b84be09c1d6cc3524d1b4047af8e013fd0a855abd750df7d6759466c721855.md) (`src-45b84be09c1d6cc3524d1b4047af8e013fd0a855abd750df7d6759466c721855`) status=active review=machine-generated
 - [release profile.schema](sources/src-a227341a6e5c8c7975ac95e4573fd091b84a0b0a96c32534ddcc881630c1a6e4.md) (`src-a227341a6e5c8c7975ac95e4573fd091b84a0b0a96c32534ddcc881630c1a6e4`) status=active review=machine-generated
 - [review decision.schema](sources/src-cecd8fb3d37b0f70fcfe9ba4809f8671addf4ac86aaed73e20b0a10075751c0a.md) (`src-cecd8fb3d37b0f70fcfe9ba4809f8671addf4ac86aaed73e20b0a10075751c0a`) status=active review=machine-generated
