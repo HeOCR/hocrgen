@@ -7,6 +7,7 @@ CURRENT_COMPLETED_NOTATION = "F6f2"
 PLANNING_FILES = [
     Path(".agent-plan.md"),
     Path("README.md"),
+    Path("AGENT_README.md"),
     Path("docs/HeOCR_hocrgen_long_term_roadmap.md"),
     Path("docs/pre_alpha_freeze_plan.md"),
     Path("CONTRIBUTING.md"),
@@ -48,9 +49,20 @@ def _roadmap_table_rows(roadmap: str) -> dict[str, list[str]]:
     return rows
 
 
+def _readme_docs() -> str:
+    """Return the concise gateway plus delegated operator README content."""
+
+    return "\n".join(
+        [
+            Path("README.md").read_text(encoding="utf-8"),
+            Path("AGENT_README.md").read_text(encoding="utf-8"),
+        ]
+    )
+
+
 def test_planning_docs_agree_on_current_and_next_notation() -> None:
     agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
     roadmap_rows = _roadmap_table_rows(roadmap)
 
@@ -113,7 +125,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
 def test_f3_modern_handwritten_policy_and_intake_are_consistent_and_bounded() -> None:
     policy = Path("docs/modern_handwritten_acquisition_policy.md").read_text(encoding="utf-8")
     agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
     contributing = Path("CONTRIBUTING.md").read_text(encoding="utf-8")
     source_guide = Path("docs/source_adapter_contribution_guide.md").read_text(encoding="utf-8")
@@ -177,7 +189,7 @@ def test_f3_modern_handwritten_policy_and_intake_are_consistent_and_bounded() ->
 
 def test_f1a_beta_trial_plan_is_bounded_and_source_balanced() -> None:
     agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
     issue_template = Path(".github/ISSUE_TEMPLATE/beta_trial.yml").read_text(encoding="utf-8")
     combined = "\n".join([agent_plan, readme, roadmap, issue_template])
@@ -202,7 +214,7 @@ def test_f1a_beta_trial_plan_is_bounded_and_source_balanced() -> None:
 
 def test_post_f1_roadmap_captures_outside_review_takeaways() -> None:
     agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
     issue_template = Path(".github/ISSUE_TEMPLATE/beta_trial.yml").read_text(encoding="utf-8")
     combined = "\n".join([agent_plan, readme, roadmap, issue_template])
@@ -240,7 +252,7 @@ def test_post_f1_roadmap_captures_outside_review_takeaways() -> None:
 
 def test_f4a_synthetic_spinout_docs_keep_four_repo_boundary_visible() -> None:
     agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
     synthetic_guide = Path("docs/synthetic_asset_contribution_guide.md").read_text(encoding="utf-8")
     combined = "\n".join([agent_plan, readme, roadmap, synthetic_guide])
@@ -275,7 +287,7 @@ def test_f4a_synthetic_spinout_docs_keep_four_repo_boundary_visible() -> None:
 
 def test_f4c_hocrsyngen_metadata_gates_are_documented() -> None:
     agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
     design = Path("docs/hocrgen_design_and_spec.md").read_text(encoding="utf-8")
     synthetic_guide = Path("docs/synthetic_asset_contribution_guide.md").read_text(encoding="utf-8")
@@ -298,7 +310,7 @@ def test_f4c_hocrsyngen_metadata_gates_are_documented() -> None:
 
 def test_f4d_heocrsynth_export_handoff_is_documented() -> None:
     agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
     design = Path("docs/hocrgen_design_and_spec.md").read_text(encoding="utf-8")
     synthetic_guide = Path("docs/synthetic_asset_contribution_guide.md").read_text(encoding="utf-8")
@@ -327,7 +339,7 @@ def test_f4d_heocrsynth_export_handoff_is_documented() -> None:
 
 def test_f4e_shared_export_packaging_primitives_are_documented() -> None:
     agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
     release_governance = Path("docs/release_governance.md").read_text(encoding="utf-8")
     combined = "\n".join([agent_plan, readme, roadmap, release_governance])
@@ -351,7 +363,7 @@ def test_f4f_heocr_ecosystem_upstream_chain_is_documented() -> None:
     assert ecosystem_path.exists(), "heocr_ecosystem_overview.md must exist"
     ecosystem = ecosystem_path.read_text(encoding="utf-8")
     agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
 
     # Chain order: section headers must appear in upstream-to-downstream order
@@ -401,7 +413,7 @@ def test_f4a_four_repository_boundary_remains_visible_after_f4f_extension() -> N
 
 def test_f5b_public_beta_packaging_contract_is_documented_and_bounded() -> None:
     agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
     release_governance = Path("docs/release_governance.md").read_text(encoding="utf-8")
     design = Path("docs/hocrgen_design_and_spec.md").read_text(encoding="utf-8")
@@ -496,7 +508,7 @@ def test_f5b_public_beta_packaging_contract_is_documented_and_bounded() -> None:
 
 def test_f6_post_f5_closure_roadmap_is_documented_and_evidence_gated() -> None:
     agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
     release_governance = Path("docs/release_governance.md").read_text(encoding="utf-8")
     design = Path("docs/hocrgen_design_and_spec.md").read_text(encoding="utf-8")
@@ -633,7 +645,7 @@ def test_e1a_contribution_docs_keep_safety_rails_visible() -> None:
     source_guide = Path("docs/source_adapter_contribution_guide.md").read_text(encoding="utf-8")
     synthetic_guide = Path("docs/synthetic_asset_contribution_guide.md").read_text(encoding="utf-8")
     release_governance = Path("docs/release_governance.md").read_text(encoding="utf-8")
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
 
     contributing_lower = contributing.casefold()
     for required in [
@@ -660,7 +672,7 @@ def test_e1a_contribution_docs_keep_safety_rails_visible() -> None:
 
 
 def test_e2a_evaluation_docs_keep_utility_scope_visible() -> None:
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
 
     for required in [
@@ -675,7 +687,7 @@ def test_e2a_evaluation_docs_keep_utility_scope_visible() -> None:
 
 
 def test_e2b_nli_batch_acquisition_docs_keep_seed_boundary_visible() -> None:
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
     source_guide = Path("docs/source_adapter_contribution_guide.md").read_text(encoding="utf-8")
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
 
@@ -692,7 +704,7 @@ def test_e2b_nli_batch_acquisition_docs_keep_seed_boundary_visible() -> None:
 
 
 def test_e3a_annotation_pilot_docs_keep_optional_scope_visible() -> None:
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
     design = Path("docs/hocrgen_design_and_spec.md").read_text(encoding="utf-8")
 
@@ -709,7 +721,7 @@ def test_e3a_annotation_pilot_docs_keep_optional_scope_visible() -> None:
 
 
 def test_e4a_governance_docs_keep_multi_release_controls_visible() -> None:
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
     design = Path("docs/hocrgen_design_and_spec.md").read_text(encoding="utf-8")
     release_governance = Path("docs/release_governance.md").read_text(encoding="utf-8")
@@ -752,7 +764,7 @@ def test_e4a_governance_docs_keep_multi_release_controls_visible() -> None:
 
 def test_f2_benchmark_ground_truth_references_keep_scope_visible() -> None:
     guidelines = Path("docs/benchmark_ground_truth_guidelines.md").read_text(encoding="utf-8")
-    readme = Path("README.md").read_text(encoding="utf-8")
+    readme = _readme_docs()
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
     combined = "\n".join([guidelines, readme, roadmap])
 
