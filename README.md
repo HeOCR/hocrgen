@@ -3,6 +3,8 @@
 [![Validate](https://github.com/HeOCR/hocrgen/actions/workflows/validate.yml/badge.svg)](https://github.com/HeOCR/hocrgen/actions/workflows/validate.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
+Created by [Shay Palachy Affek ](http://www.shaypalachy.com/).
+
 `hocrgen` is the dataset operations and release-governance toolchain for the
 HeOCR Hebrew OCR/HTR ecosystem. It turns rights-reviewed source candidates into
 auditable, dry-run release artifacts for the mixed `HeOCR` dataset and the
@@ -141,3 +143,7 @@ what must be closed before public publication can be claimed.
 generated payloads carry their own normalized rights metadata and release
 eligibility status; the software license does not override item-level rights,
 privacy, review, takedown, benchmark, or publication gates.
+
+## Credits
+
+Created by [Shay Palachy Affek ](http://www.shaypalachy.com/) [GitHub](https://github.com/shaypal5)
