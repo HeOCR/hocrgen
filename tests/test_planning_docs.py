@@ -844,3 +844,32 @@ def test_f2_benchmark_ground_truth_references_keep_scope_visible() -> None:
         "does not change `benchmark_v1` membership",
     ]:
         assert required in combined
+
+
+def test_f7_hash_source_integration_plan_is_documented_and_gate_preserving() -> None:
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+    plan = Path("planning/tasks/f7-hash-source-integration.md").read_text(encoding="utf-8")
+    agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
+    roadmap_rows = _roadmap_table_rows(roadmap)
+
+    assert roadmap_rows["F7"][1] == "Governed HASH real-handwriting source integration"
+    assert roadmap_rows["F7"][2].split(", ") == ["F7a", "F7b", "F7c", "F7d", "F7e"]
+    assert roadmap_rows["F7"][4] == "partial"
+    assert roadmap_rows["F7a"][4] == "completed"
+    for pr_id in ["F7b", "F7c", "F7d", "F7e"]:
+        assert roadmap_rows[pr_id][1] == "F7"
+        assert roadmap_rows[pr_id][4] == "planned"
+    assert "## Milestone F7 — Governed HASH real-handwriting source integration" in roadmap
+    assert "`F7a` now defines milestone F7" in agent_plan
+    for token in [
+        "HTR candidate output is never ground truth",
+        "`CC-BY-SA-3.0`",
+        "rejected at the adapter",
+        "review_only",
+        "`profile_open_v1`",
+        "writer_group",
+        "`benchmark_v1`",
+        "2 / 80",
+        "1 / 3",
+    ]:
+        assert token in plan

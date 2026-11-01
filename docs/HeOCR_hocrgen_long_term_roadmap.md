@@ -138,6 +138,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | F4 | External synthetic provider integration | F4a, F4b, F4c, F4d, F4e, F4f | Synthetic spinout architecture, provider manifest contract, fixture-backed adapter, Hebrew rendering/provider gates, HeOCRsynth export handoff, shared release export packaging primitives, and wider HeOCR ecosystem upstream-chain documentation | completed |
 | F5 | Public beta and publication readiness | F5a, F5b, F5c, F5d | Public beta gates, publication packaging, dataset-card, checksum/archive manifests, takedown-ready export handoff, blocker-closure sequencing, and repo-owned blocker reporting | completed-with-blockers |
 | F6 | Public beta closure and external input integration | F6a, F6b, F6c, F6d, F6e, F6f1, F6f2a, F6f2, F6g | Post-F5 closure roadmap, takedown/private reporting closure, benchmark-reference evidence review, remaining repo-owned blocker closure, source-depth evidence, hocrsyngen installed-CLI adapter preflight planning, operator-only evidence-root reader, hocrgen-owned metadata sidecar definition, and final readiness rerun | partial |
+| F7 | Governed HASH real-handwriting source integration | F7a, F7b, F7c, F7d, F7e | HASH source proposal and notation, fixture-backed review-only adapter, human-attested reference conversion, first reviewed tranche with a real-handwriting-aware composition contract, and a benchmark_v2 proposal | partial |
 
 ## 4.2 PR summary
 
@@ -207,6 +208,11 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | F6f2a | F6 | Implement hocrsyngen evidence-root preflight/import-packet reader | no | completed | current ref operator-only hocrgen diagnostic over hocrsyngen evidence-run roots with release_eligible=false |
 | F6f2 | F6 | Define hocrsyngen release/import metadata sidecar | no | completed | current ref hocrgen_hocrsyngen_import_metadata_packet.v1 derived from validated evidence roots; operator-only release_eligible=false |
 | F6g | F6 | Re-run public beta readiness after privacy/review closure, source-depth, and synthetic-scale inputs exist | no | planned | final convergence only after privacy/review closure evidence plus F6e-F6f2 evidence exists |
+| F7a | F7 | Define the governed HASH source integration plan and planned notation | no | completed | current ref planning-only HASH source proposal record; no runtime, profile, or gate change |
+| F7b | F7 | Add a fixture-backed review-only HASH source adapter | no | planned | review_only sources outside profile_open_v1; CC-BY-SA-3.0 entries rejected; candidate HTR text never read |
+| F7c | F7 | Convert human-attested HASH transcripts into benchmark reference artifacts | no | planned | operator-only benchmark_transcription_reference.v1 output; HTR candidates are never ground truth |
+| F7d | F7 | Promote a first reviewed HASH tranche and reconcile the real-source composition contract | no | planned | requires repo-tracked review decisions and an explicit composition contract change |
+| F7e | F7 | Propose benchmark_v2 with adjudicated HASH references | no | planned | benchmark_v1 membership stays frozen under its stability policy |
 
 ## 4.3 Current critical path
 
@@ -1371,6 +1377,36 @@ F6 does not:
 - real public-profile source-depth/composition evidence must exist before `F6e`
 - a larger hocrsyngen batch must be admitted through hocrgen release-path gates before synthetic target scale can pass
 - `F6g` must not become a pressure valve for merging incomplete readiness
+
+## Milestone F7 — Governed HASH real-handwriting source integration
+
+### Objective
+Admit `HeOCR/hash` (HASH, the Hebrew Archive of Scanned Handwriting; formerly `public-domain-hand-written-hebrew-scans`) as a governed real-handwriting source without weakening any rights, privacy, review, leakage, benchmark, or readiness gate. HASH is HeOCR-owned, rights-recorded per scan, and mostly 1900–1949 cursive handwriting, which the current NLI/Pinkas/BiblIA mix barely covers. F7 supplies evidence to `F6g`; it does not replace or relax it.
+
+### Planned PRs
+- `F7a`: define the HASH source proposal record, rights mapping, gate-impact analysis, and F7 notation (planning only)
+- `F7b`: add a fixture-backed `hash` adapter with `review_only` sources outside `profile_open_v1`, a `PDM-1.0` license entry, source health, and rejection of `CC-BY-SA-3.0` and out-of-scope entries
+- `F7c`: add an operator-only converter from human-attested HASH transcripts to `benchmark_transcription_reference.v1` and `benchmark_reference_manifest.v1`
+- `F7d`: promote a first reviewed HASH tranche through repo-tracked review decisions and reconcile the real-source composition contract
+- `F7e`: propose `benchmark_v2` with adjudicated HASH references
+
+### Current-ref implementation
+`F7a` is implemented on the current ref as planning only. The proposal, rights mapping, privacy notes, fixture strategy, ground-truth boundary, and gate-impact numbers are recorded in [the F7 plan](../planning/tasks/f7-hash-source-integration.md) and source-proposal issue `HeOCR/hocrgen#89`. It does not change sources, profiles, licenses, review data, readiness semantics, or any export.
+
+### Required sequencing
+1. `F7b` keeps HASH out of `profile_open_v1`, so it changes no readiness gate. Candidate HTR text under HASH `data/transcripts/candidates/` is never read.
+2. `F7c` accepts a transcript only with a HASH-side human attestation that names the reviewer, method, text checksum, and adjudication. HASH `status: reviewed` alone is insufficient, and HTR output is never ground truth.
+3. `F7d` may add HASH items to `profile_open_v1` only after repo-tracked review decisions exist for each promoted item. HASH items count toward `source_depth_composition` only after an explicit change to the per-source real target contract (`27` NLI / `27` Pinkas / `26` BiblIA). The tranche must also carry source-group and writer-group leakage metadata.
+4. `F7e` must not change `benchmark_v1` membership. HASH references enter only through a versioned `benchmark_v2` proposal.
+
+### Non-goals
+F7 does not add live crawling or network-dependent CI. It does not admit `CC-BY-SA-3.0`, Yiddish, Aramaic, or partial-Hebrew HASH entries in v1, treat HTR or LLM output as ground truth, or count HASH inventory as public-profile evidence before review. It also does not edit `hocrsyngen`, `hletterscriptgen`, or `hletterscript`.
+
+### Exit criteria
+- HASH is a typed, fixture-backed, source-health-visible source with explicit rights mapping
+- every promoted HASH item has a repo-tracked review decision and attribution/provenance
+- HASH references are human-attested and adjudicated before any benchmark readiness claim
+- `F6g` readiness reporting discloses HASH contribution per gate with real counts
 
 ---
 
