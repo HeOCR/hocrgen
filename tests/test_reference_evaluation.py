@@ -71,3 +71,13 @@ def test_unreviewed_reference_is_rejected_even_without_prediction():
     ref.review.status = "draft"
     with pytest.raises(ValueError, match="reviewed"):
         evaluate_reference_predictions(["x"], predictions={}, references={"x": ref})
+
+
+def test_unreviewed_pair_is_explicitly_diagnostic():
+    from hocrgen.reference_evaluation import score_unreviewed_text_pair
+
+    result = score_unreviewed_text_pair(prediction="e\u0301 לא 12", reference="é אין 13", normalize_nfc=True)
+    assert result["reference_status"] == "unreviewed"
+    assert result["benchmark_ready"] is False
+    assert result["raw"]["cer"] != result["nfc"]["cer"]
+    assert not result["raw"]["diagnostics"]["number_tokens_match"]

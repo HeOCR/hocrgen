@@ -127,6 +127,20 @@ def evaluate_reference_predictions(
     return report
 
 
+def score_unreviewed_text_pair(*, prediction: str, reference: str, normalize_nfc: bool = False) -> dict:
+    """Score user-supplied text for diagnostics, without claiming benchmark status."""
+    result = {
+        "reference_status": "unreviewed",
+        "benchmark_ready": False,
+        "scoring_scope": "caller supplies comparable content in logical order; no span policy is inferred",
+        "diagnostic_limit": "literal token comparisons only; not semantic correctness",
+        "raw": _pair(prediction, reference),
+    }
+    if normalize_nfc:
+        result["nfc"] = _pair(unicodedata.normalize("NFC", prediction), unicodedata.normalize("NFC", reference))
+    return result
+
+
 def assemble_page_predictions(
     pages: Mapping[str, str], *, item_pages: Mapping[str, list[str]],
 ) -> dict[str, str]:
