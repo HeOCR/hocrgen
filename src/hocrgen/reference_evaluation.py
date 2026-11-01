@@ -314,19 +314,11 @@ def _validate_supplied_strata(supplied: Mapping[str, str] | None) -> None:
 
 
 def _item_strata(record: BenchmarkTranscriptionReferenceRecord, supplied: Mapping[str, str] | None) -> dict[str, str]:
-    _validate_supplied_strata(supplied)
-    supplied = dict(supplied or {})
-    strata = {
+    defaults = {
         "language_script": "+".join(f"{entry.language}-{entry.script}" for entry in record.language_scripts),
-        "modality": "unknown",
         "source_id": record.source_id,
-        "document_type": "unknown",
-        "reference_origin": "unknown",
     }
-    strata.update({key: str(value) for key, value in supplied.items() if value not in (None, "")})
-    if strata["modality"] not in MODALITIES:
-        raise ValueError(f"unsupported modality: {strata['modality']}")
-    return strata
+    return _text_strata({**defaults, **{key: value for key, value in (supplied or {}).items() if value not in (None, "")}})
 
 
 def evaluate_reference_profiles(
@@ -342,39 +334,87 @@ def evaluate_reference_profiles(
     ``punct_folded.v1`` is report-only. The optional alignment-masked diagnostic is reported separately and
     never contributes to any profile score.
     """
-    resolved = _resolve_profiles(profiles)
     ids = list(item_ids)
-    if len(set(ids)) != len(ids):
-        raise ValueError("duplicate benchmark item id")
-    unexpected_strata = sorted((item_strata or {}).keys() - set(ids))
-    if unexpected_strata:
-        raise ValueError(f"strata supplied for unknown item: {', '.join(unexpected_strata)}")
+    scoped: dict[str, str] = {}
+    strata: dict[str, dict[str, str]] = {}
+    spans: dict[str, dict] = {}
+    _check_strata_items(ids, item_strata)
+    for item_id in sorted(set(ids) & references.keys()):
+        record = references[item_id]
+        if record.item_id != item_id:
+            raise ValueError("reference item id mismatch")
+        scoped[item_id] = reference_text(record)
+        strata[item_id] = _item_strata(record, (item_strata or {}).get(item_id))
+        spans[item_id] = _span_report(record)
+    report = _profile_report(ids, predictions=predictions, scoped=scoped, strata=strata, spans=spans,
+                             profiles=profiles)
+    if alignment_masked:
+        report["diagnostics"] = {"alignment_masked": evaluate_alignment_masked(
+            sorted(set(ids) & predictions.keys() & references.keys()),
+            predictions=predictions, references=references,
+        )}
+    return report
+
+
+def evaluate_text_profiles(
+    item_ids: Iterable[str], *, predictions: Mapping[str, str], references: Mapping[str, str],
+    profiles: Iterable[str] = DEFAULT_PROFILE_IDS,
+    item_strata: Mapping[str, Mapping[str, str]] | None = None,
+) -> dict:
+    """Profile scoring for already-scoped plain-text references (for example synthetic gold).
+
+    The caller is responsible for the reference's provenance; this function does not certify it.
+    """
+    ids = list(item_ids)
+    _check_strata_items(ids, item_strata)
+    strata = {item_id: _text_strata((item_strata or {}).get(item_id)) for item_id in sorted(set(ids) & references.keys())}
+    return _profile_report(ids, predictions=predictions, scoped=dict(references), strata=strata,
+                           spans={item_id: {} for item_id in strata}, profiles=profiles)
+
+
+def _check_strata_items(ids: list[str], item_strata: Mapping[str, Mapping[str, str]] | None) -> None:
+    unexpected = sorted((item_strata or {}).keys() - set(ids))
+    if unexpected:
+        raise ValueError(f"strata supplied for unknown item: {', '.join(unexpected)}")
     # Fail closed for every requested item, including ones later dropped for a missing prediction or reference.
     for supplied in (item_strata or {}).values():
         _validate_supplied_strata(supplied)
+
+
+def _text_strata(supplied: Mapping[str, str] | None) -> dict[str, str]:
+    _validate_supplied_strata(supplied)
+    supplied = dict(supplied or {})
+    strata = {dimension: "unknown" for dimension in STRATA_DIMENSIONS}
+    strata.update({key: str(value) for key, value in supplied.items() if value not in (None, "")})
+    if strata["modality"] not in MODALITIES:
+        raise ValueError(f"unsupported modality: {strata['modality']}")
+    return strata
+
+
+def _profile_report(
+    ids: list[str], *, predictions: Mapping[str, str], scoped: Mapping[str, str],
+    strata: Mapping[str, dict[str, str]], spans: Mapping[str, dict], profiles: Iterable[str],
+) -> dict:
+    resolved = _resolve_profiles(profiles)
+    if len(set(ids)) != len(ids):
+        raise ValueError("duplicate benchmark item id")
     missing_predictions = sorted(set(ids) - predictions.keys())
-    missing_references = sorted(set(ids) - references.keys())
-    scoped: dict[str, str] = {}
-    for item_id in sorted(set(ids) & references.keys()):
-        if references[item_id].item_id != item_id:
-            raise ValueError("reference item id mismatch")
-        scoped[item_id] = reference_text(references[item_id])
+    missing_references = sorted(set(ids) - scoped.keys())
     items = []
-    for item_id in sorted(set(ids) & predictions.keys() & references.keys()):
-        record = references[item_id]
+    for item_id in sorted(set(ids) & predictions.keys() & scoped.keys()):
         items.append({
             "item_id": item_id,
-            "strata": _item_strata(record, (item_strata or {}).get(item_id)),
-            "reference_spans": _span_report(record),
+            "strata": strata[item_id],
+            "reference_spans": spans[item_id],
             "profiles": {
                 profile.profile_id: _pair(profile.apply(predictions[item_id]), profile.apply(scoped[item_id]))
                 for profile in resolved
             },
         })
-    strata: dict[str, dict[str, dict]] = {}
+    strata_report: dict[str, dict[str, dict]] = {}
     for dimension in STRATA_DIMENSIONS:
         values = sorted({item["strata"][dimension] for item in items})
-        strata[dimension] = {
+        strata_report[dimension] = {
             value: {
                 profile.profile_id: _aggregate(
                     [item["profiles"][profile.profile_id] for item in items if item["strata"][dimension] == value]
@@ -383,14 +423,14 @@ def evaluate_reference_profiles(
             }
             for value in values
         }
-    report = {
+    return {
         "normalization_profiles": [profile.describe() for profile in resolved],
         "primary_profile": PRIMARY_PROFILE_ID,
         "report_only_profiles": [profile.profile_id for profile in resolved if profile.role == "report_only"],
         "benchmark_item_count": len(ids), "evaluated_item_count": len(items),
         "missing_predictions": missing_predictions, "missing_references": missing_references,
         "unexpected_predictions": sorted(predictions.keys() - set(ids)),
-        "unexpected_references": sorted(references.keys() - set(ids)),
+        "unexpected_references": sorted(scoped.keys() - set(ids)),
         "prediction_coverage": (len(ids) - len(missing_predictions)) / len(ids) if ids else None,
         "reference_coverage": (len(ids) - len(missing_references)) / len(ids) if ids else None,
         "scoring_scope": "predictions must already exclude reference-excluded content; text must be in logical order",
@@ -399,15 +439,9 @@ def evaluate_reference_profiles(
             profile.profile_id: _aggregate([item["profiles"][profile.profile_id] for item in items])
             for profile in resolved
         },
-        "strata": strata,
+        "strata": strata_report,
         "items": items,
     }
-    if alignment_masked:
-        report["diagnostics"] = {"alignment_masked": evaluate_alignment_masked(
-            sorted(set(ids) & predictions.keys() & references.keys()),
-            predictions=predictions, references=references,
-        )}
-    return report
 
 
 def _align(reference: str, prediction: str, max_cells: int) -> list[tuple[str, int, int | None]]:

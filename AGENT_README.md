@@ -679,6 +679,18 @@ hocrgen evaluate-benchmark \
 
 The report includes item coverage, character error rate, exact-match rate, per-item edit distances, and a small `leaderboard_ready` block with the primary metric convention. Current public artifacts do not require transcriptions, so references are supplied explicitly until a future annotated subset lands. Evaluation helpers keep all joined asset and annotation paths release-relative and portable.
 
+Reference-aware engine evaluation (`E2c4`) scores heocr-engine page prediction files directly. Engine `page_id`s are `sha256:<image>`, so the page mapping is derived from asset sha256 when you pass a hocrsyngen batch:
+
+```bash
+hocrgen evaluate-references \
+  --predictions engine-out/ \
+  --synthetic-batch path/to/hocrsyngen-batch \
+  --baseline-predictions engine-out-baseline/ \
+  --output reports/reference_evaluation.json --write-mapping reports/page_mapping.json
+```
+
+The scored set contains synthetic gold and reviewed+adjudicated references (`--reference-manifest`) only. HASH, tender and other candidate texts go in `--unreviewed-texts` and appear only under `unreviewed_diagnostics`. The report carries a `hocrgen_reference_evaluation_run.v1` run record: prediction file hashes, the mapping hash, the reference identity, the profiles and the hocrgen version. See [`docs/reference_evaluation.md`](./docs/reference_evaluation.md).
+
 ## Annotation readiness
 
 `hocrgen` reserves typed, optional annotation slots on item manifests so future annotated subsets can attach release-relative transcription and layout-label files without changing the core release flow.
@@ -778,6 +790,7 @@ hocrgen review-export --profile profile_open_v1 --dry-run
 hocrgen split --profile profile_open_v1 --dry-run
 hocrgen build-release --profile profile_open_v1 --dry-run
 hocrgen evaluate-benchmark --benchmark-manifest <benchmark_manifest.json> --predictions <predictions.jsonl> --references <references.jsonl>
+hocrgen evaluate-references --predictions <engine-predictions-dir> --synthetic-batch <hocrsyngen-batch-dir>
 ```
 
 ## Planned PR workflow

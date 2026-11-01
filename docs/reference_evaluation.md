@@ -46,3 +46,42 @@ The negation-token diagnostic strips a fixed set of surrounding punctuation befo
 - the masked text is scored under `primary.v1`;
 - the output is labelled `diagnostic_only: true` and `primary_eligible: false`;
 - the alignment is heuristic near span boundaries, so it never replaces scoped predictions and never feeds profile scores.
+
+## Engine prediction runs (E2c4)
+
+`hocrgen evaluate-references` (and `hocrgen.reference_runs.run_reference_evaluation`) scores a directory of heocr-engine page predictions offline.
+
+**Predictions.** Each file must use `schema_version` `"1.0"` (the current Tesseract baseline) or `heocr_engine_prediction.v1`.
+- Required fields: `page_id`, `input.sha256`, `engine.name`, `engine.version` and `text`.
+- A `sha256:` page id must equal `input.sha256`.
+- An optional `pipeline` list of stage objects is recorded and compared.
+- Any other schema fails closed.
+
+**Mapping.** `hocrgen_reference_page_mapping.v1` maps each item id to its ordered engine page ids.
+- When `--mapping` is omitted, the mapping is derived from asset sha256: hocrsyngen page `sha256` values for synthetic gold, plus any `--asset-index` entries.
+- A page mapped twice is rejected.
+- Items with only some of their pages predicted are listed rather than scored. Prediction pages that no mapping covers are listed too.
+- Pages are joined with one LF, as in E2c2.
+
+**Scored set.** These are the only references that produce scores:
+- `synthetic_gold`: text from a hocrsyngen batch (`--synthetic-batch`). Item ids are `project_synthetic:<legacy id>`.
+  - Batches that meet hocrgen's hardened release-path model are validated with `validate_hocrsyngen_batch`.
+  - Raw public `generation_manifest.v1` batches lack the hocrgen-owned provider metadata (F6f1). They are accepted for evaluation only after every page asset's sha256 is recomputed and matched.
+  - `identity.validation` records which path was used. Neither path admits a batch to release paths.
+- `adjudicated_reference`: child references of a `benchmark_reference_manifest.v1` (`--reference-manifest`) whose items are `reviewed`/`adjudicated` with `adjudication_status: adjudicated`. Other items are listed in `excluded_references` with a reason.
+
+**Unreviewed diagnostics.** `--unreviewed-texts` takes JSONL `{item_id, text, reference_origin, modality, ...}`, for example HASH HTR candidates or tender self-attested pages.
+- These are scored under the same profiles, but only under `unreviewed_diagnostics`, with `scored: false` and `benchmark_ready: false`.
+- They cannot claim a scored origin.
+
+**Comparison.** `--baseline-predictions` scores a second set against the same scored set and reports `delta_cer`/`delta_wer` per profile and origin. It also reports recorded pipeline stage additions and removals. `single_stage_attribution` names a stage only when exactly one stage differs and each set used a single pipeline. Otherwise the delta is set-level.
+
+**Run record.** `hocrgen_reference_evaluation_run.v1` lists:
+- prediction file names, sha256 values and the set hash;
+- engines and pipelines;
+- the mapping hash and source;
+- reference identities (`reference_manifest_id`; for synthetic gold, `synthetic_gold:<manifest sha256 prefix>`);
+- excluded references and the unreviewed-text hash;
+- profiles, the primary profile and the hocrgen version.
+
+The record contains file names only, never local paths.
