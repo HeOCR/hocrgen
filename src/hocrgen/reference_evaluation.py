@@ -187,13 +187,13 @@ def assemble_page_predictions(
 # --- E2c3: versioned normalization profiles, strata and the alignment-masked diagnostic ---------------
 
 _BIDI_CONTROLS = frozenset(
-    {"‎", "‏", "؜", *(chr(c) for c in range(0x202A, 0x202F)), *(chr(c) for c in range(0x2066, 0x206A))}
+    {"\u200e", "\u200f", "\u061c", *(chr(c) for c in range(0x202A, 0x202F)), *(chr(c) for c in range(0x2066, 0x206A))}
 )
 # Hebrew cantillation (te'amim) and points (niqqud, dagesh, shin/sin dots, meteg, qamats qatan). Maqaf, paseq and
 # sof pasuq are punctuation and are left to punct_folded.
 _HEBREW_MARKS = frozenset(
     {*(chr(c) for c in range(0x0591, 0x05B0)), *(chr(c) for c in range(0x05B0, 0x05BE)),
-     "ֿ", "ׁ", "ׂ", "ׄ", "ׅ", "ׇ"}
+     "\u05bf", "\u05c1", "\u05c2", "\u05c4", "\u05c5", "\u05c7"}
 )
 _HORIZONTAL_SPACE = re.compile(r"[^\S\n]+")
 
@@ -303,11 +303,19 @@ def _resolve_profiles(profile_ids: Iterable[str]) -> list[NormalizationProfile]:
     return [NORMALIZATION_PROFILES[profile_id] for profile_id in ids]
 
 
-def _item_strata(record: BenchmarkTranscriptionReferenceRecord, supplied: Mapping[str, str] | None) -> dict[str, str]:
+def _validate_supplied_strata(supplied: Mapping[str, str] | None) -> None:
     supplied = dict(supplied or {})
     unknown = sorted(set(supplied) - set(STRATA_DIMENSIONS))
     if unknown:
         raise ValueError(f"unknown stratum dimension: {', '.join(unknown)}")
+    modality = supplied.get("modality")
+    if modality not in (None, "") and str(modality) not in MODALITIES:
+        raise ValueError(f"unsupported modality: {modality}")
+
+
+def _item_strata(record: BenchmarkTranscriptionReferenceRecord, supplied: Mapping[str, str] | None) -> dict[str, str]:
+    _validate_supplied_strata(supplied)
+    supplied = dict(supplied or {})
     strata = {
         "language_script": "+".join(f"{entry.language}-{entry.script}" for entry in record.language_scripts),
         "modality": "unknown",
@@ -341,6 +349,9 @@ def evaluate_reference_profiles(
     unexpected_strata = sorted((item_strata or {}).keys() - set(ids))
     if unexpected_strata:
         raise ValueError(f"strata supplied for unknown item: {', '.join(unexpected_strata)}")
+    # Fail closed for every requested item, including ones later dropped for a missing prediction or reference.
+    for supplied in (item_strata or {}).values():
+        _validate_supplied_strata(supplied)
     missing_predictions = sorted(set(ids) - predictions.keys())
     missing_references = sorted(set(ids) - references.keys())
     scoped: dict[str, str] = {}
@@ -490,8 +501,16 @@ def evaluate_alignment_masked(
     into primary or profile scores.
     """
     normalizer = _resolve_profiles([profile, PRIMARY_PROFILE_ID] if profile != PRIMARY_PROFILE_ID else [profile])[0]
+    ids = list(item_ids)
+    if len(set(ids)) != len(ids):
+        raise ValueError("duplicate benchmark item id")
+    for item_id in ids:
+        if item_id not in predictions or item_id not in references:
+            raise ValueError(f"alignment-masked item {item_id} needs both a prediction and a reference")
+        if references[item_id].item_id != item_id:
+            raise ValueError("reference item id mismatch")
     items, skipped = [], []
-    for item_id in item_ids:
+    for item_id in ids:
         record = references[item_id]
         try:
             masked, stats = alignment_masked_prediction(record, predictions[item_id], max_cells=max_cells)

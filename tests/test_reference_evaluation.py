@@ -123,11 +123,11 @@ def test_normalization_profiles_are_versioned_and_applied_to_both_sides():
 
     assert set(NORMALIZATION_PROFILES) == {"raw.v1", "nfc.v1", "primary.v1", "consonantal.v1", "punct_folded.v1"}
     primary = NORMALIZATION_PROFILES["primary.v1"]
-    assert primary.apply("‏שלום⁧  עולם ؜\r\n\n") == "שלום עולם"
-    assert NORMALIZATION_PROFILES["consonantal.v1"].apply("שָׁלוֹם֑") == "שלום"
+    assert primary.apply("\u200fשלום\u2067  עולם \u061c\r\n\n") == "שלום עולם"
+    assert NORMALIZATION_PROFILES["consonantal.v1"].apply("ש\u05b8\u05c1לו\u05b9ם\u0591") == "שלום"
     assert NORMALIZATION_PROFILES["punct_folded.v1"].apply("ת״א, בית־ספר.") == "תא בית ספר"
     result = evaluate_reference_profiles(
-        ["x"], predictions={"x": "‏שלום   עולם\n"}, references={"x": record("שָׁלוֹם עולם ")},
+        ["x"], predictions={"x": "\u200fשלום   עולם\n"}, references={"x": record("ש\u05b8\u05c1לו\u05b9ם עולם ")},
     )
     assert result["primary_profile"] == "primary.v1"
     assert result["report_only_profiles"] == ["punct_folded.v1"]
@@ -135,7 +135,7 @@ def test_normalization_profiles_are_versioned_and_applied_to_both_sides():
     assert result["profiles"]["raw.v1"]["cer"] > 0
     assert result["profiles"]["primary.v1"]["cer"] > 0  # niqqud differs and is preserved by primary
     assert result["profiles"]["consonantal.v1"]["cer"] == 0
-    assert result["items"][0]["profiles"]["nfc.v1"]["reference_characters"] == len("שָׁלוֹם עולם ")
+    assert result["items"][0]["profiles"]["nfc.v1"]["reference_characters"] == len("ש\u05b8\u05c1לו\u05b9ם עולם ")
 
 
 def test_profile_selection_fails_closed():
@@ -198,3 +198,37 @@ def test_alignment_masked_skips_oversized_alignment_and_passes_through_without_e
     result = evaluate_alignment_masked(["x"], predictions={"x": "abc"}, references={"x": record("xyz", [span])},
                                        max_cells=4)
     assert result["items"] == [] and result["skipped"][0]["reason"] == "alignment exceeds max_cells"
+
+
+def test_bidi_and_hebrew_mark_sets_round_trip_through_their_escapes():
+    from hocrgen.reference_evaluation import _BIDI_CONTROLS, _HEBREW_MARKS
+
+    bidi = {0x200E, 0x200F, 0x061C, *range(0x202A, 0x202F), *range(0x2066, 0x206A)}
+    marks = {*range(0x0591, 0x05BE), 0x05BF, 0x05C1, 0x05C2, 0x05C4, 0x05C5, 0x05C7}
+    assert {ord(char) for char in _BIDI_CONTROLS} == bidi
+    assert {ord(char) for char in _HEBREW_MARKS} == marks
+    for char in (*_BIDI_CONTROLS, *_HEBREW_MARKS):
+        assert char.encode("unicode_escape").decode("ascii").encode("ascii").decode("unicode_escape") == char
+    assert "־" not in _HEBREW_MARKS and "׃" not in _HEBREW_MARKS  # maqaf and sof pasuq stay punctuation
+
+
+def test_strata_are_validated_for_requested_items_without_scored_inputs():
+    from hocrgen.reference_evaluation import evaluate_reference_profiles
+
+    with pytest.raises(ValueError, match="unsupported modality"):
+        evaluate_reference_profiles(["x", "missing"], predictions={"x": ""}, references={"x": record()},
+                                    item_strata={"missing": {"modality": "mixed"}})
+    with pytest.raises(ValueError, match="unknown stratum"):
+        evaluate_reference_profiles(["x", "missing"], predictions={}, references={"x": record()},
+                                    item_strata={"missing": {"writer": "a"}})
+
+
+def test_alignment_masked_rejects_duplicate_ids_mismatches_and_missing_inputs():
+    from hocrgen.reference_evaluation import evaluate_alignment_masked
+
+    with pytest.raises(ValueError, match="duplicate"):
+        evaluate_alignment_masked(["x", "x"], predictions={"x": ""}, references={"x": record()})
+    with pytest.raises(ValueError, match="mismatch"):
+        evaluate_alignment_masked(["y"], predictions={"y": ""}, references={"y": record()})
+    with pytest.raises(ValueError, match="needs both"):
+        evaluate_alignment_masked(["x"], predictions={}, references={"x": record()})
