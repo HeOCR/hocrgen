@@ -16,7 +16,7 @@ report = evaluate_reference_predictions(
 )
 ```
 
-The mapping is explicit and ordered; engine page IDs (including image hashes) are not benchmark item IDs. Preserve engine name/version, input identity and mapping alongside the report. Multi-page and multi-line text uses a newline separator. All text must already be in Unicode logical order. The evaluator never reverses bidi text.
+The mapping is explicit and ordered; engine page IDs (including image hashes) are not benchmark item IDs. Preserve engine name/version, input identity and mapping alongside the report. After exclusions, all ordered lines across pages are joined with exactly one LF (`\n`), including empty or fully excluded lines. Page boundaries add no extra separator. Predictions must use the same boundary serialization for comparable scoring; preserve raw engine text separately. All text must already be in Unicode logical order. The evaluator never reverses bidi text.
 
 Spans use half-open code-point offsets into each original line. The evaluator applies only supported, explicit span and policy decisions, rejecting ambiguous conflicts. Predictions must already cover the same included scope as the reference: reference offsets cannot identify corresponding prediction offsets. Thus a full-page prediction containing excluded text is not comparable without an independently justified scope alignment. Marginal text in an ordered line is considered ordered. The output is diagnostic and does not certify benchmark or leaderboard readiness.
 

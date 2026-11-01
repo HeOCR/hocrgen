@@ -99,3 +99,20 @@ def test_negation_comparison_strips_boundary_punctuation_only_for_diagnostic():
     result = score_unreviewed_text_pair(prediction="לא,", reference="לא")
     assert result["raw"]["diagnostics"]["negation_tokens_match"]
     assert result["raw"]["cer"] > 0
+
+
+def test_reference_serialization_retains_empty_and_fully_excluded_lines_across_pages():
+    payload = record().model_dump()
+    payload["pages"] = [{"page_id": "p2", "reading_order": 2}, {"page_id": "p1", "reading_order": 1}]
+    payload["lines"] = [
+        {"page_id": "p2", "line_id": "last", "reading_order": 1, "text": "ד"},
+        {"page_id": "p1", "line_id": "first", "reading_order": 1, "text": "א"},
+        {"page_id": "p1", "line_id": "empty", "reading_order": 2, "text": ""},
+        {"page_id": "p1", "line_id": "excluded", "reading_order": 3, "text": "ב"},
+    ]
+    payload["spans"] = [{"span_id": "s", "line_id": "excluded", "start": 0, "end": 1,
+                         "status": "deleted", "scoring": "exclude_primary"}]
+    ref = BenchmarkTranscriptionReferenceRecord.model_validate(payload)
+    assert reference_text(ref) == "א\n\n\nד"
+    result = evaluate_reference_predictions(["x"], predictions={"x": "א\n\n\nד"}, references={"x": ref})
+    assert result["raw"]["cer"] == 0
