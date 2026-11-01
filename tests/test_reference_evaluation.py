@@ -116,3 +116,85 @@ def test_reference_serialization_retains_empty_and_fully_excluded_lines_across_p
     assert reference_text(ref) == "א\n\n\nד"
     result = evaluate_reference_predictions(["x"], predictions={"x": "א\n\n\nד"}, references={"x": ref})
     assert result["raw"]["cer"] == 0
+
+
+def test_normalization_profiles_are_versioned_and_applied_to_both_sides():
+    from hocrgen.reference_evaluation import NORMALIZATION_PROFILES, evaluate_reference_profiles
+
+    assert set(NORMALIZATION_PROFILES) == {"raw.v1", "nfc.v1", "primary.v1", "consonantal.v1", "punct_folded.v1"}
+    primary = NORMALIZATION_PROFILES["primary.v1"]
+    assert primary.apply("‏שלום⁧  עולם ؜\r\n\n") == "שלום עולם"
+    assert NORMALIZATION_PROFILES["consonantal.v1"].apply("שָׁלוֹם֑") == "שלום"
+    assert NORMALIZATION_PROFILES["punct_folded.v1"].apply("ת״א, בית־ספר.") == "תא בית ספר"
+    result = evaluate_reference_profiles(
+        ["x"], predictions={"x": "‏שלום   עולם\n"}, references={"x": record("שָׁלוֹם עולם ")},
+    )
+    assert result["primary_profile"] == "primary.v1"
+    assert result["report_only_profiles"] == ["punct_folded.v1"]
+    assert [p["profile_id"] for p in result["normalization_profiles"]][:2] == ["raw.v1", "nfc.v1"]
+    assert result["profiles"]["raw.v1"]["cer"] > 0
+    assert result["profiles"]["primary.v1"]["cer"] > 0  # niqqud differs and is preserved by primary
+    assert result["profiles"]["consonantal.v1"]["cer"] == 0
+    assert result["items"][0]["profiles"]["nfc.v1"]["reference_characters"] == len("שָׁלוֹם עולם ")
+
+
+def test_profile_selection_fails_closed():
+    from hocrgen.reference_evaluation import evaluate_reference_profiles
+
+    with pytest.raises(ValueError, match="unknown normalization profile"):
+        evaluate_reference_profiles(["x"], predictions={}, references={}, profiles=["primary.v1", "nfkc"])
+    with pytest.raises(ValueError, match="must be evaluated"):
+        evaluate_reference_profiles(["x"], predictions={}, references={}, profiles=["raw.v1"])
+
+
+def test_strata_aggregate_by_dimension_with_reference_defaults():
+    from hocrgen.reference_evaluation import evaluate_reference_profiles
+
+    second = record("ב")
+    second.item_id, second.source_id = "y", "other"
+    result = evaluate_reference_profiles(
+        ["x", "y"], predictions={"x": "שלום עולם", "y": "ג"}, references={"x": record(), "y": second},
+        item_strata={"x": {"modality": "synthetic", "reference_origin": "synthetic_gold", "document_type": "letter"}},
+    )
+    strata = result["strata"]
+    assert set(strata) == {"language_script", "modality", "source_id", "document_type", "reference_origin"}
+    assert strata["language_script"]["he-Hebr"]["primary.v1"]["item_count"] == 2
+    assert strata["modality"]["synthetic"]["primary.v1"]["cer"] == 0
+    assert strata["modality"]["unknown"]["primary.v1"]["cer"] == 1
+    assert set(strata["source_id"]) == {"s", "other"}
+    with pytest.raises(ValueError, match="unsupported modality"):
+        evaluate_reference_profiles(["x"], predictions={"x": ""}, references={"x": record()},
+                                    item_strata={"x": {"modality": "mixed"}})
+    with pytest.raises(ValueError, match="unknown stratum"):
+        evaluate_reference_profiles(["x"], predictions={"x": ""}, references={"x": record()},
+                                    item_strata={"x": {"writer": "a"}})
+
+
+def test_alignment_masked_is_diagnostic_only_and_never_changes_profile_scores():
+    from hocrgen.reference_evaluation import alignment_masked_prediction, evaluate_reference_profiles
+
+    span = {"span_id": "s", "line_id": "l", "start": 4, "end": 7, "status": "illegible", "scoring": "exclude_primary"}
+    ref = record("אבג דהו זחט", [span])
+    masked, stats = alignment_masked_prediction(ref, "אבג XX זחט")
+    assert masked == "אבג  זחט"
+    assert stats == {"excluded_reference_characters": 3, "removed_prediction_characters": 2}
+    plain = evaluate_reference_profiles(["x"], predictions={"x": "אבג דהו זחט"}, references={"x": ref})
+    with_diag = evaluate_reference_profiles(["x"], predictions={"x": "אבג דהו זחט"}, references={"x": ref},
+                                            alignment_masked=True)
+    assert with_diag["profiles"] == plain["profiles"]
+    assert "diagnostics" not in plain
+    diagnostic = with_diag["diagnostics"]["alignment_masked"]
+    assert diagnostic["diagnostic_only"] is True and diagnostic["primary_eligible"] is False
+    assert diagnostic["aggregate"]["cer"] == 0
+    assert plain["profiles"]["primary.v1"]["cer"] > 0  # unscoped prediction stays penalised in primary
+
+
+def test_alignment_masked_skips_oversized_alignment_and_passes_through_without_exclusions():
+    from hocrgen.reference_evaluation import alignment_masked_prediction, evaluate_alignment_masked
+
+    assert alignment_masked_prediction(record(), "anything") == ("anything", {
+        "excluded_reference_characters": 0, "removed_prediction_characters": 0})
+    span = {"span_id": "s", "line_id": "l", "start": 0, "end": 1, "status": "deleted", "scoring": "exclude_primary"}
+    result = evaluate_alignment_masked(["x"], predictions={"x": "abc"}, references={"x": record("xyz", [span])},
+                                       max_cells=4)
+    assert result["items"] == [] and result["skipped"][0]["reason"] == "alignment exceeds max_cells"

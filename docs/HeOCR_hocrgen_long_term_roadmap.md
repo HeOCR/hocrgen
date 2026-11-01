@@ -89,6 +89,7 @@ Each milestone includes:
 - `partial`: implemented in part, but a planned follow-up PR is still required
 - `next`: the most likely next implementation PR
 - `planned`: not yet started
+- `deferred`: intentionally paused until a named precondition changes; the reason is recorded with the item
 
 Roadmap notation is interpreted by repository location. A notation such as `D2a` means the work is
 implemented on the current ref where the documentation is being read. On an implementation branch it
@@ -210,7 +211,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | F6g | F6 | Re-run public beta readiness after privacy/review closure, source-depth, and synthetic-scale inputs exist | no | planned | final convergence only after privacy/review closure evidence plus F6e-F6f2 evidence exists |
 | F7a | F7 | Define the governed HASH source integration plan and planned notation | no | completed | current ref planning-only HASH source proposal record; no runtime, profile, or gate change |
 | F7b | F7 | Add a fixture-backed review-only HASH source adapter | no | completed | current ref review_only sources outside profile_open_v1; CC-BY-SA-3.0 entries rejected; candidate HTR text never read |
-| F7c | F7 | Convert human-attested HASH transcripts into benchmark reference artifacts | no | planned | operator-only benchmark_transcription_reference.v1 output; HTR candidates are never ground truth |
+| F7c | F7 | Convert human-attested HASH transcripts into benchmark reference artifacts | no | deferred | no valid inputs: issue #86 rules out a new human transcription campaign and none of the 10 HASH reviewed transcripts meets the human-reviewed bar; HTR candidates are never ground truth |
 | F7d | F7 | Promote a first reviewed HASH tranche and reconcile the real-source composition contract | no | planned | requires repo-tracked review decisions and an explicit composition contract change |
 | F7e | F7 | Propose benchmark_v2 with adjudicated HASH references | no | planned | benchmark_v1 membership stays frozen under its stability policy |
 
@@ -1395,7 +1396,7 @@ Admit `HeOCR/hash` (HASH, the Hebrew Archive of Scanned Handwriting; formerly `p
 
 ### Required sequencing
 1. `F7b` keeps HASH out of `profile_open_v1`, so it changes no readiness gate. Candidate HTR text under HASH `data/transcripts/candidates/` is never read.
-2. `F7c` accepts a transcript only with a HASH-side human attestation that names the reviewer, method, text checksum, and adjudication. HASH `status: reviewed` alone is insufficient, and HTR output is never ground truth.
+2. `F7c` is deferred on the current ref because it has no valid inputs: the issue #86 maintainer decisions (2026-11-01) rule out any new human transcription campaign, and none of the 10 HASH `status: reviewed` transcripts meets the human-reviewed bar (4 are unreviewed GPT-4o output, 6 are Wikisource edition texts). Until attested inputs exist, HASH text may appear only as `unreviewed` diagnostics in E2c evaluation. If resumed, `F7c` accepts a transcript only with a HASH-side human attestation that names the reviewer, method, text checksum, and adjudication. HASH `status: reviewed` alone is insufficient, and HTR output is never ground truth.
 3. `F7d` may add HASH items to `profile_open_v1` only after repo-tracked review decisions exist for each promoted item. HASH items count toward `source_depth_composition` only after an explicit change to the per-source real target contract (`27` NLI / `27` Pinkas / `26` BiblIA). The tranche must also carry source-group and writer-group leakage metadata.
 4. `F7e` must not change `benchmark_v1` membership. HASH references enter only through a versioned `benchmark_v2` proposal.
 
@@ -1800,4 +1801,4 @@ The project reaches maturity when it can repeatedly and transparently produce us
 
 ## E2c — Reference-aware evaluation
 
-E2c extends the completed E2 utility foundation without changing benchmark readiness or release policy. `E2c1` defines the contract and `E2c2` implements reference-aware scoring and literal diagnostics on the current ref, including an explicitly unreviewed diagnostic path for plain-text pairs. The contract, engine boundary, acceptance criteria and limitations are in [the E2c plan](../planning/tasks/e2c-reference-aware-evaluation.md). No benchmark evidence or release gate is changed.
+E2c extends the completed E2 utility foundation without changing benchmark readiness or release policy. `E2c1` defines the contract and `E2c2` implements reference-aware scoring and literal diagnostics on the current ref, including an explicitly unreviewed diagnostic path for plain-text pairs. `E2c3` adds versioned normalization profiles (`raw.v1`, `nfc.v1`, headline `primary.v1`, `consonantal.v1`, report-only `punct_folded.v1`), per-stratum aggregates, and a labelled `alignment_masked` diagnostic for unscoped full-page predictions on the current ref. `E2c4` (planned) adds an `evaluate-references` CLI over engine prediction files with a run record. The contract, engine boundary, acceptance criteria and limitations are in [the E2c plan](../planning/tasks/e2c-reference-aware-evaluation.md). No benchmark evidence or release gate is changed.
