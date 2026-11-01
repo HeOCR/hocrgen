@@ -1,0 +1,10 @@
+version: 1
+upstream_repository: https://github.com/HeOCR/hash
+upstream_commit: 3cb163a97bb1d1c75be938de282b1092929a684c
+entries_path: entries.jsonl
+scope: fixture
+notes: >-
+  Five-entry F7b fixture excerpt of HASH data/index/entries.jsonl. Eligible entries carry a downscaled
+  thumbnail derived from the upstream original (checksums recomputed for the fixture asset). The
+  CC-BY-SA-3.0 and partial Hebrew/Hungarian entries are present only to prove rejection and scope filtering.
+  HASH transcription fields are stripped; F7b never reads HASH transcripts or HTR candidates.

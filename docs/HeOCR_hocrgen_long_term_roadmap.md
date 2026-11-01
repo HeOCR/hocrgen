@@ -209,7 +209,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | F6f2 | F6 | Define hocrsyngen release/import metadata sidecar | no | completed | current ref hocrgen_hocrsyngen_import_metadata_packet.v1 derived from validated evidence roots; operator-only release_eligible=false |
 | F6g | F6 | Re-run public beta readiness after privacy/review closure, source-depth, and synthetic-scale inputs exist | no | planned | final convergence only after privacy/review closure evidence plus F6e-F6f2 evidence exists |
 | F7a | F7 | Define the governed HASH source integration plan and planned notation | no | completed | current ref planning-only HASH source proposal record; no runtime, profile, or gate change |
-| F7b | F7 | Add a fixture-backed review-only HASH source adapter | no | planned | review_only sources outside profile_open_v1; CC-BY-SA-3.0 entries rejected; candidate HTR text never read |
+| F7b | F7 | Add a fixture-backed review-only HASH source adapter | no | completed | current ref review_only sources outside profile_open_v1; CC-BY-SA-3.0 entries rejected; candidate HTR text never read |
 | F7c | F7 | Convert human-attested HASH transcripts into benchmark reference artifacts | no | planned | operator-only benchmark_transcription_reference.v1 output; HTR candidates are never ground truth |
 | F7d | F7 | Promote a first reviewed HASH tranche and reconcile the real-source composition contract | no | planned | requires repo-tracked review decisions and an explicit composition contract change |
 | F7e | F7 | Propose benchmark_v2 with adjudicated HASH references | no | planned | benchmark_v1 membership stays frozen under its stability policy |
@@ -1391,7 +1391,7 @@ Admit `HeOCR/hash` (HASH, the Hebrew Archive of Scanned Handwriting; formerly `p
 - `F7e`: propose `benchmark_v2` with adjudicated HASH references
 
 ### Current-ref implementation
-`F7a` is implemented on the current ref as planning only. The proposal, rights mapping, privacy notes, fixture strategy, ground-truth boundary, and gate-impact numbers are recorded in [the F7 plan](../planning/tasks/f7-hash-source-integration.md) and source-proposal issue `HeOCR/hocrgen#89`. It does not change sources, profiles, licenses, review data, readiness semantics, or any export.
+`F7a` is implemented on the current ref as planning only. The proposal, rights mapping, privacy notes, fixture strategy, ground-truth boundary, and gate-impact numbers are recorded in [the F7 plan](../planning/tasks/f7-hash-source-integration.md) and source-proposal issue `HeOCR/hocrgen#89`. It does not change sources, profiles, licenses, review data, readiness semantics, or any export. `F7b` is implemented on the current ref as the `hash` fetcher over a pinned five-entry fixture snapshot of `HeOCR/hash` under `src/hocrgen/data/hash/snapshot/`, with two `review_only` sources (`hash_nli_any_use` normalized as `PD-IL`, `hash_public_domain` normalized as the new `PDM-1.0` license), privacy default `needs_review`, inclusion only in `profile_review_v1`, source-health snapshot/checksum/exclusion checks, `source_group_id`/`writer_group_id` metadata, and rejection of `CC-BY-SA-3.0`, non-Hebrew, partial-Hebrew, unverified-rights, and non-redistributable entries. It does not add HASH to `profile_open_v1`, read HASH transcripts or HTR candidates, or change any readiness gate.
 
 ### Required sequencing
 1. `F7b` keeps HASH out of `profile_open_v1`, so it changes no readiness gate. Candidate HTR text under HASH `data/transcripts/candidates/` is never read.

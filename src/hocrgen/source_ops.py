@@ -9,9 +9,11 @@ from hocrgen.config.loader import ConfigBundle, load_json_file, load_yaml_file, 
 from hocrgen.config.models import SourceConfig, SourceOperationalStatus
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.fetchers.base import StageOptions
+from hocrgen.fetchers.hash import hash_entry_asset, hash_entry_exclusion_reason, hash_snapshot_root, load_hash_snapshot
 from hocrgen.fetchers.hocrsyngen_manifest import validate_hocrsyngen_batch
 from hocrgen.fetchers.modern_handwriting import validate_modern_intake_manifest
 from hocrgen.fetchers.nli import parse_nli_fixture_html
+from hocrgen.utils.hashing import sha256_file
 
 F1_TARGET_SCALE_COUNT_KEY = "f1_source_depth_candidate_count"
 F1_SOURCE_TARGETS = {
@@ -431,7 +433,7 @@ def _runnable_cached_candidate_count(
         return 0
     if source.source_operations.operational_status != SourceOperationalStatus.active:
         return 0
-    if source.fetcher in {"nli", "pinkas", "biblia"} and asset_count < observed_candidate_count:
+    if source.fetcher in {"nli", "pinkas", "biblia", "hash"} and asset_count < observed_candidate_count:
         return 0
     if source.fetcher in {"hocrsyngen_manifest", "synthetic"} and asset_count <= 0:
         return 0
@@ -569,6 +571,8 @@ def _inspect_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[di
         return _inspect_nli_source_with_extra(source, bundle)
     if source.fetcher in {"pinkas", "biblia"}:
         return _inspect_records_source(source, bundle)
+    if source.fetcher == "hash":
+        return _inspect_hash_source(source, bundle)
     if source.fetcher == "hocrsyngen_manifest":
         return _inspect_hocrsyngen_manifest_source(source, bundle)
     if source.fetcher == "modern_handwriting_intake":
@@ -690,6 +694,50 @@ def _inspect_records_source(source: SourceConfig, bundle: ConfigBundle) -> tuple
             asset_count += 1
         checks.append(_path_check("record_asset", asset_path, bundle))
     checks.extend(_expansion_manifest_checks(source, bundle, records_path=records_path, records=records))
+    return checks, candidate_count, asset_count
+
+
+def _inspect_hash_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int]:
+    checks: list[dict[str, Any]] = []
+    try:
+        root = hash_snapshot_root(source, bundle)
+    except StageExecutionError as exc:
+        return [{"name": "hash_snapshot_root", "status": "error", "message": str(exc)}], 0, 0
+    snapshot_path = root / "snapshot.yaml"
+    checks.append(_path_check("hash_snapshot", snapshot_path, bundle))
+    if not snapshot_path.exists():
+        return checks, 0, 0
+    try:
+        snapshot, entries = load_hash_snapshot(root)
+    except (OSError, ValueError) as exc:
+        checks.append({"name": "hash_entries", "path": _format_health_path(root, bundle), "status": "error", "message": str(exc)})
+        return checks, 0, 0
+    checks.append(
+        {
+            "name": "hash_upstream_commit",
+            "actual": snapshot.get("upstream_commit"),
+            "status": "ok" if snapshot.get("upstream_commit") else "error",
+        }
+    )
+    candidate_count = 0
+    asset_count = 0
+    exclusions: dict[str, int] = {}
+    for entry in entries:
+        reason = hash_entry_exclusion_reason(entry, source)
+        if reason is not None:
+            exclusions[reason] = exclusions.get(reason, 0) + 1
+            continue
+        candidate_count += 1
+        asset = hash_entry_asset(entry) or {}
+        asset_path = (root / str(asset.get("local_path", ""))).resolve()
+        check = _path_check("hash_entry_asset", asset_path, bundle)
+        if asset_path.exists() and asset.get("sha256") and sha256_file(asset_path) != asset["sha256"]:
+            check["status"] = "error"
+            check["message"] = f"checksum mismatch for {entry['entry_id']}"
+        if check["status"] == "ok":
+            asset_count += 1
+        checks.append(check)
+    checks.append({"name": "hash_entry_exclusions", "actual": dict(sorted(exclusions.items())), "status": "ok"})
     return checks, candidate_count, asset_count
 
 

@@ -23,6 +23,14 @@ licenses:
       - CC-BY-SA-4.0
       - Creative Commons Attribution ShareAlike 4.0
     notes: Share-alike obligations must be preserved in downstream packaging.
+  - id: PDM-1.0
+    name: Public Domain Mark 1.0
+    rights_classification: open
+    public_release_allowed: true
+    aliases:
+      - PDM-1.0
+      - LicenseRef-Public-Domain-Ukraine
+    notes: Upstream-marked public domain (for example LoC "no known copyright restrictions" or Commons PD-old evidence); kept distinct from PD-IL so weaker no-known-restrictions wording stays visible.
   - id: PROJECT-SYNTHETIC
     name: Project generated synthetic sample
     rights_classification: open

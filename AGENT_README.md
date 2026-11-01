@@ -135,6 +135,11 @@ public-domain-hand-written-hebrew-scans   → real-handwriting page-level scan c
 - `biblia_open`
   - static importer over a packaged sample record set
   - current committed sample asset is a packaged real historical page normalized as `PD-IL`
+- `hash_nli_any_use` and `hash_public_domain` (F7b, review-only)
+  - packaged-static-records importer over a pinned `HeOCR/hash` snapshot (`src/hocrgen/data/hash/snapshot/`)
+  - `review_only`, `requires_manual_review`, privacy default `needs_review`; included only in `profile_review_v1`, never in `profile_open_v1`
+  - rights lanes: NLI "Any Use Permitted" (`LicenseRef-Public-Domain-Israel`) normalized as `PD-IL`; `PDM-1.0` / `LicenseRef-Public-Domain-Ukraine` normalized as `PDM-1.0`; `CC-BY-SA-3.0`, non-Hebrew, and partial-Hebrew entries are never emitted
+  - emits `source_group_id` and `writer_group_id` metadata, verifies asset checksums, and never reads HASH transcripts or HTR candidates
 - `project_synthetic`
   - hocrsyngen `generation_manifest.v1` fixture-backed synthetic candidate input source
   - consumes a configured manifest batch and keeps legacy in-repo generator fixtures out of the active source path
