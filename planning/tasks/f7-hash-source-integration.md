@@ -1,6 +1,6 @@
 # F7 — Governed HASH real-handwriting source integration
 
-Status: `F7a` planning implemented on the current ref; `F7b`–`F7e` planned. Parent milestone: F7. It feeds the `F6g` readiness rerun. Source proposal: `HeOCR/hocrgen#89`.
+Status: `F7a` planning and the `F7b` review-only adapter are implemented on the current ref; `F7c`–`F7e` are planned. Parent milestone: F7. It feeds the `F6g` readiness rerun. Source proposal: `HeOCR/hocrgen#89`.
 
 The evidence was checked against `HeOCR/hash` commit `3cb163a`: 197 entries in 48 source groups. The scans come from NLI (143), the Library of Congress (24), Wikimedia Commons (29) and OPenn (1). Most date from 1900–1949 (158); 31 are pre-1900 and 5 are from 1950 on.
 

@@ -856,7 +856,9 @@ def test_f7_hash_source_integration_plan_is_documented_and_gate_preserving() -> 
     assert roadmap_rows["F7"][2].split(", ") == ["F7a", "F7b", "F7c", "F7d", "F7e"]
     assert roadmap_rows["F7"][4] == "partial"
     assert roadmap_rows["F7a"][4] == "completed"
-    for pr_id in ["F7b", "F7c", "F7d", "F7e"]:
+    assert roadmap_rows["F7b"][4] == "completed"
+    assert "`F7b` now adds the fixture-backed review-only `hash` fetcher" in agent_plan
+    for pr_id in ["F7c", "F7d", "F7e"]:
         assert roadmap_rows[pr_id][1] == "F7"
         assert roadmap_rows[pr_id][4] == "planned"
     assert "## Milestone F7 — Governed HASH real-handwriting source integration" in roadmap

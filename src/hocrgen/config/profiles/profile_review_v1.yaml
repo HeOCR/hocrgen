@@ -5,6 +5,8 @@ include_sources:
   - pinkas_open
   - biblia_open
   - project_synthetic
+  - hash_nli_any_use
+  - hash_public_domain
 exclude_sources: []
 allowed_rights_classifications:
   - open

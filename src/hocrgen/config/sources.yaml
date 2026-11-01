@@ -70,6 +70,51 @@ sources:
       records_path: package://data/biblia/records.json
       extra:
         source_depth_expansion_manifest: package://data/biblia/source_depth_expansion.yaml
+  - id: hash_nli_any_use
+    name: HASH (HeOCR/hash) NLI Any Use Permitted handwritten scans
+    fetcher: hash
+    status: review_only
+    default_public_release: false
+    allowed_content_types:
+      - handwritten_historical
+    rights_strategy:
+      type: exact_match
+      values:
+        - LicenseRef-Public-Domain-Israel
+    normalized_license: PD-IL
+    rights_classification: open
+    requires_manual_review: true
+    source_operations:
+      operational_status: active
+      health_expectations:
+        min_candidates: 1
+        min_assets: 1
+    settings:
+      extra:
+        hash_snapshot_root: package://data/hash/snapshot
+  - id: hash_public_domain
+    name: HASH (HeOCR/hash) public-domain-marked handwritten scans
+    fetcher: hash
+    status: review_only
+    default_public_release: false
+    allowed_content_types:
+      - handwritten_historical
+    rights_strategy:
+      type: exact_match
+      values:
+        - PDM-1.0
+        - LicenseRef-Public-Domain-Ukraine
+    normalized_license: PDM-1.0
+    rights_classification: open
+    requires_manual_review: true
+    source_operations:
+      operational_status: active
+      health_expectations:
+        min_candidates: 1
+        min_assets: 1
+    settings:
+      extra:
+        hash_snapshot_root: package://data/hash/snapshot
   - id: project_synthetic
     name: hocrsyngen manifest-backed synthetic source
     fetcher: hocrsyngen_manifest
