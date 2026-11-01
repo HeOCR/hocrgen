@@ -1,6 +1,6 @@
 # E2c — Reference-aware evaluation expansion
 
-Status: proposed; implementation remains unmerged. Parent milestone: E2, Baselines and evaluation utilities. This is independent of F6 public-beta readiness and does not create reference evidence.
+Status: implemented on the current ref. Parent milestone: E2, Baselines and evaluation utilities. This is independent of F6 public-beta readiness and does not create reference evidence.
 
 - **E2c1**: this planning contract.
 - **E2c2**: deterministic reference-aware scoring and diagnostics, building on E2a's existing API without changing its results.
@@ -14,3 +14,7 @@ Reference pages and lines are ordered by their declared reading-order indexes. R
 Report raw and optionally NFC-normalized metrics separately; never apply NFKC, digit conversion, punctuation rewriting or inferred niqqud. CER is code-point Levenshtein distance divided by reference length; WER uses whitespace-delimited tokens and word-level Levenshtein distance. Empty denominators yield null. Aggregate by summed edits and reference lengths, with coverage and missing/unexpected ids. Numeral-token and Hebrew negation-token differences are literal diagnostics, not claims of semantic correctness; token-order diagnostics expose reorderings without asserting visual reading order. No diagnostic changes primary scoring.
 
 Implementation and tests must remain offline and deterministic, use only generic synthetic examples, and preserve E2a entrypoints and output behavior. Do not acquire or transfer data, create human labels, change release gates, or add engine runtime dependencies. Acceptance requires targeted adversarial cases plus all repository-required checks and a hostile self-review; report limitations explicitly.
+
+## Delivered behavior
+
+E2c2 supplies the reference-aware API, explicit page mapping, span reports, raw and optional NFC CER/WER, literal diagnostics, and a separately labeled unreviewed plain-text diagnostic API. It preserves the existing E2a API and release gates. Full-page predictions must be independently scoped to match exclusions; these results do not establish benchmark readiness.
