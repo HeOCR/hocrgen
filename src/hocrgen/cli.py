@@ -133,6 +133,33 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate_benchmark_parser.add_argument("--output", type=Path, default=None, help="Optional path for the JSON report")
     evaluate_benchmark_parser.set_defaults(handler=handle_evaluate_benchmark)
 
+    evaluate_references_parser = subparsers.add_parser(
+        "evaluate-references",
+        help="Score engine prediction files against synthetic gold and adjudicated references (E2c4, offline)",
+    )
+    evaluate_references_parser.add_argument("--predictions", type=Path, required=True,
+                                            help="Directory of heocr-engine page prediction JSON files")
+    evaluate_references_parser.add_argument("--synthetic-batch", type=Path, default=None,
+                                            help="Validated hocrsyngen batch directory used as synthetic gold")
+    evaluate_references_parser.add_argument("--reference-manifest", type=Path, default=None,
+                                            help="benchmark_reference_manifest.v1; only reviewed+adjudicated items are scored")
+    evaluate_references_parser.add_argument("--unreviewed-texts", type=Path, default=None,
+                                            help="JSONL of unreviewed candidate texts, reported only as diagnostics")
+    evaluate_references_parser.add_argument("--mapping", type=Path, default=None,
+                                            help="hocrgen_reference_page_mapping.v1 file; derived from asset sha256 when omitted")
+    evaluate_references_parser.add_argument("--asset-index", type=Path, default=None,
+                                            help="JSON {items: [{item_id, page_sha256: [...]}]} to extend the derived mapping")
+    evaluate_references_parser.add_argument("--baseline-predictions", type=Path, default=None,
+                                            help="Second prediction directory for per-stage delta CER")
+    evaluate_references_parser.add_argument("--profile", action="append", default=None,
+                                            help="Normalization profile id (repeatable; primary.v1 is required)")
+    evaluate_references_parser.add_argument("--alignment-masked", action="store_true",
+                                            help="Add the diagnostic-only alignment-masked mode for adjudicated references")
+    evaluate_references_parser.add_argument("--write-mapping", type=Path, default=None,
+                                            help="Write the mapping used to this path")
+    evaluate_references_parser.add_argument("--output", type=Path, default=None, help="Optional path for the JSON report")
+    evaluate_references_parser.set_defaults(handler=handle_evaluate_references)
+
     hocrsyngen_preflight_parser = subparsers.add_parser(
         "hocrsyngen-preflight",
         help="Validate a hocrsyngen evidence-run root and write an operator-only hocrgen diagnostic report",
@@ -536,6 +563,38 @@ def handle_evaluate_benchmark(args: argparse.Namespace) -> int:
                 args.output.write_text(json.dumps(report, indent=2, sort_keys=True), encoding="utf-8")
             except OSError as exc:
                 raise StageExecutionError(f"could not write evaluation report to {args.output}: {exc}") from exc
+    except StageExecutionError as exc:
+        _print_json({"status": "error", "error": str(exc)})
+        return 1
+
+    _print_json(report)
+    return 0
+
+
+def handle_evaluate_references(args: argparse.Namespace) -> int:
+    from hocrgen.reference_evaluation import DEFAULT_PROFILE_IDS
+    from hocrgen.reference_runs import run_reference_evaluation
+
+    try:
+        report = run_reference_evaluation(
+            predictions_dir=args.predictions,
+            synthetic_batch=args.synthetic_batch,
+            reference_manifest=args.reference_manifest,
+            unreviewed_texts=args.unreviewed_texts,
+            mapping_path=args.mapping,
+            asset_index_path=args.asset_index,
+            baseline_predictions_dir=args.baseline_predictions,
+            profiles=args.profile or DEFAULT_PROFILE_IDS,
+            alignment_masked=args.alignment_masked,
+        )
+        for path, payload in ((args.write_mapping, report["mapping"]), (args.output, report)):
+            if path is None:
+                continue
+            try:
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text(json.dumps(payload, indent=2, sort_keys=True, ensure_ascii=False), encoding="utf-8")
+            except OSError as exc:
+                raise StageExecutionError(f"could not write {path.name}: {exc}") from exc
     except StageExecutionError as exc:
         _print_json({"status": "error", "error": str(exc)})
         return 1
