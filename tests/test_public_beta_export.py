@@ -4,6 +4,7 @@ import hashlib
 import json
 import shutil
 import tarfile
+from datetime import date
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -69,7 +70,13 @@ def _sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
-def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, capsys) -> None:
+def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, capsys, monkeypatch) -> None:
+    class FixedDate(date):
+        @classmethod
+        def today(cls):
+            return cls(2026, 5, 8)
+
+    monkeypatch.setattr(public_beta, "date", FixedDate)
     config_root = _fixture_config_root(tmp_path)
     output_dir = tmp_path / "exports" / "public-beta-v0"
 

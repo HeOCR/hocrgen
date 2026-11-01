@@ -1761,3 +1761,7 @@ The roadmap should prioritize:
 8. governance and documentation as first-class project outputs
 
 The project reaches maturity when it can repeatedly and transparently produce useful public Hebrew OCR dataset releases while maintaining a conservative legal posture, a clear dataset identity, and sustainable maintenance practices.
+
+## Proposed E2c — Reference-aware evaluation
+
+E2c extends the completed E2 utility foundation without changing benchmark readiness or release policy. `E2c1` defines the plan and `E2c2` implements reference-aware scoring and literal diagnostics. The contract, engine boundary, acceptance criteria and limitations are in [the E2c plan](../planning/tasks/e2c-reference-aware-evaluation.md). These items remain proposed until their corresponding changes are merged.

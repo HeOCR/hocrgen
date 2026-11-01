@@ -1,0 +1,16 @@
+# E2c — Reference-aware evaluation expansion
+
+Status: proposed; implementation remains unmerged. Parent milestone: E2, Baselines and evaluation utilities. This is independent of F6 public-beta readiness and does not create reference evidence.
+
+- **E2c1**: this planning contract.
+- **E2c2**: deterministic reference-aware scoring and diagnostics, building on E2a's existing API without changing its results.
+
+## Contract and sequence
+
+The evaluator accepts explicit predictions keyed by benchmark item id and validated `benchmark_transcription_reference.v1` records. A separately developed OCR engine remains outside hocrgen. An operator supplies an explicit mapping from each engine page prediction to a benchmark item and assembles pages in reference order; identifiers are not interchangeable. Prediction files contain raw Unicode text and engine identity/version; their provenance and page mapping must be retained by the operator. Never treat synthetic test strings as benchmark gold.
+
+Reference pages and lines are ordered by their declared reading-order indexes. After applying exclusions to each line, serialize all lines across all ordered pages by joining them with exactly one LF (`\n`); page boundaries use the same single LF, with no additional separator. Empty or fully excluded lines remain empty entries and still contribute their separators. Predictions must use the same boundary serialization for comparable scoring; preserve raw engine output separately. Reject ambiguous indexes, missing lines, unsupported span decisions and overlapping spans with conflicting decisions. Span offsets are Python Unicode code-point offsets into the original line, half-open `[start, end)`, before any normalization. Resolve exclusions exactly at these offsets. Because a free-form prediction cannot be reliably masked from a reference offset, primary scoring requires predictions already scoped to the same included content; this assumption is explicit in the result and excluded content must not be guessed away. Missing, draft or unadjudicated references are not represented as gold. Logical order is an input requirement, not an automatic bidi reversal.
+
+Report raw and optionally NFC-normalized metrics separately; never apply NFKC, digit conversion, punctuation rewriting or inferred niqqud. CER is code-point Levenshtein distance divided by reference length; WER uses whitespace-delimited tokens and word-level Levenshtein distance. Empty denominators yield null. Aggregate by summed edits and reference lengths, with coverage and missing/unexpected ids. Numeral-token and Hebrew negation-token differences are literal diagnostics, not claims of semantic correctness; token-order diagnostics expose reorderings without asserting visual reading order. No diagnostic changes primary scoring.
+
+Implementation and tests must remain offline and deterministic, use only generic synthetic examples, and preserve E2a entrypoints and output behavior. Do not acquire or transfer data, create human labels, change release gates, or add engine runtime dependencies. Acceptance requires targeted adversarial cases plus all repository-required checks and a hostile self-review; report limitations explicitly.
