@@ -15,8 +15,11 @@ from typing import Any, Iterable, Mapping
 from hocrgen import __version__
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.hocrsyngen_manifest import LEGACY_SOURCE_ITEM_ID_PREFIX, _source_item_id, validate_hocrsyngen_batch
-from hocrgen.manifests.models import BenchmarkReferenceManifestItemRecord, BenchmarkTranscriptionReferenceRecord
+from pydantic import ValidationError
+
+from hocrgen.manifests.models import BenchmarkReferenceManifestRecord, BenchmarkTranscriptionReferenceRecord
 from hocrgen.reference_evaluation import (
+    _aggregate,
     DEFAULT_PROFILE_IDS,
     NORMALIZATION_PROFILES,
     PRIMARY_PROFILE_ID,
@@ -60,8 +63,10 @@ def load_engine_prediction(path: Path) -> dict[str, Any]:
     if schema not in PREDICTION_SCHEMA_VERSIONS:
         raise StageExecutionError(f"prediction {path.name} has unsupported schema_version {schema!r}")
     page_id, text = payload.get("page_id"), payload.get("text")
-    input_sha = (payload.get("input") or {}).get("sha256")
-    engine = payload.get("engine") or {}
+    if not isinstance(payload.get("input"), dict) or not isinstance(payload.get("engine"), dict):
+        raise StageExecutionError(f"prediction {path.name} needs input and engine objects")
+    input_sha = payload["input"].get("sha256")
+    engine = payload["engine"]
     if not isinstance(page_id, str) or not page_id or not isinstance(text, str):
         raise StageExecutionError(f"prediction {path.name} needs string page_id and text")
     if not isinstance(input_sha, str) or not _SHA256.fullmatch(input_sha):
@@ -145,9 +150,12 @@ def validate_mapping(payload: Any) -> dict[str, Any]:
         raise StageExecutionError(f"mapping must use schema_version {MAPPING_SCHEMA_VERSION}")
     if payload.get("mapping_source") not in {"asset_sha256", "explicit"}:
         raise StageExecutionError("mapping_source must be asset_sha256 or explicit")
+    items = payload.get("items")
+    if not isinstance(items, list) or not all(isinstance(item, dict) for item in items):
+        raise StageExecutionError("mapping items must be a list of objects")
     seen_items: set[str] = set()
     seen_pages: set[str] = set()
-    for item in payload.get("items", []):
+    for item in items:
         item_id, page_ids = item.get("item_id"), item.get("page_ids")
         if not isinstance(item_id, str) or not item_id or not isinstance(page_ids, list) or not page_ids:
             raise StageExecutionError("mapping items need item_id and a non-empty page_ids list")
@@ -244,31 +252,48 @@ def _public_manifest_samples(batch_dir: Path, payload: Any) -> list[dict[str, An
 
 
 def load_adjudicated_references(manifest_path: Path) -> dict[str, Any]:
-    """Load reviewed+adjudicated transcription references; anything else is excluded with a reason."""
+    """Load reviewed+adjudicated transcription references; anything else is excluded with a reason.
+
+    The whole manifest is validated (including duplicate item/reference ids). Declared child checksums are
+    verified, and the actual child hashes are recorded so edited references change the recorded identity.
+    """
     payload, manifest_sha = _read_json(manifest_path, "reference manifest")
-    if not isinstance(payload, dict) or payload.get("schema_version") != "benchmark_reference_manifest.v1":
-        raise StageExecutionError("reference manifest must use benchmark_reference_manifest.v1")
-    references, strata, excluded = {}, {}, []
-    for raw_item in payload.get("items", []):
-        item = BenchmarkReferenceManifestItemRecord.model_validate(raw_item)
+    try:
+        manifest = BenchmarkReferenceManifestRecord.model_validate(payload)
+    except ValidationError as exc:
+        raise StageExecutionError(f"invalid reference manifest {manifest_path.name}: {exc}") from exc
+    root = manifest_path.parent.resolve()
+    references, strata, excluded, children = {}, {}, [], []
+    for item in manifest.items:
         if item.public_reference_status not in {"reviewed", "adjudicated"} or item.adjudication_status != "adjudicated":
             excluded.append({"item_id": item.item_id, "reason": "reference is not reviewed and adjudicated"})
             continue
         if item.transcription_reference is None:
             excluded.append({"item_id": item.item_id, "reason": "no transcription reference"})
             continue
-        child_path = (manifest_path.parent / item.transcription_reference.path).resolve()
-        if manifest_path.parent.resolve() not in child_path.parents:
+        child_path = (root / item.transcription_reference.path).resolve()
+        if root not in child_path.parents:
             raise StageExecutionError(f"reference path escapes manifest directory for {item.item_id}")
-        child, _ = _read_json(child_path, "transcription reference")
-        record = BenchmarkTranscriptionReferenceRecord.model_validate(child)
+        child, child_sha = _read_json(child_path, "transcription reference")
+        declared = item.transcription_reference.sha256
+        if declared is not None and declared != child_sha:
+            raise StageExecutionError(f"transcription reference checksum mismatch for {item.item_id}")
+        try:
+            record = BenchmarkTranscriptionReferenceRecord.model_validate(child)
+        except ValidationError as exc:
+            raise StageExecutionError(f"invalid transcription reference for {item.item_id}: {exc}") from exc
         if record.item_id != item.item_id:
             raise StageExecutionError(f"reference item id mismatch for {item.item_id}")
         references[item.item_id] = record
         strata[item.item_id] = {"reference_origin": "adjudicated_reference"}
+        children.append({"item_id": item.item_id, "reference_id": item.reference_id,
+                         "path": item.transcription_reference.path, "sha256": child_sha,
+                         "declared_sha256": declared})
     return {"references": references, "strata": strata, "excluded": excluded,
             "identity": {"kind": "benchmark_reference_manifest", "sha256": manifest_sha,
-                         "reference_manifest_id": payload.get("reference_manifest_id")}}
+                         "reference_manifest_id": manifest.reference_manifest_id,
+                         "child_references": children,
+                         "child_references_sha256": _canonical_sha256(children)}}
 
 
 def load_unreviewed_texts(path: Path) -> dict[str, Any]:
@@ -280,6 +305,8 @@ def load_unreviewed_texts(path: Path) -> dict[str, Any]:
         raise StageExecutionError(f"could not read unreviewed texts {path.name}: {exc}") from exc
     texts, strata = {}, {}
     for line in lines:
+        if not isinstance(line, dict):
+            raise StageExecutionError("each unreviewed text record must be a JSON object")
         item_id, text = line.get("item_id"), line.get("text")
         if not isinstance(item_id, str) or not isinstance(text, str) or item_id in texts:
             raise StageExecutionError("unreviewed texts need unique item_id and string text")
@@ -325,8 +352,25 @@ def _score(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any
     return result
 
 
-def _stage_key(stage: Mapping[str, Any]) -> str:
-    return json.dumps(stage, sort_keys=True)
+def _single_stage_change(base_set: dict, cand_set: dict) -> dict[str, Any] | None:
+    """Return the one ordered stage difference between single-pipeline sets, or None if it is not exactly one."""
+    if len(base_set["pipelines"]) != 1 or len(cand_set["pipelines"]) != 1:
+        return None
+    base, cand = json.loads(base_set["pipelines"][0]), json.loads(cand_set["pipelines"][0])
+    if len(cand) == len(base) + 1:
+        for index in range(len(cand)):
+            if cand[:index] + cand[index + 1:] == base:
+                return {"change": "added", "position": index, "stage": cand[index]}
+    elif len(base) == len(cand) + 1:
+        for index in range(len(base)):
+            if base[:index] + base[index + 1:] == cand:
+                return {"change": "removed", "position": index, "stage": base[index]}
+    elif len(base) == len(cand):
+        differing = [index for index, (left, right) in enumerate(zip(base, cand)) if left != right]
+        if len(differing) == 1:
+            index = differing[0]
+            return {"change": "replaced", "position": index, "stage": cand[index], "replaced": base[index]}
+    return None
 
 
 def _comparison(baseline: dict[str, Any], candidate: dict[str, Any], base_set: dict, cand_set: dict) -> dict[str, Any]:
@@ -339,35 +383,34 @@ def _comparison(baseline: dict[str, Any], candidate: dict[str, Any], base_set: d
         base_report = baseline["scored"].get(origin)
         if base_report is None:
             continue
-        common = sorted({i["item_id"] for i in report["items"]} & {i["item_id"] for i in base_report["items"]})
+        base_items = {item["item_id"]: item for item in base_report["items"]}
+        cand_items = {item["item_id"]: item for item in report["items"]}
+        common = sorted(base_items.keys() & cand_items.keys())
+        profiles: dict[str, Any] = {}
+        for profile_id in report["profiles"]:
+            # Re-aggregate over common items only, so omitting a hard item cannot look like an improvement.
+            base_agg = _aggregate([base_items[i]["profiles"][profile_id] for i in common])
+            cand_agg = _aggregate([cand_items[i]["profiles"][profile_id] for i in common])
+            profiles[profile_id] = {
+                "baseline_cer": base_agg["cer"], "candidate_cer": cand_agg["cer"],
+                "delta_cer": None if None in (base_agg["cer"], cand_agg["cer"]) else cand_agg["cer"] - base_agg["cer"],
+                "baseline_wer": base_agg["wer"], "candidate_wer": cand_agg["wer"],
+                "delta_wer": None if None in (base_agg["wer"], cand_agg["wer"]) else cand_agg["wer"] - base_agg["wer"],
+            }
         deltas[origin] = {
             "common_item_count": len(common),
-            "profiles": {
-                profile_id: {
-                    "baseline_cer": base_report["profiles"][profile_id]["cer"],
-                    "candidate_cer": report["profiles"][profile_id]["cer"],
-                    "delta_cer": (None if None in (base_report["profiles"][profile_id]["cer"],
-                                                   report["profiles"][profile_id]["cer"])
-                                  else report["profiles"][profile_id]["cer"] - base_report["profiles"][profile_id]["cer"]),
-                    "delta_wer": (None if None in (base_report["profiles"][profile_id]["wer"],
-                                                   report["profiles"][profile_id]["wer"])
-                                  else report["profiles"][profile_id]["wer"] - base_report["profiles"][profile_id]["wer"]),
-                }
-                for profile_id in report["profiles"]
-            },
+            "baseline_only_items": sorted(base_items.keys() - cand_items.keys()),
+            "candidate_only_items": sorted(cand_items.keys() - base_items.keys()),
+            "profiles": profiles,
         }
-    base_stages = {_stage_key(s) for p in base_set["pipelines"] for s in json.loads(p)}
-    cand_stages = {_stage_key(s) for p in cand_set["pipelines"] for s in json.loads(p)}
-    added = sorted(cand_stages - base_stages)
-    removed = sorted(base_stages - cand_stages)
-    single = len(added) + len(removed) == 1 and len(base_set["pipelines"]) == len(cand_set["pipelines"]) == 1
     return {
         "track": cand_set["track"],
         "deltas": deltas,
-        "stage_changes": {"added": [json.loads(s) for s in added], "removed": [json.loads(s) for s in removed]},
-        "single_stage_attribution": (json.loads((added or removed)[0]) if single else None),
-        "attribution_note": "delta is attributed to a stage only when exactly one recorded pipeline stage differs "
-                            "and each set used one pipeline; otherwise it is a set-level delta",
+        "baseline_pipelines": [json.loads(p) for p in base_set["pipelines"]],
+        "candidate_pipelines": [json.loads(p) for p in cand_set["pipelines"]],
+        "single_stage_attribution": _single_stage_change(base_set, cand_set),
+        "attribution_note": "deltas cover common items only; a stage is named only when each set used one ordered "
+                            "pipeline and they differ by exactly one stage insertion, removal or replacement",
     }
 
 

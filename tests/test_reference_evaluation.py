@@ -232,3 +232,12 @@ def test_alignment_masked_rejects_duplicate_ids_mismatches_and_missing_inputs():
         evaluate_alignment_masked(["y"], predictions={"y": ""}, references={"y": record()})
     with pytest.raises(ValueError, match="needs both"):
         evaluate_alignment_masked(["x"], predictions={}, references={"x": record()})
+
+
+def test_profile_report_keeps_unexpected_reference_diagnostic():
+    from hocrgen.reference_evaluation import evaluate_reference_profiles
+
+    extra = record()
+    extra.item_id = "extra"
+    result = evaluate_reference_profiles(["x"], predictions={"x": "שלום עולם"}, references={"x": record(), "extra": extra})
+    assert result["unexpected_references"] == ["extra"]

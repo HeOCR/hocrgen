@@ -82,13 +82,15 @@ The negation-token diagnostic strips a fixed set of surrounding punctuation befo
 - These are scored under the same profiles, but only under `unreviewed_diagnostics`, with `scored: false` and `benchmark_ready: false`.
 - They cannot claim a scored origin.
 
-**Comparison.** `--baseline-predictions` scores a second set against the same scored set and reports `delta_cer`/`delta_wer` per profile and origin. It also reports recorded pipeline stage additions and removals. `single_stage_attribution` names a stage only when exactly one stage differs and each set used a single pipeline. Otherwise the delta is set-level.
+**Comparison.** `--baseline-predictions` scores a second set (same track) against the same scored set.
+- It reports baseline, candidate and delta CER/WER per profile and origin, re-aggregated over the items both sets evaluated. Items only one set scored are listed. Omitting a hard item therefore cannot look like an improvement.
+- `single_stage_attribution` names a stage only when each set used one ordered pipeline and the two differ by exactly one stage insertion, removal or replacement. Reorderings and multi-stage changes give `null`, and the delta is then set-level.
 
 **Run record.** `hocrgen_reference_evaluation_run.v1` lists:
 - prediction file names, sha256 values and the set hash;
 - engines and pipelines;
 - the mapping hash and source;
-- reference identities (`reference_manifest_id`; for synthetic gold, `synthetic_gold:<manifest sha256 prefix>`);
+- reference identities (`reference_manifest_id`; for synthetic gold, `synthetic_gold:<manifest sha256 prefix>`). For adjudicated references these include each child transcription's actual sha256 and a combined hash. A declared `transcription_reference.sha256` must match, and the whole manifest is validated, including duplicate item and reference ids;
 - excluded references and the unreviewed-text hash;
 - profiles, the primary profile and the hocrgen version.
 

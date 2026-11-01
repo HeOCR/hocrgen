@@ -347,7 +347,7 @@ def evaluate_reference_profiles(
         strata[item_id] = _item_strata(record, (item_strata or {}).get(item_id))
         spans[item_id] = _span_report(record)
     report = _profile_report(ids, predictions=predictions, scoped=scoped, strata=strata, spans=spans,
-                             profiles=profiles)
+                             profiles=profiles, reference_ids=references.keys())
     if alignment_masked:
         report["diagnostics"] = {"alignment_masked": evaluate_alignment_masked(
             sorted(set(ids) & predictions.keys() & references.keys()),
@@ -394,6 +394,7 @@ def _text_strata(supplied: Mapping[str, str] | None) -> dict[str, str]:
 def _profile_report(
     ids: list[str], *, predictions: Mapping[str, str], scoped: Mapping[str, str],
     strata: Mapping[str, dict[str, str]], spans: Mapping[str, dict], profiles: Iterable[str],
+    reference_ids: Iterable[str] | None = None,
 ) -> dict:
     resolved = _resolve_profiles(profiles)
     if len(set(ids)) != len(ids):
@@ -430,7 +431,7 @@ def _profile_report(
         "benchmark_item_count": len(ids), "evaluated_item_count": len(items),
         "missing_predictions": missing_predictions, "missing_references": missing_references,
         "unexpected_predictions": sorted(predictions.keys() - set(ids)),
-        "unexpected_references": sorted(scoped.keys() - set(ids)),
+        "unexpected_references": sorted(set(reference_ids if reference_ids is not None else scoped.keys()) - set(ids)),
         "prediction_coverage": (len(ids) - len(missing_predictions)) / len(ids) if ids else None,
         "reference_coverage": (len(ids) - len(missing_references)) / len(ids) if ids else None,
         "scoring_scope": "predictions must already exclude reference-excluded content; text must be in logical order",

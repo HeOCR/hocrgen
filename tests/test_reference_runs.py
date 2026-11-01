@@ -143,7 +143,7 @@ def test_baseline_comparison_reports_delta_and_single_stage_attribution(tmp_path
     report = run_reference_evaluation(predictions_dir=candidate, synthetic_batch=BATCH, baseline_predictions_dir=baseline)
     delta = report["comparison"]["deltas"]["synthetic_gold"]["profiles"]["primary.v1"]
     assert delta["candidate_cer"] == 0 and delta["baseline_cer"] > 0 and delta["delta_cer"] < 0
-    assert report["comparison"]["single_stage_attribution"] == post
+    assert report["comparison"]["single_stage_attribution"] == {"change": "added", "position": 1, "stage": post}
     assert report["run_record"]["baseline_predictions"]["pipelines"] == [[stage]]
 
 
@@ -244,3 +244,81 @@ def test_hardened_batch_that_fails_validation_raises_instead_of_falling_back(tmp
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
     with pytest.raises(StageExecutionError, match="validation failed"):
         load_synthetic_gold(batch)
+
+
+def test_comparison_uses_common_items_and_ordered_single_stage_attribution(tmp_path: Path) -> None:
+    pages = _gold_pages()
+    a, b, c = _stage("preprocess", "deskew", "1"), _stage("recognize", "tesseract", "5"), _stage("postcorrect", "lex", "1")
+    (first, first_text), (second, second_text) = sorted(pages.items())
+    baseline = _write_predictions(tmp_path / "base", {first: first_text, second: "x"}, pipeline=[a, b])
+    # The candidate omits the badly recognised item and reorders stages while adding one.
+    candidate = _write_predictions(tmp_path / "cand", {first: first_text}, pipeline=[b, a, c])
+    report = run_reference_evaluation(predictions_dir=candidate, synthetic_batch=BATCH, baseline_predictions_dir=baseline)
+    gold = report["comparison"]["deltas"]["synthetic_gold"]
+    assert gold["common_item_count"] == 1 and gold["baseline_only_items"]
+    assert gold["profiles"]["primary.v1"]["delta_cer"] == 0  # no fake improvement from the omitted item
+    assert report["comparison"]["single_stage_attribution"] is None  # reorder + add is not one stage change
+    replaced = _write_predictions(tmp_path / "repl", pages, pipeline=[a, _stage("recognize", "tesseract", "6")])
+    again = run_reference_evaluation(predictions_dir=replaced, synthetic_batch=BATCH,
+                                     baseline_predictions_dir=_write_predictions(tmp_path / "b2", pages, pipeline=[a, b]))
+    assert again["comparison"]["single_stage_attribution"]["change"] == "replaced"
+
+
+def test_malformed_inputs_raise_structured_errors(tmp_path: Path, capsys) -> None:
+    sha = "cd" * 32
+    path = tmp_path / "p.json"
+    for broken in ({"input": "bad"}, {"engine": ["x"]}):
+        payload = _prediction(sha, "x")
+        payload.update(broken)
+        path.write_text(json.dumps(payload))
+        with pytest.raises(StageExecutionError, match="input and engine objects"):
+            load_engine_prediction(path)
+    with pytest.raises(StageExecutionError, match="list of objects"):
+        validate_mapping({"schema_version": "hocrgen_reference_page_mapping.v1", "mapping_source": "explicit"})
+    with pytest.raises(StageExecutionError, match="list of objects"):
+        validate_mapping({"schema_version": "hocrgen_reference_page_mapping.v1", "mapping_source": "explicit",
+                          "items": ["x"]})
+    predictions = _write_predictions(tmp_path / "pred", _gold_pages())
+    unreviewed = tmp_path / "u.jsonl"
+    unreviewed.write_text("[]\n")
+    with pytest.raises(StageExecutionError, match="JSON object"):
+        run_reference_evaluation(predictions_dir=predictions, synthetic_batch=BATCH, unreviewed_texts=unreviewed)
+    manifest = tmp_path / "refs" / "manifest.json"
+    manifest.parent.mkdir()
+    manifest.write_text(json.dumps({"schema_version": "benchmark_reference_manifest.v1", "items": [{}]}))
+    assert main(["evaluate-references", "--predictions", str(predictions), "--reference-manifest", str(manifest)]) == 1
+    assert "invalid reference manifest" in capsys.readouterr().out
+
+
+def _copy_reference_manifest(tmp_path: Path) -> tuple[Path, dict]:
+    import shutil
+
+    root = tmp_path / "benchmark"
+    shutil.copytree(REFERENCE_MANIFEST.parent, root)
+    manifest_path = root / "reference_manifest.json"
+    return manifest_path, json.loads(manifest_path.read_text(encoding="utf-8"))
+
+
+def test_reference_manifest_rejects_duplicates_and_verifies_child_checksums(tmp_path: Path) -> None:
+    import hashlib
+
+    from hocrgen.reference_runs import load_adjudicated_references
+
+    manifest_path, manifest = _copy_reference_manifest(tmp_path)
+    loaded = load_adjudicated_references(manifest_path)
+    child = loaded["identity"]["child_references"][0]
+    child_path = manifest_path.parent / child["path"]
+    assert child["sha256"] == hashlib.sha256(child_path.read_bytes()).hexdigest()
+    before = loaded["identity"]["child_references_sha256"]
+    child_path.write_text(child_path.read_text(encoding="utf-8") + "\n", encoding="utf-8")
+    assert load_adjudicated_references(manifest_path)["identity"]["child_references_sha256"] != before
+    ready = next(item for item in manifest["items"] if item["item_id"] == NLI_ITEM)
+    ready["transcription_reference"]["sha256"] = "0" * 64
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(StageExecutionError, match="checksum mismatch"):
+        load_adjudicated_references(manifest_path)
+    ready["transcription_reference"]["sha256"] = None
+    manifest["items"].append(dict(ready))
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    with pytest.raises(StageExecutionError, match="(?s)invalid reference manifest.*duplicate"):
+        load_adjudicated_references(manifest_path)
