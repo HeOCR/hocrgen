@@ -81,3 +81,21 @@ def test_unreviewed_pair_is_explicitly_diagnostic():
     assert result["benchmark_ready"] is False
     assert result["raw"]["cer"] != result["nfc"]["cer"]
     assert not result["raw"]["diagnostics"]["number_tokens_match"]
+
+
+def test_reported_spans_and_raw_page_boundaries():
+    span = {"span_id": "uncertain-1", "line_id": "l", "start": 0, "end": 1,
+            "status": "uncertain", "scoring": "include_primary_and_report"}
+    ref = record("א", [span])
+    result = evaluate_reference_predictions(["x"], predictions={"x": "א\n"}, references={"x": ref})
+    assert result["items"][0]["reference_spans"] == {"uncertain": {"count": 1, "span_ids": ["uncertain-1"]}}
+    assert result["raw"]["cer"] == 1  # Raw engine trailing newline is not silently stripped.
+    from hocrgen.reference_evaluation import assemble_page_predictions
+    assert assemble_page_predictions({"p1": "א\n", "p2": "ב\n"}, item_pages={"x": ["p1", "p2"]})["x"] == "א\n\nב\n"
+
+
+def test_negation_comparison_strips_boundary_punctuation_only_for_diagnostic():
+    from hocrgen.reference_evaluation import score_unreviewed_text_pair
+    result = score_unreviewed_text_pair(prediction="לא,", reference="לא")
+    assert result["raw"]["diagnostics"]["negation_tokens_match"]
+    assert result["raw"]["cer"] > 0

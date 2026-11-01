@@ -35,6 +35,8 @@ def reference_text(record: BenchmarkTranscriptionReferenceRecord) -> str:
     for value in record.scoring_policy.values():
         if value not in _DECISIONS:
             raise ValueError(f"unsupported scoring policy: {value}")
+    if len({span.span_id for span in record.spans}) != len(record.spans):
+        raise ValueError("duplicate span id")
     output = []
     for page in pages:
         lines = sorted((line for line in record.lines if line.page_id == page.page_id), key=lambda line: line.reading_order)
@@ -63,8 +65,9 @@ def _pair(prediction: str, reference: str) -> dict:
     predicted_words, reference_words = prediction.split(), reference.split()
     words = levenshtein_distance(predicted_words, reference_words)
     pn, rn = _NUMBER.findall(prediction), _NUMBER.findall(reference)
-    pneg = [word for word in predicted_words if word.strip('.,:;!?()[]{}\"\'׳״') in _NEGATIONS]
-    rneg = [word for word in reference_words if word.strip('.,:;!?()[]{}\"\'׳״') in _NEGATIONS]
+    punctuation = '.,:;!?()[]{}"\'׳״'
+    pneg = [token for word in predicted_words if (token := word.strip(punctuation)) in _NEGATIONS]
+    rneg = [token for word in reference_words if (token := word.strip(punctuation)) in _NEGATIONS]
     return {
         "character_edits": chars, "reference_characters": len(reference),
         "cer": chars / len(reference) if reference else None,
@@ -77,6 +80,13 @@ def _pair(prediction: str, reference: str) -> dict:
             "same_word_multiset_different_order": predicted_words != reference_words and Counter(predicted_words) == Counter(reference_words),
         },
     }
+
+
+def _span_report(record: BenchmarkTranscriptionReferenceRecord) -> dict:
+    statuses: dict[str, list[str]] = {}
+    for span in record.spans:
+        statuses.setdefault(span.status, []).append(span.span_id)
+    return {status: {"count": len(ids), "span_ids": sorted(ids)} for status, ids in sorted(statuses.items())}
 
 
 def evaluate_reference_predictions(
@@ -99,7 +109,8 @@ def evaluate_reference_predictions(
     for item_id in sorted(set(ids) & predictions.keys() & references.keys()):
         reference = scoped_references[item_id]
         prediction = predictions[item_id]
-        result = {"item_id": item_id, "raw": _pair(prediction, reference)}
+        result = {"item_id": item_id, "reference_spans": _span_report(references[item_id]),
+                  "raw": _pair(prediction, reference)}
         if normalize_nfc:
             result["nfc"] = _pair(unicodedata.normalize("NFC", prediction), unicodedata.normalize("NFC", reference))
         items.append(result)
