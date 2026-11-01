@@ -57,6 +57,14 @@ The negation-token diagnostic strips a fixed set of surrounding punctuation befo
 - An optional `pipeline` list of stage objects is recorded and compared.
 - Any other schema fails closed.
 
+**Tracks (heocr-engine decision 0005).** Every prediction resolves to `track` `open` or `proprietary`.
+- Legacy `"1.0"` files without `track` count as `open`. In v1, `track` is required.
+- Any other value is rejected.
+- Every `pipeline[]` stage must carry a valid `track`. An `open` stage must declare `requires_network: false`.
+- A prediction whose top-level track is `open` but has a `proprietary` stage is rejected.
+- A prediction directory must hold a single track. The track is recorded in the run record's prediction summary, at the top level of the report, on each scored report and on `unreviewed_diagnostics`.
+- Baseline comparison refuses sets on different tracks. Proprietary results are therefore never mixed with, or compared against, open-track results.
+
 **Mapping.** `hocrgen_reference_page_mapping.v1` maps each item id to its ordered engine page ids.
 - When `--mapping` is omitted, the mapping is derived from asset sha256: hocrsyngen page `sha256` values for synthetic gold, plus any `--asset-index` entries.
 - A page mapped twice is rejected.
@@ -65,8 +73,8 @@ The negation-token diagnostic strips a fixed set of surrounding punctuation befo
 
 **Scored set.** These are the only references that produce scores:
 - `synthetic_gold`: text from a hocrsyngen batch (`--synthetic-batch`). Item ids are `project_synthetic:<legacy id>`.
-  - Batches that meet hocrgen's hardened release-path model are validated with `validate_hocrsyngen_batch`.
-  - Raw public `generation_manifest.v1` batches lack the hocrgen-owned provider metadata (F6f1). They are accepted for evaluation only after every page asset's sha256 is recomputed and matched.
+  - A batch that carries hocrgen-owned `provider_metadata` must pass `validate_hocrsyngen_batch`. If it fails, the run fails; there is no fallback.
+  - Only a raw public `generation_manifest.v1` batch with no `provider_metadata` at all (F6f1) takes the evaluation-only path. That path recomputes and matches every page asset's sha256.
   - `identity.validation` records which path was used. Neither path admits a batch to release paths.
 - `adjudicated_reference`: child references of a `benchmark_reference_manifest.v1` (`--reference-manifest`) whose items are `reviewed`/`adjudicated` with `adjudication_status: adjudicated`. Other items are listed in `excluded_references` with a reason.
 

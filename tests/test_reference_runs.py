@@ -22,12 +22,20 @@ NLI_ITEM = "nli_any_use_permitted:nli-ms-seed-006"
 NLI_PAGE_SHA = "ab" * 32
 
 
-def _prediction(sha: str, text: str, *, schema: str = "1.0", pipeline: list | None = None) -> dict:
+def _prediction(sha: str, text: str, *, schema: str = "1.0", pipeline: list | None = None,
+                track: str | None = None) -> dict:
     payload = {"schema_version": schema, "page_id": f"sha256:{sha}", "input": {"sha256": sha, "width": 1, "height": 1},
                "engine": {"name": "tesseract", "version": "tesseract 5.3.0"}, "text": text, "words": []}
     if pipeline is not None:
         payload["pipeline"] = pipeline
+    if track is not None:
+        payload["track"] = track
     return payload
+
+
+def _stage(kind: str, name: str, version: str, *, track: str = "open", requires_network: bool = False) -> dict:
+    return {"kind": kind, "name": name, "version": version, "track": track, "deterministic": True,
+            "requires_network": requires_network}
 
 
 def _write_predictions(directory: Path, texts: dict[str, str], **kwargs) -> Path:
@@ -68,7 +76,8 @@ def test_prediction_loader_accepts_both_schema_ids_and_fails_closed(tmp_path: Pa
     sha = "cd" * 32
     path = tmp_path / "p.json"
     for schema in ("1.0", "heocr_engine_prediction.v1"):
-        path.write_text(json.dumps(_prediction(sha, "x", schema=schema, pipeline=[{"stage": "recognizer"}])))
+        path.write_text(json.dumps(_prediction(sha, "x", schema=schema, pipeline=[_stage("recognize", "t", "5")],
+                                               track="open")))
         assert load_engine_prediction(path)["schema_version"] == schema
     path.write_text(json.dumps(_prediction(sha, "x", schema="2.0")))
     with pytest.raises(StageExecutionError, match="unsupported schema_version"):
@@ -127,8 +136,8 @@ def test_reference_manifest_scores_only_adjudicated_items(tmp_path: Path) -> Non
 
 def test_baseline_comparison_reports_delta_and_single_stage_attribution(tmp_path: Path) -> None:
     pages = _gold_pages()
-    stage = {"stage": "recognizer", "name": "tesseract", "version": "5.3.0"}
-    post = {"stage": "post_corrector", "name": "lexicon", "version": "0.1"}
+    stage = _stage("recognize", "tesseract", "5.3.0")
+    post = _stage("postcorrect", "lexicon", "0.1")
     baseline = _write_predictions(tmp_path / "base", {sha: text[:-3] for sha, text in pages.items()}, pipeline=[stage])
     candidate = _write_predictions(tmp_path / "cand", pages, pipeline=[stage, post])
     report = run_reference_evaluation(predictions_dir=candidate, synthetic_batch=BATCH, baseline_predictions_dir=baseline)
@@ -168,4 +177,70 @@ def test_raw_public_batch_is_accepted_only_after_page_checksums_verify(tmp_path:
     asset = batch / manifest["samples"][0]["pages"][0]["asset_path"]
     asset.write_bytes(b"tampered")
     with pytest.raises(StageExecutionError, match="checksum mismatch"):
+        load_synthetic_gold(batch)
+
+
+def test_prediction_track_rules_follow_engine_decision_0005(tmp_path: Path) -> None:
+    sha = "cd" * 32
+    path = tmp_path / "p.json"
+
+    def load(**kwargs):
+        path.write_text(json.dumps(_prediction(sha, "x", **kwargs)))
+        return load_engine_prediction(path)
+
+    assert load()["track"] == "open"  # legacy "1.0" without track
+    assert load(schema="heocr_engine_prediction.v1", track="proprietary",
+                pipeline=[_stage("recognize", "gpt", "4o", track="proprietary", requires_network=True)])["track"] == "proprietary"
+    with pytest.raises(StageExecutionError, match="track must be one of"):
+        load(schema="heocr_engine_prediction.v1")  # v1 requires track
+    with pytest.raises(StageExecutionError, match="track must be one of"):
+        load(track="closed")
+    with pytest.raises(StageExecutionError, match="is track open but pipeline stage 1 is proprietary"):
+        load(schema="heocr_engine_prediction.v1", track="open",
+             pipeline=[_stage("recognize", "t", "5"), _stage("postcorrect", "llm", "1", track="proprietary")])
+    with pytest.raises(StageExecutionError, match="invalid track"):
+        load(schema="heocr_engine_prediction.v1", track="open", pipeline=[{"kind": "recognize", "name": "t", "version": "5"}])
+    with pytest.raises(StageExecutionError, match="requires_network: false"):
+        load(schema="heocr_engine_prediction.v1", track="open",
+             pipeline=[_stage("recognize", "t", "5", requires_network=True)])
+
+
+def test_prediction_sets_have_one_track_recorded_everywhere(tmp_path: Path) -> None:
+    pages = _gold_pages()
+    (first, first_text), (second, second_text) = sorted(pages.items())
+    mixed = tmp_path / "mixed"
+    mixed.mkdir()
+    (mixed / "a.json").write_text(json.dumps(_prediction(first, first_text), ensure_ascii=False), encoding="utf-8")
+    (mixed / "b.json").write_text(json.dumps(_prediction(second, second_text, schema="heocr_engine_prediction.v1",
+                                                         track="proprietary"), ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(StageExecutionError, match="mixes tracks"):
+        run_reference_evaluation(predictions_dir=mixed, synthetic_batch=BATCH)
+    proprietary = _write_predictions(tmp_path / "prop", pages, schema="heocr_engine_prediction.v1", track="proprietary")
+    report = run_reference_evaluation(predictions_dir=proprietary, synthetic_batch=BATCH)
+    assert report["track"] == "proprietary"
+    assert report["run_record"]["predictions"]["track"] == "proprietary"
+    assert report["scored"]["synthetic_gold"]["track"] == "proprietary"
+
+
+def test_comparison_refuses_sets_on_different_tracks(tmp_path: Path) -> None:
+    pages = _gold_pages()
+    open_set = _write_predictions(tmp_path / "open", pages)
+    proprietary = _write_predictions(tmp_path / "prop", pages, schema="heocr_engine_prediction.v1", track="proprietary")
+    with pytest.raises(StageExecutionError, match="refusing to compare"):
+        run_reference_evaluation(predictions_dir=proprietary, synthetic_batch=BATCH, baseline_predictions_dir=open_set)
+    same = run_reference_evaluation(predictions_dir=open_set, synthetic_batch=BATCH, baseline_predictions_dir=open_set)
+    assert same["comparison"]["track"] == "open"
+    assert same["comparison"]["deltas"]["synthetic_gold"]["profiles"]["primary.v1"]["delta_cer"] == 0
+
+
+def test_hardened_batch_that_fails_validation_raises_instead_of_falling_back(tmp_path: Path) -> None:
+    import shutil
+
+    batch = tmp_path / "hardened"
+    shutil.copytree(BATCH, batch)
+    manifest_path = batch / "generation_manifest.json"
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["provider_metadata"]["used_network"] = "sometimes"
+    manifest_path.write_text(json.dumps(manifest, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(StageExecutionError, match="validation failed"):
         load_synthetic_gold(batch)

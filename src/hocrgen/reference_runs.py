@@ -28,6 +28,8 @@ PREDICTION_SCHEMA_VERSIONS = frozenset({"1.0", "heocr_engine_prediction.v1"})
 MAPPING_SCHEMA_VERSION = "hocrgen_reference_page_mapping.v1"
 RUN_RECORD_SCHEMA_VERSION = "hocrgen_reference_evaluation_run.v1"
 SCORED_ORIGINS = frozenset({"synthetic_gold", "adjudicated_reference"})
+LEGACY_PREDICTION_SCHEMA_VERSIONS = frozenset({"1.0"})
+TRACKS = frozenset({"open", "proprietary"})
 _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 
 
@@ -71,11 +73,29 @@ def load_engine_prediction(path: Path) -> dict[str, Any]:
     pipeline = payload.get("pipeline", [])
     if not isinstance(pipeline, list) or not all(isinstance(stage, dict) for stage in pipeline):
         raise StageExecutionError(f"prediction {path.name} pipeline must be a list of objects")
+    track = _prediction_track(path.name, schema, payload.get("track"), pipeline)
     return {
         "file_name": path.name, "file_sha256": file_sha256, "schema_version": schema, "page_id": page_id,
-        "input_sha256": input_sha, "engine": {"name": engine["name"], "version": engine["version"]},
+        "input_sha256": input_sha, "track": track, "engine": {"name": engine["name"], "version": engine["version"]},
         "pipeline": pipeline, "text": text,
     }
+
+
+def _prediction_track(file_name: str, schema: str, track: Any, pipeline: list[dict[str, Any]]) -> str:
+    """Apply heocr-engine decision 0005: proprietary output never passes as open-track."""
+    if track is None and schema in LEGACY_PREDICTION_SCHEMA_VERSIONS:
+        track = "open"  # PR #1 baseline files predate the field and are open-source, network-free Tesseract output
+    if track not in TRACKS:
+        raise StageExecutionError(f"prediction {file_name} track must be one of {sorted(TRACKS)}, got {track!r}")
+    for index, stage in enumerate(pipeline):
+        stage_track = stage.get("track")
+        if stage_track not in TRACKS:
+            raise StageExecutionError(f"prediction {file_name} pipeline stage {index} has invalid track {stage_track!r}")
+        if stage_track == "proprietary" and track == "open":
+            raise StageExecutionError(f"prediction {file_name} is track open but pipeline stage {index} is proprietary")
+        if stage_track == "open" and stage.get("requires_network") is not False:
+            raise StageExecutionError(f"prediction {file_name} open pipeline stage {index} must declare requires_network: false")
+    return track
 
 
 def load_prediction_set(directory: Path) -> dict[str, Any]:
@@ -89,8 +109,12 @@ def load_prediction_set(directory: Path) -> dict[str, Any]:
         if record["page_id"] in pages:
             raise StageExecutionError(f"duplicate prediction for page {record['page_id']}")
         pages[record["page_id"]] = record
+    tracks = sorted({record["track"] for record in records})
+    if len(tracks) != 1:
+        raise StageExecutionError(f"prediction set {directory.name} mixes tracks {tracks}; score each track separately")
     return {
         "pages": pages,
+        "track": tracks[0],
         "set_sha256": _canonical_sha256(sorted(record["file_sha256"] for record in records)),
         "engines": sorted({(r["engine"]["name"], r["engine"]["version"]) for r in records}),
         "pipelines": sorted({json.dumps(r["pipeline"], sort_keys=True) for r in records}),
@@ -164,8 +188,13 @@ def load_synthetic_gold(batch_dir: Path, *, source_id: str = "project_synthetic"
     """
     manifest_path = batch_dir / "generation_manifest.json"
     payload, manifest_sha = _read_json(manifest_path, "generation manifest")
-    try:
-        batch = validate_hocrsyngen_batch(batch_dir)
+    if isinstance(payload, dict) and "provider_metadata" not in payload:
+        # Raw public output without hocrgen-owned provider metadata (F6f1): evaluation-only, checksum-verified.
+        samples = _public_manifest_samples(batch_dir, payload)
+        validation = "public_manifest_page_checksums"
+    else:
+        # A batch that carries hocrgen-owned metadata must pass the hardened model; failures raise, never fall back.
+        batch = validate_hocrsyngen_batch(batch_dir)  # raises StageExecutionError on any hardened-model failure
         samples = [
             {"item": _source_item_id(sample), "text": sample.text.logical_order, "language": sample.text.language,
              "script": sample.text.script, "template": sample.provenance.template_id,
@@ -173,9 +202,6 @@ def load_synthetic_gold(batch_dir: Path, *, source_id: str = "project_synthetic"
             for sample in batch.manifest.samples
         ]
         validation = "hocrgen_release_path_model"
-    except Exception:  # fall back to checksum-verified public manifest parsing
-        samples = _public_manifest_samples(batch_dir, payload)
-        validation = "public_manifest_page_checksums"
     texts, strata, asset_index = {}, {}, []
     for sample in samples:
         item_id = f"{source_id}:{sample['item']}"
@@ -268,8 +294,9 @@ def load_unreviewed_texts(path: Path) -> dict[str, Any]:
 
 # --- runs -------------------------------------------------------------------------------------------------------
 
-def _score(predictions: Mapping[str, str], *, gold: Mapping[str, Any] | None, adjudicated: Mapping[str, Any] | None,
-           unreviewed: Mapping[str, Any] | None, profiles: list[str], alignment_masked: bool) -> dict[str, Any]:
+def _score(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any] | None,
+           adjudicated: Mapping[str, Any] | None, unreviewed: Mapping[str, Any] | None, profiles: list[str],
+           alignment_masked: bool) -> dict[str, Any]:
     gold_texts = dict(gold["texts"]) if gold else {}
     references = dict(adjudicated["references"]) if adjudicated else {}
     overlap = sorted(gold_texts.keys() & references.keys())
@@ -285,14 +312,16 @@ def _score(predictions: Mapping[str, str], *, gold: Mapping[str, Any] | None, ad
             sorted(references), predictions={k: v for k, v in predictions.items() if k in references},
             references=references, profiles=profiles, item_strata=adjudicated["strata"],
             alignment_masked=alignment_masked)
-    result: dict[str, Any] = {"scored": scored}
+    for report in scored.values():
+        report["track"] = track
+    result: dict[str, Any] = {"track": track, "scored": scored}
     if unreviewed and unreviewed["texts"]:
         diagnostic = evaluate_text_profiles(
             sorted(unreviewed["texts"]),
             predictions={k: v for k, v in predictions.items() if k in unreviewed["texts"]},
             references=unreviewed["texts"], profiles=profiles, item_strata=unreviewed["strata"])
         result["unreviewed_diagnostics"] = {"reference_status": "unreviewed", "benchmark_ready": False,
-                                            "scored": False, **diagnostic}
+                                            "scored": False, "track": track, **diagnostic}
     return result
 
 
@@ -301,6 +330,10 @@ def _stage_key(stage: Mapping[str, Any]) -> str:
 
 
 def _comparison(baseline: dict[str, Any], candidate: dict[str, Any], base_set: dict, cand_set: dict) -> dict[str, Any]:
+    if base_set["track"] != cand_set["track"]:
+        raise StageExecutionError(
+            f"refusing to compare a {base_set['track']}-track baseline with a {cand_set['track']}-track candidate"
+        )
     deltas: dict[str, Any] = {}
     for origin, report in candidate["scored"].items():
         base_report = baseline["scored"].get(origin)
@@ -329,6 +362,7 @@ def _comparison(baseline: dict[str, Any], candidate: dict[str, Any], base_set: d
     removed = sorted(base_stages - cand_stages)
     single = len(added) + len(removed) == 1 and len(base_set["pipelines"]) == len(cand_set["pipelines"]) == 1
     return {
+        "track": cand_set["track"],
         "deltas": deltas,
         "stage_changes": {"added": [json.loads(s) for s in added], "removed": [json.loads(s) for s in removed]},
         "single_stage_attribution": (json.loads((added or removed)[0]) if single else None),
@@ -364,14 +398,15 @@ def run_reference_evaluation(
     candidate_set = load_prediction_set(predictions_dir)
     predictions, assembly = _assemble(mapping, candidate_set)
     try:
-        result = _score(predictions, gold=gold, adjudicated=adjudicated, unreviewed=unreviewed,
+        result = _score(predictions, track=candidate_set["track"], gold=gold, adjudicated=adjudicated, unreviewed=unreviewed,
                         profiles=profile_ids, alignment_masked=alignment_masked)
         comparison = None
         baseline_set = None
         if baseline_predictions_dir is not None:
             baseline_set = load_prediction_set(baseline_predictions_dir)
             baseline_predictions, _ = _assemble(mapping, baseline_set)
-            baseline = _score(baseline_predictions, gold=gold, adjudicated=adjudicated, unreviewed=None,
+            baseline = _score(baseline_predictions, track=baseline_set["track"], gold=gold, adjudicated=adjudicated,
+                              unreviewed=None,
                               profiles=profile_ids, alignment_masked=False)
             comparison = _comparison(baseline, result, baseline_set, candidate_set)
     except ValueError as exc:
@@ -381,6 +416,7 @@ def run_reference_evaluation(
     def prediction_summary(prediction_set: dict[str, Any]) -> dict[str, Any]:
         return {
             "set_sha256": prediction_set["set_sha256"],
+            "track": prediction_set["track"],
             "files": [{"file_name": r["file_name"], "sha256": r["file_sha256"], "page_id": r["page_id"],
                        "schema_version": r["schema_version"]} for r in prediction_set["pages"].values()],
             "engines": [{"name": n, "version": v} for n, v in prediction_set["engines"]],
