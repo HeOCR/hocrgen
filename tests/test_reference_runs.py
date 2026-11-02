@@ -322,3 +322,97 @@ def test_reference_manifest_rejects_duplicates_and_verifies_child_checksums(tmp_
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
     with pytest.raises(StageExecutionError, match="(?s)invalid reference manifest.*duplicate"):
         load_adjudicated_references(manifest_path)
+
+
+def _diagnostic_inputs(tmp_path: Path) -> tuple[Path, Path, str]:
+    """One unreviewed handwritten page (generic synthetic strings) plus its sha256 asset index."""
+    sha = "34" * 32
+    unreviewed = tmp_path / "unreviewed.jsonl"
+    unreviewed.write_text(json.dumps({"item_id": "hash:page-1", "text": "שלום עולם",
+                                      "reference_origin": "unreviewed:test_edition", "modality": "handwritten"},
+                                     ensure_ascii=False) + "\n", encoding="utf-8")
+    index = tmp_path / "index.json"
+    index.write_text(json.dumps({"items": [{"item_id": "hash:page-1", "page_sha256": [sha]}]}))
+    return unreviewed, index, sha
+
+
+def test_diagnostic_only_scores_unreviewed_text_without_a_scored_set(tmp_path: Path) -> None:
+    unreviewed, index, sha = _diagnostic_inputs(tmp_path)
+    predictions = _write_predictions(tmp_path / "pred", {sha: "שלום עולם"})
+    report = run_reference_evaluation(predictions_dir=predictions, unreviewed_texts=unreviewed,
+                                      asset_index_path=index, diagnostic_only=True)
+    assert report["diagnostic_only"] is True and report["benchmark_ready"] is False
+    assert report["scored"] == {} and "comparison" not in report and "diagnostic_comparison" not in report
+    diagnostics = report["unreviewed_diagnostics"]
+    assert diagnostics["benchmark_ready"] is False and diagnostics["scored"] is False
+    assert diagnostics["profiles"]["primary.v1"]["cer"] == 0
+    assert set(diagnostics["strata"]["reference_origin"]) == {"unreviewed:test_edition"}
+    record = report["run_record"]
+    assert record["diagnostic_only"] is True and record["benchmark_ready"] is False
+    assert record["references"] == [] and record["scored_origins"] == []
+    assert record["scored_set_policy"].startswith("diagnostic only")
+    assert str(tmp_path) not in json.dumps(report)
+
+
+def test_diagnostic_only_baseline_delta_is_a_diagnostic_comparison(tmp_path: Path) -> None:
+    unreviewed, index, sha = _diagnostic_inputs(tmp_path)
+    stage = _stage("recognize", "kraken", "7")
+    baseline = _write_predictions(tmp_path / "base", {sha: "שלום"}, pipeline=[stage])
+    candidate = _write_predictions(tmp_path / "cand", {sha: "שלום עולם"},
+                                   pipeline=[_stage("recognize", "kraken", "8")])
+    report = run_reference_evaluation(predictions_dir=candidate, unreviewed_texts=unreviewed, asset_index_path=index,
+                                      baseline_predictions_dir=baseline, diagnostic_only=True)
+    assert "comparison" not in report
+    comparison = report["diagnostic_comparison"]
+    assert comparison["benchmark_ready"] is False and comparison["scored"] is False
+    assert comparison["reference_status"] == "unreviewed" and comparison["track"] == "open"
+    delta = comparison["unreviewed_deltas"]["profiles"]["primary.v1"]
+    assert delta["candidate_cer"] == 0 and delta["baseline_cer"] > 0 and delta["delta_cer"] < 0
+    assert comparison["unreviewed_deltas"]["common_item_count"] == 1
+    assert comparison["single_stage_attribution"]["change"] == "replaced"
+    proprietary = _write_predictions(tmp_path / "prop", {sha: "שלום"}, schema="heocr_engine_prediction.v1",
+                                     track="proprietary")
+    with pytest.raises(StageExecutionError, match="refusing to compare"):
+        run_reference_evaluation(predictions_dir=proprietary, unreviewed_texts=unreviewed, asset_index_path=index,
+                                 baseline_predictions_dir=baseline, diagnostic_only=True)
+
+
+def test_diagnostic_only_refuses_scored_inputs_and_incomplete_runs(tmp_path: Path, capsys) -> None:
+    unreviewed, index, sha = _diagnostic_inputs(tmp_path)
+    predictions = _write_predictions(tmp_path / "pred", {sha: "שלום"})
+    base = {"predictions_dir": predictions, "unreviewed_texts": unreviewed, "asset_index_path": index,
+            "diagnostic_only": True}
+    refused = [
+        ({"synthetic_batch": BATCH}, "either diagnostic or scored"),
+        ({"reference_manifest": REFERENCE_MANIFEST}, "either diagnostic or scored"),
+        ({"unreviewed_texts": None}, "requires --unreviewed-texts"),
+        ({"asset_index_path": None}, "requires --mapping or --asset-index"),
+        ({"alignment_masked": True}, "only to adjudicated references"),
+    ]
+    for override, message in refused:
+        with pytest.raises(StageExecutionError, match=message):
+            run_reference_evaluation(**{**base, **override})
+    empty = tmp_path / "empty.jsonl"
+    empty.write_text("\n")
+    with pytest.raises(StageExecutionError, match="at least one unreviewed text"):
+        run_reference_evaluation(**{**base, "unreviewed_texts": empty})
+    common = ["evaluate-references", "--predictions", str(predictions), "--unreviewed-texts", str(unreviewed),
+              "--asset-index", str(index)]
+    assert main([*common, "--diagnostic-only", "--synthetic-batch", str(BATCH)]) == 1
+    assert "either diagnostic or scored" in capsys.readouterr().out
+    assert main([*common, "--diagnostic-only"]) == 0
+    assert json.loads(capsys.readouterr().out)["diagnostic_only"] is True
+
+
+def test_unreviewed_texts_without_a_scored_set_still_need_the_flag(tmp_path: Path, capsys) -> None:
+    unreviewed, index, sha = _diagnostic_inputs(tmp_path)
+    predictions = _write_predictions(tmp_path / "pred", {sha: "שלום"})
+    with pytest.raises(StageExecutionError, match="a scored set is required"):
+        run_reference_evaluation(predictions_dir=predictions, unreviewed_texts=unreviewed, asset_index_path=index)
+    assert main(["evaluate-references", "--predictions", str(predictions), "--unreviewed-texts", str(unreviewed),
+                 "--asset-index", str(index)]) == 1
+    assert "a scored set is required" in capsys.readouterr().out
+    # A scored run keeps its shape and states that it is not diagnostic-only.
+    gold = run_reference_evaluation(predictions_dir=_write_predictions(tmp_path / "gold", _gold_pages()),
+                                    synthetic_batch=BATCH)
+    assert gold["run_record"]["diagnostic_only"] is False and "diagnostic_only" not in gold

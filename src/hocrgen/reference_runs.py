@@ -3,6 +3,10 @@
 Scored set: synthetic gold derived from a validated hocrsyngen batch, plus reviewed/adjudicated
 ``benchmark_transcription_reference.v1`` records. HASH, tender, or any other unreviewed text is scored only as
 ``unreviewed`` diagnostics and never enters scored aggregates.
+
+E2c5: ``diagnostic_only`` runs score unreviewed text alone, with no scored set. Such a run is never a benchmark:
+it refuses scored-set inputs, is marked ``benchmark_ready: false`` and ``diagnostic_only: true``, and reports any
+baseline delta under ``diagnostic_comparison`` rather than ``comparison``.
 """
 from __future__ import annotations
 
@@ -373,39 +377,36 @@ def _single_stage_change(base_set: dict, cand_set: dict) -> dict[str, Any] | Non
     return None
 
 
-def _comparison(baseline: dict[str, Any], candidate: dict[str, Any], base_set: dict, cand_set: dict) -> dict[str, Any]:
+def _report_deltas(base_report: dict[str, Any], cand_report: dict[str, Any]) -> dict[str, Any]:
+    base_items = {item["item_id"]: item for item in base_report["items"]}
+    cand_items = {item["item_id"]: item for item in cand_report["items"]}
+    common = sorted(base_items.keys() & cand_items.keys())
+    profiles: dict[str, Any] = {}
+    for profile_id in cand_report["profiles"]:
+        # Re-aggregate over common items only, so omitting a hard item cannot look like an improvement.
+        base_agg = _aggregate([base_items[i]["profiles"][profile_id] for i in common])
+        cand_agg = _aggregate([cand_items[i]["profiles"][profile_id] for i in common])
+        profiles[profile_id] = {
+            "baseline_cer": base_agg["cer"], "candidate_cer": cand_agg["cer"],
+            "delta_cer": None if None in (base_agg["cer"], cand_agg["cer"]) else cand_agg["cer"] - base_agg["cer"],
+            "baseline_wer": base_agg["wer"], "candidate_wer": cand_agg["wer"],
+            "delta_wer": None if None in (base_agg["wer"], cand_agg["wer"]) else cand_agg["wer"] - base_agg["wer"],
+        }
+    return {
+        "common_item_count": len(common),
+        "baseline_only_items": sorted(base_items.keys() - cand_items.keys()),
+        "candidate_only_items": sorted(cand_items.keys() - base_items.keys()),
+        "profiles": profiles,
+    }
+
+
+def _comparison_context(base_set: dict, cand_set: dict) -> dict[str, Any]:
     if base_set["track"] != cand_set["track"]:
         raise StageExecutionError(
             f"refusing to compare a {base_set['track']}-track baseline with a {cand_set['track']}-track candidate"
         )
-    deltas: dict[str, Any] = {}
-    for origin, report in candidate["scored"].items():
-        base_report = baseline["scored"].get(origin)
-        if base_report is None:
-            continue
-        base_items = {item["item_id"]: item for item in base_report["items"]}
-        cand_items = {item["item_id"]: item for item in report["items"]}
-        common = sorted(base_items.keys() & cand_items.keys())
-        profiles: dict[str, Any] = {}
-        for profile_id in report["profiles"]:
-            # Re-aggregate over common items only, so omitting a hard item cannot look like an improvement.
-            base_agg = _aggregate([base_items[i]["profiles"][profile_id] for i in common])
-            cand_agg = _aggregate([cand_items[i]["profiles"][profile_id] for i in common])
-            profiles[profile_id] = {
-                "baseline_cer": base_agg["cer"], "candidate_cer": cand_agg["cer"],
-                "delta_cer": None if None in (base_agg["cer"], cand_agg["cer"]) else cand_agg["cer"] - base_agg["cer"],
-                "baseline_wer": base_agg["wer"], "candidate_wer": cand_agg["wer"],
-                "delta_wer": None if None in (base_agg["wer"], cand_agg["wer"]) else cand_agg["wer"] - base_agg["wer"],
-            }
-        deltas[origin] = {
-            "common_item_count": len(common),
-            "baseline_only_items": sorted(base_items.keys() - cand_items.keys()),
-            "candidate_only_items": sorted(cand_items.keys() - base_items.keys()),
-            "profiles": profiles,
-        }
     return {
         "track": cand_set["track"],
-        "deltas": deltas,
         "baseline_pipelines": [json.loads(p) for p in base_set["pipelines"]],
         "candidate_pipelines": [json.loads(p) for p in cand_set["pipelines"]],
         "single_stage_attribution": _single_stage_change(base_set, cand_set),
@@ -414,20 +415,51 @@ def _comparison(baseline: dict[str, Any], candidate: dict[str, Any], base_set: d
     }
 
 
+def _comparison(baseline: dict[str, Any], candidate: dict[str, Any], base_set: dict, cand_set: dict) -> dict[str, Any]:
+    context = _comparison_context(base_set, cand_set)
+    deltas = {origin: _report_deltas(baseline["scored"][origin], report)
+              for origin, report in candidate["scored"].items() if origin in baseline["scored"]}
+    return {"track": context.pop("track"), "deltas": deltas, **context}
+
+
+def _diagnostic_comparison(baseline: dict[str, Any], candidate: dict[str, Any], base_set: dict,
+                           cand_set: dict) -> dict[str, Any]:
+    """Delta between two sets on unreviewed text only; never a scored comparison (E2c5)."""
+    context = _comparison_context(base_set, cand_set)
+    return {"track": context.pop("track"), "reference_status": "unreviewed", "benchmark_ready": False,
+            "scored": False, "unreviewed_deltas": _report_deltas(baseline["unreviewed_diagnostics"],
+                                                                 candidate["unreviewed_diagnostics"]),
+            **context}
+
+
 def run_reference_evaluation(
     *, predictions_dir: Path, synthetic_batch: Path | None = None, reference_manifest: Path | None = None,
     unreviewed_texts: Path | None = None, mapping_path: Path | None = None, asset_index_path: Path | None = None,
     baseline_predictions_dir: Path | None = None, profiles: Iterable[str] = DEFAULT_PROFILE_IDS,
-    alignment_masked: bool = False,
+    alignment_masked: bool = False, diagnostic_only: bool = False,
 ) -> dict[str, Any]:
-    if synthetic_batch is None and reference_manifest is None:
-        raise StageExecutionError("a scored set is required: --synthetic-batch and/or --reference-manifest")
+    if diagnostic_only:
+        if synthetic_batch is not None or reference_manifest is not None:
+            raise StageExecutionError("--diagnostic-only cannot be combined with --synthetic-batch or "
+                                      "--reference-manifest: a run is either diagnostic or scored, never both")
+        if unreviewed_texts is None:
+            raise StageExecutionError("--diagnostic-only requires --unreviewed-texts")
+        if mapping_path is None and asset_index_path is None:
+            raise StageExecutionError("--diagnostic-only requires --mapping or --asset-index")
+        if alignment_masked:
+            raise StageExecutionError("--alignment-masked applies only to adjudicated references, "
+                                      "not to --diagnostic-only runs")
+    elif synthetic_batch is None and reference_manifest is None:
+        raise StageExecutionError("a scored set is required: --synthetic-batch and/or --reference-manifest "
+                                  "(or use --diagnostic-only with --unreviewed-texts)")
     profile_ids = list(profiles)
     if PRIMARY_PROFILE_ID not in profile_ids or set(profile_ids) - NORMALIZATION_PROFILES.keys():
         raise StageExecutionError(f"profiles must be known and include {PRIMARY_PROFILE_ID}")
     gold = load_synthetic_gold(synthetic_batch) if synthetic_batch else None
     adjudicated = load_adjudicated_references(reference_manifest) if reference_manifest else None
     unreviewed = load_unreviewed_texts(unreviewed_texts) if unreviewed_texts else None
+    if diagnostic_only and not unreviewed["texts"]:
+        raise StageExecutionError("--diagnostic-only needs at least one unreviewed text")
     if mapping_path is not None:
         payload, _ = _read_json(mapping_path, "mapping")
         mapping = validate_mapping(payload)
@@ -449,9 +481,10 @@ def run_reference_evaluation(
             baseline_set = load_prediction_set(baseline_predictions_dir)
             baseline_predictions, _ = _assemble(mapping, baseline_set)
             baseline = _score(baseline_predictions, track=baseline_set["track"], gold=gold, adjudicated=adjudicated,
-                              unreviewed=None,
+                              unreviewed=unreviewed if diagnostic_only else None,
                               profiles=profile_ids, alignment_masked=False)
-            comparison = _comparison(baseline, result, baseline_set, candidate_set)
+            compare = _diagnostic_comparison if diagnostic_only else _comparison
+            comparison = compare(baseline, result, baseline_set, candidate_set)
     except ValueError as exc:
         raise StageExecutionError(str(exc)) from exc
     references = [identity for identity in (gold and gold["identity"], adjudicated and adjudicated["identity"]) if identity]
@@ -480,7 +513,13 @@ def run_reference_evaluation(
         "primary_profile": PRIMARY_PROFILE_ID,
         "scored_origins": sorted(result["scored"]),
         "scored_set_policy": "synthetic gold and reviewed+adjudicated references only; unreviewed text is diagnostic",
+        "diagnostic_only": diagnostic_only,
     }
+    if diagnostic_only:
+        run_record["benchmark_ready"] = False
+        run_record["scored_set_policy"] = "diagnostic only: no scored set; unreviewed text under unreviewed_diagnostics"
+        return {"status": "ok", "diagnostic_only": True, "benchmark_ready": False, "run_record": run_record,
+                "mapping": mapping, **result, **({"diagnostic_comparison": comparison} if comparison else {})}
     return {"status": "ok", "run_record": run_record, "mapping": mapping, **result,
             **({"comparison": comparison} if comparison else {})}
 

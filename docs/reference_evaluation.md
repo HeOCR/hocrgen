@@ -82,6 +82,19 @@ The negation-token diagnostic strips a fixed set of surrounding punctuation befo
 - These are scored under the same profiles, but only under `unreviewed_diagnostics`, with `scored: false` and `benchmark_ready: false`.
 - They cannot claim a scored origin.
 
+**Diagnostic-only runs (E2c5).** Use `--diagnostic-only` to score unreviewed text with no scored set, for example a handful of real HASH pages against a synthetic-trained recognizer:
+
+```bash
+hocrgen evaluate-references --diagnostic-only --predictions PRED_DIR \
+  --unreviewed-texts texts.jsonl --mapping mapping.json --output report.json
+```
+
+- It requires `--unreviewed-texts` with at least one text, and `--mapping` or `--asset-index`.
+- It refuses `--synthetic-batch`, `--reference-manifest` and `--alignment-masked`, so a run is either diagnostic or scored, never both.
+- The report has `scored: {}`. The report and the run record carry `diagnostic_only: true` and `benchmark_ready: false`.
+- `--baseline-predictions` adds a `diagnostic_comparison` block, never `comparison`. It holds per-profile `unreviewed_deltas` over common items, the pipelines and the single-stage attribution, and it refuses cross-track sets.
+- Without the flag, a run with no scored set still fails with "a scored set is required".
+
 **Comparison.** `--baseline-predictions` scores a second set (same track) against the same scored set.
 - It reports baseline, candidate and delta CER/WER per profile and origin, re-aggregated over the items both sets evaluated. Items only one set scored are listed. Omitting a hard item therefore cannot look like an improvement.
 - `single_stage_attribution` names a stage only when each set used one ordered pipeline and the two differ by exactly one stage insertion, removal or replacement. Reorderings and multi-stage changes give `null`, and the delta is then set-level.
