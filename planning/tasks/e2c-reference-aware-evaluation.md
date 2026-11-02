@@ -1,11 +1,12 @@
 # E2c — Reference-aware evaluation expansion
 
-Status: E2c1–E2c4 implemented on the current ref. Parent milestone: E2, Baselines and evaluation utilities. This is independent of F6 public-beta readiness and does not create reference evidence.
+Status: E2c1–E2c5 implemented on the current ref. Parent milestone: E2, Baselines and evaluation utilities. This is independent of F6 public-beta readiness and does not create reference evidence.
 
 - **E2c1**: this planning contract.
 - **E2c2**: deterministic reference-aware scoring and diagnostics, building on E2a's existing API without changing its results.
 - **E2c3**: versioned normalization profiles applied to both sides and recorded in results, per-stratum aggregates, and a labelled `alignment_masked` diagnostic for unscoped full-page predictions.
 - **E2c4**: an `evaluate-references` CLI over `heocr_engine_prediction.v1` / schema `"1.0"` prediction files with an explicit or sha256-derived page mapping, a run record, and per-stage ΔCER between two prediction sets. Synthetic gold is the scored set; HASH and tender pages are `unreviewed` diagnostics only.
+- **E2c5**: an explicit `--diagnostic-only` mode for `evaluate-references` that scores `--unreviewed-texts` with no scored set, so real-page sanity checks need no placeholder scored set. See [E2c5 diagnostic-only runs](#e2c5-diagnostic-only-runs).
 
 ## Contract and sequence
 
@@ -46,3 +47,17 @@ Strata are reported along five dimensions:
 Unknown dimensions or modalities fail closed.
 
 `alignment_masked` handles unscoped full-page predictions. It aligns the prediction to the full reference by edit distance, then drops prediction characters aligned to excluded spans. The result is reported under `diagnostics`, with `diagnostic_only: true` and `primary_eligible: false`. It never changes profile or primary scores. Alignments larger than `max_cells` are skipped with a recorded reason.
+
+## E2c5 diagnostic-only runs
+
+**Why.** Before E2c5, `evaluate-references` produced unreviewed diagnostics only alongside a scored set. A real-page check (for example, 10 HASH pages against a synthetic-trained recognizer) therefore needed a placeholder: either a reference manifest whose items were all excluded, or an unrelated synthetic batch. Either one passed the scored-set check without scoring anything.
+
+**Contract.** `--diagnostic-only` makes that intent explicit.
+- **Inputs.** It requires `--unreviewed-texts` with at least one text, and `--mapping` or `--asset-index`.
+- **Refusals.** It refuses `--synthetic-batch` and `--reference-manifest`, so a run is either diagnostic or scored, never both. It refuses `--alignment-masked`, which applies only to adjudicated references.
+- **Report.** `scored` is `{}`. The report and the run record carry `diagnostic_only: true` and `benchmark_ready: false`. The run record's `scored_set_policy` says the run is diagnostic only.
+- **Comparison.** `--baseline-predictions` gives a `diagnostic_comparison` block (`reference_status: unreviewed`, `scored: false`, `benchmark_ready: false`, `unreviewed_deltas`), never `comparison`. Deltas cover common items only, and the existing track rule still refuses cross-track comparison.
+- **Without the flag.** A run with no scored set still fails with "a scored set is required". Scored runs keep their shape and record `diagnostic_only: false`.
+
+No reference status, readiness gate or benchmark evidence changes. Unreviewed text stays outside every scored aggregate.
+

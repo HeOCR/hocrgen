@@ -155,6 +155,9 @@ def build_parser() -> argparse.ArgumentParser:
                                             help="Normalization profile id (repeatable; primary.v1 is required)")
     evaluate_references_parser.add_argument("--alignment-masked", action="store_true",
                                             help="Add the diagnostic-only alignment-masked mode for adjudicated references")
+    evaluate_references_parser.add_argument("--diagnostic-only", action="store_true",
+                                            help="Score only --unreviewed-texts, with no scored set (E2c5); the run is "
+                                                 "never benchmark-ready and refuses scored-set inputs")
     evaluate_references_parser.add_argument("--write-mapping", type=Path, default=None,
                                             help="Write the mapping used to this path")
     evaluate_references_parser.add_argument("--output", type=Path, default=None, help="Optional path for the JSON report")
@@ -586,6 +589,7 @@ def handle_evaluate_references(args: argparse.Namespace) -> int:
             baseline_predictions_dir=args.baseline_predictions,
             profiles=args.profile or DEFAULT_PROFILE_IDS,
             alignment_masked=args.alignment_masked,
+            diagnostic_only=args.diagnostic_only,
         )
         for path, payload in ((args.write_mapping, report["mapping"]), (args.output, report)):
             if path is None:

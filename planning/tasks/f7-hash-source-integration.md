@@ -40,8 +40,9 @@ Until human-attested inputs exist without a new campaign, HASH text may be score
 
 HTR candidate output is never ground truth. This covers the Kraken/eScriptorium, consolidated and GPT-4o files under HASH `data/transcripts/candidates/`, and any `created_by: ocr` text without a human attestation. None of the current 10 `status: reviewed` HASH texts qualifies:
 
-- 4 are GPT-4o output whose own evidence text says it needs human review.
-- 6 are Wikisource edition texts, not diplomatic transcriptions of the image.
+- 4 began as GPT-4o output; its evidence text still says it needs human review.
+- 6 began as Wikisource edition texts.
+- All 10 were then edited toward the page image in HASH `cf1d4d4` by an agent, with no human reviewer recorded. They now follow the visible main text, but they remain unreviewed. The 6 edition-based texts keep full niqqud that the autographs mostly lack, and page numbers, stamps and marginal notes are left out.
 
 The converter accepts a text only when a HASH attestation record matches it. The record must name a human reviewer, the method, the base text, the niqqud policy (as visible) and the text SHA-256. For each accepted text, the converter:
 
