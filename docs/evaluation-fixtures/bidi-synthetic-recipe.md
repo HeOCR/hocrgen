@@ -8,7 +8,7 @@ hand-authored tests; the generator's existing templates and fonts are shared.
 It is not a held-out-template or real-document generalization test. The corpus
 lines combine ten prefixes and ten endings, so their language is correlated.
 
-Generate from hocrsyngen revision `bc4394c` (S11b implementation), with
+Generate from hocrsyngen revision `bc4394c16d56acedd17241f3764ef6e33dd551c2` (S11b implementation), with
 Python 3.12.11, Pillow 12.2.0, libraqm 0.10.3 and FreeType 2.14.3. Asset
 bytes may vary with the rest of the imaging stack; compare hashes before
 claiming an exact reproduction. From an installed checkout, set `CORPUS` to the
@@ -50,16 +50,26 @@ abstention interface only; they do not test correction effectiveness. Profiles
 fold whitespace and other details as specified in `docs/reference_evaluation.md`;
 report raw and optional secondary typography profiles separately.
 
-For each manifest page, run `heocr-engine tesseract IMAGE PREDICTION.json
---executable "$TESSERACT" --tessdata-dir "$TESSDATA" --language heb+eng
---psm 3 --timeout 60` with distinct output files. Apply `correct_prediction`
-from the pinned engine to each parsed prediction with geometry `None`, saving
-the returned prediction separately; count the returned reasons. Then run
-`hocrgen evaluate-references --predictions CANDIDATES --baseline-predictions
-BASELINES --synthetic-batch "$BATCH" --output REPORT.json`. Mapping is derived
-from page asset hashes. Report failures and coverage, and do not replace absent
-prediction-side tables with manifest or annotation geometry. These commands
-produce a no-op comparison in this particular missing-geometry experiment.
+For each manifest page, use distinct output files:
+
+```sh
+heocr-engine tesseract "$IMAGE" "$PREDICTION" --executable "$TESSERACT" \
+  --tessdata-dir "$TESSDATA" --language heb+eng --psm 3 --timeout 60
+```
+
+Apply `correct_prediction` from the pinned engine to each parsed prediction
+with geometry `None`, saving the returned prediction separately; count the
+returned reasons. Then evaluate (mapping is derived from asset hashes):
+
+```sh
+hocrgen evaluate-references --predictions "$CANDIDATES" \
+  --baseline-predictions "$BASELINES" --synthetic-batch "$BATCH" \
+  --output "$REPORT"
+```
+
+Report failures and coverage, and do not replace absent prediction-side tables
+with manifest or annotation geometry. These commands produce a no-op
+comparison in this particular missing-geometry experiment.
 
 Independent recomputation of the primary counts matched the aggregate. Each
 family has 25 pages; these names describe synthetic styles and do not measure
