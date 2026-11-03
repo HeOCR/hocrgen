@@ -59,3 +59,14 @@ BASELINES --synthetic-batch "$BATCH" --output REPORT.json`. Mapping is derived
 from page asset hashes. Report failures and coverage, and do not replace absent
 prediction-side tables with manifest or annotation geometry. These commands
 produce a no-op comparison in this particular missing-geometry experiment.
+
+Independent recomputation of the primary counts matched the aggregate. Each
+family has 25 pages; these names describe synthetic styles and do not measure
+real handwriting recognition or establish performance on real documents.
+
+| Synthetic family | Character edits / reference characters (CER) | Word edits / reference words (WER) |
+| --- | --- | --- |
+| Printed letter | 1,008 / 5,707 (17.66%) | 271 / 1,054 (25.71%) |
+| Handwritten-like note | 3,016 / 4,090 (73.74%) | 704 / 755 (93.25%) |
+| Archive card | 2,491 / 5,608 (44.42%) | 609 / 987 (61.70%) |
+| Ledger | 9,265 / 12,038 (76.96%) | 2,617 / 3,017 (86.74%) |
