@@ -118,3 +118,5 @@ separate alignment policy. Empty common sets have zero counts and null rates.
 The headline remains `primary.v1`; punctuation-folded scores are secondary.
 These fields also appear in diagnostic-only comparisons without changing their
 unreviewed status or permitting cross-track comparisons.
+
+For a frozen, rights-clean mixed-script example, see the [synthetic evaluation recipe](evaluation-fixtures/bidi-synthetic-recipe.md).
