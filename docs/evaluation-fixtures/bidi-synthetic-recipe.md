@@ -48,3 +48,14 @@ outputs. These values describe this synthetic recognizer baseline and safe
 abstention interface only; they do not test correction effectiveness. Profiles
 fold whitespace and other details as specified in `docs/reference_evaluation.md`;
 report raw and optional secondary typography profiles separately.
+
+For each manifest page, run `heocr-engine tesseract IMAGE PREDICTION.json
+--executable "$TESSERACT" --tessdata-dir "$TESSDATA" --language heb+eng
+--psm 3 --timeout 60` with distinct output files. Apply `correct_prediction`
+from the pinned engine to each parsed prediction with geometry `None`, saving
+the returned prediction separately; count the returned reasons. Then run
+`hocrgen evaluate-references --predictions CANDIDATES --baseline-predictions
+BASELINES --synthetic-batch "$BATCH" --output REPORT.json`. Mapping is derived
+from page asset hashes. Report failures and coverage, and do not replace absent
+prediction-side tables with manifest or annotation geometry. These commands
+produce a no-op comparison in this particular missing-geometry experiment.
