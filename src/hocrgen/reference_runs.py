@@ -386,7 +386,24 @@ def _report_deltas(base_report: dict[str, Any], cand_report: dict[str, Any]) -> 
         # Re-aggregate over common items only, so omitting a hard item cannot look like an improvement.
         base_agg = _aggregate([base_items[i]["profiles"][profile_id] for i in common])
         cand_agg = _aggregate([cand_items[i]["profiles"][profile_id] for i in common])
+        accounting = {}
+        for metric, edit_key, denominator_key in (
+            ("characters", "character_edits", "reference_characters"),
+            ("words", "word_edits", "reference_words"),
+        ):
+            differences = [cand_items[i]["profiles"][profile_id][edit_key]
+                           - base_items[i]["profiles"][profile_id][edit_key] for i in common]
+            accounting[metric] = {
+                "baseline_edits": base_agg[edit_key], "candidate_edits": cand_agg[edit_key],
+                "reference_units": base_agg[denominator_key],
+                "items_improved": sum(d < 0 for d in differences),
+                "items_unchanged": sum(d == 0 for d in differences),
+                "items_worsened": sum(d > 0 for d in differences),
+                "net_edits_removed_on_improved_items": sum(-d for d in differences if d < 0),
+                "net_edits_introduced_on_worsened_items": sum(d for d in differences if d > 0),
+            }
         profiles[profile_id] = {
+            "paired_edit_accounting": accounting,
             "baseline_cer": base_agg["cer"], "candidate_cer": cand_agg["cer"],
             "delta_cer": None if None in (base_agg["cer"], cand_agg["cer"]) else cand_agg["cer"] - base_agg["cer"],
             "baseline_wer": base_agg["wer"], "candidate_wer": cand_agg["wer"],
