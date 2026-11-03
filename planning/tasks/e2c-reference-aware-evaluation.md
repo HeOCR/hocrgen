@@ -61,3 +61,17 @@ Unknown dimensions or modalities fail closed.
 
 No reference status, readiness gate or benchmark evidence changes. Unreviewed text stays outside every scored aggregate.
 
+
+## E2c6 — Paired error accounting (planned)
+
+Parent milestone E2. Extend the existing same-track, common-item comparison with
+paired error accounting for each requested profile. Report baseline and candidate
+character and word edit counts and shared reference denominators, plus the number
+of items improved, unchanged, and worsened under each metric. Report net edits
+removed and introduced as **net item-level changes**, not aligned individual
+error corrections: edit distance alone cannot identify the same error across
+predictions. Preserve primary.v1 as headline; optional punctuation-folded output
+is secondary and never replaces the primary result. Keep diagnostic-only and
+scored comparisons distinct, refuse cross-track comparisons, and retain common
+item coverage and exclusions. Empty sets and zero denominators remain explicit.
+Use offline adversarial fixtures and preserve existing output fields.
