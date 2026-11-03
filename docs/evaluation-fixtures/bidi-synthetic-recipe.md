@@ -43,7 +43,7 @@ English model SHA-256:
 The candidate callable was heocr-engine commit
 `1175cdd3a0fac06fc0d9130100bcfb44c0e9c11e`. The local run supplied no
 prediction-side table geometry: all 100 correction calls abstained. No gold
-geometry was passed to correction. With hocrgen code at `9aff7d4` and `evaluate-references` / `primary.v1`,
+geometry was passed to correction. With hocrgen code at `9aff7d49afd5540f007566f5703e27f5c6cb506b` and `evaluate-references` / `primary.v1`,
 100 common pages yielded CER 15,780/27,443 and WER 4,201/5,813 for both
 outputs. These values describe this synthetic recognizer baseline and safe
 abstention interface only; they do not test correction effectiveness. Profiles
