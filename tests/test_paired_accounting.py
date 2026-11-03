@@ -26,3 +26,16 @@ def test_empty_common_set_has_zero_counts_and_null_rate():
     result = _report_deltas(report, report)["profiles"]["primary.v1"]
     assert result["baseline_cer"] is None
     assert result["paired_edit_accounting"]["characters"]["reference_units"] == 0
+
+
+def test_nonempty_item_with_empty_reference_keeps_null_rates_and_word_edits():
+    def report(text):
+        return {"profiles": {"primary.v1": {}}, "items": [
+            {"item_id": "empty", "profiles": {"primary.v1": _pair(text, "")}}
+        ]}
+    profile = _report_deltas(report("one two"), report("one"))["profiles"]["primary.v1"]
+    words = profile["paired_edit_accounting"]["words"]
+    assert profile["baseline_wer"] is None and profile["candidate_wer"] is None
+    assert words["reference_units"] == 0
+    assert (words["baseline_edits"], words["candidate_edits"]) == (2, 1)
+    assert words["items_improved"] == 1
