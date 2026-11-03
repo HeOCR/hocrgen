@@ -108,3 +108,13 @@ hocrgen evaluate-references --diagnostic-only --predictions PRED_DIR \
 - profiles, the primary profile and the hocrgen version.
 
 The record contains file names only, never local paths.
+
+**Paired edit accounting (E2c6).** Each profile's common-item comparison also
+reports baseline and candidate edit totals, shared reference units, counts of
+items improved, unchanged, and worsened, and the sums of item-level net edits
+removed or introduced. These are differences in edit distance per item; they do
+not identify individual corrected or introduced errors, which would require a
+separate alignment policy. Empty common sets have zero counts and null rates.
+The headline remains `primary.v1`; punctuation-folded scores are secondary.
+These fields also appear in diagnostic-only comparisons without changing their
+unreviewed status or permitting cross-track comparisons.
