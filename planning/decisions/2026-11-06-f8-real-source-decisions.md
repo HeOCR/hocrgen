@@ -27,9 +27,19 @@ These answer the "Maintainer decisions needed" list in [`planning/tasks/f8-real-
    - A line counts as Hebrew only through an explicit, reviewable per-line language tag. Until a line is tagged, it keeps the conservative `character_level_only` scope.
    - Tags are never inferred silently from a script or language heuristic.
 
+9. **Google-digitized scans are accepted**, under the same per-file check as every other file. This covers Commons files stamped "Digitized by Google": Google's usage guidelines bind whoever downloads from Google Books, not the public-domain status of the work. NLI's own `public-domain-non-commercial-use` class stays out, because NLI states that restriction on the item itself.
+10. **Data gaps are not rights problems.** A Wikisource Index is not rejected because evidence is missing from Commons or Wikidata when the work is in fact public domain. Missing evidence is resolved, not used as a reason to drop the Index:
+    - **Death years** are looked up and recorded with a cited source.
+    - **A work published on or before 1855** is presumed PD in Israel even when no creator death year is found. Its creators would have had to live more than 100 years after publication to still be protected.
+    - **Scan provenance and licence templates:** a faithful reproduction of a public-domain work needs no recorded scan source or open-licence template. The Commons tag (`PD-US-*`, missing, or other) never decides the work's status in Israel; the work's own evidence does.
+    - **Real protection still excludes.** For example, the Birnbaum works stay out: Birnbaum died in 1988.
+11. **The text converter must handle every page.** No page is dropped for unsupported markup. The converter is extended until every construct used in admitted Indexes has a defined, tested rendering. Closed-world remains the safety rule during development: an unknown construct fails loudly so it gets implemented, never silently dropped. The open question is only the output form of each construct.
+12. **Partial transcriptions are cropped, not dropped.** When a page's transcription covers only part of the page (for example commentary without the verse), the image is cropped to the transcribed region. The resulting sub-image and text form the pair. The crop is located by tooling (OCR may be used for localization only, never as text), recorded with its geometry and method, and reviewable.
+
 ## Consequences
 
-- `F8b` is unblocked. HebrewBooks-sourced Index files are admitted only through the per-file rights check.
+- `F8b` is unblocked. HebrewBooks-sourced and Google-digitized Index files are admitted through the per-file rights check (decisions 3 and 9).
+- The Wikisource pipeline (`F8b3` and after) resolves evidence gaps, extends the converter to every construct, and crops partial pages (decisions 10–12). The goal is that every quality-3/4 page of a public-domain Hebrew work becomes an image–text pair.
 - `F8d` admits YidTakNL with a scope marker limiting it to training and character-level evaluation.
 - `pinkas_dataset_bgu` needs per-line language tags before any line is used for word-level or language-level Hebrew evaluation (decision 8). This is follow-up work; the shipped page-level scope stays in force until then.
 - `F8e` is planned rather than deferred. It covers Reshumot from about 2006 (born-digital) and Knesset committee scans up to 1975. Committee protocols from 1976 on wait for the legal opinion.
