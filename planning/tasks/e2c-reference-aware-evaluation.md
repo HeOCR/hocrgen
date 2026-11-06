@@ -5,7 +5,7 @@ Status: E2c1–E2c7 implemented on the current ref. Parent milestone: E2, Baseli
 - **E2c1**: this planning contract.
 - **E2c2**: deterministic reference-aware scoring and diagnostics, building on E2a's existing API without changing its results.
 - **E2c3**: versioned normalization profiles applied to both sides and recorded in results, per-stratum aggregates, and a labelled `alignment_masked` diagnostic for unscoped full-page predictions.
-- **E2c4**: an `evaluate-references` CLI over `heocr_engine_prediction.v1` / schema `"1.0"` prediction files with an explicit or sha256-derived page mapping, a run record, and per-stage ΔCER between two prediction sets. Synthetic gold is the scored set; HASH and tender pages are `unreviewed` diagnostics only.
+- **E2c4**: an `evaluate-references` CLI over `heocr_engine_prediction.v1` / schema `"1.0"` prediction files with an explicit or sha256-derived page mapping, a run record, and per-stage ΔCER between two prediction sets. Synthetic gold is the scored set; HASH pages are `unreviewed` diagnostics only. (Tender pages, issue #86, were closed on 2026-11-06 as unusable.)
 - **E2c5**: an explicit `--diagnostic-only` mode for `evaluate-references` that scores `--unreviewed-texts` with no scored set, so real-page sanity checks need no placeholder scored set. See [E2c5 diagnostic-only runs](#e2c5-diagnostic-only-runs).
 - **E2c6**: paired common-item error accounting. See [E2c6](#e2c6--paired-error-accounting-planned).
 - **E2c7**: a per-cell reference view for synthetic gold, derived from hocrsyngen line annotations, reported beside the unchanged scores. See [E2c7](#e2c7--per-cell-reference-view).

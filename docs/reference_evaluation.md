@@ -78,7 +78,7 @@ The negation-token diagnostic strips a fixed set of surrounding punctuation befo
   - `identity.validation` records which path was used. Neither path admits a batch to release paths.
 - `adjudicated_reference`: child references of a `benchmark_reference_manifest.v1` (`--reference-manifest`) whose items are `reviewed`/`adjudicated` with `adjudication_status: adjudicated`. Other items are listed in `excluded_references` with a reason.
 
-**Unreviewed diagnostics.** `--unreviewed-texts` takes JSONL `{item_id, text, reference_origin, modality, ...}`, for example HASH HTR candidates or tender self-attested pages.
+**Unreviewed diagnostics.** `--unreviewed-texts` takes JSONL `{item_id, text, reference_origin, modality, ...}`, for example HASH HTR candidates. (Tender self-attested pages, issue #86, were closed on 2026-11-06 as unusable.)
 - These are scored under the same profiles, but only under `unreviewed_diagnostics`, with `scored: false` and `benchmark_ready: false`.
 - They cannot claim a scored origin.
 

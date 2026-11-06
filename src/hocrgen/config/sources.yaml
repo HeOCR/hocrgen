@@ -83,7 +83,7 @@ sources:
         - LicenseRef-Public-Domain-Israel
     normalized_license: PD-IL
     rights_classification: open
-    requires_manual_review: true
+    requires_manual_review: false
     source_operations:
       operational_status: active
       health_expectations:
@@ -106,7 +106,7 @@ sources:
         - LicenseRef-Public-Domain-Ukraine
     normalized_license: PDM-1.0
     rights_classification: open
-    requires_manual_review: true
+    requires_manual_review: false
     source_operations:
       operational_status: active
       health_expectations:

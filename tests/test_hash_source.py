@@ -48,10 +48,17 @@ def test_hash_sources_are_review_only_and_outside_the_public_profile() -> None:
     for source_id in HASH_SOURCE_IDS:
         source = sources[source_id]
         assert source.fetcher == "hash"
+        # Held for F7d (composition contract, writer-group leakage, tranche assets), not for privacy.
         assert source.status.value == "review_only"
         assert source.default_public_release is False
-        assert source.requires_manual_review is True
-        assert bundle.privacy_rules.source_defaults[source_id].value == "needs_review"
+        # Maintainer decision 2026-11-06: HASH needs no human privacy review.
+        assert source.requires_manual_review is False
+        assert bundle.privacy_rules.source_defaults[source_id].value == "clear"
+        assert not [
+            rule.id
+            for rule in bundle.privacy_rules.rules
+            if source_id in rule.applies_to_sources and rule.flag.value in {"needs_review", "possible_personal_data"}
+        ]
         assert source_id not in bundle.profiles["profile_open_v1"].include_sources
         assert source_id in bundle.profiles["profile_review_v1"].include_sources
     assert sources["hash_nli_any_use"].normalized_license == "PD-IL"

@@ -4,8 +4,8 @@ source_defaults:
   pinkas_open: clear
   biblia_open: clear
   project_synthetic: clear
-  hash_nli_any_use: needs_review
-  hash_public_domain: needs_review
+  hash_nli_any_use: clear
+  hash_public_domain: clear
 rules:
   - id: modern_letter_review
     flag: possible_personal_data

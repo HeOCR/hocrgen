@@ -1,8 +1,9 @@
 """E2c4: offline reference-aware evaluation runs over engine prediction files, with a run record.
 
 Scored set: synthetic gold derived from a validated hocrsyngen batch, plus reviewed/adjudicated
-``benchmark_transcription_reference.v1`` records. HASH, tender, or any other unreviewed text is scored only as
-``unreviewed`` diagnostics and never enters scored aggregates.
+``benchmark_transcription_reference.v1`` records. HASH or any other unreviewed text is scored only as
+``unreviewed`` diagnostics and never enters scored aggregates. (The tender-page source, hocrgen#86, was closed on
+2026-11-06 as unusable.)
 
 E2c5: ``diagnostic_only`` runs score unreviewed text alone, with no scored set. Such a run is never a benchmark:
 it refuses scored-set inputs, is marked ``benchmark_ready: false`` and ``diagnostic_only: true``, and reports any
@@ -374,7 +375,7 @@ def load_adjudicated_references(manifest_path: Path) -> dict[str, Any]:
 
 
 def load_unreviewed_texts(path: Path) -> dict[str, Any]:
-    """JSONL of ``{item_id, text, ...strata}`` for unreviewed candidate texts (HASH, tenders, etc.)."""
+    """JSONL of ``{item_id, text, ...strata}`` for unreviewed candidate texts (for example HASH)."""
     try:
         raw = path.read_bytes()
         lines = [json.loads(line) for line in raw.decode("utf-8").splitlines() if line.strip()]
