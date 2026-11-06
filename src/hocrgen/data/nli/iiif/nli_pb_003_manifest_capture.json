@@ -1,0 +1,168 @@
+{
+  "canvas_count": 124,
+  "capture_format": "hocrgen.nli_iiif_manifest_capture.v1",
+  "captured_on": "2026-11-06",
+  "http_status": 200,
+  "manifest": {
+    "@context": "http://iiif.io/api/presentation/2/context.json",
+    "@id": "https://iiif.nli.org.il/IIIFv21/DOCID/NNL_ALEPH11348451370005171/manifest",
+    "@type": "sc:Manifest",
+    "attribution": [
+      "מאוסף הספרייה הלאומית"
+    ],
+    "label": "הגדה / עם פירוש הרב האבודרהם.",
+    "license": [
+      "https://www.nli.org.il/contenteditors/pages-for-terms-of-use/public-domain-free-use"
+    ],
+    "logo": [
+      "http://iiif.nli.org.il/IIIFv21/images/nli_logo.jpg"
+    ],
+    "metadata": [
+      {
+        "label": "Title",
+        "value": "הגדה / עם פירוש הרב האבודרהם."
+      },
+      {
+        "label": "Contributor",
+        "value": "אבודרהם, דוד בן יוסף$$Qאבודרהם, דוד בן יוסף"
+      },
+      {
+        "label": "Publisher",
+        "value": "ליוורנו : שלמה בילפורט"
+      },
+      {
+        "label": "Base",
+        "value": "972NNL_INST"
+      },
+      {
+        "label": "Subject",
+        "value": "Haggadah"
+      },
+      {
+        "label": "Source",
+        "value": "The National Library of Israel"
+      },
+      {
+        "label": "Doc Id",
+        "value": "NNL_ALEPH11348451370005171"
+      },
+      {
+        "label": "Creation Date",
+        "value": "תרט\"ו"
+      },
+      {
+        "label": "Type",
+        "value": "book"
+      },
+      {
+        "label": "Format",
+        "value": "דף ל, [ב]-נה)."
+      },
+      {
+        "label": "Language",
+        "value": "heb"
+      },
+      {
+        "label": "Alternative Title",
+        "value": "הגדה של פסח. תרט\"ו. ליוורנו heb"
+      },
+      {
+        "label": "SysNum",
+        "value": "11348451370005171"
+      }
+    ],
+    "related": "http://merhav.nli.org.il/primo_library/libweb/action/display.do?tabs=detailsTab&ct=display&fn=search&displayMode=full&doc=NNL_ALEPH11348451370005171",
+    "sequences": [
+      {
+        "@id": "https://iiif.nli.org.il/IIIFv21/NNL_ALEPH11348451370005171/sequence/IE138828316",
+        "@type": "sc:Sequence",
+        "canvases": [
+          {
+            "@id": "https://iiif.nli.org.il/IIIFv21/FL138828589",
+            "@type": "sc:Canvas",
+            "height": 2216,
+            "images": [
+              {
+                "@id": "FL138828589",
+                "@type": "oa:Annotation",
+                "motivation": "sc:painting",
+                "on": "https://iiif.nli.org.il/IIIFv21/FL138828589",
+                "resource": {
+                  "@id": "https://iiif.nli.org.il/IIIFv21/FL138828589/full/max/0/default.jpg",
+                  "@type": "dctypes:Image",
+                  "format": "image/jpeg;",
+                  "height": 2216,
+                  "label": "jpg_00000007",
+                  "service": {
+                    "@context": "http://iiif.io/api/image/2/context.json",
+                    "@id": "https://iiif.nli.org.il/IIIFv21/FL138828589",
+                    "label": "jpg_00000007",
+                    "profile": "http://iiif.io/api/image/2/level1.json"
+                  },
+                  "width": 1429
+                }
+              }
+            ],
+            "label": "jpg_00000007",
+            "width": 1429
+          },
+          {
+            "@id": "https://iiif.nli.org.il/IIIFv21/FL138828590",
+            "@type": "sc:Canvas",
+            "height": 2216,
+            "images": [
+              {
+                "@id": "FL138828590",
+                "@type": "oa:Annotation",
+                "motivation": "sc:painting",
+                "on": "https://iiif.nli.org.il/IIIFv21/FL138828590",
+                "resource": {
+                  "@id": "https://iiif.nli.org.il/IIIFv21/FL138828590/full/max/0/default.jpg",
+                  "@type": "dctypes:Image",
+                  "format": "image/jpeg;",
+                  "height": 2216,
+                  "label": "jpg_00000008",
+                  "service": {
+                    "@context": "http://iiif.io/api/image/2/context.json",
+                    "@id": "https://iiif.nli.org.il/IIIFv21/FL138828590",
+                    "label": "jpg_00000008",
+                    "profile": "http://iiif.io/api/image/2/level1.json"
+                  },
+                  "width": 1429
+                }
+              }
+            ],
+            "label": "jpg_00000008",
+            "width": 1429
+          }
+        ]
+      }
+    ],
+    "viewingHint": "paged"
+  },
+  "manifest_url": "https://iiif.nli.org.il/IIIFv21/990017220030205171/manifest",
+  "selected_canvases": [
+    {
+      "asset": "assets/nli_pb_003_page1.jpg",
+      "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL138828589",
+      "image_service_info_status": 200,
+      "image_service_rights": "http://web.nli.org.il/sites/NLI/Hebrew/library/items-terms-of-use/Pages/nli-copying-prohibited.aspx",
+      "image_url": "https://iiif.nli.org.il/IIIFv21/FL138828589/full/800,/0/default.jpg",
+      "index": 6,
+      "label": "jpg_00000007",
+      "sha256": "e575eee0ce63f1a1b5261255ec278ece1ac98fb5fe362fc49485dfded031d65b"
+    },
+    {
+      "asset": "assets/nli_pb_003_page2.jpg",
+      "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL138828590",
+      "image_service_info_status": 200,
+      "image_service_rights": "http://web.nli.org.il/sites/NLI/Hebrew/library/items-terms-of-use/Pages/nli-copying-prohibited.aspx",
+      "image_url": "https://iiif.nli.org.il/IIIFv21/FL138828590/full/800,/0/default.jpg",
+      "index": 7,
+      "label": "jpg_00000008",
+      "sha256": "fd1f14ab1e8d07ad23b52be1ab26a00f85eaf2386092e4ec6debe50be451ccae"
+    }
+  ],
+  "upstream_bytes": 92421,
+  "upstream_sha256": "77e10021673ccbd25010dfe564306ee17e94ac65cd9bd831f52a9876da8b5052"
+}

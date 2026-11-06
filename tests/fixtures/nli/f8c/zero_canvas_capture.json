@@ -1,0 +1,91 @@
+{
+  "canvas_count": 0,
+  "capture_format": "hocrgen.nli_iiif_manifest_capture.v1",
+  "captured_on": "2026-11-06",
+  "http_status": 200,
+  "manifest": {
+    "@context": "http://iiif.io/api/presentation/2/context.json",
+    "@id": "https://iiif.nli.org.il/IIIFv21/DOCID/NNL_ALEPH21235180020005171/manifest",
+    "@type": "sc:Manifest",
+    "attribution": [
+      "מאוסף הספרייה הלאומית"
+    ],
+    "label": "סדר גאולת ישראל : והוא סדר הגדה של פסח ... עם ספורי נפלאות ... / אשר קיבץ וליקט הרב ... מוה\"ר משה מזאלשין ... ופירוש ילקוט הרועים הם פירושים ...",
+    "license": [
+      "https://www.nli.org.il/contenteditors/pages-for-terms-of-use/public-domain-free-use"
+    ],
+    "logo": [
+      "http://iiif.nli.org.il/IIIFv21/images/nli_logo.jpg"
+    ],
+    "metadata": [
+      {
+        "label": "Title",
+        "value": "סדר גאולת ישראל : והוא סדר הגדה של פסח ... עם ספורי נפלאות ... / אשר קיבץ וליקט הרב ... מוה\"ר משה מזאלשין ... ופירוש ילקוט הרועים הם פירושים ..."
+      },
+      {
+        "label": "Publisher",
+        "value": "ווארשא : דפוס גרשון ופסח לערענזאהן"
+      },
+      {
+        "label": "Base",
+        "value": [
+          "$$V972NNL_INST$$ONNL_ALEPH21235180020005171",
+          "$$V972NNL_INST$$ONNL_ALEPH51298780730005171"
+        ]
+      },
+      {
+        "label": "Subject",
+        "value": "Haggadah"
+      },
+      {
+        "label": "Source",
+        "value": [
+          "$$VThe National Library of Israel$$ONNL_ALEPH21235180020005171",
+          "$$VThe National Library of Israel$$ONNL_ALEPH51298780730005171"
+        ]
+      },
+      {
+        "label": "Doc Id",
+        "value": "dedupmrg1219332487"
+      },
+      {
+        "label": "Creation Date",
+        "value": "תרל\"ה"
+      },
+      {
+        "label": "Type",
+        "value": "book"
+      },
+      {
+        "label": "Format",
+        "value": "40 עמודים ; 8."
+      },
+      {
+        "label": "Language",
+        "value": "heb"
+      },
+      {
+        "label": "Alternative Title",
+        "value": [
+          "הגדה של פסח. תרל\"ה. ורשה heb",
+          "סדר גאלת ישראל"
+        ]
+      },
+      {
+        "label": "SysNum",
+        "value": [
+          "$$V21235180020005171$$ONNL_ALEPH21235180020005171",
+          "$$V51298780730005171$$ONNL_ALEPH51298780730005171"
+        ]
+      }
+    ],
+    "related": "http://merhav.nli.org.il/primo_library/libweb/action/display.do?tabs=detailsTab&ct=display&fn=search&displayMode=full&doc=NNL_ALEPH21235180020005171",
+    "sequences": [],
+    "viewingHint": "paged"
+  },
+  "manifest_url": "https://iiif.nli.org.il/IIIFv21/990017258900205171/manifest",
+  "selected_canvases": [],
+  "test_note": "Real capture (Seder Geulat Yisrael, Warsaw 1875): public-domain-free-use with zero canvases.",
+  "upstream_bytes": 2010,
+  "upstream_sha256": "92447fe2c42b5dcb3faaa4f28e1f207cb219d5c0e3f2fd7c9f34b7f3acf62dfd"
+}

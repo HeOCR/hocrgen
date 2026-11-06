@@ -1,0 +1,140 @@
+{
+  "canvas_count": 124,
+  "capture_format": "hocrgen.nli_iiif_manifest_capture.v1",
+  "captured_on": "2026-11-06",
+  "http_status": 200,
+  "manifest": {
+    "@context": "http://iiif.io/api/presentation/2/context.json",
+    "@id": "https://iiif.nli.org.il/IIIFv21/DOCID/NNL_ALEPH21275348860005171/manifest",
+    "@type": "sc:Manifest",
+    "attribution": [
+      "מאוסף הספרייה הלאומית"
+    ],
+    "label": "רב פנינים : פירוש על משלי.",
+    "license": [
+      "https://www.nli.org.il/contenteditors/pages-for-terms-of-use/public-domain-non-commercial-use"
+    ],
+    "logo": [
+      "http://iiif.nli.org.il/IIIFv21/images/nli_logo.jpg"
+    ],
+    "metadata": [
+      {
+        "label": "Title",
+        "value": "רב פנינים : פירוש על משלי."
+      },
+      {
+        "label": "Contributor",
+        "value": "דפוס גרשון בן חיים דוד סג\"ל, דוד בן מנחם מן וחיים דוד בן אהרן סג\"ל מדפיס"
+      },
+      {
+        "label": "Publisher",
+        "value": "זאלקווא : דפוס גרשון בן חיים דוד סג\"ל, דוד בן מנחם מן וחיים דוד בן אהרן סג\"ל"
+      },
+      {
+        "label": "Base",
+        "value": [
+          "$$V972NNL_INST$$ONNL_ALEPH21275348860005171",
+          "$$V972NNL_INST$$ONNL_ALEPH11338861980005171",
+          "$$V972NNL_INST$$ONNL_ALEPH51300209040005171"
+        ]
+      },
+      {
+        "label": "Subject",
+        "value": "Bible. Proverbs -- Commentaries"
+      },
+      {
+        "label": "Source",
+        "value": [
+          "$$VThe National Library of Israel$$ONNL_ALEPH21275348860005171",
+          "$$VThe National Library of Israel$$ONNL_ALEPH11338861980005171",
+          "$$VThe National Library of Israel$$ONNL_ALEPH51300209040005171"
+        ]
+      },
+      {
+        "label": "The Creator",
+        "value": "אלשיך, משה בן חיים, 1520-1593$$Qאלשיך, משה בן חיים, 1520-1593"
+      },
+      {
+        "label": "Doc Id",
+        "value": "dedupmrg1262779237"
+      },
+      {
+        "label": "Creation Date",
+        "value": "תקכ\"ה"
+      },
+      {
+        "label": "Type",
+        "value": "book"
+      },
+      {
+        "label": "Format",
+        "value": "לב דפים ; 2."
+      },
+      {
+        "label": "Language",
+        "value": "heb"
+      },
+      {
+        "label": "Alternative Title",
+        "value": "תנ\"ך."
+      },
+      {
+        "label": "SysNum",
+        "value": [
+          "$$V21275348860005171$$ONNL_ALEPH21275348860005171",
+          "$$V11338861980005171$$ONNL_ALEPH11338861980005171",
+          "$$V51300209040005171$$ONNL_ALEPH51300209040005171"
+        ]
+      }
+    ],
+    "related": "http://merhav.nli.org.il/primo_library/libweb/action/display.do?tabs=detailsTab&ct=display&fn=search&displayMode=full&doc=NNL_ALEPH21275348860005171",
+    "sequences": [
+      {
+        "@id": "https://iiif.nli.org.il/IIIFv21/NNL_ALEPH21275348860005171/sequence/IE134272133",
+        "@type": "sc:Sequence",
+        "canvases": [
+          {
+            "@id": "https://iiif.nli.org.il/IIIFv21/FL134273629",
+            "@type": "sc:Canvas",
+            "height": 3922,
+            "images": [
+              {
+                "@id": "FL134273629",
+                "@type": "oa:Annotation",
+                "motivation": "sc:painting",
+                "on": "https://iiif.nli.org.il/IIIFv21/FL134273629",
+                "resource": {
+                  "@id": "https://iiif.nli.org.il/IIIFv21/FL134273629/full/max/0/default.jpg",
+                  "@type": "dctypes:Image",
+                  "format": "image/jpeg;",
+                  "height": 3922,
+                  "label": "jpg_00000001",
+                  "service": {
+                    "@context": "http://iiif.io/api/image/2/context.json",
+                    "@id": "https://iiif.nli.org.il/IIIFv21/FL134273629",
+                    "label": "jpg_00000001",
+                    "profile": "http://iiif.io/api/image/2/level1.json"
+                  },
+                  "width": 2287
+                }
+              }
+            ],
+            "label": "jpg_00000001",
+            "width": 2287
+          }
+        ]
+      },
+      {
+        "@id": "https://iiif.nli.org.il/IIIFv21/NNL_ALEPH21275348860005171/sequence/IE85213112",
+        "@type": "sc:Sequence",
+        "canvases": []
+      }
+    ],
+    "viewingHint": "paged"
+  },
+  "manifest_url": "https://iiif.nli.org.il/IIIFv21/001268231/manifest",
+  "selected_canvases": [],
+  "test_note": "Real capture (Rav Peninim, 1765), trimmed to one canvas; Google-digitized non-commercial class.",
+  "upstream_bytes": 93228,
+  "upstream_sha256": "33e7e7541edeab0578ea82db24c59e56fb3ea3952f0341319e6660417bd39203"
+}

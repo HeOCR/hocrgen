@@ -56,7 +56,7 @@ from hocrgen.manifests.models import (
 )
 from hocrgen.review.merge import load_review_data, merge_review_decisions
 from hocrgen.normalize.metadata import normalize_items
-from hocrgen.parsers.rights import classify_eligibility, normalize_rights
+from hocrgen.parsers.rights import RightsResult, classify_eligibility, normalize_rights
 from hocrgen.privacy.rules import apply_privacy_rules
 from hocrgen.review.queue import export_review_queue
 from hocrgen.source_ops import (
@@ -286,6 +286,19 @@ def _item_from_enriched(record: EnrichedCandidateRecord, source: SourceConfig, b
     rights = normalize_rights(record.raw_rights_text, source, licenses)
     license_entry = licenses[rights.normalized_license]
     eligibility, reason = classify_eligibility(rights, bundle.profiles[profile_id], license_entry.public_release_allowed)
+    rights_gate = record.metadata.get("rights_gate")
+    if isinstance(rights_gate, dict) and rights_gate.get("decision") == "rejected":
+        # A fetcher-level rights gate can only reject, never admit. It may name a non-public licence
+        # bucket (for example RESTRICTED-NONOPEN for non-commercial terms); anything else falls back to UNKNOWN.
+        gate_license = licenses.get(str(rights_gate.get("normalized_license") or ""))
+        if gate_license is None or gate_license.public_release_allowed:
+            gate_license = licenses["UNKNOWN"]
+        rights = RightsResult(
+            raw_text=rights.raw_text,
+            normalized_license=gate_license.id,
+            rights_classification=gate_license.rights_classification,
+        )
+        eligibility, reason = "rejected", str(rights_gate.get("reason") or "rights_gate_rejected")
     return ItemRecord(
         **record.model_dump(),
         item_id=f"{record.source_id}:{record.source_item_id}",

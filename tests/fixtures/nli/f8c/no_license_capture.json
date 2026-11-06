@@ -1,0 +1,79 @@
+{
+  "canvas_count": 0,
+  "capture_format": "hocrgen.nli_iiif_manifest_capture.v1",
+  "captured_on": "2026-11-06",
+  "http_status": 200,
+  "manifest": {
+    "@context": "http://iiif.io/api/presentation/2/context.json",
+    "@id": "https://iiif.nli.org.il/IIIFv21/DOCID/NNL_ALEPH21275348930005171/manifest",
+    "@type": "sc:Manifest",
+    "attribution": [
+      "מאוסף הספרייה הלאומית"
+    ],
+    "label": "ספר תורת משה : ... השלים כל הקרב\"נות וסמי\"כות הפרשיות ומקראות ודקדוקי ספורים [!] וחובר ... במקראי קודש ... / [ע\"י] מוהר\"ר משה אלשיך.",
+    "license": [
+      "https://www.nli.org.il/contenteditors/pages-for-terms-of-use/no-license-subject-to-copyright"
+    ],
+    "logo": [
+      "http://iiif.nli.org.il/IIIFv21/images/nli_logo.jpg"
+    ],
+    "metadata": [
+      {
+        "label": "Title",
+        "value": "ספר תורת משה : ... השלים כל הקרב\"נות וסמי\"כות הפרשיות ומקראות ודקדוקי ספורים [!] וחובר ... במקראי קודש ... / [ע\"י] מוהר\"ר משה אלשיך."
+      },
+      {
+        "label": "Publisher",
+        "value": "[ברוקלין] : הוצאת יוסף ווייס"
+      },
+      {
+        "label": "Base",
+        "value": "972NNL_INST"
+      },
+      {
+        "label": "Subject",
+        "value": "Bible. Pentateuch -- Commentaries"
+      },
+      {
+        "label": "Source",
+        "value": "The National Library of Israel"
+      },
+      {
+        "label": "The Creator",
+        "value": "אלשיך, משה בן חיים, 1520-1593$$Qאלשיך, משה בן חיים, 1520-1593"
+      },
+      {
+        "label": "Doc Id",
+        "value": "NNL_ALEPH21275348930005171"
+      },
+      {
+        "label": "Creation Date",
+        "value": "תשל\"ה"
+      },
+      {
+        "label": "Type",
+        "value": "book"
+      },
+      {
+        "label": "Format",
+        "value": "2 כרכים ; 26 ס\"מ."
+      },
+      {
+        "label": "Language",
+        "value": "heb"
+      },
+      {
+        "label": "SysNum",
+        "value": "21275348930005171"
+      }
+    ],
+    "related": "http://merhav.nli.org.il/primo_library/libweb/action/display.do?tabs=detailsTab&ct=display&fn=search&displayMode=full&doc=NNL_ALEPH21275348930005171",
+    "sequences": [],
+    "viewingHint": "paged"
+  },
+  "manifest_url": "https://iiif.nli.org.il/IIIFv21/001268230/manifest",
+  "selected_canvases": [],
+  "test_note": "Real capture (Torat Moshe, 1975): no-license-subject-to-copyright, zero canvases.",
+  "upstream_bytes": 1749,
+  "upstream_sha256": "7f2bc6346cfd5a9b77c92f77007d791c4c7601387cdbb1263eb444654c1c1b90"
+}

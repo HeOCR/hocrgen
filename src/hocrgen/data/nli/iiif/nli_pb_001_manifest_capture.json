@@ -1,0 +1,180 @@
+{
+  "canvas_count": 106,
+  "capture_format": "hocrgen.nli_iiif_manifest_capture.v1",
+  "captured_on": "2026-11-06",
+  "http_status": 200,
+  "manifest": {
+    "@context": "http://iiif.io/api/presentation/2/context.json",
+    "@id": "https://iiif.nli.org.il/IIIFv21/DOCID/NNL_ALEPH21275347970005171/manifest",
+    "@type": "sc:Manifest",
+    "attribution": [
+      "מאוסף הספרייה הלאומית"
+    ],
+    "label": "סדר הגדה של פסח : עם פירוש ... על כל ההגדה עם כל הפיוטים ... קידוש, הלל והלל הגדול ... וקרא שמו ... תשבי מבשר ... / חברו ... בעהמ\"ח ספר בתים לבריחים [=שבתי בן אהרן] מ\"מ ומ\"ץ דק\"ק טשאשניק ...",
+    "license": [
+      "https://www.nli.org.il/contenteditors/pages-for-terms-of-use/public-domain-free-use"
+    ],
+    "logo": [
+      "http://iiif.nli.org.il/IIIFv21/images/nli_logo.jpg"
+    ],
+    "metadata": [
+      {
+        "label": "Title",
+        "value": "סדר הגדה של פסח : עם פירוש ... על כל ההגדה עם כל הפיוטים ... קידוש, הלל והלל הגדול ... וקרא שמו ... תשבי מבשר ... / חברו ... בעהמ\"ח ספר בתים לבריחים [=שבתי בן אהרן] מ\"מ ומ\"ץ דק\"ק טשאשניק ..."
+      },
+      {
+        "label": "Contributor",
+        "value": "שבתי בן אהרן"
+      },
+      {
+        "label": "Publisher",
+        "value": "[שקלאוו] : [מוציא לאור לא ידוע]"
+      },
+      {
+        "label": "Base",
+        "value": [
+          "$$V972NNL_INST$$ONNL_ALEPH21275347970005171",
+          "$$V972NNL_INST$$ONNL_ALEPH51490279360005171",
+          "$$V972NNL_INST$$ONNL_ALEPH11337518070005171"
+        ]
+      },
+      {
+        "label": "Subject",
+        "value": "Haggadah -- Commentaries"
+      },
+      {
+        "label": "Source",
+        "value": [
+          "$$VThe National Library of Israel$$ONNL_ALEPH21275347970005171",
+          "$$VThe National Library of Israel$$ONNL_ALEPH51490279360005171",
+          "$$VThe National Library of Israel$$ONNL_ALEPH11337518070005171"
+        ]
+      },
+      {
+        "label": "Doc Id",
+        "value": "dedupmrg1219263994"
+      },
+      {
+        "label": "Creation Date",
+        "value": "ו'הג'דת' ל'בנ'ך' ביום' ההוא ל'אמור [תקע\"ט]"
+      },
+      {
+        "label": "Type",
+        "value": "book"
+      },
+      {
+        "label": "Format",
+        "value": "מ [צ\"ל מה] דפים ; 8."
+      },
+      {
+        "label": "Language",
+        "value": "heb"
+      },
+      {
+        "label": "Alternative Title",
+        "value": "הגדה של פסח. תקע\"ט. שקלוב heb"
+      },
+      {
+        "label": "SysNum",
+        "value": [
+          "$$V21275347970005171$$ONNL_ALEPH21275347970005171",
+          "$$V51490279360005171$$ONNL_ALEPH51490279360005171",
+          "$$V11337518070005171$$ONNL_ALEPH11337518070005171"
+        ]
+      }
+    ],
+    "related": "http://merhav.nli.org.il/primo_library/libweb/action/display.do?tabs=detailsTab&ct=display&fn=search&displayMode=full&doc=NNL_ALEPH21275347970005171",
+    "sequences": [
+      {
+        "@id": "https://iiif.nli.org.il/IIIFv21/NNL_ALEPH21275347970005171/sequence/IE127979743",
+        "@type": "sc:Sequence",
+        "canvases": [
+          {
+            "@id": "https://iiif.nli.org.il/IIIFv21/FL127980003",
+            "@type": "sc:Canvas",
+            "height": 9,
+            "images": [
+              {
+                "@id": "FL127980003",
+                "@type": "oa:Annotation",
+                "motivation": "sc:painting",
+                "on": "https://iiif.nli.org.il/IIIFv21/FL127980003",
+                "resource": {
+                  "@id": "https://iiif.nli.org.il/IIIFv21/FL127980003/full/max/0/default.jpg",
+                  "@type": "dctypes:Image",
+                  "format": "image/jpeg;",
+                  "height": 9,
+                  "label": "jpg_000008_B",
+                  "service": {
+                    "@context": "http://iiif.io/api/image/2/context.json",
+                    "@id": "https://iiif.nli.org.il/IIIFv21/FL127980003",
+                    "label": "jpg_000008_B",
+                    "profile": "http://iiif.io/api/image/2/level1.json"
+                  },
+                  "width": 16
+                }
+              }
+            ],
+            "label": "jpg_000008_B",
+            "width": 16
+          },
+          {
+            "@id": "https://iiif.nli.org.il/IIIFv21/FL127980004",
+            "@type": "sc:Canvas",
+            "height": 9,
+            "images": [
+              {
+                "@id": "FL127980004",
+                "@type": "oa:Annotation",
+                "motivation": "sc:painting",
+                "on": "https://iiif.nli.org.il/IIIFv21/FL127980004",
+                "resource": {
+                  "@id": "https://iiif.nli.org.il/IIIFv21/FL127980004/full/max/0/default.jpg",
+                  "@type": "dctypes:Image",
+                  "format": "image/jpeg;",
+                  "height": 9,
+                  "label": "jpg_000009_A",
+                  "service": {
+                    "@context": "http://iiif.io/api/image/2/context.json",
+                    "@id": "https://iiif.nli.org.il/IIIFv21/FL127980004",
+                    "label": "jpg_000009_A",
+                    "profile": "http://iiif.io/api/image/2/level1.json"
+                  },
+                  "width": 16
+                }
+              }
+            ],
+            "label": "jpg_000009_A",
+            "width": 16
+          }
+        ]
+      }
+    ],
+    "viewingHint": "paged"
+  },
+  "manifest_url": "https://iiif.nli.org.il/IIIFv21/990012682410205171/manifest",
+  "selected_canvases": [
+    {
+      "asset": "assets/nli_pb_001_page1.jpg",
+      "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL127980003",
+      "image_service_info_status": 200,
+      "image_service_rights": "http://web.nli.org.il/sites/NLI/Hebrew/library/items-terms-of-use/Pages/nli-copying-prohibited.aspx",
+      "image_url": "https://iiif.nli.org.il/IIIFv21/FL127980003/full/800,/0/default.jpg",
+      "index": 14,
+      "label": "jpg_000008_B",
+      "sha256": "c36046e75a1d22cdb432212525e72ed14b5a08b945a2d0f5918dfad032976ecb"
+    },
+    {
+      "asset": "assets/nli_pb_001_page2.jpg",
+      "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL127980004",
+      "image_service_info_status": 200,
+      "image_service_rights": "http://web.nli.org.il/sites/NLI/Hebrew/library/items-terms-of-use/Pages/nli-copying-prohibited.aspx",
+      "image_url": "https://iiif.nli.org.il/IIIFv21/FL127980004/full/800,/0/default.jpg",
+      "index": 15,
+      "label": "jpg_000009_A",
+      "sha256": "e9891cd2da5c6d4fc284da349ed10cb5bc2886afe15c02bbfbfb3a653c03424a"
+    }
+  ],
+  "upstream_bytes": 79532,
+  "upstream_sha256": "7d846521930de96d05d985b6db7ef47a034c8a77b1195aa5ff737b0a963fce90"
+}

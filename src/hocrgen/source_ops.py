@@ -12,7 +12,8 @@ from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.hash import hash_entry_asset, hash_entry_exclusion_reason, hash_snapshot_root, load_hash_snapshot
 from hocrgen.fetchers.hocrsyngen_manifest import validate_hocrsyngen_batch
 from hocrgen.fetchers.modern_handwriting import validate_modern_intake_manifest
-from hocrgen.fetchers.nli import parse_nli_fixture_html
+from hocrgen.fetchers.nli import SEED_CAPTURE_FIELD, SEED_CAPTURE_SHA256_FIELD, parse_nli_fixture_html
+from hocrgen.fetchers.nli_iiif import decide_nli_rights, load_nli_manifest_capture
 from hocrgen.fetchers.yidtaknl import (
     load_yidtaknl_snapshot,
     yidtaknl_entry_asset,
@@ -332,11 +333,21 @@ def source_health_summary(source_health: Iterable[SourceHealthResult | dict[str,
         if isinstance(result.get("extra"), dict)
         and (warnings := result["extra"].get("hocrsyngen_coverage_warnings"))
     ]
+    nli_iiif_manifest_issues = [
+        {
+            "issues": issues,
+            "source_id": result["source_id"],
+        }
+        for result in results
+        if isinstance(result.get("extra"), dict)
+        and (issues := result["extra"].get("iiif_manifest_issues"))
+    ]
     return {
         "active_source_count": sum(1 for result in results if result["operational_status"] == SourceOperationalStatus.active.value),
         "degraded_source_count": sum(1 for result in results if result["operational_status"] == SourceOperationalStatus.degraded.value),
         "frozen_source_count": sum(1 for result in results if result["operational_status"] == SourceOperationalStatus.frozen.value),
         "hocrsyngen_coverage_warnings": hocrsyngen_coverage_warnings,
+        "nli_iiif_manifest_issues": nli_iiif_manifest_issues,
         "selected_source_count": sum(1 for result in results if result["selected"]),
         "skipped_source_count": len(skipped),
         "skipped_sources": [
@@ -617,6 +628,8 @@ def _inspect_nli_source_with_extra(source: SourceConfig, bundle: ConfigBundle) -
     asset_count = 0
     source_depth_candidate_count = len(items) if isinstance(items, list) else 0
     source_depth_asset_count = 0
+    capture_count = 0
+    manifest_issues: list[dict[str, Any]] = []
     if not isinstance(items, list):
         checks.append(
             {
@@ -642,21 +655,117 @@ def _inspect_nli_source_with_extra(source: SourceConfig, bundle: ConfigBundle) -
             )
             continue
         fixture_reference = item.get("fixture_html")
-        if not fixture_reference:
-            continue
-        fixture_path = _resolve_source_local_reference(str(fixture_reference), manifest_path, bundle)
-        if item.get("f1_source_depth_only") is not True:
-            asset_count += 1
-        source_depth_asset_count += 1
-        checks.append(_path_check("fixture_html", fixture_path, bundle))
-        if fixture_path.exists():
-            parsed_fixture = parse_nli_fixture_html(fixture_path)
-            for asset_reference in parsed_fixture.assets:
-                asset_path = (fixture_path.parent / asset_reference).resolve()
-                checks.append(_path_check("fixture_asset", asset_path, bundle))
-    return checks, candidate_count, asset_count, {
+        display_rights: str | None = None
+        fixture_path: Path | None = None
+        if fixture_reference:
+            fixture_path = _resolve_source_local_reference(str(fixture_reference), manifest_path, bundle)
+            if item.get("f1_source_depth_only") is not True:
+                asset_count += 1
+            source_depth_asset_count += 1
+            checks.append(_path_check("fixture_html", fixture_path, bundle))
+            if fixture_path.exists():
+                parsed_fixture = parse_nli_fixture_html(fixture_path)
+                display_rights = parsed_fixture.rights
+                for asset_reference in parsed_fixture.assets:
+                    asset_path = (fixture_path.parent / asset_reference).resolve()
+                    checks.append(_path_check("fixture_asset", asset_path, bundle))
+        capture_reference = item.get(SEED_CAPTURE_FIELD)
+        if capture_reference:
+            capture_count += 1
+            issue = _inspect_nli_manifest_capture(
+                checks=checks,
+                item=item,
+                capture_reference=str(capture_reference),
+                manifest_path=manifest_path,
+                fixture_path=fixture_path,
+                display_rights=display_rights,
+                bundle=bundle,
+            )
+            if issue is not None:
+                manifest_issues.append(issue)
+    extra: dict[str, Any] = {
         "source_depth_asset_count": source_depth_asset_count,
         "source_depth_candidate_count": source_depth_candidate_count,
+    }
+    if capture_count:
+        extra["iiif_manifest_capture_count"] = capture_count
+        extra["iiif_manifest_issues"] = manifest_issues
+    return checks, candidate_count, asset_count, extra
+
+
+def _inspect_nli_manifest_capture(
+    *,
+    checks: list[dict[str, Any]],
+    item: dict[str, Any],
+    capture_reference: str,
+    manifest_path: Path,
+    fixture_path: Path | None,
+    display_rights: str | None,
+    bundle: ConfigBundle,
+) -> dict[str, Any] | None:
+    """Check one pinned IIIF manifest capture.
+
+    Integrity problems (a missing or unparseable capture, a checksum pin mismatch, a missing or
+    changed cached page image) are failing checks. Item-level upstream problems (HTTP 403/500, zero
+    canvases, a licence slug other than public-domain-free-use) do not fail the source; they are
+    returned as an issue so source health surfaces them, and the fetcher rejects the item with the
+    same reason code instead of dropping it.
+    """
+
+    seed_id = str(item.get("id", ""))
+    capture_path = _resolve_source_local_reference(capture_reference, manifest_path, bundle)
+    checks.append(_path_check("iiif_manifest_capture", capture_path, bundle))
+    if not capture_path.exists():
+        return None
+    expected_sha256 = item.get(SEED_CAPTURE_SHA256_FIELD)
+    if expected_sha256 is None:
+        checks.append(
+            {
+                "name": "iiif_manifest_capture_sha256",
+                "path": _format_health_path(capture_path, bundle),
+                "status": "error",
+                "message": f"seed {seed_id} must pin {SEED_CAPTURE_SHA256_FIELD}",
+            }
+        )
+    else:
+        actual_sha256 = sha256_file(capture_path)
+        checks.append(
+            {
+                "name": "iiif_manifest_capture_sha256",
+                "path": _format_health_path(capture_path, bundle),
+                "status": "ok" if actual_sha256 == expected_sha256 else "error",
+            }
+        )
+    try:
+        capture = load_nli_manifest_capture(capture_path)
+    except (ValueError, UnicodeDecodeError) as exc:
+        checks.append(
+            {
+                "name": "iiif_manifest_capture_parse",
+                "path": _format_health_path(capture_path, bundle),
+                "status": "error",
+                "message": str(exc),
+            }
+        )
+        return None
+    for selected in capture.selected_canvases:
+        asset_reference = selected.get("asset")
+        if not isinstance(asset_reference, str) or fixture_path is None:
+            continue
+        asset_path = (fixture_path.parent / asset_reference).resolve()
+        pinned = selected.get("sha256")
+        status = "ok" if asset_path.exists() and (pinned is None or sha256_file(asset_path) == pinned) else "error"
+        checks.append({"name": "iiif_capture_asset_sha256", "path": _format_health_path(asset_path, bundle), "status": status})
+    decision = decide_nli_rights(display_rights=display_rights, capture=capture)
+    if decision.accepted:
+        return None
+    return {
+        "canvas_count": capture.canvas_count,
+        "http_status": capture.http_status,
+        "license_slug": decision.license_slug,
+        "manifest_url": capture.manifest_url,
+        "reason": decision.reason,
+        "seed_id": seed_id,
     }
 
 

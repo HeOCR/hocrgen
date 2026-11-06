@@ -1,6 +1,6 @@
 # F8 — Real-source map and paired-text source intake
 
-Status: `F8a` (this map and the F8 notation) is planning only. `F8b` is implemented on the current ref (review-only `wikisource_he_proofread`; see [`docs/wikisource_proofread_source.md`](../../docs/wikisource_proofread_source.md)). `F8d` is partly implemented (YidTakNL only; see [F8d findings](#f8d-findings-2026-11-06)). `F8c` and `F8e` are planned. The maintainer answered the decisions list on 2026-11-06; see [`planning/decisions/2026-11-06-f8-real-source-decisions.md`](../decisions/2026-11-06-f8-real-source-decisions.md). Parent milestone: F8. Source proposals: `HeOCR/hocrgen#103` (`F8b`), `#104` (`F8c`) and `#105` (`F8d`). Evidence was checked on 2026-11-06 against each source's own pages and APIs; the per-source notes are in [`docs/2026_11_06_israeli_public_domain_documents_research/verification/`](../../docs/2026_11_06_israeli_public_domain_documents_research/verification/).
+Status: `F8a` (this map and the F8 notation) is planning only. `F8b` is implemented on the current ref (review-only `wikisource_he_proofread`; see [`docs/wikisource_proofread_source.md`](../../docs/wikisource_proofread_source.md)). `F8d` is partly implemented (YidTakNL only; see [F8d findings](#f8d-findings-2026-11-06)). `F8c` is completed (slug-keyed NLI rights and cached free-use printed-book seeds). `F8e` is planned. The maintainer answered the decisions list on 2026-11-06; see [`planning/decisions/2026-11-06-f8-real-source-decisions.md`](../decisions/2026-11-06-f8-real-source-decisions.md). Parent milestone: F8. Source proposals: `HeOCR/hocrgen#103` (`F8b`), `#104` (`F8c`) and `#105` (`F8d`). Evidence was checked on 2026-11-06 against each source's own pages and APIs; the per-source notes are in [`docs/2026_11_06_israeli_public_domain_documents_research/verification/`](../../docs/2026_11_06_israeli_public_domain_documents_research/verification/).
 
 F8 maps real (non-synthetic) Hebrew document sources beyond HASH. It ranks them by what HeOCR lacks most: **real page images paired with human-made text**, for both printed and handwritten Hebrew. It supplies the printed real-reference source that [E2d](./e2d-real-scan-evaluation.md) says is "not yet selected". It changes no source, profile, licence, gate or score.
 
@@ -37,7 +37,7 @@ The text tier is recorded separately from the content type. A page's `content_ty
 Scale, measured on 2026-11-06:
 
 - **Wikisource:** 141 Index and 6,839 Page pages. Of these, 1,824 are at quality 3 (proofread) and 268 at quality 4 (validated by a second editor). Excluding the Birnbaum works (see below) leaves about 1,600 pages.
-- **NLI:** the free-use pool is large but unmeasured. Example: *Romemut El*, Zolkiew 1764, 208 pages.
+- **NLI:** the free-use pool is large but unmeasured. Example: *Romemut El*, Zolkiew 1764, 208 pages; on 2026-11-06 its page images returned HTTP 500 at every size, so `F8c` lists it as an exploratory seed without a fixture. The Search API (`api2.nli.org.il`, key now available) returns no rights field, only an `accessRights` availability value, so each hit's rights still come from its manifest `license` slug.
 - **BGU Pinkas:** 30 pages.
 - **YidTakNL:** about 26k training words. The SURFdrive bundle holds 7 works: 320 page JPEGs and 320 page-level text files (some empty). 2 works (41 pages) are HUC scans and are excluded; the other 5 link to NLI records.
 
@@ -107,7 +107,7 @@ These are rights or ground-truth calls, so they are the maintainer's. **Answered
   - Implemented. Findings while building it:
     - The Korfu 1885 siddur (213 proofread pages) is not admitted yet: no death date was found for its translator, Yosef Nachmuli, and its Commons file does not record the scan's origin.
     - Some validated pages are edited again after validation (2 of the 4 checked, both Bostenay). Such a page keeps quality 4 but loses adjudication eligibility until it is validated again.
-- `F8c`: key the `nli` rights strategy on the IIIF `license` slug, and admit `public-domain-free-use` printed books as `printed_historical`. Images only.
+- `F8c` (completed): key the `nli` rights strategy on the IIIF `license` slug, and admit `public-domain-free-use` printed books as `printed_historical`. Images only. The three cached printed-book seeds stay in the exploratory catalog; promoting them to runnable seeds changes the NLI depth count and is a separate step.
 - `F8d`: fixture-backed `review_only` imports of the CC-BY-4.0 ground-truth datasets: `pinkas_dataset_bgu` (PAGE XML), and YidTakNL once its bundle is checked. YidTakNL is limited to training and character-level evaluation (decision 6). Scan provenance is verified first. **Partly implemented:** YidTakNL landed as `yidtaknl_vaybertaytsh_gt`; `pinkas_dataset_bgu` is held (see below).
 - `F8e`: born-digital and typewritten government print (Reshumot from about 2006, Knesset committee scans up to 1975), with automated access allowed (decision 4) and hard throttling. Committee protocols from 1976 on wait for the legal opinion (decision 5).
 
