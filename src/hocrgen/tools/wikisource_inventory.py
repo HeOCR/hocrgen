@@ -63,8 +63,10 @@ from hocrgen.fetchers.wikisource import (
     OPEN_SCAN_LICENCES,
     TRANSCRIPTION_COVERAGE_PARTIAL,
     TRANSCRIPTION_COVERAGE_VALUES,
+    EXCLUDED_SPAN_KINDS,
     crop_box_valid,
     crop_geometry_valid,
+    derive_page_text,
     index_exclusion_reasons,
     licence_tokens,
     load_wikisource_snapshot,
@@ -1117,6 +1119,7 @@ def run_inventory(
             for page_title in record["_member_titles"]:
                 page = capture_page_record(fetch, page_title, record, snapshot_root)
                 check = apply_page_check(page, record, (page_checks or {}).get(page_title))
+                apply_text_adjustments(page, snapshot_root)
                 reasons = page_exclusion_reasons(page, by_key, snapshot_root)
                 attestation = page_attestation(page)
                 page_results.append(
@@ -1137,6 +1140,13 @@ def run_inventory(
                         "needs_crop": page_needs_crop(page),
                         "crop": page.get("crop"),
                         "text_not_on_page": page.get("text_not_on_page"),
+                        # F8b7: footnotes found on the page or not, notes dropped as not printed, stand-ins mapped,
+                        # and text the scan does not show (excluded from primary scoring).
+                        "footnote_check": page.get("footnote_check"),
+                        "footnotes_reviewed": bool(page.get("footnotes_reviewed")),
+                        "unprinted_notes": page.get("unprinted_notes"),
+                        "text_adjustments": page.get("text_adjustments"),
+                        "excluded_spans": (page.get("excluded_spans") or {}).get("spans"),
                         "transclusions": page.get("transclusions"),
                         "reference_normalization": page_reference_normalization(page, snapshot_root),
                         "render_check": check,
@@ -1156,12 +1166,14 @@ def run_inventory(
 
 
 def page_reference_normalization(page: dict[str, Any], root: Path) -> dict[str, Any] | None:
-    """The page's reference-normalisation facts (footnote marker style), or None when it does not convert."""
+    """The page's reference-normalisation facts (footnote marker style, excluded spans), or None when it does not
+    convert. Footnotes found not printed (F8b7) are not counted."""
 
     try:
-        return reference_normalization(convert_wikitext((root / page["wikitext_path"]).read_text(encoding="utf-8"), page_transclusions(page, root)))
-    except (UnsupportedWikitextError, StageExecutionError):
+        derived = derive_page_text((root / page["wikitext_path"]).read_text(encoding="utf-8"), page_transclusions(page, root), page)
+    except (UnsupportedWikitextError, StageExecutionError, ValueError):
         return None
+    return reference_normalization(derived.conversion, page)
 
 
 def page_text_provenance(page: dict[str, Any], root: Path) -> dict[str, Any]:
@@ -1192,7 +1204,7 @@ def page_check_problems(check: dict[str, Any]) -> list[str]:
         problems.append("checked_by must be tool, agent or human")
     coverage = check.get("transcription_coverage")
     undecided_tool = check.get("checked_by") == "tool" and coverage is None and check.get("outcome") == "alignment_too_poor"
-    if coverage not in TRANSCRIPTION_COVERAGE_VALUES and not undecided_tool:
+    if coverage not in TRANSCRIPTION_COVERAGE_VALUES and not undecided_tool and not is_text_review(check):
         problems.append("transcription_coverage must be full_page or partial_page")
     if coverage == TRANSCRIPTION_COVERAGE_PARTIAL and not str(check.get("missing") or "").strip():
         problems.append("a partial_page check must say what is missing")
@@ -1200,13 +1212,93 @@ def page_check_problems(check: dict[str, Any]) -> list[str]:
         problems.append("checked_at must be an ISO date")
     if check.get("checked_by") == "tool":
         problems.extend(crop_problems(check.get("crop")))
-        if check.get("text_not_on_page"):
-            problems.append("only an agent or human check records text_not_on_page")
+        for key in ("text_not_on_page", *REVIEWED_ONLY_FIELDS):
+            if check.get(key):
+                problems.append(f"only an agent or human check records {key}")
+        problems.extend(footnote_check_problems(check.get("footnotes")))
         return problems
     if check.get("text_not_on_page") is not None and not (isinstance(check["text_not_on_page"], str) and check["text_not_on_page"].strip()):
         problems.append("text_not_on_page must say, in words, what text is not on the page")
     if check.get("crop") is not None:
         problems.extend(reviewed_crop_problems(check))
+    problems.extend(reviewed_text_problems(check))
+    return problems
+
+
+# F8b7: fields only an agent or human check records, after comparing the text with the page.
+REVIEWED_ONLY_FIELDS = ("footnotes_reviewed", "unprinted_notes", "excluded_spans")
+
+
+def is_text_review(check: dict[str, Any]) -> bool:
+    """An agent's or human's review of the page text against the page that decides no coverage (F8b7): it records
+    ``footnotes_reviewed`` or ``excluded_spans`` and no ``transcription_coverage``. It is attached to the check that
+    decides the page's coverage (``text_review``) instead of competing with it."""
+
+    return (
+        check.get("checked_by") in {"agent", "human"}
+        and check.get("transcription_coverage") is None
+        and bool(check.get("footnotes_reviewed") or check.get("excluded_spans"))
+        and check.get("crop") is None
+    )
+FOOTNOTE_CHECK_STATUSES = frozenset({"located", "flagged", "unchecked"})
+
+
+def footnote_check_problems(footnotes: Any) -> list[str]:
+    """Schema problems of a tool check's footnote check (F8b7); ``None`` (a page without footnotes) is fine."""
+
+    if footnotes is None:
+        return []
+    if not isinstance(footnotes, dict) or footnotes.get("status") not in FOOTNOTE_CHECK_STATUSES:
+        return [f"footnote check status must be one of {', '.join(sorted(FOOTNOTE_CHECK_STATUSES))}"]
+    flagged = footnotes.get("flagged") or []
+    if (footnotes["status"] == "flagged") != bool(flagged):
+        return ["a flagged footnote check lists its flagged notes, and only a flagged one does"]
+    return []
+
+
+def reviewed_text_problems(check: dict[str, Any]) -> list[str]:
+    """Schema problems of the F8b7 text facts an agent or human check records.
+
+    ``footnotes_reviewed``: every footnote in the text was compared with the page. ``unprinted_notes``: the
+    footnotes (by the faithful conversion's number) with no printed counterpart, each with what it is in words;
+    recording them needs ``footnotes_reviewed``. ``excluded_spans``: text not visible on the scan, by offsets in the
+    pair text (pinned by ``excluded_spans_text_sha256``) and boxes on the page.
+    """
+
+    problems: list[str] = []
+    if "footnotes_reviewed" in check and not isinstance(check["footnotes_reviewed"], bool):
+        problems.append("footnotes_reviewed must be true or false")
+    notes = check.get("unprinted_notes")
+    if notes is not None:
+        if not check.get("footnotes_reviewed"):
+            problems.append("unprinted_notes needs footnotes_reviewed")
+        if not isinstance(notes, list) or not notes:
+            problems.append("unprinted_notes must list one or more notes")
+        else:
+            for entry in notes:
+                if not isinstance(entry, dict) or not isinstance(entry.get("note"), int) or entry["note"] < 1:
+                    problems.append("an unprinted note needs its number")
+                elif not str(entry.get("detail") or "").strip():
+                    problems.append("an unprinted note must say, in words, what it is")
+    spans = check.get("excluded_spans")
+    if spans is not None:
+        if not re.fullmatch(r"[0-9a-f]{64}", str(check.get("excluded_spans_text_sha256") or "")):
+            problems.append("excluded_spans needs excluded_spans_text_sha256, the pair text they are offsets into")
+        if not isinstance(spans, list) or not spans:
+            problems.append("excluded_spans must list one or more spans")
+        else:
+            for span in spans:
+                if not isinstance(span, dict) or span.get("kind") not in EXCLUDED_SPAN_KINDS:
+                    problems.append(f"an excluded span's kind must be one of {', '.join(sorted(EXCLUDED_SPAN_KINDS))}")
+                    continue
+                start, end = span.get("start"), span.get("end")
+                if not (isinstance(start, int) and isinstance(end, int) and 0 <= start < end):
+                    problems.append("an excluded span needs character offsets start < end")
+                regions = span.get("regions_normalized")
+                if not isinstance(regions, list) or not regions or not all(crop_box_valid(region) for region in regions):
+                    problems.append("an excluded span needs one or more boxes inside the page")
+                if not str(span.get("detail") or "").strip():
+                    problems.append("an excluded span must say, in words, why the text is not visible")
     return problems
 
 
@@ -1258,6 +1350,7 @@ def select_page_checks(payload: dict[str, Any] | list[dict[str, Any]]) -> dict[s
     payloads = payload if isinstance(payload, list) else [payload]
     selected: dict[str, dict[str, Any]] = {}
     tool: dict[str, dict[str, Any]] = {}
+    reviews: dict[str, dict[str, Any]] = {}
     for one in payloads:
         if one.get("schema_version") != PAGE_CHECKS_SCHEMA_VERSION:
             raise ValueError(f"page checks must be {PAGE_CHECKS_SCHEMA_VERSION}")
@@ -1275,6 +1368,11 @@ def select_page_checks(payload: dict[str, Any] | list[dict[str, Any]]) -> dict[s
             title = check["page_title"]
             if check["checked_by"] == "tool" and (title not in tool or check["checked_at"] >= tool[title]["checked_at"]):
                 tool[title] = check
+            if is_text_review(check):
+                rank = (CHECKER_RANK[check["checked_by"]], check["checked_at"])
+                if title not in reviews or rank >= (CHECKER_RANK[reviews[title]["checked_by"]], reviews[title]["checked_at"]):
+                    reviews[title] = check
+                continue
             if check.get("transcription_coverage") is None:
                 continue
             current = selected.get(title)
@@ -1286,6 +1384,10 @@ def select_page_checks(payload: dict[str, Any] | list[dict[str, Any]]) -> dict[s
             selected[title] = check
         elif selected[title] is not check:
             selected[title] = {**selected[title], "tool_check": check}
+    for title, review in reviews.items():
+        # F8b7: a text review travels with the check that decides the page's coverage (none: nothing to apply).
+        if title in selected:
+            selected[title] = {**selected[title], "text_review": review}
     return selected
 
 
@@ -1341,6 +1443,35 @@ def apply_page_check(page: dict[str, Any], index: dict[str, Any], check: dict[st
         # merged from other pages): text and image do not match, so the page is not a pair.
         page["text_not_on_page"] = check["text_not_on_page"]
         page["transcription_coverage_check"]["text_not_on_page"] = check["text_not_on_page"]
+    if tool is not None and tool.get("footnotes"):
+        # F8b7: whether the tool found each footnote of the text on the page (OCR boxes, localisation only).
+        page["footnote_check"] = tool["footnotes"]
+    review = check.get("text_review") if current(check.get("text_review")) else None
+    if review is not None:
+        page["transcription_coverage_check"]["text_review"] = {key: review[key] for key in ("checked_by", "checker", "checked_at", "method")}
+        if str(review.get("text_not_on_page") or "").strip():
+            # F8b7: a text review may find text not on the page too (an editor's heading, paraphrase or emendation).
+            page["text_not_on_page"] = review["text_not_on_page"]
+            page["transcription_coverage_check"]["text_not_on_page"] = review["text_not_on_page"]
+    # F8b7: an agent's or human's comparison of the footnotes with the page, the notes found not printed (dropped from
+    # the pair text), and text the scan does not show (excluded from primary scoring): from the text review when there
+    # is one, else from the deciding check when an agent or human made it.
+    facts = review if review is not None else check if check["checked_by"] != "tool" else None
+    if facts is not None:
+        if facts.get("footnotes_reviewed"):
+            page["footnotes_reviewed"] = True
+            page["transcription_coverage_check"]["footnotes_reviewed"] = True
+        if facts.get("unprinted_notes"):
+            page["unprinted_notes"] = [{"note": entry["note"], "detail": entry["detail"]} for entry in facts["unprinted_notes"]]
+        if facts.get("excluded_spans"):
+            page["excluded_spans"] = {
+                "text_sha256": facts["excluded_spans_text_sha256"],
+                "spans": [
+                    {**{key: span[key] for key in ("kind", "start", "end", "regions_normalized", "detail")},
+                     "checked_by": facts["checked_by"], "checker": facts["checker"], "checked_at": facts["checked_at"]}
+                    for span in facts["excluded_spans"]
+                ],
+            }
     if check["transcription_coverage"] == TRANSCRIPTION_COVERAGE_PARTIAL:
         # An agent's or human's own crop (F8b5) wins; otherwise the tool's crop serves the deciding check.
         if check["checked_by"] != "tool" and check.get("crop"):
@@ -1352,6 +1483,28 @@ def apply_page_check(page: dict[str, Any], index: dict[str, Any], check: dict[st
         if "crop_by" in provenance:
             page["transcription_coverage_check"]["crop_by"] = provenance["crop_by"]
     return provenance
+
+
+def apply_text_adjustments(page: dict[str, Any], root: Path) -> dict[str, Any] | None:
+    """Re-derive the page's pair text after its checks are applied (F8b7) and pin it in the snapshot.
+
+    The captured text is the faithful conversion. Footnotes a reviewed check found not printed are dropped, and the
+    reviewed stand-in mappings of the page's Index file applied; the page then records ``text_adjustments`` (with the
+    faithful conversion's checksum) and its text file and checksum are the pair text's. Returns the adjustments, or
+    ``None`` when the pair text is the faithful conversion (or the page does not convert; the gate reports it).
+    """
+
+    try:
+        derived = derive_page_text((root / page["wikitext_path"]).read_text(encoding="utf-8"), page_transclusions(page, root), page)
+    except (UnsupportedWikitextError, StageExecutionError, ValueError):
+        return None
+    if derived.adjustments is None:
+        page.pop("text_adjustments", None)
+        return None
+    page["text_adjustments"] = derived.adjustments
+    page["text_sha256"] = hashlib.sha256(derived.text.encode()).hexdigest()
+    (root / page["text_path"]).write_text(derived.text + "\n", encoding="utf-8")
+    return derived.adjustments
 
 
 def crop_record(check: dict[str, Any]) -> dict[str, Any]:
@@ -1853,8 +2006,25 @@ def _page_gate_counts(pages: list[dict[str, Any]]) -> dict[str, Any]:
     reference = reference_now = 0
     checks: Counter[str] = Counter({"checked": 0, "full_page": 0, "partial_page": 0, "stale": 0})
     crop_unresolved_pages: list[dict[str, Any]] = []
+    # F8b7: the tool's footnote check, the reviews, and the text adjustments and exclusions of pair pages
+    footnote_checks: Counter[str] = Counter()
+    footnote_flagged_reviewed = 0
+    footnote_unchecked_reviewed = 0
+    unprinted_pages = {"3": 0, "4": 0}
+    unprinted_notes = 0
+    standin_pages = {"3": 0, "4": 0}
+    standins: Counter[str] = Counter()
+    excluded_pages = {"3": 0, "4": 0}
+    adjusted_pages: list[dict[str, Any]] = []
     for page in pages:
         level = str(page["quality"])
+        footnotes = page.get("footnote_check") or {}
+        if footnotes.get("status"):
+            footnote_checks[footnotes["status"]] += 1
+            if footnotes["status"] == "flagged" and page.get("footnotes_reviewed"):
+                footnote_flagged_reviewed += 1
+            if footnotes["status"] == "unchecked" and page.get("footnotes_reviewed"):
+                footnote_unchecked_reviewed += 1
         check = page.get("render_check")
         if check and check.get("applied"):
             checks["checked"] += 1
@@ -1896,6 +2066,22 @@ def _page_gate_counts(pages: list[dict[str, Any]]) -> dict[str, Any]:
             )
             continue
         (cropped if page.get("needs_crop") else eligible)[level] += 1
+        adjustments = page.get("text_adjustments") or {}
+        if adjustments.get("unprinted_notes"):
+            unprinted_pages[level] += 1
+            unprinted_notes += len(adjustments["unprinted_notes"])
+        if adjustments.get("editor_standins"):
+            standin_pages[level] += 1
+            for entry in adjustments["editor_standins"]:
+                standins[entry["mapping_id"]] += entry["count"]
+        if page.get("excluded_spans"):
+            excluded_pages[level] += 1
+        if adjustments.get("unprinted_notes") or page.get("excluded_spans"):
+            adjusted_pages.append({
+                "page_title": page["page_title"], "quality": page["quality"],
+                "unprinted_notes": [entry["detail"] for entry in page.get("unprinted_notes") or []],
+                "excluded_spans": [span["detail"] for span in page.get("excluded_spans") or []],
+            })
         if page.get("needs_crop") and (page.get("crop") or {}).get("review_recommended"):
             cropped_review[level] += 1
         if page.get("needs_crop") and (page.get("crop") or {}).get("regions_normalized"):
@@ -1929,6 +2115,15 @@ def _page_gate_counts(pages: list[dict[str, Any]]) -> dict[str, Any]:
         "pending_coverage_pages": sorted(pending_pages, key=lambda entry: str(entry["page_title"])),
         "text_not_on_page": text_mismatch,
         "text_not_on_page_pages": sorted(text_mismatch_pages, key=lambda entry: str(entry["page_title"])),
+        "footnote_checks": dict(sorted(footnote_checks.items())),
+        "footnote_flagged_reviewed": footnote_flagged_reviewed,
+        "footnote_unchecked_reviewed": footnote_unchecked_reviewed,
+        "unprinted_notes_pages": unprinted_pages,
+        "unprinted_notes_dropped": unprinted_notes,
+        "editor_standin_pages": standin_pages,
+        "editor_standins": dict(sorted(standins.items())),
+        "excluded_span_pages": excluded_pages,
+        "adjusted_pages": sorted(adjusted_pages, key=lambda entry: str(entry["page_title"])),
         "rejected_by_first_reason": dict(sorted(reasons.items())),
         "unsupported_markup": dict(sorted(markup.items())),
     }
@@ -2000,6 +2195,24 @@ F8B5_BASELINE = {
     "reference_eligible_q4": 29,
     "reference_eligible_now_q4": 29,
 }
+# The F8b6 run (committed before F8b7).
+F8B6_BASELINE = {
+    "indexes_admitted": 77,
+    "pages_admitted": {"3": 1411, "4": 62},
+    "pages_converting": {"3": 1411, "4": 62},
+    "pages_passing_but_coverage": {"3": 1397, "4": 61},
+    "pages_full_page": {"3": 1161, "4": 56},
+    "pages_cropped": {"3": 235, "4": 5},
+    "pages_cropped_review_recommended": {"3": 0, "4": 0},
+    "pages_cropped_regions": {"3": 26, "4": 0},
+    "pages_cropped_reviewed": {"3": 90, "4": 2},
+    "pages_crop_unresolved": {"3": 0, "4": 0},
+    "pages_pending": {"3": 1, "4": 0},
+    "pages_tool_undecided": {"3": 1, "4": 0},
+    "pages_text_not_on_page": {"3": 12, "4": 1},
+    "reference_eligible_q4": 35,
+    "reference_eligible_now_q4": 35,
+}
 # The F8b4 run (committed before F8b5), for the funnel's before column.
 F8B4_BASELINE = {
     "indexes_admitted": 68,
@@ -2040,15 +2253,22 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
     page_reasons: Counter[str] = Counter()
     markup: Counter[str] = Counter()
     totals: Counter[str] = Counter()
+    footnote_checks: Counter[str] = Counter()
+    standin_counts: Counter[str] = Counter()
     for record in admitted:
         gate = record.get("page_gate") or {}
         totals["checked"] += int(gate.get("checked", 0))
         for level in ("3", "4"):
-            for key in ("converts", "pending_coverage_only", "eligible", "needs_crop", "cropped", "cropped_review_recommended", "cropped_regions", "cropped_reviewed", "crop_unresolved", "coverage_unresolved", "footnote_marks_bracketed", "text_not_on_page"):
+            for key in ("converts", "pending_coverage_only", "eligible", "needs_crop", "cropped", "cropped_review_recommended", "cropped_regions", "cropped_reviewed", "crop_unresolved", "coverage_unresolved", "footnote_marks_bracketed", "text_not_on_page", "unprinted_notes_pages", "editor_standin_pages", "excluded_span_pages"):
                 totals[f"{key}{level}"] += int((gate.get(key) or {}).get(level, 0))
         totals["reference"] += int(gate.get("reference_eligible_q4", 0))
         totals["reference_now"] += int(gate.get("reference_eligible_now_q4", 0))
         totals["transcluding"] += int(gate.get("transcluding_pages", 0))
+        totals["unprinted_notes_dropped"] += int(gate.get("unprinted_notes_dropped", 0))
+        totals["footnote_flagged_reviewed"] += int(gate.get("footnote_flagged_reviewed", 0))
+        totals["footnote_unchecked_reviewed"] += int(gate.get("footnote_unchecked_reviewed", 0))
+        footnote_checks.update(gate.get("footnote_checks") or {})
+        standin_counts.update(gate.get("editor_standins") or {})
         for key, value in (gate.get("render_checks") or {}).items():
             totals[f"render_{key}"] += int(value)
         page_reasons.update(gate.get("rejected_by_first_reason") or {})
@@ -2059,9 +2279,11 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
     before = F8B3_BASELINE
     last = F8B4_BASELINE
     prev = F8B5_BASELINE
+    b6 = F8B6_BASELINE
     crop_unresolved_pages = [entry for r in admitted for entry in ((r.get("page_gate") or {}).get("crop_unresolved_pages") or [])]
     pending_pages = [entry for r in admitted for entry in ((r.get("page_gate") or {}).get("pending_coverage_pages") or [])]
     text_mismatch_pages = [entry for r in admitted for entry in ((r.get("page_gate") or {}).get("text_not_on_page_pages") or [])]
+    adjusted_pages = [entry for r in admitted for entry in ((r.get("page_gate") or {}).get("adjusted_pages") or [])]
 
     def _pair(values: dict[str, int]) -> str:
         return f"{values['3']} / {values['4']}"
@@ -2071,7 +2293,7 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
         return f"{values.get('3', 0)} / {values.get('4', 0)}"
 
     lines = [
-        "# Hebrew Wikisource Index inventory (F8b2, F8b3, F8b4, F8b5, F8b6)",
+        "# Hebrew Wikisource Index inventory (F8b2, F8b3, F8b4, F8b5, F8b6, F8b7)",
         "",
         f"Generated by `hocrgen.tools.wikisource_inventory` from evidence checked on {compact['checked_at']}; do not edit by hand.",
         "The per-Index data is in [`wikisource_index_inventory.json`](./wikisource_index_inventory.json). The evidence the run adds to",
@@ -2085,24 +2307,29 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
         "",
         "Quality-3 / quality-4 pages at each stage. Each column is the run before the next PR (same evidence date).",
         "",
-        "| Stage | F8b2 | F8b3 | F8b4 | F8b5 | F8b6 |",
-        "| --- | ---: | ---: | ---: | ---: | ---: |",
-        f"| Indexes; their quality-3 / quality-4 pages | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} |",
-        f"| Indexes admitted by the Index gate | {base['indexes_admitted']} | {before['indexes_admitted']} | {last['indexes_admitted']} | {prev['indexes_admitted']} | {len(admitted)} |",
-        f"| Pages in admitted Indexes | {_pair(base['pages_admitted'])} | {_pair(before['pages_admitted'])} | {_pair(last['pages_admitted'])} | {_pair(prev['pages_admitted'])} | {sum(_q(r, '3') for r in admitted)} / {sum(_q(r, '4') for r in admitted)} |",
-        f"| Pages the converter renders (`wikisource_plain_text`) | {_pair(base['pages_converting'])} | {_pair(before['pages_converting'])} | {_pair(last['pages_converting'])} | {_pair(prev['pages_converting'])} | {totals['converts3']} / {totals['converts4']} |",
-        f"| Pages passing every other gate (attestation, checksums) | {_pair(base['pages_passing_but_coverage'])} | {_pair(before['pages_passing_but_coverage'])} | {_pair(last['pages_passing_but_coverage'])} | {_pair(prev['pages_passing_but_coverage'])} | {passing3} / {passing4} |",
-        f"| **Eligible as full pages** (`full_page`) | {_pair(base['pages_full_page'])} | {_pair(before['pages_full_page'])} | {_pair(last['pages_full_page'])} | {_pair(prev['pages_full_page'])} | {totals['eligible3']} / {totals['eligible4']} |",
-        f"| **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | {_pair(before['pages_cropped'])} | {_pair(last['pages_cropped'])} | {_pair(prev['pages_cropped'])} | {totals['cropped3']} / {totals['cropped4']} |",
-        f"| Of those, crop placed or confirmed by an agent or human | — | — | {_pair(last['pages_cropped_reviewed'])} | {_pair(prev['pages_cropped_reviewed'])} | {totals['cropped_reviewed3']} / {totals['cropped_reviewed4']} |",
-        f"| Of those, multi-region crop (rest of the box masked) | — | — | {_pair(last['pages_cropped_regions'])} | {_pair(prev['pages_cropped_regions'])} | {totals['cropped_regions3']} / {totals['cropped_regions4']} |",
-        f"| Of those, tool crop flagged and not reviewed (`review_recommended`: a poorly read page, or tool regions) | — | — | {_pair(last['pages_cropped_review_recommended'])} | {_pair(prev['pages_cropped_review_recommended'])} | {totals['cropped_review_recommended3']} / {totals['cropped_review_recommended4']} |",
-        f"| `partial_page` without a resolved crop (`crop_unresolved`, listed below) | 0 / 0 | {_pair(before['pages_crop_unresolved'])} | {_pair(last['pages_crop_unresolved'])} | {_pair(prev['pages_crop_unresolved'])} | {totals['crop_unresolved3']} / {totals['crop_unresolved4']} |",
+        "| Stage | F8b2 | F8b3 | F8b4 | F8b5 | F8b6 | F8b7 |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
+        f"| Indexes; their quality-3 / quality-4 pages | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} |",
+        f"| Indexes admitted by the Index gate | {base['indexes_admitted']} | {before['indexes_admitted']} | {last['indexes_admitted']} | {prev['indexes_admitted']} | {b6['indexes_admitted']} | {len(admitted)} |",
+        f"| Pages in admitted Indexes | {_pair(base['pages_admitted'])} | {_pair(before['pages_admitted'])} | {_pair(last['pages_admitted'])} | {_pair(prev['pages_admitted'])} | {_pair(b6['pages_admitted'])} | {sum(_q(r, '3') for r in admitted)} / {sum(_q(r, '4') for r in admitted)} |",
+        f"| Pages the converter renders (`wikisource_plain_text`) | {_pair(base['pages_converting'])} | {_pair(before['pages_converting'])} | {_pair(last['pages_converting'])} | {_pair(prev['pages_converting'])} | {_pair(b6['pages_converting'])} | {totals['converts3']} / {totals['converts4']} |",
+        f"| Pages passing every other gate (attestation, checksums) | {_pair(base['pages_passing_but_coverage'])} | {_pair(before['pages_passing_but_coverage'])} | {_pair(last['pages_passing_but_coverage'])} | {_pair(prev['pages_passing_but_coverage'])} | {_pair(b6['pages_passing_but_coverage'])} | {passing3} / {passing4} |",
+        f"| **Eligible as full pages** (`full_page`) | {_pair(base['pages_full_page'])} | {_pair(before['pages_full_page'])} | {_pair(last['pages_full_page'])} | {_pair(prev['pages_full_page'])} | {_pair(b6['pages_full_page'])} | {totals['eligible3']} / {totals['eligible4']} |",
+        f"| **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | {_pair(before['pages_cropped'])} | {_pair(last['pages_cropped'])} | {_pair(prev['pages_cropped'])} | {_pair(b6['pages_cropped'])} | {totals['cropped3']} / {totals['cropped4']} |",
+        f"| Of those, crop placed or confirmed by an agent or human | — | — | {_pair(last['pages_cropped_reviewed'])} | {_pair(prev['pages_cropped_reviewed'])} | {_pair(b6['pages_cropped_reviewed'])} | {totals['cropped_reviewed3']} / {totals['cropped_reviewed4']} |",
+        f"| Of those, multi-region crop (rest of the box masked) | — | — | {_pair(last['pages_cropped_regions'])} | {_pair(prev['pages_cropped_regions'])} | {_pair(b6['pages_cropped_regions'])} | {totals['cropped_regions3']} / {totals['cropped_regions4']} |",
+        f"| Of those, tool crop flagged and not reviewed (`review_recommended`: a poorly read page, or tool regions) | — | — | {_pair(last['pages_cropped_review_recommended'])} | {_pair(prev['pages_cropped_review_recommended'])} | {_pair(b6['pages_cropped_review_recommended'])} | {totals['cropped_review_recommended3']} / {totals['cropped_review_recommended4']} |",
+        f"| Pairs whose text drops footnotes found not printed (`unprinted_notes`, F8b7) | — | — | — | — | — | {totals['unprinted_notes_pages3']} / {totals['unprinted_notes_pages4']} |",
+        f"| Pairs whose text maps editors' stand-ins to the printed character (`editor_standins`, F8b7) | — | — | — | — | — | {totals['editor_standin_pages3']} / {totals['editor_standin_pages4']} |",
+        f"| Pairs with text excluded from scoring as not visible on the scan (`illegible_on_scan`, F8b7) | — | — | — | — | — | {totals['excluded_span_pages3']} / {totals['excluded_span_pages4']} |",
+        f"| `partial_page` without a resolved crop (`crop_unresolved`, listed below) | 0 / 0 | {_pair(before['pages_crop_unresolved'])} | {_pair(last['pages_crop_unresolved'])} | {_pair(prev['pages_crop_unresolved'])} | {_pair(b6['pages_crop_unresolved'])} | {totals['crop_unresolved3']} / {totals['crop_unresolved4']} |",
         f"| Coverage not decided (no check; of them, tool alignment too poor) | {_pair(base['pages_passing_but_coverage'])}; — | {_pair(before['pages_pending'])}; — "
-        f"| {_pair(last['pages_pending'])}; {_pair(last['pages_tool_undecided'])} | {_pair(prev['pages_pending'])}; {_pair(prev['pages_tool_undecided'])} | {totals['pending_coverage_only3']} / {totals['pending_coverage_only4']}; {totals['coverage_unresolved3']} / {totals['coverage_unresolved4']} |",
-        f"| Not a pair: words in the text the page does not show (`text_not_on_page`, listed below) | — | — | — | — | {totals['text_not_on_page3']} / {totals['text_not_on_page4']} |",
-        f"| Reference-eligible quality-4 pages (adjudication-eligible), every gate but coverage | {base['reference_eligible_q4']} | {before['reference_eligible_q4']} | {last['reference_eligible_q4']} | {prev['reference_eligible_q4']} | {totals['reference']} |",
-        f"| Of those, eligible now (full page or cropped) | 0 | {before['reference_eligible_now_q4']} | {last['reference_eligible_now_q4']} | {prev['reference_eligible_now_q4']} | {totals['reference_now']} |",
+        f"| {_pair(last['pages_pending'])}; {_pair(last['pages_tool_undecided'])} | {_pair(prev['pages_pending'])}; {_pair(prev['pages_tool_undecided'])} "
+        f"| {_pair(b6['pages_pending'])}; {_pair(b6['pages_tool_undecided'])} | {totals['pending_coverage_only3']} / {totals['pending_coverage_only4']}; {totals['coverage_unresolved3']} / {totals['coverage_unresolved4']} |",
+        f"| Not a pair: words in the text the page does not show (`text_not_on_page`, listed below) | — | — | — | — | {_pair(b6['pages_text_not_on_page'])} | {totals['text_not_on_page3']} / {totals['text_not_on_page4']} |",
+        f"| Not a pair yet: a footnote the tool did not find on the page, not reviewed (`footnote_not_located`, F8b7) | — | — | — | — | — | {page_reasons.get('footnote_not_located', 0)} |",
+        f"| Reference-eligible quality-4 pages (adjudication-eligible), every gate but coverage | {base['reference_eligible_q4']} | {before['reference_eligible_q4']} | {last['reference_eligible_q4']} | {prev['reference_eligible_q4']} | {b6['reference_eligible_q4']} | {totals['reference']} |",
+        f"| Of those, eligible now (full page or cropped) | 0 | {before['reference_eligible_now_q4']} | {last['reference_eligible_now_q4']} | {prev['reference_eligible_now_q4']} | {b6['reference_eligible_now_q4']} | {totals['reference_now']} |",
         "",
         "In F8b2 the converter column counts pages that also passed the other page gates; the F8b2 run did not count them apart.",
         "In F8b3 every `partial_page` page was `needs_crop`: no crop existed yet. In F8b4 the reviewed crops are the tool's crops",
@@ -2117,6 +2344,16 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
         f"{totals['footnote_marks_bracketed3']} / {totals['footnote_marks_bracketed4']} converting pages carry footnotes, written `[n]`",
         "(`reference_normalization.footnote_marker_style: bracketed_index`; the print's own marks are not typed by editors).",
         f"{totals['transcluding']} pages transclude labelled sections of other pages, pinned by revision (`transclusions`).",
+        "",
+        "Footnotes (F8b7): the coverage tool looks for each footnote of the text on the page, among the OCR lines aligned to the",
+        f"text (boxes only). Of {sum(footnote_checks.values())} pages with footnotes, {footnote_checks.get('located', 0)} have every note located, "
+        f"{footnote_checks.get('flagged', 0)} were flagged (a note not found,",
+        f"or no printed footnote band) and {footnote_checks.get('unchecked', 0)} could not be checked (short notes or a poorly read page). An agent compared",
+        f"the footnotes with the page on {totals['footnote_flagged_reviewed']} flagged and {totals['footnote_unchecked_reviewed']} unchecked pages. "
+        f"{totals['unprinted_notes_dropped']} footnotes on pairs have no printed",
+        "counterpart (unsigned editors' notes) and are dropped from the pair text with their marks; the page keeps the faithful",
+        "conversion's checksum (`text_adjustments.converted_text_sha256`). Editors' stand-ins mapped to the printed character:"
+        + (" " + ", ".join(f"`{mapping}` {count}" for mapping, count in sorted(standin_counts.items())) if standin_counts else " none") + ".",
         "",
         "## Index gate results",
         "",
@@ -2204,7 +2441,7 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
         "",
         "## Pages whose text is not all on the page (`text_not_on_page`)",
         "",
-        "Pages an agent or human check found to hold words the scan page does not show (F8b6). Text and image do not match,",
+        "Pages an agent or human check found to hold words the scan page does not show (F8b6, F8b7). Text and image do not match,",
         "so they are not pairs. They stay listed.",
         "",
         "| Page | Quality | What is not on the page |",
@@ -2214,6 +2451,23 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
         lines.append(f"| {_cell(entry['page_title'])} | {entry['quality']} | {_cell(entry.get('detail') or '—')} |")
     if not text_mismatch_pages:
         lines.append("| (none) | | |")
+    lines += [
+        "",
+        "## Pairs whose text was adjusted or masked (F8b7)",
+        "",
+        "Footnotes an agent found with no printed counterpart, dropped from the pair text, and text not visible on the scan,",
+        "kept in the reference but excluded from primary scoring (`illegible_on_scan` spans with their boxes on the page).",
+        "",
+        "| Page | Quality | Footnotes dropped as not printed | Text not visible on the scan |",
+        "| --- | ---: | --- | --- |",
+    ]
+    for entry in sorted(adjusted_pages, key=lambda entry: str(entry["page_title"])):
+        lines.append(
+            f"| {_cell(entry['page_title'])} | {entry['quality']} | {_cell('; '.join(entry['unprinted_notes']) or '—')} "
+            f"| {_cell('; '.join(entry['excluded_spans']) or '—')} |"
+        )
+    if not adjusted_pages:
+        lines.append("| (none) | | | |")
     if totals["render_stale"]:
         lines += ["", f"{totals['render_stale']} recorded checks are stale (another page revision or Commons file) and were not applied."]
     lines += [
@@ -2280,6 +2534,8 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
         "- Language: the Index `שפה` field, else the Commons `language` field, else a fact recorded in the evidence file. Only `he` is",
         "  admitted; another language gives `index_language_not_hebrew`, none recorded gives `index_language_unrecorded`.",
         "- Page text: `wikisource_plain_text.v2`, checked against MediaWiki's own rendering (`hocrgen.tools.wikisource_render_check`).",
+        "- Pair text (F8b7): the faithful conversion, without the footnotes an agent or human found not printed, with the reviewed",
+        "  stand-in mappings of `src/hocrgen/data/wikisource/editor_standins.json` applied; the faithful conversion's checksum is kept.",
         "",
     ]
     return "\n".join(lines)

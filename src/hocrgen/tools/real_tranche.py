@@ -306,7 +306,7 @@ def materialize_wikisource(
 ) -> dict[str, Any]:
     """Rebuild every eligible page of the operator inventory into a packaged-format snapshot (offline)."""
 
-    from hocrgen.tools.wikisource_inventory import apply_page_check, capture_page_record, load_page_checks
+    from hocrgen.tools.wikisource_inventory import apply_page_check, apply_text_adjustments, capture_page_record, load_page_checks
 
     inventory = json.loads((work_dir / "wikisource_inventory.json").read_text(encoding="utf-8"))
     indexes = {record["index_key"]: record for record in inventory["indexes"]}
@@ -322,6 +322,8 @@ def materialize_wikisource(
         index = indexes[result["index_key"]]
         page = capture_page_record(fetch, result["page_title"], index, root)
         apply_page_check(page, index, checks.get(result["page_title"]))
+        # F8b7: drop footnotes found not printed and map reviewed stand-ins, so the pair text is the inventory's.
+        apply_text_adjustments(page, root)
         render = renders.get((page["source_item_id"], index["commons_file"]["sha1"]))
         if render is None:
             skipped["render_missing"] = skipped.get("render_missing", 0) + 1
@@ -351,8 +353,9 @@ def materialize_wikisource(
         "pages_path": "pages.jsonl",
         "scope": "tranche",
         "notes": (
-            f"F8g tranche ({TRANCHE_ID}). Every page of the operator inventory that passes the unchanged F8b-F8b6 gates, "
-            "rebuilt offline from the inventory's API cache, with the committed agent and tool page checks applied. Page "
+            f"F8g tranche ({TRANCHE_ID}). Every page of the operator inventory that passes the F8b-F8b7 gates, "
+            "rebuilt offline from the inventory's API cache, with the committed agent and tool page checks and the F8b7 text "
+            "adjustments applied. Page "
             "images are the 960 px Commons renders of the pinned files, unchanged; partial pages pair with their crop."
         ),
     }

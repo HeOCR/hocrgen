@@ -1,4 +1,4 @@
-# Hebrew Wikisource proofread-page source (F8b, F8b3, F8b4, F8b5, F8b6)
+# Hebrew Wikisource proofread-page source (F8b, F8b3, F8b4, F8b5, F8b6, F8b7)
 
 Source id `wikisource_he_proofread`, fetcher `wikisource_proofread`. Source proposal: `HeOCR/hocrgen#103`. Plan: [`planning/tasks/f8-real-source-map.md`](../planning/tasks/f8-real-source-map.md).
 
@@ -46,7 +46,9 @@ Real protection still excludes:
   - an editor who set quality is not a named human (an empty name, an IP edit, the `bot` group, or a name ending in "bot");
   - the `<pagequality user=...>` attribute disagrees with the editor who made that revision. The attribute keeps the name the editor had at the time, and the history shows the account's current name, so a rename is followed (F8b5): the inventory records the global (Meta `gblrename`) and local (`renameuser`) rename log entries of an editor whose attribute differs (`user_renames`, with the log id and time), and the attribute matches when a recorded rename of the same account, made after the edit, leads from it to the current name;
   - the validator is also the proofreader, by username or by user id;
-  - a check found words in its text that the scan page does not show (`text_not_on_page`, F8b6): an editor's paraphrase of a printed rubric, an editor's placeholder or note with no printed counterpart, or text merged in from other pages. Text and image do not match, so the page is not a pair; the check says what the text holds, and the summary lists the pages;
+  - a check found words in its text that the scan page does not show (`text_not_on_page`, F8b6): an editor's paraphrase of a printed rubric, an editor's placeholder, heading or emendation, an abbreviation the editors wrote out, or text merged in from other pages. Text and image do not match, so the page is not a pair; the check says what the text holds, and the summary lists the pages. An unsigned editor's footnote alone no longer excludes the page: it is dropped from the pair text (F8b7, [below](#pair-text-unprinted-footnotes-stand-ins-and-text-the-scan-hides-f8b7));
+  - the coverage tool flagged a footnote it could not find on the page, and no agent or human has compared the page's footnotes with the page yet (`footnote_not_located`, F8b7);
+  - the recorded text adjustments do not re-derive (`text_adjustment_mismatch`: the page does not record the unprinted notes and stand-in mappings that apply to it, or records others; `text_adjustment_invalid`: an unprinted note the page does not have), or its excluded spans are pinned to another text, lie outside it or are not located on the page (`excluded_span_invalid`, F8b7);
   - its transcription coverage was never recorded (`transcription_coverage_unrecorded`), or is not `full_page` / `partial_page` (`transcription_coverage_unknown`);
   - the pinned wikitext does not carry the recorded quality, or uses markup the converter does not support (`wikitext_unsupported_markup`).
 - **Partial pages are cropped, not dropped** (decision 12, F8b4). A `partial_page` transcription (for example commentary without the verse above it) pairs its text with a crop of the page image to the transcribed region (see [Crops](#crops-of-partial-pages-f8b4)). The item carries `needs_crop: true` and its `crop` provenance. A partial page without a crop is rejected and reported: `crop_unrecorded` (no tool crop for the pinned revision and scan), `crop_unresolved` (the tool could not place one) or `crop_geometry_invalid` (the box is not inside the page).
@@ -88,7 +90,59 @@ Source health checks every cropped page: the crop asset exists with its SHA-256,
 
 ### Reference normalisation facts (F8b4)
 
-Each item's metadata, and each F2 reference-pool entry, records `reference_normalization`: `footnote_marker_style` is `bracketed_index` when the page has footnotes (each printed mark is written `[n]`, see below) and `null` otherwise, with `footnote_count`. Evaluation can mask the marks from this fact; E2c scoring is unchanged (follow-up: `HeOCR/hocrgen#124`).
+Each item's metadata, and each F2 reference-pool entry, records `reference_normalization`: `footnote_marker_style` is `bracketed_index` when the page has footnotes (each printed mark is written `[n]`, see below) and `null` otherwise, with `footnote_count`. Evaluation can mask the marks from this fact; E2c scoring is unchanged (follow-up: `HeOCR/hocrgen#124`). A page with text the scan does not show also lists its `excluded_spans` (F8b7, below).
+
+## Pair text: unprinted footnotes, stand-ins and text the scan hides (F8b7)
+
+`HeOCR/hocrgen#130` and `#111`. The pair text is derived in three steps, each recorded on the page and re-derived by the gate (`hocrgen.fetchers.wikisource.derive_page_text`):
+
+1. the **faithful conversion** of the pinned wikitext (MediaWiki's rendering, `wikisource_plain_text.v2`). Its SHA-256 is kept as the raw-text checksum: `text_adjustments.converted_text_sha256` on the page, `converted_text_sha256` in the item metadata. Attestation compares it with the validated revision's text, so an adjustment never costs a page its adjudication eligibility;
+2. without the footnotes a reviewed check found **not printed** (`unprinted_notes`);
+3. with the reviewed **stand-in mappings** of the page's Index file applied (`editor_standins`).
+
+`text_sha256` and the `text/` file are the pair text. A page with no adjustment records none (`text_adjustments` absent), and its pair text is the faithful conversion. The item metadata carries `text_adjustments` as provenance.
+
+### Footnotes the page does not print
+
+Some editors add notes without signing them (corrections, cross-references, identifications, translations, pointers to Wikipedia), and markup cannot tell them from printed footnotes. Two steps find them:
+
+- **The tool** (`hocrgen.tools.wikisource_coverage` 0.3.0, method `tool_footnote_location_v1`). For each footnote of the faithful text (the `[n]` lines, `footnote_spans`) it looks among the OCR lines aligned to the text (boxes only; OCR is never stored or used as text): a note is `located` when aligned lines cover 25% of it, or, with some of it aligned, aligned and interpolated lines half of it (interpolation alone is not evidence: a misread run between aligned lines can be any untranscribed text); a note of 15 or more letters on a well-read page that is not located is `unlocated`; and when no note is located and no text-bearing OCR line or unread print lies below the body's last line, the page has no printed footnote and every note is `no_footnote_band`. The page is `flagged` when any note is unlocated or band-less, `located` when every note is, else `unchecked` (short notes, or a page Tesseract reads badly). The tool check records the statuses, letter counts and shares only (`footnotes`).
+- **An agent or human text review** (method `agent_text_review_960px`) compares every footnote with the page and records `footnotes_reviewed: true` and, for each note with no printed counterpart, `unprinted_notes: [{note, detail}]` (the note's number in the faithful conversion, and what it is, in words). A text review decides no coverage: it travels with the check that does (`text_review`). A flagged page is excluded (`footnote_not_located`) until it is reviewed.
+
+**Choice: drop the note, keep the page.** When the rest of the text matches the page, only the unprinted note is dropped, with its mark, and the other notes are renumbered, as for signed editors' notes. The page is a pair again. When the text holds other words the page does not show, the page stays `text_not_on_page`.
+
+In the F8b7 run, 132 pages carry 324 footnotes. The tool located every note on 42 pages, flagged 47 and could not check 43; an agent reviewed all 90 flagged and unchecked pages on the renders. 29 of the 47 flagged pages hold at least one unprinted note; the other 18 are printed notes the tool missed (Biblia Hebraica's one-line qere apparatus, which the tool takes for page furniture; the Raavad's glosses in Mishneh Torah insets; small citation lines). 9 of the 43 unchecked pages hold unprinted notes (4 of them the F8b6 cases). In all, 62 notes on 38 pages are recorded as not printed: 37 notes on 31 pairs are dropped, and 7 pages also hold other words the page does not show (a bracketed passage the print lacks, an editors' heading and introduction on two pages, a paraphrase of a Yiddish rubric, three emendations of the print) and stay `text_not_on_page`. The six F8b6 pages that were `text_not_on_page` only for an unsigned note are pairs again.
+
+### Editors' stand-ins
+
+An editor sometimes types a keyboard character for a printed one. `src/hocrgen/data/wikisource/editor_standins.json` (`wikisource_editor_standins.v1`) holds the reviewed mappings, per Index file: the stand-in, the printed character, the context it is replaced in, the files, the occurrences checked on page images, and who checked them. A mapping is admitted only for files where it was checked. The gate re-applies the packaged mappings and rejects a page whose record differs (`text_adjustment_mismatch`).
+
+- `typed_pipe_as_paseq.v1`: `|` between two Hebrew words becomes the paseq, U+05C0 (׀), in the Seliḥot, Siddur Torah Ohr and Korfu Indexes. The editors typed `{{!}}` (Psalms 137:7 on Seliḥot p. 34, the fixture page) or a plain `|`; every one stands at a Masoretic paseq or legarmeh position, and the page prints a vertical stroke there (11 occurrences on 7 pages checked on the 1920 px renders). It applies to 49 occurrences on 23 pages, 44 of them on 21 pairs.
+
+The survey of the pool (1,473 pinned pages) found these other candidates. None is mapped:
+
+| Typed | Printed character it may stand for | Occurrences / pages | In the pool already | Why not mapped |
+| --- | --- | ---: | ---: | --- |
+| `"` inside a word | gershayim U+05F4 | 19,646 / 807 | 1,697 / 180 | the prints use one shape for both; the image cannot tell which code point the typesetter meant |
+| `'` after a letter | geresh U+05F3 | 8,934 / 742 | 1,524 / 232 | as for gershayim |
+| `:` after a pointed letter | sof pasuq U+05C3 | 1,252 / 258 | 1,243 / 91 | the printed colon and sof pasuq have the same shape |
+| `-` between Hebrew letters | maqaf U+05BE | 206 / 82 | 4,147 / 354 | mostly unpointed prose, where a printed hyphen is likely; the 3 in pointed Seliḥot text are not yet checked |
+| `\|` after a link target | none | 5 / 5 | — | not a stand-in: an editor's broken link (`target\|label]]` without `[[`) whose target MediaWiki shows and the print does not (Hyman I and II, *Sefer Arakhim*, *Pri Megadim*); a converter follow-up |
+
+E2c's `primary.v1` keeps `|` and ׀ (and each pair above) apart, so they are never silently conflated; `punct_folded.v1` folds punctuation and is report-only.
+
+### Text the scan does not show
+
+Text that is in the reference but cannot be seen on the image (an ink blot, a gutter shadow, a tear) must not be scored against OCR. An agent or human check records it as `excluded_spans` (kind `illegible_on_scan`): character offsets `[start, end)` into the pair text, pinned by `excluded_spans_text_sha256`, one or more boxes on the page (`regions_normalized`, fractions of the page image), and what hides it. Each span lies within one line of the text. The text stays in the reference. Downstream:
+
+- the item metadata's `reference_normalization.excluded_spans` gives the spans and boxes (`coordinate_frame: page`; a cropped pair maps them through its crop box), so evaluation can mask both the image and the text;
+- the F2 reference record carries each span as a reference span with `status: illegible` and `scoring: exclude_primary`, which E2c's `reference_text` already leaves out of primary scoring.
+
+The gate rejects spans pinned to another text, outside it, across a line or not located (`excluded_span_invalid`). Two pages carry spans: Korfu p. 128 (an ink blot over the start of three lines, three spans, 111 characters, two boxes) and Korfu p. 90 (a gutter shadow over the last letter of two lines, found in the spot check below).
+
+### Korfu spot check
+
+The tool called 207 Korfu pages `full_page`, none reviewed one by one. An agent checked 30 of them (method `agent_tool_verdict_spot_check_960px`): six strata by the tool's alignment score (0.385 to 0.900), five pages each, spread through the book. The coverage verdict agreed on all 30 (100%; with no disagreement in 30, the rule of three puts the disagreement rate under 10% at 95% confidence). The check found four text facts the verdict does not cover: p. 156 writes out the abbreviation of the refrain *Avinu Malkenu* that the page prints on fifteen lines (`text_not_on_page`); p. 90 has the gutter shadow above; pp. 78 and 356 carry unsigned editors' notes (dropped).
 
 ## Wikitext to plain text (`wikisource_plain_text.v2`)
 
@@ -103,7 +157,7 @@ Each item's metadata, and each F2 reference-pool entry, records `reference_norma
    - a bidi mark (`כ`, F8b5): it writes RLM or LRM, which step 8 removes, so it shows nothing;
    - title pages and running heads in the body (`דף שער` / `כו`, `כותרת רצה` / `rh`), Luzzatto's lemmas (`שדל:דה`), poems (`רן`), lists (`מיספור עברי`, `מ`), spacing (`רווח קשיח`, `ססס`, `סס`, `פפ`, `ש-רווח`, `ררר`) and anchors (`עוגן בשורה`, `סעיף`).
    - A positional parameter a template does not use is hidden, as MediaWiki hides it (counted as `hidden_arguments`); an unknown named parameter is rejected.
-3. **Footnotes** (`{{הערה}}`, `<ref>`, `{{הערות שוליים}}`, `<references/>`): the mark becomes `[n]` in the body, numbered in order of first use, a named note reusing its number; each note becomes a line `[n] text` where the list stands, else after the body. That is the print's layout (mark in the body, note at the foot of the page). The printed mark itself (`*)`, `1)`, `(א`) is not typed by editors, so the MediaWiki number stands in for it. A `<ref follow=...>` continuation from the previous page is an unnumbered line before the notes. A note signed by a Wikisource editor ("ויקיעורך", "ויקי עורך") and `{{ביאור}}` explanations are not printed: they and their marks are dropped (`editor_notes_dropped`). Unsigned editors' notes cannot be told from printed footnotes and stay.
+3. **Footnotes** (`{{הערה}}`, `<ref>`, `{{הערות שוליים}}`, `<references/>`): the mark becomes `[n]` in the body, numbered in order of first use, a named note reusing its number; each note becomes a line `[n] text` where the list stands, else after the body. That is the print's layout (mark in the body, note at the foot of the page). The printed mark itself (`*)`, `1)`, `(א`) is not typed by editors, so the MediaWiki number stands in for it. A `<ref follow=...>` continuation from the previous page is an unnumbered line before the notes. A note signed by a Wikisource editor ("ויקיעורך", "ויקי עורך") and `{{ביאור}}` explanations are not printed: they and their marks are dropped (`editor_notes_dropped`). Unsigned editors' notes cannot be told from printed footnotes by markup; the faithful conversion keeps them, and a reviewed check drops them from the pair text (`unprinted_notes`, F8b7). An editor's heading that labels the footnote list (`==הערות==` or `==הערות שוליים==` right before `{{הערות שוליים}}` or `<references/>`) is not printed and is dropped (`editor_headings_dropped`, F8b7; 2 pages, both checked on the page image).
 4. **Tables** (`{| ... |}`) and block HTML (`div`, `center`, `p`, table cells, list items, headings, `<poem>`) end paragraphs, so each cell or block is its own line, in source (logical) order.
 5. Links keep their label; file and category links are dropped. Bold and italic quotes are dropped (four quotes keep one apostrophe, as in MediaWiki).
 6. Paragraphs follow MediaWiki rendering: a single newline is a space, a blank line separates paragraphs, and headings, rules and blocks stand alone.
@@ -133,9 +187,9 @@ Known transcription conventions that differ from the print, kept as the editors 
 - `pages.jsonl`: page records with:
   - the revision id, timestamp and MediaWiki SHA-1;
   - the quality history and edits after the quality was set;
-  - wikitext and text checksums;
+  - wikitext and text checksums, and the text adjustments with the faithful conversion's checksum (F8b7);
   - the image's own checksum and its render source (Commons file SHA-1, page and render URL).
-- `wikitext/`: raw pinned wikitext. `transcluded/`: pinned wikitext of transcluded pages (F8b4). `text/`: derived plain text, whose SHA-256 excludes the file's final newline. `assets/`: page renders downscaled to 600 px wide, and the crops of partial pages (`*__crop.png`, F8b4).
+- `wikitext/`: raw pinned wikitext. `transcluded/`: pinned wikitext of transcluded pages (F8b4). `text/`: the derived pair text, whose SHA-256 excludes the file's final newline. `assets/`: page renders downscaled to 600 px wide, and the crops of partial pages (`*__crop.png`, F8b4).
 
 Discovery and source health (`discover/source_health.json`) both check the packaged `text/` file that `page_text_ref` points to. The file must exist and must equal the derived text plus one final newline. A failure gives `page_text_file_missing` or `page_text_file_mismatch`. Source health reports admitted Indexes, Index exclusion counts by reason, page exclusion counts, missing or altered assets, and wikitext or text drift. Acquisition fails on an asset checksum mismatch.
 
@@ -146,7 +200,8 @@ Discovery and source health (`discover/source_health.json`) both check the packa
 - `review.status` is `reviewed`, with the proofreader and validator as `wikisource:<user>` reviewers;
 - each pool entry records the page's `reference_normalization` and the image it pairs with: the page image, or for a partial page the crop's box on it (F8b4);
 - `adjudicator` is null, and each pool entry is `needs_adjudication`;
-- lines are rendered paragraphs.
+- lines are rendered paragraphs;
+- text the scan does not show is a reference span (`illegible`, `exclude_primary`), with its boxes in the pool entry's `reference_normalization` (F8b7).
 
 It never touches `benchmark_v1`. Adjudication, and any benchmark membership, are later human steps.
 
@@ -156,7 +211,7 @@ PYTHONPATH=src python -c 'from pathlib import Path; from hocrgen.config.loader i
 
 On the fixture, one page converts (Seliḥot p. 34). Bostenay p. 47 is skipped because its validator added a missing space 14 seconds after validating; Hyman p. 41 and the two cropped pages (Buber's *Tanhuma* p. 233, *Sippurei Ma'asiyot* p. 11, F8b4) are skipped as quality 3.
 
-## Operator-only full inventory (F8b2, F8b3, F8b4, F8b5)
+## Operator-only full inventory (F8b2, F8b3, F8b4, F8b5, F8b6, F8b7)
 
 `hocrgen.tools.wikisource_inventory` runs every `מפתח:` Index on he.wikisource.org through the gates above. It is an operator tool: it calls the Wikisource, Commons, Wikipedia and Wikidata APIs, with a contact User-Agent, `maxlag` and a 0.5 s delay between uncached requests. CI never runs it, and it never edits any wiki.
 
@@ -181,7 +236,7 @@ The evidence file records each fact with its source URL (Wikidata, with the Nati
 # 1. pin every page (and its transcluded pages) into the operator snapshot
 PYTHONPATH=src python -m hocrgen.tools.wikisource_inventory --work-dir <operator folder outside the repo> --checked-at 2026-11-06 \
   --index-evidence docs/wikisource_index_evidence.json --page-checks docs/wikisource_page_checks.json
-# 2. tool coverage checks and crops (F8b4; needs a local tesseract with the heb model; --capture fetches the renders)
+# 2. tool coverage checks, crops and footnote checks (F8b4, F8b7; needs a local tesseract with the heb model; --capture fetches the renders)
 PYTHONPATH=src python -m hocrgen.tools.wikisource_coverage --inventory <work-dir>/wikisource_inventory.json --snapshot <work-dir>/snapshot \
   --renders <operator folder> --ocr-cache <operator folder> --capture --checked-at 2026-11-06 \
   --out <operator folder>/tool_checks.json --compact-out docs/wikisource_page_tool_checks.json

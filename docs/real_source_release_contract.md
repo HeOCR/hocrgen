@@ -176,7 +176,7 @@ PYTHONPATH=src python -m hocrgen export-public-beta --profile profile_open_v1 --
 
 | Source | Pages in the tranche | Bytes | Left out |
 | --- | --- | --- | --- |
-| `wikisource_he_proofread` | 1,457 (1,217 full pages, 240 crops; 58 Indexes) | 631 MB | none |
+| `wikisource_he_proofread` | 1,456 (1,215 full pages, 241 crops; 58 Indexes; F8b7) | 631 MB | none |
 | `yidtaknl_vaybertaytsh_gt` | 123 (121 matched pages, plus the 2 vendored 1781 pages) | 164 MB | 33 matched pages whose upstream text file is empty |
 | `pinkas_dataset_bgu` | 30 (24 train, 6 test upstream) | 49 MB | none |
 
@@ -184,7 +184,7 @@ Reshumot, the Knesset protocols and NLI keep their packaged snapshots: 2, 3 and 
 
 ### Hosting proposal (maintainer decision; nothing has been published or uploaded)
 
-The tree is about 814 MB in 4,936 files: JPEG and PNG images, UTF-8 text, PAGE XML and JSON. The licences are mixed, CC BY-SA 4.0, CC BY 4.0 and PD-IL, per item.
+The tree is about 814 MB in 4,934 files: JPEG and PNG images, UTF-8 text, PAGE XML and JSON. The licences are mixed, CC BY-SA 4.0, CC BY 4.0 and PD-IL, per item.
 
 | Route | For | Against |
 | --- | --- | --- |

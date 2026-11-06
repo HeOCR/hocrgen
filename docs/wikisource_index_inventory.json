@@ -116,7 +116,7 @@
           "4": 0
         },
         "footnote_marks_bracketed": {
-          "3": 5,
+          "3": 0,
           "4": 0
         },
         "transcluding_pages": 0,
@@ -137,6 +137,69 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "flagged": 4,
+          "unchecked": 1
+        },
+        "footnote_flagged_reviewed": 4,
+        "footnote_unchecked_reviewed": 1,
+        "unprinted_notes_pages": {
+          "3": 5,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 6,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [
+          {
+            "page_title": "עמוד:Aaron Hyman. Toldoth Tannaim veAmoraim. I. 1910.pdf/306",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's correction of a reference (should read); the page prints no footnote"
+            ],
+            "excluded_spans": []
+          },
+          {
+            "page_title": "עמוד:Aaron Hyman. Toldoth Tannaim veAmoraim. I. 1910.pdf/392",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's suggested emendation; the page prints no footnote"
+            ],
+            "excluded_spans": []
+          },
+          {
+            "page_title": "עמוד:Aaron Hyman. Toldoth Tannaim veAmoraim. I. 1910.pdf/400",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's note on the reference in current editions; the page prints no footnote"
+            ],
+            "excluded_spans": []
+          },
+          {
+            "page_title": "עמוד:Aaron Hyman. Toldoth Tannaim veAmoraim. I. 1910.pdf/404",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's note on the reference in current editions",
+              "an editor's note on the reference in current editions"
+            ],
+            "excluded_spans": []
+          },
+          {
+            "page_title": "עמוד:Aaron Hyman. Toldoth Tannaim veAmoraim. I. 1910.pdf/406",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's page reference; the page prints no footnote"
+            ],
+            "excluded_spans": []
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -252,7 +315,7 @@
           "4": 0
         },
         "footnote_marks_bracketed": {
-          "3": 2,
+          "3": 0,
           "4": 0
         },
         "transcluding_pages": 0,
@@ -273,6 +336,44 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "flagged": 2
+        },
+        "footnote_flagged_reviewed": 2,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 2,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 3,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [
+          {
+            "page_title": "עמוד:Aaron Hyman. Toldoth Tannaim veAmoraim. II. 1910.pdf/5",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's cross-reference to another entry",
+              "an editor's cross-reference to another entry"
+            ],
+            "excluded_spans": []
+          },
+          {
+            "page_title": "עמוד:Aaron Hyman. Toldoth Tannaim veAmoraim. II. 1910.pdf/55",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's note that the sentence continues in the next entry"
+            ],
+            "excluded_spans": []
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -389,7 +490,7 @@
           "4": 0
         },
         "footnote_marks_bracketed": {
-          "3": 1,
+          "3": 0,
           "4": 0
         },
         "transcluding_pages": 0,
@@ -410,6 +511,35 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "flagged": 1
+        },
+        "footnote_flagged_reviewed": 1,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 1,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 1,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [
+          {
+            "page_title": "עמוד:Aaron Hyman. Toldoth Tannaim veAmoraim. III. 1910.pdf/267",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's note that the sentence continues in the next entry"
+            ],
+            "excluded_spans": []
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -546,6 +676,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -680,6 +828,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -813,6 +979,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -946,6 +1130,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1081,6 +1283,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1217,6 +1437,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1326,7 +1564,7 @@
         },
         "footnote_marks_bracketed": {
           "3": 0,
-          "4": 2
+          "4": 0
         },
         "transcluding_pages": 0,
         "reference_eligible_q4": 2,
@@ -1346,6 +1584,43 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "flagged": 2
+        },
+        "footnote_flagged_reviewed": 2,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 2
+        },
+        "unprinted_notes_dropped": 2,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [
+          {
+            "page_title": "עמוד:AgadatHamelekhArtush recognized.pdf/1",
+            "quality": 4,
+            "unprinted_notes": [
+              "an editor's note on a word of the text, citing a marginal gloss; the page prints no footnote"
+            ],
+            "excluded_spans": []
+          },
+          {
+            "page_title": "עמוד:AgadatHamelekhArtush recognized.pdf/4",
+            "quality": 4,
+            "unprinted_notes": [
+              "an editor's translation of an Italian book title; the page prints no footnote"
+            ],
+            "excluded_spans": []
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1496,6 +1771,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1795,6 +2088,28 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "flagged": 7,
+          "located": 20,
+          "unchecked": 23
+        },
+        "footnote_flagged_reviewed": 7,
+        "footnote_unchecked_reviewed": 23,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1930,6 +2245,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2127,7 +2460,7 @@
           "4": 0
         },
         "footnote_marks_bracketed": {
-          "3": 2,
+          "3": 0,
           "4": 0
         },
         "transcluding_pages": 0,
@@ -2148,6 +2481,43 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "flagged": 2
+        },
+        "footnote_flagged_reviewed": 2,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 2,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 2,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [
+          {
+            "page_title": "עמוד:Bostenay - Meir Leheman.pdf/52",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's suggested emendation (should read); the page prints no footnote"
+            ],
+            "excluded_spans": []
+          },
+          {
+            "page_title": "עמוד:Bostenay - Meir Leheman.pdf/71",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's pointer to Wikipedia articles; the page prints no footnote"
+            ],
+            "excluded_spans": []
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2348,6 +2718,27 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "flagged": 1,
+          "located": 6
+        },
+        "footnote_flagged_reviewed": 1,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2480,6 +2871,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2602,7 +3011,7 @@
           "4": 0
         },
         "footnote_marks_bracketed": {
-          "3": 1,
+          "3": 0,
           "4": 0
         },
         "transcluding_pages": 0,
@@ -2623,6 +3032,35 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "flagged": 1
+        },
+        "footnote_flagged_reviewed": 1,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 1,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 1,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [
+          {
+            "page_title": "עמוד:Eden Ha-Yeladim.pdf/7",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's remark that a word is unclear; the page prints no footnote"
+            ],
+            "excluded_spans": []
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2756,6 +3194,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2889,6 +3345,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -3014,6 +3488,26 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "located": 1
+        },
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -3140,6 +3634,26 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "located": 1
+        },
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -3266,6 +3780,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -3447,6 +3979,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -3584,6 +4134,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -3740,6 +4308,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -5087,6 +5673,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -5223,6 +5827,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -5354,6 +5976,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -5575,6 +6215,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -5711,6 +6369,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -5915,6 +6591,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -6057,6 +6751,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -6261,6 +6973,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -6646,7 +7376,7 @@
           "4": 1
         },
         "cropped": {
-          "3": 76,
+          "3": 79,
           "4": 1
         },
         "cropped_review_recommended": {
@@ -6658,7 +7388,7 @@
           "4": 0
         },
         "cropped_reviewed": {
-          "3": 59,
+          "3": 62,
           "4": 1
         },
         "crop_unresolved": {
@@ -6666,7 +7396,7 @@
           "4": 0
         },
         "needs_crop": {
-          "3": 76,
+          "3": 79,
           "4": 1
         },
         "pending_coverage_only": {
@@ -6678,7 +7408,7 @@
           "4": 0
         },
         "footnote_marks_bracketed": {
-          "3": 4,
+          "3": 0,
           "4": 0
         },
         "transcluding_pages": 0,
@@ -6695,29 +7425,66 @@
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
         "text_not_on_page": {
-          "3": 3,
+          "3": 0,
           "4": 0
         },
-        "text_not_on_page_pages": [
+        "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "flagged": 1,
+          "unchecked": 3
+        },
+        "footnote_flagged_reviewed": 1,
+        "footnote_unchecked_reviewed": 3,
+        "unprinted_notes_pages": {
+          "3": 4,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 4,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [
           {
             "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/138",
             "quality": 3,
-            "detail": "the [1] note: an editor's correction with no printed counterpart"
+            "unprinted_notes": [
+              "an editor's correction (should read), with no printed counterpart (F8b6)"
+            ],
+            "excluded_spans": []
           },
           {
             "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/149",
             "quality": 3,
-            "detail": "the [1] note: an editor's remark on an unclear print, with no printed counterpart"
+            "unprinted_notes": [
+              "an editor's remark on an unclear print, with no printed counterpart (F8b6)"
+            ],
+            "excluded_spans": []
           },
           {
             "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/152",
             "quality": 3,
-            "detail": "the [1] note: an editor's identification, with no printed counterpart"
+            "unprinted_notes": [
+              "an editor's identification, with no printed counterpart (F8b6)"
+            ],
+            "excluded_spans": []
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/160",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's placeholder naming a Greek word the line prints; the page prints no footnote"
+            ],
+            "excluded_spans": []
           }
         ],
         "rejected_by_first_reason": {
-          "page_text_empty": 1,
-          "text_not_on_page": 3
+          "page_text_empty": 1
         },
         "unsupported_markup": {}
       }
@@ -6867,6 +7634,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {
           "page_text_empty": 1
         },
@@ -7001,6 +7786,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7178,7 +7981,7 @@
           "4": 0
         },
         "footnote_marks_bracketed": {
-          "3": 2,
+          "3": 0,
           "4": 0
         },
         "transcluding_pages": 0,
@@ -7199,6 +8002,43 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "flagged": 2
+        },
+        "footnote_flagged_reviewed": 2,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 2,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 2,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [
+          {
+            "page_title": "עמוד:Salomon Buber. Midrash Tanhuma.1885.pdf/251",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's pointer to the page's talk page"
+            ],
+            "excluded_spans": []
+          },
+          {
+            "page_title": "עמוד:Salomon Buber. Midrash Tanhuma.1885.pdf/273",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's explanation of a term, after Buber; not printed (as the F8b5 check noted)"
+            ],
+            "excluded_spans": []
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7341,6 +8181,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7487,6 +8345,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7631,6 +8507,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7775,6 +8669,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7919,6 +8831,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -8061,6 +8991,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -8200,6 +9148,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -8323,7 +9289,7 @@
           "4": 0
         },
         "footnote_marks_bracketed": {
-          "3": 3,
+          "3": 2,
           "4": 0
         },
         "transcluding_pages": 0,
@@ -8344,6 +9310,36 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "located": 2,
+          "unchecked": 1
+        },
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 1,
+        "unprinted_notes_pages": {
+          "3": 1,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 1,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [
+          {
+            "page_title": "עמוד:Samson Raphael Hirsch. Sefer Horev. Hatorot. 1893.pdf/20",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's suggested reading; the page prints no footnote"
+            ],
+            "excluded_spans": []
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -8431,7 +9427,7 @@
           "4": 1
         },
         "eligible": {
-          "3": 213,
+          "3": 209,
           "4": 1
         },
         "cropped": {
@@ -8467,15 +9463,15 @@
           "4": 0
         },
         "footnote_marks_bracketed": {
-          "3": 8,
-          "4": 1
+          "3": 1,
+          "4": 0
         },
         "transcluding_pages": 0,
         "reference_eligible_q4": 1,
         "reference_eligible_now_q4": 1,
         "render_checks": {
-          "by_agent": 7,
-          "by_tool": 207,
+          "by_agent": 37,
+          "by_tool": 177,
           "checked": 214,
           "full_page": 214,
           "partial_page": 0,
@@ -8484,11 +9480,118 @@
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
         "text_not_on_page": {
-          "3": 0,
+          "3": 4,
           "4": 0
         },
-        "text_not_on_page_pages": [],
-        "rejected_by_first_reason": {},
+        "text_not_on_page_pages": [
+          {
+            "page_title": "עמוד:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf/156",
+            "quality": 3,
+            "detail": "the editors expanded the printed abbreviation of the two-word refrain to its full words on fifteen lines"
+          },
+          {
+            "page_title": "עמוד:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf/18",
+            "quality": 3,
+            "detail": "an editor's emendation: the text gives Scripture's divine name where the print has the Tetragrammaton (the editor's note says so)"
+          },
+          {
+            "page_title": "עמוד:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf/182",
+            "quality": 3,
+            "detail": "an editor's emendation: the text corrects a word the print misprints (the editor's note says so)"
+          },
+          {
+            "page_title": "עמוד:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf/414",
+            "quality": 3,
+            "detail": "an editor's emendation: the text changes the vocalisation of a word the print vocalises otherwise (the editor's note says so)"
+          }
+        ],
+        "footnote_checks": {
+          "flagged": 7,
+          "located": 1,
+          "unchecked": 1
+        },
+        "footnote_flagged_reviewed": 7,
+        "footnote_unchecked_reviewed": 1,
+        "unprinted_notes_pages": {
+          "3": 4,
+          "4": 1
+        },
+        "unprinted_notes_dropped": 5,
+        "editor_standin_pages": {
+          "3": 1,
+          "4": 0
+        },
+        "editor_standins": {
+          "typed_pipe_as_paseq.v1": 1
+        },
+        "excluded_span_pages": {
+          "3": 2,
+          "4": 0
+        },
+        "adjusted_pages": [
+          {
+            "page_title": "עמוד:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf/128",
+            "quality": 3,
+            "unprinted_notes": [],
+            "excluded_spans": [
+              "an ink blot covers the start of the fifteenth printed line",
+              "an ink blot covers the start of the sixteenth printed line",
+              "the ink blot's lower edge covers the start of the seventeenth printed line"
+            ]
+          },
+          {
+            "page_title": "עמוד:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf/160",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's correction (should read); the page prints no footnote"
+            ],
+            "excluded_spans": []
+          },
+          {
+            "page_title": "עמוד:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf/184",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's correction of a misprint (should read); the page prints no footnote"
+            ],
+            "excluded_spans": []
+          },
+          {
+            "page_title": "עמוד:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf/2",
+            "quality": 4,
+            "unprinted_notes": [
+              "an editor's conversion of the printed chronogram to a year"
+            ],
+            "excluded_spans": []
+          },
+          {
+            "page_title": "עמוד:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf/356",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's note giving Scripture's reading; the page prints no footnote"
+            ],
+            "excluded_spans": []
+          },
+          {
+            "page_title": "עמוד:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf/78",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's note giving Scripture's reading; the page prints no footnote"
+            ],
+            "excluded_spans": []
+          },
+          {
+            "page_title": "עמוד:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf/90",
+            "quality": 3,
+            "unprinted_notes": [],
+            "excluded_spans": [
+              "the gutter shadow hides the last letter of the first line",
+              "the gutter shadow hides the last letter of the second line"
+            ]
+          }
+        ],
+        "rejected_by_first_reason": {
+          "text_not_on_page": 4
+        },
         "unsupported_markup": {}
       }
     },
@@ -8620,6 +9723,26 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "located": 1
+        },
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -8768,6 +9891,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -9145,7 +10286,7 @@
           "4": 0
         },
         "footnote_marks_bracketed": {
-          "3": 3,
+          "3": 0,
           "4": 0
         },
         "transcluding_pages": 0,
@@ -9166,6 +10307,56 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "flagged": 2,
+          "unchecked": 1
+        },
+        "footnote_flagged_reviewed": 2,
+        "footnote_unchecked_reviewed": 1,
+        "unprinted_notes_pages": {
+          "3": 3,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 7,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [
+          {
+            "page_title": "עמוד:Seligman Baer - Seder Avodat Yisroel (1901 ed.).pdf/10",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's explanation of a word in the text",
+              "an editor's source reference"
+            ],
+            "excluded_spans": []
+          },
+          {
+            "page_title": "עמוד:Seligman Baer - Seder Avodat Yisroel (1901 ed.).pdf/6",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's identification of a place name the line prints in Latin script"
+            ],
+            "excluded_spans": []
+          },
+          {
+            "page_title": "עמוד:Seligman Baer - Seder Avodat Yisroel (1901 ed.).pdf/8",
+            "quality": 3,
+            "unprinted_notes": [
+              "an editor's identification of a place name",
+              "an editor's identification of a place name",
+              "an editor's identification of a place name",
+              "an editor's identification of a place name"
+            ],
+            "excluded_spans": []
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -9378,6 +10569,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -9459,7 +10668,7 @@
           "4": 0
         },
         "eligible": {
-          "3": 20,
+          "3": 22,
           "4": 0
         },
         "cropped": {
@@ -9495,7 +10704,7 @@
           "4": 0
         },
         "footnote_marks_bracketed": {
-          "3": 13,
+          "3": 11,
           "4": 0
         },
         "transcluding_pages": 0,
@@ -9512,24 +10721,51 @@
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
         "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "flagged": 5,
+          "unchecked": 8
+        },
+        "footnote_flagged_reviewed": 5,
+        "footnote_unchecked_reviewed": 8,
+        "unprinted_notes_pages": {
           "3": 2,
           "4": 0
         },
-        "text_not_on_page_pages": [
+        "unprinted_notes_dropped": 2,
+        "editor_standin_pages": {
+          "3": 7,
+          "4": 0
+        },
+        "editor_standins": {
+          "typed_pipe_as_paseq.v1": 24
+        },
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [
           {
             "page_title": "עמוד:Siddur Torah Ohr (Schulzinger Bros. 1940).pdf/192",
             "quality": 3,
-            "detail": "the [1] note: a modern editor's note on the custom, with no printed counterpart"
+            "unprinted_notes": [
+              "a modern editor's note on the custom, with no printed counterpart (F8b6)"
+            ],
+            "excluded_spans": []
           },
           {
             "page_title": "עמוד:Siddur Torah Ohr (Schulzinger Bros. 1940).pdf/194",
             "quality": 3,
-            "detail": "the [1] note: a modern editor's note on the custom, with no printed counterpart"
+            "unprinted_notes": [
+              "an editor's note on a variant custom, with no printed counterpart (F8b6)"
+            ],
+            "excluded_spans": []
           }
         ],
-        "rejected_by_first_reason": {
-          "text_not_on_page": 2
-        },
+        "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
     },
@@ -9774,7 +11010,7 @@
           "4": 3
         },
         "eligible": {
-          "3": 46,
+          "3": 45,
           "4": 2
         },
         "cropped": {
@@ -9810,7 +11046,7 @@
           "4": 0
         },
         "footnote_marks_bracketed": {
-          "3": 7,
+          "3": 5,
           "4": 0
         },
         "transcluding_pages": 0,
@@ -9827,7 +11063,7 @@
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
         "text_not_on_page": {
-          "3": 5,
+          "3": 6,
           "4": 1
         },
         "text_not_on_page_pages": [
@@ -9852,6 +11088,11 @@
             "detail": "an editors' placeholder asking for a translation, in place of the printed Yiddish rubric"
           },
           {
+            "page_title": "עמוד:The Seliḥot for the Entire Year.pdf/44",
+            "quality": 3,
+            "detail": "an editors' Hebrew paraphrase of the first printed Yiddish rubric, and a placeholder for the second"
+          },
+          {
             "page_title": "עמוד:The Seliḥot for the Entire Year.pdf/58",
             "quality": 3,
             "detail": "an editors' Hebrew paraphrase of the printed Yiddish rubric, which the page does not print in Hebrew"
@@ -9862,8 +11103,32 @@
             "detail": "an editors' Hebrew paraphrase of the printed Yiddish rubric, which the page does not print in Hebrew"
           }
         ],
+        "footnote_checks": {
+          "flagged": 4,
+          "located": 1,
+          "unchecked": 2
+        },
+        "footnote_flagged_reviewed": 4,
+        "footnote_unchecked_reviewed": 2,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 12,
+          "4": 1
+        },
+        "editor_standins": {
+          "typed_pipe_as_paseq.v1": 19
+        },
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {
-          "text_not_on_page": 6
+          "text_not_on_page": 7
         },
         "unsupported_markup": {}
       }
@@ -9944,7 +11209,7 @@
           "4": 0
         },
         "cropped": {
-          "3": 4,
+          "3": 2,
           "4": 0
         },
         "cropped_review_recommended": {
@@ -9956,7 +11221,7 @@
           "4": 0
         },
         "cropped_reviewed": {
-          "3": 1,
+          "3": 0,
           "4": 0
         },
         "crop_unresolved": {
@@ -9964,7 +11229,7 @@
           "4": 0
         },
         "needs_crop": {
-          "3": 4,
+          "3": 2,
           "4": 0
         },
         "pending_coverage_only": {
@@ -9976,7 +11241,7 @@
           "4": 0
         },
         "footnote_marks_bracketed": {
-          "3": 2,
+          "3": 0,
           "4": 0
         },
         "transcluding_pages": 0,
@@ -9993,11 +11258,44 @@
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
         "text_not_on_page": {
+          "3": 2,
+          "4": 0
+        },
+        "text_not_on_page_pages": [
+          {
+            "page_title": "עמוד:Tosefta Moed edited by Zuckermandel.pdf/116",
+            "quality": 3,
+            "detail": "an editors' heading and explanatory sentence introducing the parallels they compiled"
+          },
+          {
+            "page_title": "עמוד:Tosefta Moed edited by Zuckermandel.pdf/117",
+            "quality": 3,
+            "detail": "an editors' heading and explanatory sentence introducing the parallels they compiled"
+          }
+        ],
+        "footnote_checks": {
+          "flagged": 2
+        },
+        "footnote_flagged_reviewed": 2,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
           "3": 0,
           "4": 0
         },
-        "text_not_on_page_pages": [],
-        "rejected_by_first_reason": {},
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
+        "rejected_by_first_reason": {
+          "text_not_on_page": 2
+        },
         "unsupported_markup": {}
       }
     },
@@ -10131,6 +11429,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -10264,6 +11580,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -10659,6 +11993,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -10790,6 +12142,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -11275,6 +12645,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -11401,6 +12789,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -11533,6 +12939,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -11716,6 +13140,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -11917,6 +13359,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -12224,6 +13684,26 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "located": 7
+        },
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -12299,7 +13779,7 @@
           "4": 0
         },
         "eligible": {
-          "3": 10,
+          "3": 11,
           "4": 0
         },
         "cropped": {
@@ -12335,7 +13815,7 @@
           "4": 0
         },
         "footnote_marks_bracketed": {
-          "3": 1,
+          "3": 0,
           "4": 0
         },
         "transcluding_pages": 12,
@@ -12351,19 +13831,40 @@
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
         "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "unchecked": 1
+        },
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 1,
+        "unprinted_notes_pages": {
           "3": 1,
           "4": 0
         },
-        "text_not_on_page_pages": [
+        "unprinted_notes_dropped": 1,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [
           {
             "page_title": "עמוד:משלי עם פירוש קב ונקי.pdf/15",
             "quality": 3,
-            "detail": "the [1] note: a modern editor's note, with no printed counterpart"
+            "unprinted_notes": [
+              "a modern editor's note, with no printed counterpart (F8b6)"
+            ],
+            "excluded_spans": []
           }
         ],
-        "rejected_by_first_reason": {
-          "text_not_on_page": 1
-        },
+        "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
     },
@@ -12496,6 +13997,27 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {
+          "flagged": 3,
+          "unchecked": 2
+        },
+        "footnote_flagged_reviewed": 3,
+        "footnote_unchecked_reviewed": 2,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -12626,6 +14148,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -12754,6 +14294,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -13050,6 +14608,27 @@
             "detail": "the continuation of the foot note, merged in from the following pages; only its first line is printed here"
           }
         ],
+        "footnote_checks": {
+          "flagged": 1,
+          "located": 2
+        },
+        "footnote_flagged_reviewed": 1,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {
           "text_not_on_page": 1
         },
@@ -13213,6 +14792,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -13341,6 +14938,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -13486,6 +15101,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -13629,6 +15262,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -13763,6 +15414,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -14228,6 +15897,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -14491,6 +16178,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -14763,6 +16468,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -15171,6 +16894,24 @@
           "4": 0
         },
         "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }

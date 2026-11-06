@@ -281,13 +281,20 @@ def test_compact_inventory_and_summary_are_deterministic_and_text_free() -> None
         {"index_key": key, "quality": 3, "reasons": [], "adjudication_eligible": False, "transcription_coverage": "partial_page", "needs_crop": True,
          "render_check": applied, "crop": {"status": "resolved", "box_normalized": [0.1, 0.1, 0.9, 0.9], "regions_normalized": [[0.1, 0.1, 0.9, 0.4], [0.1, 0.6, 0.9, 0.9]],
                                           "review_recommended": False, "located_by": {"checked_by": "agent"}}},
+        # F8b7: a flagged footnote an agent found not printed (dropped), a mapped stand-in and a span the scan hides
+        {"index_key": key, "page_title": "עמוד:X.pdf/10", "quality": 3, "reasons": [], "adjudication_eligible": False,
+         "transcription_coverage": "full_page", "render_check": applied, "footnote_check": {"status": "flagged", "flagged": [1]},
+         "footnotes_reviewed": True, "unprinted_notes": [{"note": 1, "detail": "an editor's remark"}],
+         "text_adjustments": {"converted_text_sha256": "0" * 64, "unprinted_notes": [1],
+                              "editor_standins": [{"mapping_id": "typed_pipe_as_paseq.v1", "stand_in": "|", "printed": "\u05c0", "count": 2}]},
+         "excluded_spans": [{"kind": "illegible_on_scan", "start": 0, "end": 3, "regions_normalized": [[0.1, 0.1, 0.2, 0.2]], "detail": "an ink blot"}]},
     ]
     compact = inv.compact_inventory(_inventory_with([admitted, rejected], pages))
     gate = compact["indexes"][0]["page_gate"]
     assert gate == {
-        "checked": 8,
-        "converts": {"3": 5, "4": 2},
-        "eligible": {"3": 0, "4": 1},
+        "checked": 9,
+        "converts": {"3": 6, "4": 2},
+        "eligible": {"3": 1, "4": 1},
         "cropped": {"3": 2, "4": 0},
         "cropped_review_recommended": {"3": 1, "4": 0},
         "cropped_regions": {"3": 1, "4": 0},
@@ -300,22 +307,36 @@ def test_compact_inventory_and_summary_are_deterministic_and_text_free() -> None
         "transcluding_pages": 0,
         "reference_eligible_q4": 2,
         "reference_eligible_now_q4": 1,
-        "render_checks": {"by_agent": 2, "by_tool": 2, "checked": 4, "full_page": 1, "partial_page": 3, "stale": 0, "tool_undecided": 1},
+        "render_checks": {"by_agent": 3, "by_tool": 2, "checked": 5, "full_page": 2, "partial_page": 3, "stale": 0, "tool_undecided": 1},
         "crop_unresolved_pages": [{"page_title": "עמוד:X.pdf/9", "quality": 3, "reason": "crop_unresolved", "detail": "untranscribed_text_inside_crop", "checked_by": "tool"}],
         "pending_coverage_pages": [{"page_title": None, "quality": 4, "checked_by": None}, {"page_title": None, "quality": 3, "checked_by": "tool"}],
         "text_not_on_page": {"3": 0, "4": 0},
         "text_not_on_page_pages": [],
+        "footnote_checks": {"flagged": 1},
+        "footnote_flagged_reviewed": 1,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {"3": 1, "4": 0},
+        "unprinted_notes_dropped": 1,
+        "editor_standin_pages": {"3": 1, "4": 0},
+        "editor_standins": {"typed_pipe_as_paseq.v1": 2},
+        "excluded_span_pages": {"3": 1, "4": 0},
+        "adjusted_pages": [{"page_title": "עמוד:X.pdf/10", "quality": 3, "unprinted_notes": ["an editor's remark"], "excluded_spans": ["an ink blot"]}],
         "rejected_by_first_reason": {"quality_editor_not_named_human": 1, "wikitext_unsupported_markup": 1},
         "unsupported_markup": {"unsupported wikitext template: x": 1},
     }
     assert compact["indexes"][1]["page_gate"] is None
     summary = inv.render_summary(compact)
     assert summary == inv.render_summary(json.loads(json.dumps(compact)))
-    assert "| Indexes admitted by the Index gate | 29 | 68 | 68 | 72 | 1 |" in summary
-    assert "| **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | 0 / 0 | 196 / 4 | 241 / 5 | 2 / 0 |" in summary
-    assert "| Of those, multi-region crop (rest of the box masked) | — | — | 0 / 0 | 29 / 0 | 1 / 0 |" in summary
-    assert "| Of those, crop placed or confirmed by an agent or human | — | — | 25 / 4 | 96 / 2 | 1 / 0 |" in summary
-    assert "| Not a pair: words in the text the page does not show (`text_not_on_page`, listed below) | — | — | — | — | 0 / 0 |" in summary
+    assert "| Indexes admitted by the Index gate | 29 | 68 | 68 | 72 | 77 | 1 |" in summary
+    assert "| **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | 0 / 0 | 196 / 4 | 241 / 5 | 235 / 5 | 2 / 0 |" in summary
+    assert "| Of those, multi-region crop (rest of the box masked) | — | — | 0 / 0 | 29 / 0 | 26 / 0 | 1 / 0 |" in summary
+    assert "| Of those, crop placed or confirmed by an agent or human | — | — | 25 / 4 | 96 / 2 | 90 / 2 | 1 / 0 |" in summary
+    assert "| Not a pair: words in the text the page does not show (`text_not_on_page`, listed below) | — | — | — | — | 12 / 1 | 0 / 0 |" in summary
+    # F8b7 rows and the list of adjusted pairs
+    assert "| Pairs whose text drops footnotes found not printed (`unprinted_notes`, F8b7) | — | — | — | — | — | 1 / 0 |" in summary
+    assert "| Pairs with text excluded from scoring as not visible on the scan (`illegible_on_scan`, F8b7) | — | — | — | — | — | 1 / 0 |" in summary
+    assert "| עמוד:X.pdf/10 | 3 | an editor's remark | an ink blot |" in summary
+    assert "`typed_pipe_as_paseq.v1` 2" in summary
     assert "| עמוד:X.pdf/9 | 3 | `crop_unresolved` | untranscribed_text_inside_crop | tool |" in summary
     assert "| `creator_death_year_missing` | 1 | 3 | 1 | 3 |" in summary
     assert "death year for יוסף פלוני (published 1893, after 1855)" in summary

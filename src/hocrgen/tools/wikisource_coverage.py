@@ -53,7 +53,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-TOOL_VERSION = "0.2.0"
+from hocrgen.parsers.wikitext import convert_wikitext, footnote_spans
+
+TOOL_VERSION = "0.3.0"
 METHOD_ID = "tool_ocr_alignment_v1"
 METHOD_TEXT = (
     "hocrgen.tools.wikisource_coverage: Tesseract (Hebrew model) on the Commons render of the pinned file's page, "
@@ -133,6 +135,15 @@ THRESHOLDS: dict[str, float] = {
     "decide_aligned_lines_min": 3,
     # a short page (a title or half-title) with fewer aligned lines is decided when this much of it is located
     "decide_short_page_located_min": 0.8,
+    # footnotes (F8b7): a note is located when aligned lines cover this share of it, or, with some of it aligned,
+    # aligned and interpolated lines together note_bracketed_min of it; a note this long or longer, on a well-read page (the transcription
+    # located at well_read_located_min or more), that is not located is flagged
+    "note_aligned_min": 0.25,
+    "note_bracketed_min": 0.5,
+    "note_min_chars": 15,
+    # ... and when no note is located and no text-bearing line or unread print lies below the body's last line
+    # (page furniture aside), the page has no printed footnote, so every note is flagged (no_footnote_band)
+    "note_band_line_min_chars": 6,
 }
 
 _FINAL_FORMS = str.maketrans({"ך": "כ", "ם": "מ", "ן": "נ", "ף": "פ", "ץ": "צ"})
@@ -842,6 +853,94 @@ def region_crop(
     }
 
 
+# --- Footnotes (F8b7) -----------------------------------------------------------------------------------------
+
+FOOTNOTE_METHOD = "tool_footnote_location_v1"
+FOOTNOTE_METHOD_TEXT = (
+    "hocrgen.tools.wikisource_coverage: each footnote of the page's faithful wikisource_plain_text.v2 text (the "
+    "[n] lines) is looked for among the OCR lines aligned to the text, which are used only as boxes; a note that "
+    "aligned (or aligned and interpolated) lines cover is located; a long enough note on a well-read page that is not "
+    "located is flagged, and so is every note of a page where no note is located and no text-bearing line or unread "
+    "print lies below the body. A flagged page waits for an agent or human to compare its footnotes with the page."
+)
+
+
+def footnote_presence(
+    alignments: list[LineAlignment],
+    text: str,
+    notes: list[tuple[int, int, int]],
+    *,
+    ink: list[tuple[int, int, int, int]] | None = None,
+    thresholds: dict[str, float] | None = None,
+) -> dict[str, Any] | None:
+    """Are the text's footnotes on the page? (F8b7; HeOCR/hocrgen#130.)
+
+    ``notes`` are ``(number, start, end)`` offsets of the footnotes in ``text`` (``footnote_spans``), the text the
+    alignment ran on. Each note's run of the normalised transcription is compared with the spans of the aligned and
+    interpolated OCR lines. Per note: ``located`` (aligned lines cover ``note_aligned_min`` of it, or aligned and
+    interpolated ones ``note_bracketed_min``), ``unlocated`` (not located, at least ``note_min_chars`` long, on a
+    well-read page), ``no_footnote_band`` (the page has no located note and nothing text-bearing below the body's
+    last line), or ``unchecked``. The page is ``flagged`` when any note is unlocated or band-less, ``located`` when
+    all are located, else ``unchecked``. Boxes, counts and shares only: no OCR or page text. ``None`` without notes.
+    """
+
+    if not notes:
+        return None
+    thresholds = {**THRESHOLDS, **(thresholds or {})}
+    ink = ink or []
+    reference_length = len(alignment_string(text))
+    located_page = located_share(alignments, reference_length)
+    well_read = located_page >= thresholds["well_read_located_min"]
+    first_note = len(alignment_string(text[: notes[0][1]]))
+    body = [a for a in alignments if a.status == "aligned" and a.span and a.span[1] <= first_note + 3]
+    bottom = max((a.line.box[3] for a in body), default=None)
+    band_lines = [
+        a for a in alignments
+        if bottom is not None and a.line.box[1] >= bottom - 2 and a.status not in {"furniture", "noise"}
+        and len(a.line.chars) >= thresholds["note_band_line_min_chars"]
+    ]
+    band_ink = [box for box in ink if bottom is not None and box[1] >= bottom - 2]
+    results = []
+    for number, start, end in notes:
+        note_start = len(alignment_string(text[:start]))
+        note_end = note_start + len(alignment_string(text[start:end]))
+        length = note_end - note_start
+        aligned = [False] * length
+        bracketed = [False] * length
+        for a in alignments:
+            if not a.span or a.status not in {"aligned", "interpolated"}:
+                continue
+            for position in range(max(note_start, a.span[0]), min(note_end, a.span[1])):
+                bracketed[position - note_start] = True
+                if a.status == "aligned":
+                    aligned[position - note_start] = True
+        aligned_share = sum(aligned) / length if length else 0.0
+        bracketed_share = sum(bracketed) / length if length else 0.0
+        # Interpolation alone is not evidence: a misread run between aligned lines can be any untranscribed text.
+        if length and (aligned_share >= thresholds["note_aligned_min"] or (aligned_share > 0 and bracketed_share >= thresholds["note_bracketed_min"])):
+            status = "located"
+        elif length >= thresholds["note_min_chars"] and well_read:
+            status = "unlocated"
+        else:
+            status = "unchecked"
+        results.append({"note": number, "chars": length, "aligned_share": round(aligned_share, 3),
+                        "bracketed_share": round(bracketed_share, 3), "status": status})
+    if bottom is not None and not band_lines and not band_ink and not any(r["status"] == "located" for r in results):
+        for result in results:
+            result["status"] = "no_footnote_band"
+    flagged = [r["note"] for r in results if r["status"] in {"unlocated", "no_footnote_band"}]
+    status = "flagged" if flagged else "located" if all(r["status"] == "located" for r in results) else "unchecked"
+    return {
+        "method": FOOTNOTE_METHOD,
+        "status": status,
+        "flagged": flagged,
+        "notes": results,
+        "band_text_lines": len(band_lines),
+        "band_unread_ink": len(band_ink),
+        "page_located_share": round(located_page, 4),
+    }
+
+
 # --- Tool checks ----------------------------------------------------------------------------------------------
 
 
@@ -878,6 +977,7 @@ def tool_check(
         "alignment": assessment["alignment"],
         "transcribed_region": assessment["transcribed_region"],
         "crop": assessment["crop"],
+        **({"footnotes": assessment["footnotes"]} if assessment.get("footnotes") else {}),
     }
 
 
@@ -927,6 +1027,8 @@ def compact_tool_checks(payload: dict[str, Any]) -> dict[str, Any]:
         }
         if check.get("missing"):
             row["missing"] = check["missing"]
+        if check.get("footnotes"):
+            row["footnotes"] = {key: value for key, value in check["footnotes"].items() if key != "method"}
         rows.append(row)
     # Values every check shares are stated once (``check_defaults``) and restored on load.
     defaults = {key: rows[0][key] for key in shared if rows and all(row[key] == rows[0][key] for row in rows)}
@@ -1027,7 +1129,8 @@ def scaled_lines(tsv: str, scale: int) -> list[OcrLine]:
 def assess_render(image: Path, text: str, cache: Path, executable: str) -> tuple[dict[str, Any], str]:  # pragma: no cover - operator
     """OCR (``OCR_PASSES`` in order, stopping at the first that decides with a resolvable crop), align, assess.
 
-    Returns the best-aligned pass's assessment and the pass's name (``psm3-plain``, ...)."""
+    Returns the best-aligned pass's assessment, with its footnote check (F8b7), and the pass's name (``psm3-plain``,
+    ...)."""
 
     from PIL import Image
 
@@ -1038,7 +1141,9 @@ def assess_render(image: Path, text: str, cache: Path, executable: str) -> tuple
     for psm, preprocess in OCR_PASSES:
         lines = scaled_lines(cached_ocr(image, cache, executable, psm=psm, preprocess=preprocess), OCR_SCALE)
         alignments, reference = align_page(lines, text)
-        assessment = assess_page(alignments, len(reference), width, height, ink=unrecognised_ink(grey, lines))
+        ink = unrecognised_ink(grey, lines)
+        assessment = assess_page(alignments, len(reference), width, height, ink=ink)
+        assessment["footnotes"] = footnote_presence(alignments, text, footnote_spans(text), ink=ink)
         if best is None or assessment["alignment"]["alignment_score"] > best[0]["alignment"]["alignment_score"]:
             best = (assessment, f"psm{psm}-{preprocess}")
         if assessment["alignment"]["reference_bracketed_share"] >= THRESHOLDS["crop_bracketed_min"] and assessment["outcome"] == "decided":
@@ -1103,6 +1208,23 @@ def _check_one(job: tuple[dict[str, Any], str, Path, dict[str, Any], str, Path, 
     return tool_check(page, sha1, assessment, render=render, engine={**engine, "pass": ocr_pass}, checked_at=checked_at)
 
 
+def faithful_text(page: dict[str, Any], snapshot: Path, slug: str) -> str | None:
+    """The page's faithful conversion from its pinned wikitext (F8b7): the text before any footnote is dropped as not
+    printed or any stand-in mapped, so footnote numbers are the ones checks record. ``None`` when it does not convert."""
+
+    from hocrgen.core.errors import StageExecutionError
+    from hocrgen.fetchers.wikisource import page_transclusions
+    from hocrgen.parsers.wikitext import UnsupportedWikitextError
+
+    path = snapshot / "wikitext" / f"{slug}.wikitext.txt"
+    if not path.is_file():
+        return None
+    try:
+        return convert_wikitext(path.read_text(encoding="utf-8"), page_transclusions(page, snapshot)).text
+    except (UnsupportedWikitextError, StageExecutionError):
+        return None
+
+
 def main(argv: list[str] | None = None) -> int:  # pragma: no cover - operator path
     parser = argparse.ArgumentParser(description="Tool coverage checks and crops for Wikisource pages by OCR-box alignment (operator).")
     parser.add_argument("--inventory", type=Path, required=True, help="Full operator inventory JSON (wikisource_inventory.json).")
@@ -1132,11 +1254,11 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - operator p
         if not page["page_title"].rsplit("/", 1)[1].isdigit():
             continue
         slug = render_slug(page)
-        text_path = args.snapshot / "text" / f"{slug}.txt"
         render = renders.get(slug)
-        if render is None or not text_path.is_file() or render.get("commons_file_sha1") != sha1s.get(page["index_key"]):
+        text = faithful_text(page, args.snapshot, slug)
+        if render is None or text is None or render.get("commons_file_sha1") != sha1s.get(page["index_key"]):
             continue
-        jobs.append((page, text_path.read_text(encoding="utf-8"), args.renders / f"{slug}.jpg", render, sha1s[page["index_key"]],
+        jobs.append((page, text, args.renders / f"{slug}.jpg", render, sha1s[page["index_key"]],
                      args.ocr_cache, args.tesseract, engine, args.checked_at))
     with concurrent.futures.ProcessPoolExecutor(max_workers=args.workers) as pool:
         checks = list(pool.map(_check_one, jobs, chunksize=4))
@@ -1145,7 +1267,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - operator p
         "description": "Tool coverage checks and crops (F8b4): OCR used for localisation only, never as text.",
         "tool_version": TOOL_VERSION,
         "thresholds": THRESHOLDS,
-        "methods": {METHOD_ID: METHOD_TEXT},
+        "methods": {METHOD_ID: METHOD_TEXT, FOOTNOTE_METHOD: FOOTNOTE_METHOD_TEXT},
         "checks": sorted(checks, key=lambda check: (check["index_key"], check["scan_page"] or 0)),
     }
     args.out.write_text(json.dumps(payload, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
