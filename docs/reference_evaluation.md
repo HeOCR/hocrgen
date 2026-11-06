@@ -176,4 +176,6 @@ The view is heuristic near the marks, appears only when a scored item declares t
 - quality-3 pages as `--unreviewed-texts` (`reference_origin: wikisource_single_reviewer`);
 - an `--asset-index` that maps each item to its page image, or to its decision-12 crop.
 
+The text is the post-F8b7 pair text. F8b7 `illegible_on_scan` spans are honoured: an adjudicated reference carries them as `illegible` / `exclude_primary` spans, which `reference_text` excludes, and a single-reviewer text has them removed. `--items` limits the conversion to listed pages, and `--split-manifest` records each page's release split (`benchmark_split` on adjudicated items).
+
 `python -m hocrgen.tools.eval_text_leakage` checks reference texts against training corpora (word 8-gram exclusion, 3-gram share flag above 20%) and writes the `--hold-out` list. The first run is in [`e2d2_real_printed_evaluation.md`](./e2d2_real_printed_evaluation.md).

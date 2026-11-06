@@ -14,6 +14,12 @@ evaluation inputs for ``hocrgen evaluate-references``:
   stratum.
 - An ``--asset-index`` maps every item to the sha256 of the image it pairs with: the page render, or for a
   ``partial_page`` page its decision-12 crop (F8b4).
+- **Text the scan does not show** (F8b7 ``excluded_spans``, ``illegible_on_scan``) is honoured on both strata: an
+  adjudicated reference carries each span as ``illegible`` / ``exclude_primary``, which scoring excludes, and a
+  single-reviewer text has the span's characters removed. The span's page boxes are listed with the item's image, so
+  an operator can mask them on the scored image.
+
+The text is the post-F8b7 pair text (``page_plain_text``: unprinted footnotes dropped, stand-ins mapped).
 
 Pages can be held out by item id (for example after a training-text leakage check); each is listed with its reason.
 
@@ -74,15 +80,34 @@ def scored_image(page: Mapping[str, Any]) -> dict[str, Any]:
     """The image a page's text pairs with: its decision-12 crop for a partial page, else the page image."""
 
     image = page["image"]
+    hidden = [region for span in ((page.get("excluded_spans") or {}).get("spans") or [])
+              for region in span.get("regions_normalized") or []]
+    extra = {"excluded_regions_normalized_page_frame": hidden} if hidden else {}
     if page_needs_crop(page):
         crop = page["crop"]
         return {"kind": "crop", "path": crop["asset"]["path"], "sha256": crop["asset"]["sha256"],
                 "width": crop["asset"]["width"], "height": crop["asset"]["height"],
                 "crop_of_page": image["sha256"], "box_normalized": crop["box_normalized"],
                 **({"regions_normalized": crop["regions_normalized"]} if crop.get("regions_normalized") else {}),
-                "crop_method": crop.get("method")}
+                "crop_method": crop.get("method"), **extra}
     return {"kind": "page", "path": image["path"], "sha256": image["sha256"], "width": image["width"],
-            "height": image["height"]}
+            "height": image["height"], **extra}
+
+
+def single_reviewer_text(page: Mapping[str, Any], root: Path) -> tuple[str, int]:
+    """A quality-3 page's pair text with every excluded span (F8b7) removed; returns the text and the span count."""
+
+    text = page_plain_text(dict(page), root)
+    spans = sorted(((page.get("excluded_spans") or {}).get("spans") or []), key=lambda span: span["start"], reverse=True)
+    for span in spans:
+        text = text[:span["start"]] + text[span["end"]:]
+    return text, len(spans)
+
+
+def _manifest_facts(facts: Mapping[str, Any]) -> dict[str, Any]:
+    """The footnote facts a manifest item carries; excluded spans travel in the reference record's spans instead."""
+
+    return {"footnote_marker_style": facts["footnote_marker_style"], "footnote_count": facts["footnote_count"]}
 
 
 def adjudicated_reference(page: Mapping[str, Any], root: Path, *, source_id: str = SOURCE_ID
@@ -138,6 +163,7 @@ def load_release_splits(path: Path) -> dict[str, dict[str, Any]]:
 def write_eval_reference_set(
     root: Path, output_dir: Path, *, source_id: str = SOURCE_ID, reference_manifest_id: str,
     held_out: Mapping[str, str] | None = None, release_splits: Mapping[str, Mapping[str, Any]] | None = None,
+    include: set[str] | None = None,
 ) -> dict[str, Any]:
     """Write the adjudicated printed reference manifest, the single-reviewer texts and the asset index.
 
@@ -148,15 +174,18 @@ def write_eval_reference_set(
     _, indexes, pages = load_wikisource_snapshot(root)
     held_out = dict(held_out or {})
     known = {f"{source_id}:{page['source_item_id']}" for page in pages}
-    unknown = sorted(set(held_out) - known)
+    unknown = sorted((set(held_out) | set(include or ())) - known)
     if unknown:
         raise StageExecutionError(f"held-out items not in the snapshot: {unknown}")
     if output_dir.exists() and any(output_dir.iterdir()):
         raise StageExecutionError(f"{output_dir.name} must be new or empty")
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest_items, single_reviewer, asset_index, items, skipped, excluded = [], [], [], [], {}, []
+    masked_spans = 0
     for page in sorted(pages, key=lambda record: record["source_item_id"]):
         item_id = f"{source_id}:{page['source_item_id']}"
+        if include is not None and item_id not in include:
+            continue
         reasons = page_exclusion_reasons(page, indexes, root)
         if reasons:
             skipped[reasons[0]] = skipped.get(reasons[0], 0) + 1
@@ -171,7 +200,7 @@ def write_eval_reference_set(
             excluded.append({"item_id": item_id, "stratum": stratum, "reason": held_out[item_id]})
             continue
         image = scored_image(page)
-        facts = reference_normalization(page_conversion(page, root))
+        facts = reference_normalization(page_conversion(page, root), page)
         entry = {"item_id": item_id, "stratum": stratum, "index_key": page["index_key"], "quality": page["quality"],
                  "page_title": page["page_title"], "page_revision_id": page["revision_id"],
                  "transcription_coverage": page["transcription_coverage"], "image": image,
@@ -201,12 +230,15 @@ def write_eval_reference_set(
                 "adjudication_status": "adjudicated", "correction_of": None, "superseded_by": None,
                 "change_reason": f"E2d2 real printed reference: {record.review.change_reason}",
                 "modality": MODALITY,
-                "reference_normalization": facts,
+                "reference_normalization": _manifest_facts(facts),
             })
+            masked_spans += len(record.spans)
             entry["adjudication_record"] = f"{base}/adjudication.json"
         else:
+            text, count = single_reviewer_text(page, root)
+            masked_spans += count
             single_reviewer.append({
-                "item_id": item_id, "text": page_plain_text(page, root), "reference_origin": SINGLE_REVIEWER_ORIGIN,
+                "item_id": item_id, "text": text, "reference_origin": SINGLE_REVIEWER_ORIGIN,
                 "modality": MODALITY, "source_id": source_id, "document_type": DOCUMENT_TYPE,
                 "language_script": "he-Hebr",
                 **({"release_split": entry["release_split"]} if release_splits is not None else {}),
@@ -242,7 +274,8 @@ def write_eval_reference_set(
         "text_license": TEXT_LICENSE,
         "operator_only": True,
         "counts": {"adjudicated": len(manifest_items), "single_reviewer": len(single_reviewer),
-                   "held_out": len(excluded), "skipped": dict(sorted(skipped.items()))},
+                   "held_out": len(excluded), "skipped": dict(sorted(skipped.items())),
+                   "excluded_spans_honoured": masked_spans},
         "release_split_counts": dict(sorted(split_counts.items())) if split_counts is not None else None,
         "release_split_policy": ("a page in the release train split ships as training data and is never held-out "
                                  "evaluation; not_in_release pages were dropped before the split stage")
@@ -261,6 +294,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--reference-manifest-id", default="e2d2_wikisource_printed_v1")
     parser.add_argument("--hold-out", type=Path, default=None,
                         help="JSON {item_id: reason} of pages to leave out (for example training-text overlap)")
+    parser.add_argument("--items", type=Path, default=None,
+                        help="JSON list of item ids to convert (default: every page that passes the gates)")
     parser.add_argument("--split-manifest", type=Path, default=None,
                         help="A release split_manifest.json: record each page's release split (F8g group-whole splits)")
     return parser.parse_args(argv)
@@ -270,8 +305,9 @@ def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     held_out = json.loads(args.hold_out.read_text(encoding="utf-8")) if args.hold_out else None
     splits = load_release_splits(args.split_manifest) if args.split_manifest else None
+    include = set(json.loads(args.items.read_text(encoding="utf-8"))) if args.items else None
     summary = write_eval_reference_set(args.snapshot_root, args.output_dir, reference_manifest_id=args.reference_manifest_id,
-                                       held_out=held_out, release_splits=splits)
+                                       held_out=held_out, release_splits=splits, include=include)
     print(json.dumps({"counts": summary["counts"], "release_split_counts": summary["release_split_counts"]},
                      indent=2))  # counts only, never text
     return 0

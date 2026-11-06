@@ -33,7 +33,7 @@ def test_quality_4_pages_become_adjudicated_printed_references_named_for_two_edi
     summary = write_eval_reference_set(SNAPSHOT, tmp_path / "set", reference_manifest_id="e2d2_test")
     assert benchmark.read_bytes() == before
     assert summary["counts"] == {"adjudicated": 1, "single_reviewer": 3, "held_out": 0,
-                                 "skipped": {"text_changed_after_validation": 1}}
+                                 "skipped": {"text_changed_after_validation": 1}, "excluded_spans_honoured": 0}
     manifest = json.loads((tmp_path / "set" / "reference_manifest.json").read_text(encoding="utf-8"))
     BenchmarkReferenceManifestRecord.model_validate(manifest)
     assert manifest["benchmark_id"] != "benchmark_v1"
@@ -168,3 +168,52 @@ def test_release_splits_are_recorded_so_train_pages_are_never_presented_as_held_
     split_manifest.write_text(json.dumps({"items": [{"item_id": SELIHOT, "split": "holdout"}]}), encoding="utf-8")
     with pytest.raises(StageExecutionError, match="unknown split"):
         load_release_splits(split_manifest)
+
+
+def _snapshot_with_spans(tmp_path: Path, item: str, word: str) -> Path:
+    """A copy of the packaged snapshot whose page ``item`` has an F8b7 ``illegible_on_scan`` span over ``word``."""
+    import shutil
+
+    root = tmp_path / "snapshot"
+    shutil.copytree(SNAPSHOT, root)
+    lines = (root / "pages.jsonl").read_text(encoding="utf-8").splitlines()
+    pages = [json.loads(line) for line in lines]
+    for page in pages:
+        if f"{SOURCE}:{page['source_item_id']}" == item:
+            text = page_plain_text(page, root)
+            start = text.index(word)
+            page["excluded_spans"] = {"text_sha256": page["text_sha256"], "spans": [{
+                "kind": "illegible_on_scan", "start": start, "end": start + len(word),
+                "regions_normalized": [[0.2, 0.3, 0.6, 0.35]], "detail": "an ink blot covers the word",
+                "checked_by": "agent", "checker": "a", "checked_at": "2026-11-06"}]}
+    (root / "pages.jsonl").write_text("".join(json.dumps(page, ensure_ascii=False) + "\n" for page in pages), encoding="utf-8")
+    return root
+
+
+def test_excluded_spans_are_honoured_in_both_strata(tmp_path: Path) -> None:
+    from hocrgen.reference_evaluation import reference_text
+
+    root = _snapshot_with_spans(tmp_path, SELIHOT, "עָרוּ")
+    text = page_plain_text(_pages()[SELIHOT], SNAPSHOT)
+    summary = write_eval_reference_set(root, tmp_path / "set", reference_manifest_id="e2d2_test")
+    assert summary["counts"]["excluded_spans_honoured"] == 1
+    loaded = load_adjudicated_references(tmp_path / "set" / "reference_manifest.json", modality="printed")
+    record = loaded["references"][SELIHOT]
+    [span] = record.spans
+    assert (span.status, span.scoring) == ("illegible", "exclude_primary")
+    assert reference_text(record).count("עָרוּ") == text.count("עָרוּ") - 1
+    item = next(item for item in summary["items"] if item["item_id"] == SELIHOT)
+    assert item["image"]["excluded_regions_normalized_page_frame"] == [[0.2, 0.3, 0.6, 0.35]]
+    assert item["reference_normalization"]["excluded_spans"][0]["kind"] == "illegible_on_scan"
+    manifest = json.loads((tmp_path / "set" / "reference_manifest.json").read_text("utf-8"))
+    assert manifest["items"][0]["reference_normalization"] == {"footnote_marker_style": None, "footnote_count": 0}
+
+    hyman = f"{SOURCE}:hyman_toldoth_1910_vol1__p0041"
+    hyman_text = page_plain_text(_pages()[hyman], SNAPSHOT)
+    word = hyman_text.split()[3]
+    root3 = _snapshot_with_spans(tmp_path / "q3", hyman, word)
+    write_eval_reference_set(root3, tmp_path / "set3", reference_manifest_id="e2d2_test", include={hyman})
+    [line] = [json.loads(l) for l in (tmp_path / "set3" / "single_reviewer_texts.jsonl").read_text("utf-8").splitlines()]
+    assert line["item_id"] == hyman and len(line["text"]) == len(hyman_text) - len(word)
+    with pytest.raises(StageExecutionError, match="not in the snapshot"):
+        write_eval_reference_set(SNAPSHOT, tmp_path / "x", reference_manifest_id="x", include={"nope:1"})
