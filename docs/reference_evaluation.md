@@ -119,4 +119,32 @@ The headline remains `primary.v1`; punctuation-folded scores are secondary.
 These fields also appear in diagnostic-only comparisons without changing their
 unreviewed status or permitting cross-track comparisons.
 
+**Per-cell reference view (E2c7).** hocrsyngen ledger gold joins each row's cells with ` | `, which is not drawn on
+the page. An engine that emits one line per cell therefore pays at least 3 character edits per cell boundary
+against `logical_order`, however well it reads the cells (issue #98). The per-cell view adds a second reference
+text for those pages. Nothing existing changes.
+
+- **Source.** The batch's `line_annotations.json` (`hocrsyngen_line_annotations.v1`). Each page's segments are
+  rebuilt in `line_index` order. A segment with `logical_join: "cell"` starts a new line, `"space"` still joins with
+  one space, and lines with `logical_line_index: null` are skipped. The view is driven by `logical_join` only, so a
+  literal `|` inside a segment's text stays in the reference and is still scored.
+- **When it appears.** Only for `--synthetic-batch` runs whose batch has the sidecar and at least one item with a
+  cell join. Otherwise there is no `reference_views` key anywhere in the report (nor `run_record.reference_views`
+  or `comparison.reference_view_deltas`), rather than an empty view with null rates, and nothing is guessed. A sidecar that is present must name this
+  manifest's sha256, annotate every item on exactly one page, and rebuild every item's `logical_order` exactly with
+  the hocrsyngen separators; otherwise the run fails closed.
+- **Scope.** Items with at least one cell join (every ledger page). They are scored twice under the requested
+  profiles: `reference_views.synthetic_gold."per_cell.v1".views.logical_order` (the same per-item results as
+  `scored`) and `views."per_cell.v1"`, each a full profile report with strata, so `document_type` breaks out ledger.
+- **Comparison.** With `--baseline-predictions`, `comparison.reference_view_deltas` holds the same paired edit
+  accounting for both views over common items.
+- **Run record.** `run_record.reference_views` lists the view id, origin, item count and the sidecar's schema and
+  sha256.
+- **Unchanged.** `scored`, every profile including headline `primary.v1`, `comparison.deltas` and every existing
+  run-record field are byte-identical with and without the sidecar. The view is a reporting aid for line-per-cell
+  engines; it is not a new headline and does not change scored eligibility.
+
+On the mixed-script recipe's 25 ledger pages, R3d on gold baselines scores 3,112 `primary.v1` edits against
+`logical_order` and 130 against the per-cell view (12,038 and 10,038 reference characters).
+
 For a frozen, rights-clean mixed-script example, see the [synthetic evaluation recipe](evaluation-fixtures/bidi-synthetic-recipe.md).

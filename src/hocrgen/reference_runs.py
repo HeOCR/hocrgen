@@ -37,6 +37,9 @@ RUN_RECORD_SCHEMA_VERSION = "hocrgen_reference_evaluation_run.v1"
 SCORED_ORIGINS = frozenset({"synthetic_gold", "adjudicated_reference"})
 LEGACY_PREDICTION_SCHEMA_VERSIONS = frozenset({"1.0"})
 TRACKS = frozenset({"open", "proprietary"})
+LINE_ANNOTATIONS_SCHEMA_VERSION = "hocrsyngen_line_annotations.v1"
+LOGICAL_JOINS = {"space": " ", "cell": " | "}  # hocrsyngen LOGICAL_JOIN_SEPARATORS
+PER_CELL_VIEW_ID = "per_cell.v1"
 _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 
 
@@ -255,6 +258,76 @@ def _public_manifest_samples(batch_dir: Path, payload: Any) -> list[dict[str, An
     return samples
 
 
+def _rebuild_logical_order(lines: Any, separators: Mapping[str, str], where: str) -> tuple[str, bool]:
+    """Rebuild page gold from hocrsyngen line segments, joining continuations with ``separators[logical_join]``."""
+    if not isinstance(lines, list):
+        raise StageExecutionError(f"{where}: lines must be a list")
+    rebuilt: dict[int, str] = {}
+    has_cell = False
+    for line in lines:  # hocrsyngen writes lines in line_index (logical) order
+        if not isinstance(line, dict) or not isinstance(line.get("text"), str):
+            raise StageExecutionError(f"{where}: each line needs string text")
+        index, join = line.get("logical_line_index"), line.get("logical_join")
+        if index is None:
+            continue  # drawn but not in page gold
+        if not isinstance(index, int) or isinstance(index, bool) or join not in (None, *LOGICAL_JOINS):
+            raise StageExecutionError(f"{where}: invalid logical_line_index or logical_join")
+        if join is None:
+            if index in rebuilt:
+                raise StageExecutionError(f"{where}: logical line {index} starts twice")
+            rebuilt[index] = line["text"]
+        elif index not in rebuilt:
+            raise StageExecutionError(f"{where}: logical line {index} continues before it starts")
+        else:
+            has_cell = has_cell or join == "cell"
+            rebuilt[index] += separators[join] + line["text"]
+    return "\n".join(rebuilt[index] for index in sorted(rebuilt)), has_cell
+
+
+def load_per_cell_view(batch_dir: Path, gold: Mapping[str, Any]) -> dict[str, Any] | None:
+    """Derive the per-cell reference view (E2c7) from a batch's hocrsyngen line annotations.
+
+    Each ``logical_join: "cell"`` segment starts a new line instead of joining with ``" | "``; every other join, and
+    any ``|`` inside a segment's text, is kept as is. Returns None when the batch has no ``line_annotations.json``
+    or no item has a cell join. A sidecar that is present but does not rebuild every item's ``logical_order``
+    exactly fails closed, with or without cell joins.
+    """
+    path = batch_dir / "line_annotations.json"
+    if not path.is_file():
+        return None
+    payload, sidecar_sha = _read_json(path, "line annotations")
+    if not isinstance(payload, dict) or payload.get("schema") != LINE_ANNOTATIONS_SCHEMA_VERSION \
+            or not isinstance(payload.get("pages"), list):
+        raise StageExecutionError(f"{path.name} is not a {LINE_ANNOTATIONS_SCHEMA_VERSION} sidecar")
+    if payload.get("generation_manifest_sha256") != gold["identity"]["sha256"]:
+        raise StageExecutionError(f"{path.name} does not belong to this batch's generation manifest")
+    item_pages = {entry["item_id"]: entry["page_sha256"] for entry in gold["asset_index"]}
+    page_items = {sha: item_id for item_id, shas in item_pages.items() for sha in shas}
+    texts: dict[str, str] = {}
+    seen: set[str] = set()
+    for page in payload["pages"]:
+        page_sha = page.get("page_sha256") if isinstance(page, dict) else None
+        item_id = page_items.get(page_sha) if isinstance(page_sha, str) else None  # unhashable values never look up
+        if item_id is None:
+            raise StageExecutionError(f"{path.name} has a page that is not in the generation manifest")
+        if item_id in seen or len(item_pages[item_id]) != 1:
+            raise StageExecutionError(f"{path.name}: per-cell view needs exactly one annotated page per item ({item_id})")
+        seen.add(item_id)
+        where = f"{path.name} {item_id}"
+        as_is, has_cell = _rebuild_logical_order(page.get("lines"), LOGICAL_JOINS, where)
+        if as_is != gold["texts"][item_id]:
+            raise StageExecutionError(f"{where}: lines do not rebuild logical_order")
+        if has_cell:
+            texts[item_id] = _rebuild_logical_order(page["lines"], {**LOGICAL_JOINS, "cell": "\n"}, where)[0]
+    if seen != item_pages.keys():
+        raise StageExecutionError(f"{path.name} does not annotate every item: {sorted(item_pages.keys() - seen)}")
+    if not texts:
+        return None  # no cell joins: an empty view would only report null rates
+    return {"view_id": PER_CELL_VIEW_ID, "texts": texts,
+            "source": {"kind": "hocrsyngen_line_annotations", "schema": LINE_ANNOTATIONS_SCHEMA_VERSION,
+                       "sha256": sidecar_sha}}
+
+
 def load_adjudicated_references(manifest_path: Path) -> dict[str, Any]:
     """Load reviewed+adjudicated transcription references; anything else is excluded with a reason.
 
@@ -327,7 +400,7 @@ def load_unreviewed_texts(path: Path) -> dict[str, Any]:
 
 def _score(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any] | None,
            adjudicated: Mapping[str, Any] | None, unreviewed: Mapping[str, Any] | None, profiles: list[str],
-           alignment_masked: bool) -> dict[str, Any]:
+           alignment_masked: bool, cell_view: Mapping[str, Any] | None = None) -> dict[str, Any]:
     gold_texts = dict(gold["texts"]) if gold else {}
     references = dict(adjudicated["references"]) if adjudicated else {}
     overlap = sorted(gold_texts.keys() & references.keys())
@@ -346,6 +419,9 @@ def _score(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any
     for report in scored.values():
         report["track"] = track
     result: dict[str, Any] = {"track": track, "scored": scored}
+    if gold_texts and cell_view is not None:
+        result["reference_views"] = {"synthetic_gold": {cell_view["view_id"]: _cell_view_reports(
+            predictions, track=track, gold=gold, cell_view=cell_view, profiles=profiles)}}
     if unreviewed and unreviewed["texts"]:
         diagnostic = evaluate_text_profiles(
             sorted(unreviewed["texts"]),
@@ -354,6 +430,24 @@ def _score(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any
         result["unreviewed_diagnostics"] = {"reference_status": "unreviewed", "benchmark_ready": False,
                                             "scored": False, "track": track, **diagnostic}
     return result
+
+
+def _cell_view_reports(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any],
+                       cell_view: Mapping[str, Any], profiles: list[str]) -> dict[str, Any]:
+    """Score the items that have cell joins against both their logical_order gold and the per-cell view (E2c7)."""
+    ids = sorted(cell_view["texts"])
+    subset = {k: v for k, v in predictions.items() if k in cell_view["texts"]}
+    strata = {item_id: gold["strata"][item_id] for item_id in ids}
+    views = {
+        "logical_order": evaluate_text_profiles(ids, predictions=subset, profiles=profiles, item_strata=strata,
+                                                references={item_id: gold["texts"][item_id] for item_id in ids}),
+        cell_view["view_id"]: evaluate_text_profiles(ids, predictions=subset, profiles=profiles, item_strata=strata,
+                                                     references=dict(cell_view["texts"])),
+    }
+    for report in views.values():
+        report["track"] = track
+    return {"view_id": cell_view["view_id"], "scope": "items with at least one logical_join cell segment",
+            "item_count": len(ids), "views": views}
 
 
 def _single_stage_change(base_set: dict, cand_set: dict) -> dict[str, Any] | None:
@@ -436,7 +530,15 @@ def _comparison(baseline: dict[str, Any], candidate: dict[str, Any], base_set: d
     context = _comparison_context(base_set, cand_set)
     deltas = {origin: _report_deltas(baseline["scored"][origin], report)
               for origin, report in candidate["scored"].items() if origin in baseline["scored"]}
-    return {"track": context.pop("track"), "deltas": deltas, **context}
+    comparison = {"track": context.pop("track"), "deltas": deltas, **context}
+    if "reference_views" in candidate:
+        comparison["reference_view_deltas"] = {
+            origin: {view_id: {name: _report_deltas(baseline["reference_views"][origin][view_id]["views"][name], report)
+                               for name, report in block["views"].items()}
+                     for view_id, block in by_view.items()}
+            for origin, by_view in candidate["reference_views"].items()
+        }
+    return comparison
 
 
 def _diagnostic_comparison(baseline: dict[str, Any], candidate: dict[str, Any], base_set: dict,
@@ -473,6 +575,7 @@ def run_reference_evaluation(
     if PRIMARY_PROFILE_ID not in profile_ids or set(profile_ids) - NORMALIZATION_PROFILES.keys():
         raise StageExecutionError(f"profiles must be known and include {PRIMARY_PROFILE_ID}")
     gold = load_synthetic_gold(synthetic_batch) if synthetic_batch else None
+    cell_view = load_per_cell_view(synthetic_batch, gold) if synthetic_batch else None
     adjudicated = load_adjudicated_references(reference_manifest) if reference_manifest else None
     unreviewed = load_unreviewed_texts(unreviewed_texts) if unreviewed_texts else None
     if diagnostic_only and not unreviewed["texts"]:
@@ -491,7 +594,7 @@ def run_reference_evaluation(
     predictions, assembly = _assemble(mapping, candidate_set)
     try:
         result = _score(predictions, track=candidate_set["track"], gold=gold, adjudicated=adjudicated, unreviewed=unreviewed,
-                        profiles=profile_ids, alignment_masked=alignment_masked)
+                        profiles=profile_ids, alignment_masked=alignment_masked, cell_view=cell_view)
         comparison = None
         baseline_set = None
         if baseline_predictions_dir is not None:
@@ -499,7 +602,7 @@ def run_reference_evaluation(
             baseline_predictions, _ = _assemble(mapping, baseline_set)
             baseline = _score(baseline_predictions, track=baseline_set["track"], gold=gold, adjudicated=adjudicated,
                               unreviewed=unreviewed if diagnostic_only else None,
-                              profiles=profile_ids, alignment_masked=False)
+                              profiles=profile_ids, alignment_masked=False, cell_view=cell_view)
             compare = _diagnostic_comparison if diagnostic_only else _comparison
             comparison = compare(baseline, result, baseline_set, candidate_set)
     except ValueError as exc:
@@ -532,6 +635,9 @@ def run_reference_evaluation(
         "scored_set_policy": "synthetic gold and reviewed+adjudicated references only; unreviewed text is diagnostic",
         "diagnostic_only": diagnostic_only,
     }
+    if cell_view is not None:
+        run_record["reference_views"] = [{"origin": "synthetic_gold", "view_id": cell_view["view_id"],
+                                          "source": cell_view["source"], "item_count": len(cell_view["texts"])}]
     if diagnostic_only:
         run_record["benchmark_ready"] = False
         run_record["scored_set_policy"] = "diagnostic only: no scored set; unreviewed text under unreviewed_diagnostics"
@@ -543,6 +649,7 @@ def run_reference_evaluation(
 
 __all__ = [
     "build_mapping_from_asset_sha256", "load_adjudicated_references",
-    "load_engine_prediction", "load_prediction_set", "load_synthetic_gold", "load_unreviewed_texts",
+    "load_engine_prediction", "load_per_cell_view", "load_prediction_set", "load_synthetic_gold",
+    "load_unreviewed_texts",
     "run_reference_evaluation", "validate_mapping",
 ]
