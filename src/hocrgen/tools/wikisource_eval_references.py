@@ -1,0 +1,239 @@
+"""E2d2: operator-only real printed evaluation references from a pinned Hebrew Wikisource snapshot.
+
+Converts the pages of a Wikisource snapshot root (the F8b page-record shape) that pass every source gate into
+evaluation inputs for ``hocrgen evaluate-references``:
+
+- **Quality 4, two distinct named editors, text unchanged since validation** (maintainer decision 2, 2026-11-06):
+  ``benchmark_transcription_reference.v1`` records with ``review.status: adjudicated``, listed in a
+  ``benchmark_reference_manifest.v1`` with ``modality: printed`` and the page's ``reference_normalization`` facts.
+  Each page also gets an adjudication record that names the two Wikisource editors from the page history as the
+  attesting humans. The adjudicating act is the validator's quality-4 edit; no agent attests, and nothing is edited
+  on Wikisource.
+- **Quality 3** (one named proofreader, ``single_reviewer``): not adjudicated, so never scored. They are written as an
+  ``--unreviewed-texts`` JSONL with ``reference_origin: wikisource_single_reviewer``, a clearly labelled diagnostic
+  stratum.
+- An ``--asset-index`` maps every item to the sha256 of the image it pairs with: the page render, or for a
+  ``partial_page`` page its decision-12 crop (F8b4).
+
+Pages can be held out by item id (for example after a training-text leakage check); each is listed with its reason.
+Everything this writes holds CC BY-SA 4.0 Wikisource text and stays operator-only. ``benchmark_v1`` is untouched.
+"""
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from pathlib import Path
+from typing import Any, Mapping
+
+from hocrgen.core.errors import StageExecutionError
+from hocrgen.fetchers.wikisource import (
+    TEXT_LICENSE,
+    load_wikisource_snapshot,
+    page_attestation,
+    page_conversion,
+    page_exclusion_reasons,
+    page_needs_crop,
+    page_permalink,
+    page_plain_text,
+    page_reference_record,
+    reference_normalization,
+)
+from hocrgen.manifests.models import BenchmarkReferenceManifestRecord, BenchmarkTranscriptionReferenceRecord
+from hocrgen.parsers.wikitext import WIKITEXT_NORMALIZATION_VERSION
+
+SOURCE_ID = "wikisource_he_proofread"
+ADJUDICATION_RECORD_SCHEMA = "wikisource_adjudication_record.v1"
+EVAL_SET_SCHEMA = "wikisource_eval_reference_set.v1"
+SINGLE_REVIEWER_ORIGIN = "wikisource_single_reviewer"
+MODALITY = "printed"
+DOCUMENT_TYPE = "printed_book_page"
+ADJUDICATION_RULE = (
+    "maintainer decision 2 (2026-11-06): a Wikisource quality-4 page, validated by a second named human editor "
+    "with its text unchanged since validation, counts as human-attested and adjudication-eligible; the validator's "
+    "quality-4 edit is the adjudicating act"
+)
+
+
+def _sha256(data: str) -> str:
+    return hashlib.sha256(data.encode("utf-8")).hexdigest()
+
+
+def _dump(payload: Any) -> str:
+    return json.dumps(payload, ensure_ascii=False, indent=2) + "\n"
+
+
+def scored_image(page: Mapping[str, Any]) -> dict[str, Any]:
+    """The image a page's text pairs with: its decision-12 crop for a partial page, else the page image."""
+
+    image = page["image"]
+    if page_needs_crop(page):
+        crop = page["crop"]
+        return {"kind": "crop", "path": crop["asset"]["path"], "sha256": crop["asset"]["sha256"],
+                "width": crop["asset"]["width"], "height": crop["asset"]["height"],
+                "crop_of_page": image["sha256"], "box_normalized": crop["box_normalized"],
+                **({"regions_normalized": crop["regions_normalized"]} if crop.get("regions_normalized") else {}),
+                "crop_method": crop.get("method")}
+    return {"kind": "page", "path": image["path"], "sha256": image["sha256"], "width": image["width"],
+            "height": image["height"]}
+
+
+def adjudicated_reference(page: Mapping[str, Any], root: Path, *, source_id: str = SOURCE_ID
+                          ) -> tuple[BenchmarkTranscriptionReferenceRecord, dict[str, Any]]:
+    """One quality-4 page as an adjudicated reference plus its adjudication record (two named Wikisource editors)."""
+
+    record = page_reference_record(source_id, dict(page), root)  # raises unless adjudication-eligible
+    attestation = page_attestation(dict(page))
+    proofreader, validator = attestation["proofreader"], attestation["validator"]
+    reviewers = [f"wikisource:{proofreader['user']}", f"wikisource:{validator['user']}"]
+    reason = (f"Wikisource quality 4 at revision {page['revision_id']}: proofread by {reviewers[0]} "
+              f"(revision {proofreader['revision_id']}), validated by {reviewers[1]} (revision {validator['revision_id']}); "
+              f"adjudicated under maintainer decision 2; {WIKITEXT_NORMALIZATION_VERSION}; lines are rendered paragraphs")
+    adjudicated = record.model_copy(update={"review": record.review.model_copy(update={
+        "status": "adjudicated", "reviewers": reviewers, "adjudicator": reviewers[1],
+        "adjudicated_at": validator["timestamp"], "change_reason": reason})})
+    BenchmarkTranscriptionReferenceRecord.model_validate(adjudicated.model_dump(mode="json"))
+    adjudication = {
+        "schema_version": ADJUDICATION_RECORD_SCHEMA,
+        "item_id": record.item_id,
+        "page_title": page["page_title"],
+        "page_permalink": page_permalink(dict(page)),
+        "page_revision_id": page["revision_id"],
+        "text_sha256": page["text_sha256"],
+        "quality": 4,
+        "rule": ADJUDICATION_RULE,
+        "attesting_humans": [
+            {"role": "proofreader", "wiki": "he.wikisource.org", **proofreader},
+            {"role": "validator", "wiki": "he.wikisource.org", **validator},
+        ],
+        "adjudicator": {"role": "validator", "user": validator["user"], "user_id": validator["user_id"]},
+        "agent_attestation": None,
+        "conversion": {"by": "hocrgen.tools.wikisource_eval_references", "text_normalization": WIKITEXT_NORMALIZATION_VERSION,
+                       "note": "a mechanical conversion of the pinned revision; the converter attests nothing"},
+        "text_license": TEXT_LICENSE,
+    }
+    return adjudicated, adjudication
+
+
+def write_eval_reference_set(
+    root: Path, output_dir: Path, *, source_id: str = SOURCE_ID, reference_manifest_id: str,
+    held_out: Mapping[str, str] | None = None,
+) -> dict[str, Any]:
+    """Write the adjudicated printed reference manifest, the single-reviewer texts and the asset index.
+
+    ``held_out`` maps item ids to a reason (for example a training-text overlap); those pages are listed, never
+    written. Returns the ``wikisource_eval_reference_set.v1`` summary, also written as ``eval_set.json``.
+    """
+
+    _, indexes, pages = load_wikisource_snapshot(root)
+    held_out = dict(held_out or {})
+    known = {f"{source_id}:{page['source_item_id']}" for page in pages}
+    unknown = sorted(set(held_out) - known)
+    if unknown:
+        raise StageExecutionError(f"held-out items not in the snapshot: {unknown}")
+    if output_dir.exists() and any(output_dir.iterdir()):
+        raise StageExecutionError(f"{output_dir.name} must be new or empty")
+    output_dir.mkdir(parents=True, exist_ok=True)
+    manifest_items, single_reviewer, asset_index, items, skipped, excluded = [], [], [], [], {}, []
+    for page in sorted(pages, key=lambda record: record["source_item_id"]):
+        item_id = f"{source_id}:{page['source_item_id']}"
+        reasons = page_exclusion_reasons(page, indexes, root)
+        if reasons:
+            skipped[reasons[0]] = skipped.get(reasons[0], 0) + 1
+            continue
+        attestation = page_attestation(page)
+        if page["quality"] == 4 and not attestation["adjudication_eligible"]:
+            reason = attestation["adjudication_ineligible_reason"]
+            skipped[reason] = skipped.get(reason, 0) + 1
+            continue
+        stratum = "adjudicated" if page["quality"] == 4 else "single_reviewer"
+        if item_id in held_out:
+            excluded.append({"item_id": item_id, "stratum": stratum, "reason": held_out[item_id]})
+            continue
+        image = scored_image(page)
+        facts = reference_normalization(page_conversion(page, root))
+        entry = {"item_id": item_id, "stratum": stratum, "index_key": page["index_key"], "quality": page["quality"],
+                 "page_title": page["page_title"], "page_revision_id": page["revision_id"],
+                 "transcription_coverage": page["transcription_coverage"], "image": image,
+                 "reference_normalization": facts}
+        if stratum == "adjudicated":
+            record, adjudication = adjudicated_reference(page, root, source_id=source_id)
+            base = f"references/{page['source_item_id']}"
+            payload = _dump(record.model_dump(mode="json"))
+            (output_dir / base).mkdir(parents=True)
+            (output_dir / base / "transcription.json").write_text(payload, encoding="utf-8")
+            (output_dir / base / "adjudication.json").write_text(_dump(adjudication), encoding="utf-8")
+            manifest_items.append({
+                "reference_id": f"{reference_manifest_id}:{page['source_item_id']}",
+                "item_id": item_id, "source_id": source_id, "source_item_id": page["source_item_id"],
+                "benchmark_split": None, "visibility": "hidden_reference", "public_reference_status": "adjudicated",
+                "transcription_reference": {"path": f"{base}/transcription.json",
+                                            "schema_version": "benchmark_transcription_reference.v1",
+                                            "sha256": _sha256(payload)},
+                "layout_label_references": [], "reviewers": record.review.reviewers,
+                "adjudication_status": "adjudicated", "correction_of": None, "superseded_by": None,
+                "change_reason": f"E2d2 real printed reference: {record.review.change_reason}",
+                "modality": MODALITY,
+                "reference_normalization": facts,
+            })
+            entry["adjudication_record"] = f"{base}/adjudication.json"
+        else:
+            single_reviewer.append({
+                "item_id": item_id, "text": page_plain_text(page, root), "reference_origin": SINGLE_REVIEWER_ORIGIN,
+                "modality": MODALITY, "source_id": source_id, "document_type": DOCUMENT_TYPE,
+                "language_script": "he-Hebr",
+            })
+        asset_index.append({"item_id": item_id, "page_sha256": [image["sha256"]]})
+        items.append(entry)
+    manifest = {
+        "schema_version": "benchmark_reference_manifest.v1",
+        "benchmark_id": "e2d_real_printed",
+        "reference_manifest_id": reference_manifest_id,
+        "release_id": None,
+        "reference_contracts": {"transcription": "benchmark_transcription_reference.v1",
+                                "layout": "benchmark_layout_reference.v1"},
+        "items": manifest_items,
+    }
+    BenchmarkReferenceManifestRecord.model_validate(manifest)
+    (output_dir / "reference_manifest.json").write_text(_dump(manifest), encoding="utf-8")
+    with (output_dir / "single_reviewer_texts.jsonl").open("w", encoding="utf-8") as handle:
+        for line in single_reviewer:
+            handle.write(json.dumps(line, ensure_ascii=False, sort_keys=True) + "\n")
+    (output_dir / "asset_index.json").write_text(_dump({"items": asset_index}), encoding="utf-8")
+    summary = {
+        "schema_version": EVAL_SET_SCHEMA,
+        "source_id": source_id,
+        "reference_manifest_id": reference_manifest_id,
+        "modality": MODALITY,
+        "text_license": TEXT_LICENSE,
+        "operator_only": True,
+        "counts": {"adjudicated": len(manifest_items), "single_reviewer": len(single_reviewer),
+                   "held_out": len(excluded), "skipped": dict(sorted(skipped.items()))},
+        "held_out": excluded,
+        "items": items,
+    }
+    (output_dir / "eval_set.json").write_text(_dump(summary), encoding="utf-8")
+    return summary
+
+
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("snapshot_root", type=Path)
+    parser.add_argument("output_dir", type=Path)
+    parser.add_argument("--reference-manifest-id", default="e2d2_wikisource_printed_v1")
+    parser.add_argument("--hold-out", type=Path, default=None,
+                        help="JSON {item_id: reason} of pages to leave out (for example training-text overlap)")
+    return parser.parse_args(argv)
+
+
+def main(argv: list[str] | None = None) -> int:
+    args = parse_args(argv)
+    held_out = json.loads(args.hold_out.read_text(encoding="utf-8")) if args.hold_out else None
+    summary = write_eval_reference_set(args.snapshot_root, args.output_dir,
+                                       reference_manifest_id=args.reference_manifest_id, held_out=held_out)
+    print(json.dumps({"counts": summary["counts"]}, indent=2))  # counts only, never text
+    return 0
+
+
+if __name__ == "__main__":  # pragma: no cover
+    raise SystemExit(main())
