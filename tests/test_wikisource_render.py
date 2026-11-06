@@ -27,6 +27,17 @@ def _wikitext(entry: dict) -> str:
     return wikitext
 
 
+def _transclusions(entry: dict) -> dict[str, str]:
+    """F8b4: the pinned pages a fixture page transcludes by labelled section, checked by SHA-256."""
+
+    pinned: dict[str, str] = {}
+    for item in entry.get("transclusions") or []:
+        wikitext = (FIXTURES / item["path"]).read_text(encoding="utf-8")
+        assert hashlib.sha256(wikitext.encode("utf-8")).hexdigest() == item["wikitext_sha256"]
+        pinned[item["title"]] = wikitext
+    return pinned
+
+
 def _html(entry: dict) -> str:
     html = (FIXTURES / f"{entry['slug']}.html").read_text(encoding="utf-8")
     assert hashlib.sha256(html.encode("utf-8")).hexdigest() == entry["html_sha256"]
@@ -35,7 +46,7 @@ def _html(entry: dict) -> str:
 
 @pytest.mark.parametrize("entry", MANIFEST["pages"], ids=lambda entry: entry["slug"])
 def test_converter_matches_mediawiki_rendering(entry: dict) -> None:
-    result = compare(_wikitext(entry), _html(entry))
+    result = compare(_wikitext(entry), _html(entry), _transclusions(entry))
     assert result["converted"], result.get("error")
     assert result["tokens_equal"], (result["ours"], result["theirs"])
     assert result["lines_equal"] == entry["lines_equal"]
@@ -45,11 +56,12 @@ def test_fixtures_cover_the_new_constructs() -> None:
     features: set[str] = set()
     sizes: set[str] = set()
     for entry in MANIFEST["pages"]:
-        conversion = convert_wikitext(_wikitext(entry))
+        conversion = convert_wikitext(_wikitext(entry), _transclusions(entry))
         features.update(conversion.features)
         sizes.update(conversion.size_spans)
     assert {"footnotes", "footnote_continuations", "editor_notes_dropped", "citations", "quotation_marks", "tables"} <= features
     assert sizes == {"small", "large"}
+    assert any(entry.get("transclusions") for entry in MANIFEST["pages"])  # F8b4: labelled-section transclusion
 
 
 def test_visible_lines_drop_display_only_parts() -> None:

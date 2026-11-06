@@ -17,10 +17,13 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 import urllib.parse
 from pathlib import Path
 from typing import Any
+
+from PIL import Image
 
 from hocrgen.config.loader import ConfigBundle, load_yaml_file
 from hocrgen.config.models import SourceConfig
@@ -73,6 +76,8 @@ WIKISOURCE_INTEGRITY_REASONS = {
     "page_text_checksum_mismatch",
     "page_text_file_missing",
     "page_text_file_mismatch",
+    "transclusion_missing",
+    "transclusion_checksum_mismatch",
 }
 
 # Maintainer decision (F8a decision 2, accepted 2026-11-06): not PD in Israel (Birnbaum died 1988).
@@ -86,6 +91,10 @@ GOOGLE_DIGITIZATION_MARKERS = ("digitized by google", "google books", "books.goo
 TRANSCRIPTION_COVERAGE_FULL = "full_page"
 TRANSCRIPTION_COVERAGE_PARTIAL = "partial_page"
 TRANSCRIPTION_COVERAGE_VALUES = {TRANSCRIPTION_COVERAGE_FULL, TRANSCRIPTION_COVERAGE_PARTIAL}
+CROP_RESOLVED = "resolved"
+# Footnote marks: the printed mark (``*)``, ``1)``, ``(א``) is not typed by editors, so the converter writes the
+# MediaWiki number as ``[n]``. Recorded per page so evaluation can mask the marks (F8b4).
+FOOTNOTE_MARKER_STYLE = "bracketed_index"
 
 _LICENCE_TOKEN = re.compile(r"^(PD|CC|Cc-|GFDL|FAL|OGL|Copyrighted|Attribution)", re.IGNORECASE)
 _BOT_NAME = re.compile(r"bot$", re.IGNORECASE)
@@ -335,7 +344,8 @@ def page_exclusion_reasons(page: dict[str, Any], indexes: dict[str, dict[str, An
         reasons.append("transcription_coverage_unrecorded")
     elif coverage not in TRANSCRIPTION_COVERAGE_VALUES:
         reasons.append("transcription_coverage_unknown")
-    # Decision 12: a partial_page transcription is not rejected; it is marked needs_crop (see page_needs_crop).
+    # Decision 12: a partial_page transcription is not rejected; it is paired with its crop (F8b4).
+    reasons.extend(page_crop_reasons(page))
     reasons.extend(_page_text_reasons(page, root))
     return reasons
 
@@ -346,9 +356,104 @@ def page_needs_crop(page: dict[str, Any]) -> bool:
     return page.get("transcription_coverage") == TRANSCRIPTION_COVERAGE_PARTIAL
 
 
+def page_crop_reasons(page: dict[str, Any]) -> list[str]:
+    """A partial page pairs only through a resolved crop inside the page (F8b4, decision 12).
+
+    ``crop_unrecorded``: no tool crop for the pinned revision and scan. ``crop_unresolved``: the tool could not
+    place one (too little of the transcription located, or too much untranscribed text inside); such pages are
+    reported, never silently dropped. ``crop_geometry_invalid``: the recorded box is not inside the page.
+    """
+
+    if not page_needs_crop(page):
+        return []
+    crop = page.get("crop")
+    if not isinstance(crop, dict):
+        return ["crop_unrecorded"]
+    if crop.get("status") != CROP_RESOLVED:
+        return ["crop_unresolved"]
+    if not crop_box_valid(crop.get("box_normalized")):
+        return ["crop_geometry_invalid"]
+    return []
+
+
+def crop_box_valid(box: Any) -> bool:
+    """A normalised box ``[x0, y0, x1, y1]`` inside the page, with positive width and height."""
+
+    if not isinstance(box, list) or len(box) != 4 or not all(isinstance(value, (int, float)) for value in box):
+        return False
+    x0, y0, x1, y1 = box
+    return 0 <= x0 < x1 <= 1 and 0 <= y0 < y1 <= 1
+
+
+def crop_pixel_box(box_normalized: list[float], width: int, height: int) -> tuple[int, int, int, int]:
+    """The crop box in an image of this size: the normalised box scaled, rounded outward, clamped to the image."""
+
+    x0, y0, x1, y1 = box_normalized
+    return (
+        max(0, math.floor(x0 * width)),
+        max(0, math.floor(y0 * height)),
+        min(width, math.ceil(x1 * width)),
+        min(height, math.ceil(y1 * height)),
+    )
+
+
+def crop_asset_problems(page: dict[str, Any], root: Path) -> list[str]:
+    """Integrity of a cropped page's assets (source health and acquisition).
+
+    The crop asset must exist with its pinned SHA-256, and must be exactly the pinned page image cut at the
+    recorded box: its size is the box's, the box lies inside the page image, and its pixels equal the page's.
+    """
+
+    crop = page.get("crop") or {}
+    asset = crop.get("asset") or {}
+    image = page.get("image") or {}
+    if not asset.get("path"):
+        return ["crop_asset_missing"]
+    path = root / str(asset["path"])
+    if not path.is_file():
+        return ["crop_asset_missing"]
+    if sha256_file(path) != asset.get("sha256"):
+        return ["crop_asset_checksum_mismatch"]
+    page_path = root / str(image.get("path", ""))
+    if not page_path.is_file():
+        return ["page_image_missing"]
+    with Image.open(page_path) as page_image:
+        page_image.load()
+        box = crop_pixel_box(crop["box_normalized"], *page_image.size)
+        if list(box) != list(crop.get("box_px") or []):
+            return ["crop_geometry_mismatch"]
+        expected = page_image.convert("RGB").crop(box)
+    with Image.open(path) as cropped:
+        cropped = cropped.convert("RGB")
+        if cropped.size != expected.size:
+            return ["crop_geometry_mismatch"]
+        if cropped.tobytes() != expected.tobytes():
+            return ["crop_pixels_mismatch"]
+    return []
+
+
 def page_exclusion_reason(page: dict[str, Any], indexes: dict[str, dict[str, Any]], root: Path) -> str | None:
     reasons = page_exclusion_reasons(page, indexes, root)
     return reasons[0] if reasons else None
+
+
+def page_transclusions(page: dict[str, Any], root: Path) -> dict[str, str]:
+    """The pinned wikitext of every page this page transcludes by labelled section (F8b4), by title.
+
+    Each is pinned by revision id and SHA-256 in ``page["transclusions"]``; a missing or altered file raises
+    ``StageExecutionError`` (source health reports it as ``transclusion_missing`` / ``transclusion_checksum_mismatch``).
+    """
+
+    pinned: dict[str, str] = {}
+    for entry in page.get("transclusions") or []:
+        path = root / str(entry.get("wikitext_path", ""))
+        if not entry.get("wikitext_path") or not path.is_file():
+            raise StageExecutionError(f"transclusion_missing: {entry.get('title')}")
+        wikitext = path.read_text(encoding="utf-8")
+        if _sha256(wikitext) != entry.get("wikitext_sha256"):
+            raise StageExecutionError(f"transclusion_checksum_mismatch: {entry.get('title')}")
+        pinned[str(entry["title"])] = wikitext
+    return pinned
 
 
 def _page_text_reasons(page: dict[str, Any], root: Path) -> list[str]:
@@ -361,7 +466,11 @@ def _page_text_reasons(page: dict[str, Any], root: Path) -> list[str]:
     if pagequality_level(wikitext) != page.get("quality"):
         return ["quality_tag_mismatch"]
     try:
-        text = wikitext_to_plain_text(wikitext)
+        transclusions = page_transclusions(page, root)
+    except StageExecutionError as exc:
+        return [str(exc).split(":", 1)[0]]
+    try:
+        text = wikitext_to_plain_text(wikitext, transclusions)
     except UnsupportedWikitextError:
         return ["wikitext_unsupported_markup"]
     if not text.strip():
@@ -417,6 +526,35 @@ def _editor_record(entry: dict[str, Any] | None) -> dict[str, Any] | None:
     }
 
 
+def reference_normalization(conversion: WikitextConversion) -> dict[str, Any]:
+    """Per-page facts about how the reference text differs from the print by convention, for evaluation masking.
+
+    ``footnote_marker_style`` is ``bracketed_index`` when the page has footnotes: each printed mark (``*)``,
+    ``1)``, ``(א``) is written ``[n]``, numbered in order of first use, because editors do not type the printed
+    mark. It is ``None`` on a page without footnotes.
+    """
+
+    footnotes = conversion.features.get("footnotes", 0)
+    return {"footnote_marker_style": FOOTNOTE_MARKER_STYLE if footnotes else None, "footnote_count": footnotes}
+
+
+def crop_provenance(page: dict[str, Any]) -> dict[str, Any]:
+    """The crop a partial page pairs with: source page image, box, method and how it was located (F8b4)."""
+
+    crop = page["crop"]
+    image = page["image"]
+    return {
+        "source_page_image": {"path": image["path"], "sha256": image["sha256"], "width": image["width"], "height": image["height"]},
+        "box_px": crop["box_px"],
+        "box_normalized": crop["box_normalized"],
+        "method": crop["method"],
+        "untranscribed_inside": crop.get("untranscribed_inside") or [],
+        "untranscribed_inside_area_share": crop.get("untranscribed_inside_area_share"),
+        "located_by": crop.get("located_by"),
+        "asset_sha256": crop["asset"]["sha256"],
+    }
+
+
 def page_permalink(page: dict[str, Any]) -> str:
     title = urllib.parse.quote(str(page["page_title"]).replace(" ", "_"), safe=":/")
     return f"{WIKISOURCE_SITE_URL}/w/index.php?title={title}&oldid={page['revision_id']}"
@@ -426,7 +564,7 @@ def page_conversion(page: dict[str, Any], root: Path) -> WikitextConversion:
     """Convert the page's pinned wikitext and check the text against the pinned checksum."""
 
     wikitext = (root / page["wikitext_path"]).read_text(encoding="utf-8")
-    conversion = convert_wikitext(wikitext)
+    conversion = convert_wikitext(wikitext, page_transclusions(page, root))
     if _sha256(conversion.text) != page["text_sha256"]:
         raise StageExecutionError(f"Wikisource page text checksum mismatch for {page['source_item_id']}")
     return conversion
@@ -481,15 +619,19 @@ class WikisourceProofreadImporter:
             image = page["image"]
             commons = index["commons_file"]
             work = index["work"]
+            conversion = page_conversion(page, root)
+            # Decision 12 (F8b4): a partial page pairs its text with the crop of the transcribed region.
+            asset = (page.get("crop") or {}).get("asset") if page_needs_crop(page) else None
+            pair_image = asset or image
             enriched.append(
                 EnrichedCandidateRecord(
                     **candidate.model_dump(),
                     raw_rights_text=TEXT_LICENSE,
                     asset_references=[
                         AssetReference(
-                            reference=image["path"],
-                            resolved_path=str((root / image["path"]).resolve()),
-                            media_type=image["media_type"],
+                            reference=pair_image["path"],
+                            resolved_path=str((root / pair_image["path"]).resolve()),
+                            media_type=pair_image["media_type"],
                         )
                     ],
                     metadata={
@@ -512,7 +654,9 @@ class WikisourceProofreadImporter:
                         "text_attribution": f"Hebrew Wikisource contributors, {page_permalink(page)}",
                         "text_normalization": WIKITEXT_NORMALIZATION_VERSION,
                         # Typographic size spans (small / large text) in the page body; the text itself is unsized.
-                        "text_size_spans": page_conversion(page, root).size_spans,
+                        "text_size_spans": conversion.size_spans,
+                        # Reference-normalisation facts evaluation can mask (F8b4): footnote marks are [n], not the print's.
+                        "reference_normalization": reference_normalization(conversion),
                         "page_text_ref": page["text_path"],
                         "page_text_sha256": page["text_sha256"],
                         "raw_wikitext_sha256": page["wikitext_sha256"],
@@ -536,9 +680,10 @@ class WikisourceProofreadImporter:
                         "transcription_coverage": page["transcription_coverage"],
                         "transcription_coverage_check": page.get("transcription_coverage_check"),
                         "needs_crop": page_needs_crop(page),
+                        "crop": crop_provenance(page) if asset else None,
                         "scan_digitized_by_google": digitized_by_google(index),
                         "rights_evidence_checked_at": index["evidence_checked_at"],
-                        "expected_asset_sha256": image["sha256"],
+                        "expected_asset_sha256": pair_image["sha256"],
                     },
                 )
             )
@@ -547,6 +692,10 @@ class WikisourceProofreadImporter:
     def acquire_items(self, source: SourceConfig, bundle: ConfigBundle, items, output_dir, options: StageOptions) -> list[AcquiredItemRecord]:
         acquired_items: list[AcquiredItemRecord] = []
         for item in items:
+            if item.metadata.get("crop"):
+                problems = crop_asset_problems(item.raw_metadata["page"], Path(item.raw_metadata["snapshot_root"]))
+                if problems:
+                    raise StageExecutionError(f"Wikisource crop of {item.item_id} failed its integrity check: {', '.join(problems)}")
             asset = item.asset_references[0]
             resolved = Path(asset.resolved_path or "")
             destination = output_dir / item.item_id / resolved.name
@@ -630,9 +779,8 @@ def write_wikisource_reference_pool(source: SourceConfig, bundle: ConfigBundle, 
     entries: list[dict[str, Any]] = []
     skipped: dict[str, int] = {}
     for page in sorted(pages, key=lambda record: record["source_item_id"]):
+        # A partial page passes the gate only with a resolved crop (F8b4); its reference pairs with that crop.
         reasons = page_exclusion_reasons(page, indexes, root)
-        if not reasons and page_needs_crop(page):
-            reasons = ["needs_crop"]  # the full-page image would not match a partial text until F8b4 crops it
         reason = reasons[0] if reasons else page_attestation(page)["adjudication_ineligible_reason"]
         if reason:
             skipped[reason] = skipped.get(reason, 0) + 1
@@ -650,6 +798,10 @@ def write_wikisource_reference_pool(source: SourceConfig, bundle: ConfigBundle, 
                 "sha256": _sha256(payload),
                 "wikisource_revision_id": page["revision_id"],
                 "adjudication_status": "needs_adjudication",
+                "reference_normalization": reference_normalization(page_conversion(page, root)),
+                "image": {"crop_of_page": page["image"]["sha256"], "box_normalized": page["crop"]["box_normalized"]}
+                if page_needs_crop(page)
+                else {"page": page["image"]["sha256"]},
             }
         )
     manifest = {

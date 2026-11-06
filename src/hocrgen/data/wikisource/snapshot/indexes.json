@@ -419,6 +419,150 @@
         "digitization_check": "Not checked: rejection-evidence record without page renders."
       },
       "evidence_checked_at": "2026-11-06"
+    },
+    {
+      "index_key": "buber_tanhuma_1885",
+      "index_title": "מפתח:Salomon Buber. Midrash Tanhuma.1885.pdf",
+      "index_revision_id": 756770,
+      "commons_file": {
+        "title": "File:Salomon Buber. Midrash Tanhuma.1885.pdf",
+        "description_url": "https://commons.wikimedia.org/wiki/File:Salomon_Buber._Midrash_Tanhuma.1885.pdf",
+        "file_page_revision_id": 1122838108,
+        "file_page_revision_sha1": "7e7a4f283d7f7e90fc166888a546bc36e7b3c839",
+        "sha1": "6c059f95c587e53b97f0c70707e421a4dd127a90",
+        "size": 40960884,
+        "mime": "application/pdf",
+        "page_count": 452,
+        "uploaded_at": "2017-03-27T22:59:03Z",
+        "source_field": "{{IA|midrashtanhumaha01bube}}",
+        "institution_field": "[[University of North Carolina at Chapel Hill]]",
+        "provenance_text": null,
+        "licence_templates": [
+          "PD-scan|PD-old-auto-1923|deathyear=1906"
+        ],
+        "categories": [
+          "1885 books",
+          "Aggadic Midrash",
+          "Hebrew-language PDF files",
+          "Hebrew-language books",
+          "Salomon Buber",
+          "Tanhuma bar Abba"
+        ]
+      },
+      "work": {
+        "title": "מדרש תנחומא הקדום/כרך א",
+        "published_year": 1885,
+        "published_year_evidence": "Commons date field: 1885; Index page field שנה: 1885 - תרמ\"ה",
+        "place": "Vilnius",
+        "creators": [
+          {
+            "name": "שלמה בובר",
+            "role": "author",
+            "wikidata": "Q982067",
+            "death_year": 1906,
+            "death_year_evidence_url": "https://www.wikidata.org/wiki/Q982067"
+          },
+          {
+            "name": "תנחומא בר אבא",
+            "role": "author",
+            "wikidata": "Q2392189",
+            "death_year": 500,
+            "death_year_evidence_url": "https://www.wikidata.org/wiki/Q2392189"
+          }
+        ],
+        "language": "he",
+        "language_evidence": "Commons file page Language field: {{language|he}}"
+      },
+      "work_rights": {
+        "basis": "author_died_by_1955",
+        "evidence": "Creators: שלמה בובר (author, died 1906); תנחומא בר אבא (author, died 500)."
+      },
+      "scan_rights": {
+        "basis": "faithful_reproduction_of_pd_work",
+        "licence": null,
+        "scan_source": {
+          "name": "Internet Archive",
+          "url": null,
+          "evidence": "Commons source field: {{IA|midrashtanhumaha01bube}}"
+        },
+        "evidence": "Commons licence templates ['PD-scan', 'PD-old-auto-1923'] (a public-domain tag): a flat scan of a printed work, a faithful reproduction (decision 10).",
+        "digitized_by_google": null,
+        "digitization_check": "Not decided: the file has no usable text layer and its metadata does not name the digitizer; page renders were not inspected."
+      },
+      "evidence_checked_at": "2026-11-06"
+    },
+    {
+      "index_key": "sippurei_maasiyot_1902",
+      "index_title": "מפתח:סיפורי המעשיות - נחמן בן שמחה - לעמבערג - תרסב.pdf",
+      "index_revision_id": 3005684,
+      "commons_file": {
+        "title": "File:סיפורי המעשיות - נחמן בן שמחה - לעמבערג - תרסב.pdf",
+        "description_url": "https://commons.wikimedia.org/wiki/File:%D7%A1%D7%99%D7%A4%D7%95%D7%A8%D7%99_%D7%94%D7%9E%D7%A2%D7%A9%D7%99%D7%95%D7%AA_-_%D7%A0%D7%97%D7%9E%D7%9F_%D7%91%D7%9F_%D7%A9%D7%9E%D7%97%D7%94_-_%D7%9C%D7%A2%D7%9E%D7%91%D7%A2%D7%A8%D7%92_-_%D7%AA%D7%A8%D7%A1%D7%91.pdf",
+        "file_page_revision_id": 1271588761,
+        "file_page_revision_sha1": "19c48679dc639df33ffe614cd96d575ef6fe84a7",
+        "sha1": "67fbf0b82929075111b76859c86708c65027aeac",
+        "size": 19079041,
+        "mime": "application/pdf",
+        "page_count": 267,
+        "uploaded_at": "2025-08-19T17:47:10Z",
+        "source_field": "https://hebrewbooks.org/43368",
+        "institution_field": null,
+        "provenance_text": null,
+        "licence_templates": [
+          "PD-old-expired"
+        ],
+        "categories": [
+          "Tales of Rabbi Nachman"
+        ]
+      },
+      "work": {
+        "title": "ספר סיפורי מעשיות",
+        "published_year": 1902,
+        "published_year_evidence": "Commons date field: 1902; Index page field שנה: 1902",
+        "place": "למברג",
+        "creators": [
+          {
+            "name": "רבי נחמן מברסלב",
+            "role": "author",
+            "wikidata": "Q467182",
+            "death_year": 1810,
+            "death_year_evidence_url": "https://www.wikidata.org/wiki/Q467182"
+          },
+          {
+            "name": "Nachman Goldstein the Tcheriner Rav",
+            "role": "author",
+            "wikidata": "Q6957180",
+            "death_year": 1894,
+            "death_year_evidence_url": "https://www.wikidata.org/wiki/Q6957180"
+          },
+          {
+            "name": "Nathan of Nemyrev",
+            "role": "author",
+            "wikidata": "Q2777592",
+            "death_year": 1844,
+            "death_year_evidence_url": "https://www.wikidata.org/wiki/Q2777592"
+          }
+        ],
+        "language": "he",
+        "language_evidence": "Index page field שפה: he"
+      },
+      "work_rights": {
+        "basis": "author_died_by_1955",
+        "evidence": "Creators: רבי נחמן מברסלב (author, died 1810); Nachman Goldstein the Tcheriner Rav (author, died 1894); Nathan of Nemyrev (author, died 1844)."
+      },
+      "scan_rights": {
+        "basis": "faithful_reproduction_of_pd_work",
+        "licence": null,
+        "scan_source": {
+          "name": "HebrewBooks",
+          "url": "https://hebrewbooks.org/43368",
+          "evidence": "Commons source field: https://hebrewbooks.org/43368"
+        },
+        "evidence": "Commons licence templates ['PD-old-expired'] (a public-domain tag): a flat scan of a printed work, a faithful reproduction (decision 10).",
+        "digitized_by_google": false,
+        "digitization_check": "Automated (F8b2 inventory): the file's embedded metadata and text layer (1164016 characters) contain no 'Google'; page renders were not inspected."
+      },
+      "evidence_checked_at": "2026-11-06"
     }
   ]
 }

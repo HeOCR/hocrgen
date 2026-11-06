@@ -152,11 +152,15 @@ def drop_editor_notes(lines: list[str]) -> list[str]:
     return [re.sub(r"\s+", " ", re.sub(r"\[(\d+)\]", renumber, line)).strip() for line in kept]
 
 
-def compare(wikitext: str, html: str) -> dict[str, Any]:
-    """Compare the converter's text with MediaWiki's visible rendering of the same page body."""
+def compare(wikitext: str, html: str, transclusions: dict[str, str] | None = None) -> dict[str, Any]:
+    """Compare the converter's text with MediaWiki's visible rendering of the same page body.
+
+    ``transclusions`` are the pinned pages the body transcludes by labelled section (F8b4); MediaWiki renders the
+    current revisions, so the comparison holds while those are the pinned ones.
+    """
 
     try:
-        ours = [line for line in convert_wikitext(wikitext).text.split("\n") if line.strip()]
+        ours = [line for line in convert_wikitext(wikitext, transclusions).text.split("\n") if line.strip()]
     except UnsupportedWikitextError as error:
         return {"converted": False, "error": str(error), "tokens_equal": False, "lines_equal": False}
     theirs = drop_editor_notes([tolerate_editor_markup(line) for line in visible_lines(html)])
@@ -222,12 +226,16 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - operator p
     args = parser.parse_args(argv)
     inventory = json.loads(args.inventory.read_text(encoding="utf-8"))
     pages = []
+    transcluded: dict[str, dict[str, str]] = {}
     for page in inventory["pages"]:
         number = page["page_title"].rsplit("/", 1)[1]
         slug = f"{page['index_key']}__p{int(number):04d}" if number.isdigit() else None
         path = args.snapshot / "wikitext" / f"{slug}.wikitext.txt"
         if slug and path.exists():
             pages.append((page["page_title"], path))
+            transcluded[page["page_title"]] = {
+                entry["title"]: (args.snapshot / entry["wikitext_path"]).read_text(encoding="utf-8") for entry in page.get("transclusions") or []
+            }
     if args.capture:
         wanted = set(args.only.read_text(encoding="utf-8").splitlines()) if args.only else None
         capture([page for page in pages if wanted is None or page[0] in wanted], args.renders)
@@ -239,7 +247,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - operator p
         if not cached.exists():
             results.append({"page_title": title, "rendered": False})
             continue
-        result = compare(wikitext, json.loads(cached.read_text(encoding="utf-8"))["html"])
+        result = compare(wikitext, json.loads(cached.read_text(encoding="utf-8"))["html"], transcluded.get(title))
         results.append({"page_title": title, "rendered": True, **{k: v for k, v in result.items() if k not in {"ours", "theirs"}}})
     summary = {
         "pages": len(results),
