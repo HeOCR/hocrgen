@@ -370,3 +370,34 @@ def test_missing_sidecar_leaves_every_line_untagged(tmp_path: Path) -> None:
     checks, _, _ = _inspect_source(source, bundle)
     tag_check = next(check for check in checks if check["name"] == "pinkas_dataset_line_language_tags")
     assert tag_check == {"name": "pinkas_dataset_line_language_tags", "status": "ok", "actual": {"tags": {}, "line_scopes": {"character_level_only": 79, "word_level_hebrew": 0}}}
+
+
+def test_malformed_sidecar_yaml_is_a_recorded_failure_not_a_crash(tmp_path: Path) -> None:
+    config_root, root = _copy_snapshot_config(tmp_path)
+    (root / "line_language_tags.yaml").write_text("pages: [unclosed\n", encoding="utf-8")
+    with pytest.raises(StageExecutionError, match="invalid Pinkas line language tags in line_language_tags.yaml"):
+        load_line_language_tags(root, load_pinkas_dataset_snapshot(root)[0])
+    bundle, source = _source(config_root)
+    checks, candidate_count, _ = _inspect_source(source, bundle)
+    assert candidate_count == 2
+    tag_check = next(check for check in checks if check["name"] == "pinkas_dataset_line_language_tags")
+    assert tag_check["status"] == "error" and str(tmp_path) not in tag_check["message"]
+    assert tool.main(["check", "--snapshot-root", str(root)]) == 1
+
+
+def test_reproposal_refuses_to_rebind_human_tags_to_a_changed_annotation(tmp_path: Path) -> None:
+    _, root = _copy_snapshot_config(tmp_path)
+    _set_human(root, PAGE_105, {"l12"})
+    path = root / "line_language_tags.yaml"
+    payload = yaml.safe_load(path.read_text(encoding="utf-8"))
+    payload["pages"][0]["annotation_sha256"] = "c" * 64
+    path.write_text(yaml.safe_dump(payload, sort_keys=False, allow_unicode=True), encoding="utf-8")
+    before = path.read_text(encoding="utf-8")
+    with pytest.raises(StageExecutionError, match="re-review them"):
+        tool.build_proposals(root, date(2026, 11, 7))
+    assert tool.main(["propose", "--snapshot-root", str(root)]) == 1
+    assert path.read_text(encoding="utf-8") == before
+    # The stale human tag gives no word-level scope meanwhile.
+    entry = next(entry for entry in load_pinkas_dataset_snapshot(root)[1] if entry["entry_id"] == PAGE_105)
+    scopes = load_entry_line_scopes(root, entry, load_line_language_tags(root, load_pinkas_dataset_snapshot(root)[0]))
+    assert {scope.reason for scope in scopes} == {"tag_stale"}

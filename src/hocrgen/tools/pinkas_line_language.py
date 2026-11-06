@@ -152,6 +152,12 @@ def build_proposals(root: Path, tagged_at: date) -> tuple[LineLanguageTagFile, l
         page = load_entry_page_lines(root, entry)
         old_page = existing.page(entry["entry_id"]) if existing is not None else None
         human = {tag.line_id: tag for tag in (old_page.lines if old_page else []) if tag.tag_source == "human"}
+        if human and old_page is not None and old_page.annotation_sha256 != entry["annotation"]["sha256"]:
+            # Rebinding would silently revive human tags made against another annotation. A human re-reviews first.
+            raise StageExecutionError(
+                f"{entry['entry_id']}: human tags were made against annotation {old_page.annotation_sha256[:12]}, "
+                f"not {entry['annotation']['sha256'][:12]}; re-review them (and update annotation_sha256) before re-proposing"
+            )
         line_ids = {line.line_id for line in page.lines}
         for line_id in sorted(set(human) - line_ids):
             notes.append(f"{entry['entry_id']}:{line_id}: human tag kept for a line no longer in the PAGE XML")

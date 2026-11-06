@@ -17,9 +17,9 @@ from datetime import date
 from pathlib import Path
 from typing import Any, Literal
 
+import yaml
 from pydantic import Field, ValidationError, model_validator
 
-from hocrgen.config.loader import load_yaml_file
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.manifests.models import BenchmarkGeometryRecord, ManifestModel
 
@@ -223,14 +223,18 @@ def line_language_tags_path(root: Path, snapshot: dict[str, Any]) -> Path:
 
 
 def load_line_language_tags(root: Path, snapshot: dict[str, Any]) -> LineLanguageTagFile | None:
-    """Load and validate the snapshot's tag sidecar. A missing sidecar means every line is untagged."""
+    """Load and validate the snapshot's tag sidecar. A missing sidecar means every line is untagged.
+
+    The sidecar is hand-edited, so unreadable files, YAML syntax errors and schema errors all raise
+    `StageExecutionError` (naming the file, never its absolute path) for source health to record.
+    """
 
     path = line_language_tags_path(root, snapshot)
     if not path.is_file():
         return None
     try:
-        return LineLanguageTagFile.model_validate(load_yaml_file(path))
-    except ValidationError as exc:
+        return LineLanguageTagFile.model_validate(yaml.safe_load(path.read_text(encoding="utf-8")))
+    except (OSError, UnicodeDecodeError, yaml.YAMLError, ValidationError) as exc:
         raise StageExecutionError(f"invalid Pinkas line language tags in {path.name}: {exc}") from exc
 
 

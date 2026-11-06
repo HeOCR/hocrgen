@@ -125,4 +125,6 @@ Only a human confirms or overrides a tag. An agent never sets `tag_source: human
 4. **Check.** Run the tool's `check` command and the source tests. A changed `text` makes the tag stale, and `check` fails.
 5. **Open a PR.** Name the reviewer in the PR. Re-running `propose` later keeps human tags, and refreshes only the advisory ones.
 
+**If the PAGE XML changes.** Human tags made against the old annotation checksum become stale, and give no word-level scope. `propose` refuses to rebind them to the new checksum. A human re-reviews those lines and updates the page block's `annotation_sha256` before proposals are refreshed.
+
 A partial review is fine. Reviewed lines with `he` become `word_level_hebrew`. Every other line, and the page, stays `character_level_only` until the whole page is tagged `he` by a human.
