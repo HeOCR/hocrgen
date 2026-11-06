@@ -169,7 +169,7 @@ def test_config_validate_checks_modern_intake_manifest(tmp_path: Path, capsys) -
     assert exit_code == 0
     payload = json.loads(capsys.readouterr().out)
     assert payload["status"] == "ok"
-    assert payload["source_count"] == 8
+    assert payload["source_count"] == 9
 
 
 def test_config_validate_checks_modern_intake_manifest_failures(tmp_path: Path, capsys) -> None:

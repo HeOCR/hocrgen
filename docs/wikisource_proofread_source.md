@@ -33,6 +33,8 @@ A Commons licence template is never enough on its own. Further rules:
 | `commons_file_unpinned` | No Commons SHA-1 or file-page revision id. |
 | `work_rights_basis_unsupported`, `creators_missing`, `creator_death_year_missing`, `creator_died_after_1955`, `state_work_evidence_missing`, `state_work_after_1975`, `named_creator_on_anonymous_basis`, `publication_year_missing`, `anonymous_work_after_1955`, `work_rights_evidence_missing` | Work evidence missing or outside Israel's terms. |
 | `scan_rights_basis_unsupported`, `scan_rights_evidence_missing`, `scan_licence_not_open`, `scan_provenance_unrecorded` | Scan evidence missing or not open. |
+| `google_digitized_scan_pending` | The scan is Google-digitized: `scan_rights.digitized_by_google` is true, or the Commons record mentions "Digitized by Google" or Google Books. This is a team-lead hold (2026-11-06) pending a maintainer rights decision. |
+| `google_digitization_unchecked` | No one has recorded whether the scan is Google-digitized. The stamp is on the page images and often missing from Commons metadata, so the capture must look at the renders and record the answer. |
 
 Scans that came from HebrewBooks are admitted on the same check (maintainer decision 3, accepted 2026-11-06). `scan_source_origin` (`hebrewbooks`, `open_siddur_project`, `national_library_of_israel`, `internet_archive`, `unrecorded`) is provenance only and gates nothing.
 
@@ -44,6 +46,7 @@ Scans that came from HebrewBooks are admitted on the same check (maintainer deci
   - an editor who set quality is not a named human (an empty name, an IP edit, the `bot` group, or a name ending in "bot");
   - the `<pagequality user=...>` attribute disagrees with the editor who made that revision;
   - the validator is also the proofreader;
+  - the transcription covers only part of the page body (`partial_page_transcription`), or its coverage was never recorded (`transcription_coverage_unrecorded`);
   - the pinned wikitext does not carry the recorded quality.
 - Quality 4 is human-attested and **adjudication-eligible**, but only while the pinned plain text equals the text at the validating revision. Any later edit that changes the plain text sets `adjudication_eligible: false` with `text_changed_after_validation`. This holds even when the validator made the edit.
 - Quality 3 is single-reviewer human proofreading (`quality_3_single_reviewer`): never adjudication-eligible.
@@ -69,6 +72,8 @@ Scans that came from HebrewBooks are admitted on the same check (maintainer deci
 9. Unicode NFC; spaces are collapsed per line, with at most one blank line between paragraphs.
 
 Lines therefore follow rendered paragraphs, not printed lines, and there is no line geometry. The three fixture pages were checked against MediaWiki's own rendering (`action=parse`) at the pinned revisions. They match except for display-only parts: the ProofreadPage status banner, the automatic table of contents, and the hidden `קיצור` tooltips.
+
+**Known limitation: partial-page detection is not automatic.** Some Indexes transcribe only part of each page. For example, the SD Luzzatto Bereshit pages carry the commentary but not the verse text above it. Nothing in the wikitext or the ProofreadPage metadata says so reliably. Each page record therefore carries `transcription_coverage`, set by the operator at capture time after comparing the page render with the text. Only `full_page` is admitted. Running heads, page numbers and catchwords count as outside the page body. Partial-page transcriptions are not wanted as references (team lead, 2026-11-06).
 
 Known transcription conventions that differ from the print, kept as the editors wrote them:
 - normalised punctuation (`.` for the printed mid-dot, `"` for printed `«»`);

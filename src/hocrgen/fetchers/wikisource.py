@@ -60,6 +60,10 @@ EXCLUDED_INDEX_FILES = {
     "File:Birnbaum Haggadah.pdf": "excluded_birnbaum_work",
 }
 
+# Team-lead hold (2026-11-06), pending a maintainer rights decision: Google-digitized scans are not admitted.
+GOOGLE_DIGITIZATION_MARKERS = ("digitized by google", "google books", "books.google")
+TRANSCRIPTION_COVERAGE_FULL = "full_page"
+
 _LICENCE_TOKEN = re.compile(r"^(PD|CC|Cc-|GFDL|FAL|OGL|Copyrighted|Attribution)", re.IGNORECASE)
 _BOT_NAME = re.compile(r"bot$", re.IGNORECASE)
 
@@ -197,7 +201,35 @@ def _scan_rights_reasons(index: dict[str, Any]) -> list[str]:
         reasons.append("scan_licence_not_open")
     if basis == "faithful_reproduction_of_pd_work" and not (commons.get("source_field") or commons.get("institution_field")):
         reasons.append("scan_provenance_unrecorded")
+    reasons.extend(_google_digitization_reasons(index))
     return reasons
+
+
+def _google_digitization_reasons(index: dict[str, Any]) -> list[str]:
+    """Hold Google-digitized scans until the maintainer decides on them.
+
+    The stamp is on the page images, not reliably in Commons metadata, so the capture must record
+    ``scan_rights.digitized_by_google`` after looking at the renders. Commons text naming Google also holds the file.
+    """
+
+    commons = index.get("commons_file") or {}
+    rights = index.get("scan_rights") or {}
+    haystack = " ".join(
+        str(value)
+        for value in (
+            commons.get("source_field"),
+            commons.get("institution_field"),
+            commons.get("provenance_text"),
+            rights.get("evidence"),
+            *(commons.get("categories") or []),
+        )
+        if value
+    ).casefold()
+    if rights.get("digitized_by_google") is True or any(marker in haystack for marker in GOOGLE_DIGITIZATION_MARKERS):
+        return ["google_digitized_scan_pending"]
+    if rights.get("digitized_by_google") is not False:
+        return ["google_digitization_unchecked"]
+    return []
 
 
 # --- Page admission and attestation ------------------------------------------------------------------------
@@ -249,6 +281,11 @@ def page_exclusion_reasons(page: dict[str, Any], indexes: dict[str, dict[str, An
         reasons.append("quality_attribute_mismatch")
     if proofreader and validator and proofreader.get("user") == validator.get("user"):
         reasons.append("validator_is_proofreader")
+    coverage = page.get("transcription_coverage")
+    if coverage is None:
+        reasons.append("transcription_coverage_unrecorded")
+    elif coverage != TRANSCRIPTION_COVERAGE_FULL:
+        reasons.append("partial_page_transcription")
     reasons.extend(_page_text_reasons(page, root))
     return reasons
 
@@ -424,6 +461,7 @@ class WikisourceProofreadImporter:
                         "scan_commons_file_page_revision_id": commons["file_page_revision_id"],
                         "scan_commons_licence_templates": commons["licence_templates"],
                         "scan_page_number": image["rendered_from"]["page"],
+                        "transcription_coverage": page["transcription_coverage"],
                         "rights_evidence_checked_at": index["evidence_checked_at"],
                         "expected_asset_sha256": image["sha256"],
                     },

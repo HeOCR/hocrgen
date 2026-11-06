@@ -46,7 +46,9 @@
       "scan_rights": {
         "basis": "explicit_open_licence",
         "licence": "CC0-1.0",
-        "evidence": "Commons file page: original scan by Efraim Feinstein for the Open Siddur Project, shared with a CC0 Public Domain declaration; cropping by Aharon Varady, also CC0."
+        "evidence": "Commons file page: original scan by Efraim Feinstein for the Open Siddur Project, shared with a CC0 Public Domain declaration; cropping by Aharon Varady, also CC0.",
+        "digitized_by_google": false,
+        "digitization_check": "No Google stamp on the inspected page render; the Commons record names no Google source."
       },
       "evidence_checked_at": "2026-11-06"
     },
@@ -104,7 +106,9 @@
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
         "licence": null,
-        "evidence": "Commons file page: source National Library of Israel; licence PD-scan with PD-old-auto-expired, deathyear=1890. A flat scan of an 1872 print."
+        "evidence": "Commons file page: source National Library of Israel; licence PD-scan with PD-old-auto-expired, deathyear=1890. A flat scan of an 1872 print.",
+        "digitized_by_google": false,
+        "digitization_check": "No Google stamp on the inspected page render; the Commons record names no Google source."
       },
       "evidence_checked_at": "2026-11-06"
     },
@@ -154,7 +158,9 @@
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
         "licence": null,
-        "evidence": "Internet Archive and Open Siddur Project scan."
+        "evidence": "Internet Archive and Open Siddur Project scan.",
+        "digitized_by_google": null,
+        "digitization_check": "Not checked: rejection-evidence record without page renders."
       },
       "evidence_checked_at": "2026-11-06"
     },
@@ -204,7 +210,9 @@
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
         "licence": null,
-        "evidence": "Open Siddur Project and Internet Archive scan."
+        "evidence": "Open Siddur Project and Internet Archive scan.",
+        "digitized_by_google": null,
+        "digitization_check": "Not checked: rejection-evidence record without page renders."
       },
       "evidence_checked_at": "2026-11-06"
     },
@@ -255,7 +263,9 @@
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
         "licence": null,
-        "evidence": "Commons file page: source HebrewBooks (hebrewbooks.org/43956); licence PD-scan with PD-old-auto-1923, deathyear=1937. A flat scan of a 1910 print."
+        "evidence": "Commons file page: source HebrewBooks (hebrewbooks.org/43956); licence PD-scan with PD-old-auto-1923, deathyear=1937. A flat scan of a 1910 print.",
+        "digitized_by_google": false,
+        "digitization_check": "No Google stamp on the inspected page render; the Commons record names no Google source."
       },
       "evidence_checked_at": "2026-11-06"
     },
@@ -306,7 +316,9 @@
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
         "licence": null,
-        "evidence": "Open Siddur Project scan."
+        "evidence": "Open Siddur Project scan.",
+        "digitized_by_google": null,
+        "digitization_check": "Not checked: rejection-evidence record without page renders."
       },
       "evidence_checked_at": "2026-11-06"
     },
@@ -357,7 +369,9 @@
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
         "licence": null,
-        "evidence": "Commons source field repeats the title; the scan's origin is not recorded."
+        "evidence": "Commons source field repeats the title; the scan's origin is not recorded.",
+        "digitized_by_google": null,
+        "digitization_check": "Not checked: rejection-evidence record without page renders."
       },
       "evidence_checked_at": "2026-11-06"
     }

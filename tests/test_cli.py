@@ -30,7 +30,7 @@ def test_config_validate_command_succeeds(capsys) -> None:
     assert payload["privacy_rules_version"] == 1
     assert payload["quality_thresholds_version"] == 1
     assert payload["review_data_counts"] == {"allowlist": 0, "blocklist": 0, "manual_decisions": 0}
-    assert payload["source_count"] == 7
+    assert payload["source_count"] == 8
 
 
 def test_config_validate_command_rejects_missing_hocrsyngen_batch_path(tmp_path: Path, capsys) -> None:

@@ -89,8 +89,8 @@ def test_index_gate_admits_only_files_with_work_and_scan_evidence() -> None:
     assert index_exclusion_reason(indexes["birnbaum_siddur_1949"]) == "excluded_birnbaum_work"
     assert index_exclusion_reason(indexes["birnbaum_haggadah_1953"]) == "excluded_birnbaum_work"
     assert "creator_died_after_1955" in index_exclusion_reasons(indexes["birnbaum_siddur_1949"])
-    assert index_exclusion_reasons(indexes["siddur_torah_ohr_1940"]) == ["pd_us_only_licence"]
-    assert index_exclusion_reasons(indexes["korfu_siddur_1885"]) == ["creator_death_year_missing"]
+    assert index_exclusion_reasons(indexes["siddur_torah_ohr_1940"]) == ["pd_us_only_licence", "google_digitization_unchecked"]
+    assert index_exclusion_reasons(indexes["korfu_siddur_1885"]) == ["creator_death_year_missing", "google_digitization_unchecked"]
 
 
 def test_birnbaum_exclusion_holds_even_with_otherwise_clean_evidence() -> None:
@@ -98,7 +98,23 @@ def test_birnbaum_exclusion_holds_even_with_otherwise_clean_evidence() -> None:
     birnbaum = copy.deepcopy(indexes["birnbaum_siddur_1949"])
     birnbaum["commons_file"]["licence_templates"] = ["PD-scan|PD-old-70"]
     birnbaum["work"]["creators"][0]["death_year"] = 1900
+    birnbaum["scan_rights"]["digitized_by_google"] = False
     assert index_exclusion_reasons(birnbaum) == ["excluded_birnbaum_work"]
+
+
+def test_google_digitized_scans_are_held_pending_a_maintainer_decision() -> None:
+    indexes, _ = _snapshot()
+    stamped = copy.deepcopy(indexes["bostenay_lehmann_1872"])
+    stamped["scan_rights"]["digitized_by_google"] = True
+    assert index_exclusion_reasons(stamped) == ["google_digitized_scan_pending"]
+    google_source = copy.deepcopy(indexes["bostenay_lehmann_1872"])
+    google_source["commons_file"]["provenance_text"] = "Missing pages added from Google Books."
+    assert index_exclusion_reasons(google_source) == ["google_digitized_scan_pending"]
+    unchecked = copy.deepcopy(indexes["bostenay_lehmann_1872"])
+    del unchecked["scan_rights"]["digitized_by_google"]
+    assert index_exclusion_reasons(unchecked) == ["google_digitization_unchecked"]
+    for key in ("selihot_baer_1885", "bostenay_lehmann_1872", "hyman_toldoth_1910_vol1"):
+        assert indexes[key]["scan_rights"]["digitized_by_google"] is False
 
 
 def test_hebrewbooks_scans_are_admitted_on_the_same_rights_check() -> None:
@@ -193,6 +209,12 @@ def test_page_gate_skips_low_quality_and_unattributed_quality() -> None:
     no_proofreader = copy.deepcopy(pages[SELIHOT])
     no_proofreader["quality_history"] = [no_proofreader["quality_history"][-1]]
     assert page_exclusion_reason(no_proofreader, indexes, SNAPSHOT_ROOT) == "proofreader_missing"
+    partial = copy.deepcopy(pages[HYMAN])
+    partial["transcription_coverage"] = "commentary_only"
+    assert page_exclusion_reason(partial, indexes, SNAPSHOT_ROOT) == "partial_page_transcription"
+    unrecorded = copy.deepcopy(pages[HYMAN])
+    del unrecorded["transcription_coverage"]
+    assert page_exclusion_reason(unrecorded, indexes, SNAPSHOT_ROOT) == "transcription_coverage_unrecorded"
     orphan = copy.deepcopy(pages[SELIHOT])
     orphan["index_key"] = "korfu_siddur_1885"
     assert page_exclusion_reason(orphan, indexes, SNAPSHOT_ROOT) == "index_not_admitted"
@@ -363,6 +385,7 @@ def test_source_health_reports_exclusions_missing_assets_and_text_drift(tmp_path
         "creator_death_year_missing": 1,
         "creator_died_after_1955": 2,
         "excluded_birnbaum_work": 2,
+        "google_digitization_unchecked": 4,
         "pd_us_only_licence": 3,
     }
 
