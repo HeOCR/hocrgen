@@ -34,6 +34,17 @@ The conversation covers:
 - Handwritten candidates also belong to HASH's scope. Its own source research
   notes live in `HeOCR/hash` under `docs/sources/`.
 
+## Verification notes (F8a)
+
+The leads were checked against primary sources on 2026-11-06, in four tracks under [`verification/`](./verification/):
+
+- [`track_a_legislative_judicial.md`](./verification/track_a_legislative_judicial.md): Knesset, Reshumot, court rulings and Hebrew Wikisource.
+- [`track_b_archives_aggregators.md`](./verification/track_b_archives_aggregators.md): Israel State Archives, Internet Archive, Wikimedia Commons, data.gov.il and OpenBudget.
+- [`track_c_nli_books.md`](./verification/track_c_nli_books.md): NLI (JPress, digital collections, Ktiv), HebrewBooks, HathiTrust and Project Ben-Yehuda.
+- [`track_d_transcribed_datasets.md`](./verification/track_d_transcribed_datasets.md): existing transcribed Hebrew page datasets.
+
+These notes are agent research, with each claim marked verified, inferred or `Needs verification`. The ranked source map and the decisions that follow from it are in [`planning/tasks/f8-real-source-map.md`](../../planning/tasks/f8-real-source-map.md).
+
 ## Points to check first *(inferred, from a read of the conversation)*
 
 - Some links are not direct. The Reshumot link is wrapped in a Google search
