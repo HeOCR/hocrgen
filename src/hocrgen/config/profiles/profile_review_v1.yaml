@@ -8,6 +8,7 @@ include_sources:
   - hash_nli_any_use
   - hash_public_domain
   - yidtaknl_vaybertaytsh_gt
+  - wikisource_he_proofread
 exclude_sources: []
 allowed_rights_classifications:
   - open

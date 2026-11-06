@@ -25,6 +25,7 @@ from hocrgen.fetchers.hash import HashImporter
 from hocrgen.fetchers.pinkas import PinkasImporter
 from hocrgen.fetchers.yidtaknl import YidTakNLImporter
 from hocrgen.fetchers.synthetic import SyntheticFetcher
+from hocrgen.fetchers.wikisource import WikisourceProofreadImporter
 from hocrgen.manifests.io import write_json
 from hocrgen.manifests.models import (
     AcquiredItemRecord,
@@ -95,6 +96,7 @@ FETCHERS = {
     "hocrsyngen_manifest": HocrsyngenManifestFetcher(),
     "modern_handwriting_intake": ModernHandwritingIntakeFetcher(),
     "synthetic": SyntheticFetcher(),
+    "wikisource_proofread": WikisourceProofreadImporter(),
 }
 
 
