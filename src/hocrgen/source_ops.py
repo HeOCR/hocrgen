@@ -48,6 +48,7 @@ from hocrgen.fetchers.wikisource import (
     page_needs_crop,
     wikisource_snapshot_root,
 )
+from hocrgen.real_tranche import tranche_relative
 from hocrgen.utils.hashing import sha256_file
 
 F1_TARGET_SCALE_COUNT_KEY = "f1_source_depth_candidate_count"
@@ -1632,6 +1633,10 @@ def _path_check(name: str, path: Path, bundle: ConfigBundle) -> dict[str, Any]:
 
 def _format_health_path(path: Path, bundle: ConfigBundle) -> str:
     resolved = path.resolve()
+    in_tranche = tranche_relative(resolved, bundle)
+    if in_tranche is not None:
+        # F8g: a materialized real tranche lives outside the repo; never export its absolute local path.
+        return in_tranche
     package_base = package_root().resolve()
     try:
         return f"package://{resolved.relative_to(package_base).as_posix()}"

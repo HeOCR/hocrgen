@@ -192,14 +192,23 @@ def test_display_normalisation_never_maps_non_commercial_wording_to_free_use() -
 
 
 def _catalog_items() -> list[dict]:
-    return yaml.safe_load((PACKAGE_NLI / "seed_catalog.yaml").read_text(encoding="utf-8"))["items"]
+    """Every packaged NLI seed: the runnable manifest (the F8c printed books since F8g) and the exploratory catalog."""
+
+    return [
+        *yaml.safe_load((PACKAGE_NLI / "seeds.yaml").read_text(encoding="utf-8"))["items"],
+        *yaml.safe_load((PACKAGE_NLI / "seed_catalog.yaml").read_text(encoding="utf-8"))["items"],
+    ]
 
 
-def test_packaged_printed_seeds_are_exploratory_pinned_and_free_use() -> None:
+def test_packaged_printed_seeds_are_runnable_pinned_and_free_use() -> None:
+    """F8g promoted the three cached F8c printed books from the exploratory catalog to runnable seeds."""
+
     items = {item["id"]: item for item in _catalog_items()}
     runnable_ids = {item["id"] for item in yaml.safe_load((PACKAGE_NLI / "seeds.yaml").read_text(encoding="utf-8"))["items"]}
-    assert len(runnable_ids) == 27
-    assert not runnable_ids & set(items)
+    catalog_ids = {item["id"] for item in yaml.safe_load((PACKAGE_NLI / "seed_catalog.yaml").read_text(encoding="utf-8"))["items"]}
+    assert len(runnable_ids) == 30
+    assert not runnable_ids & catalog_ids
+    assert {"nli-pb-001", "nli-pb-002", "nli-pb-003"} <= runnable_ids
     captured = [item for item in items.values() if item.get("iiif_manifest_capture")]
     assert [item["id"] for item in captured] == ["nli-pb-001", "nli-pb-002", "nli-pb-003"]
     for item in captured:
@@ -400,10 +409,17 @@ def test_source_health_fails_on_integrity_problems(tmp_path: Path) -> None:
     assert failing == {"iiif_manifest_capture", "iiif_manifest_capture_sha256", "iiif_manifest_capture_parse"}
 
 
-def test_packaged_source_health_is_unchanged_by_f8c() -> None:
+def test_packaged_source_health_counts_the_promoted_printed_books() -> None:
     bundle = load_and_validate_bundle()
     health = next(result for result in evaluate_source_health(bundle, "profile_open_v1", StageOptions()) if result.source_id == "nli_any_use_permitted")
-    assert health.extra == {"source_depth_asset_count": 27, "source_depth_candidate_count": 27}
+    # F8g: the three printed books are runnable seeds now, each with its pinned capture.
+    assert health.extra == {
+        "iiif_manifest_capture_count": 3,
+        "iiif_manifest_issues": [],
+        "iiif_recorded_failure_count": 0,
+        "source_depth_asset_count": 30,
+        "source_depth_candidate_count": 30,
+    }
     assert source_health_summary([health])["nli_iiif_manifest_issues"] == []
 
 
@@ -441,7 +457,7 @@ def test_cached_promotion_of_a_printed_seed_carries_f8c_fields(tmp_path: Path) -
         require_rights="Any Use Permitted",
         output_dir=PACKAGE_NLI,
         runnable_seeds_path=PACKAGE_NLI / "seeds.yaml",
-        seed_manifest_path=PACKAGE_NLI / "seed_catalog.yaml",
+        seed_manifest_path=PACKAGE_NLI / "seeds.yaml",
     )
     entry = promotion.promoted_seed_entry
     assert promotion.rights == NLI_FREE_USE_LICENSE_URL
@@ -463,7 +479,7 @@ def test_cached_promotion_rewrites_the_capture_for_renamed_images(tmp_path: Path
         require_rights="Any Use Permitted",
         output_dir=out,
         runnable_seeds_path=tmp_path / "seeds.yaml",
-        seed_manifest_path=PACKAGE_NLI / "seed_catalog.yaml",
+        seed_manifest_path=PACKAGE_NLI / "seeds.yaml",
     )
     entry = promotion.promoted_seed_entry
     assert entry["iiif_manifest_capture"] == "out/iiif/nli_renamed_003_manifest_capture.json"
@@ -519,7 +535,7 @@ def test_cached_promotion_rejects_images_not_bound_to_the_capture(tmp_path: Path
             require_rights="Any Use Permitted",
             output_dir=tmp_path / "out",
             runnable_seeds_path=tmp_path / "seeds.yaml",
-            seed_manifest_path=PACKAGE_NLI / "seed_catalog.yaml",
+            seed_manifest_path=PACKAGE_NLI / "seeds.yaml",
         )
 
 

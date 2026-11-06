@@ -142,6 +142,8 @@ class SplitAssignmentRecord(ManifestModel):
     dedupe_cluster_id: str | None = None
     near_duplicate_cluster_id: str | None = None
     source_group_id: str | None = None
+    work_group_ids: list[str] = Field(default_factory=list)
+    split_constraint: Literal["synthetic_training_overlap"] | None = None
 
 
 class ClassifiedItemRecord(CuratedItemRecord):
@@ -215,8 +217,56 @@ class ExportedAssetRecord(ManifestModel):
     release_preview_path: str | None = None
 
 
+class ExportedTextRecord(ManifestModel):
+    """A human-made text shipped next to an item's image (F8g): page text or PAGE XML, pinned by checksum."""
+
+    release_text_path: str
+    media_type: str
+    role: Literal["page_text", "page_xml"]
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    bytes: int = Field(ge=0)
+    licence: str
+
+    @field_validator("release_text_path")
+    @classmethod
+    def validate_release_text_path(cls, value: str) -> str:
+        return validate_release_relative_manifest_path(value, field_label="release_text_path")
+
+
+class ItemReleaseTermsRecord(ManifestModel):
+    """The terms an exported item ships under (F8g), checked against its source's real-source contract entry."""
+
+    source_id: str
+    licence: str
+    rights_classification: str
+    attribution_required: bool
+    attribution_text: str | None = None
+    share_alike: bool = False
+    text_licence: str | None = None
+    evaluation_scope: str | None = None
+    allowed_uses: list[str] = Field(default_factory=list)
+    excluded_evaluations: list[str] = Field(default_factory=list)
+    line_scope_summary: dict[str, Any] | None = None
+    rendered_not_scan: bool = False
+    scope_decision: str | None = None
+    paired_text: Literal["page_text", "page_xml", "none"] | None = None
+    contract_id: str | None = None
+
+    @model_validator(mode="after")
+    def validate_terms(self) -> "ItemReleaseTermsRecord":
+        if self.attribution_required and not self.attribution_text:
+            raise ValueError(f"{self.source_id}: attribution is required but no attribution text is recorded")
+        if self.evaluation_scope == "character_level_only" and not {"word_level", "language_level_hebrew"} <= set(
+            self.excluded_evaluations
+        ):
+            raise ValueError(f"{self.source_id}: character_level_only must exclude word-level and language-level Hebrew evaluation")
+        return self
+
+
 class ExportedItemRecord(PrivacyScannedItemRecord):
     exported_assets: list[ExportedAssetRecord] = Field(default_factory=list)
+    exported_texts: list[ExportedTextRecord] = Field(default_factory=list)
+    release_terms: ItemReleaseTermsRecord | None = None
 
 
 AlphaExportedItemRecord = ExportedItemRecord
@@ -464,21 +514,60 @@ class PublicBetaSourceStatsPayloadMismatchRecord(ManifestModel):
 
 class PublicBetaSourceDepthCompositionSourceRecord(ManifestModel):
     source_id: str
-    target_count: int = Field(ge=0)
-    public_payload_count: int = Field(ge=0)
-    public_payload_gap: int = Field(ge=0)
-    status: Literal["pass", "blocked"]
+    promotion: Literal["promoted", "legacy", "not_promoted"]
+    planning_notation: str
+    modalities: list[Literal["printed", "handwritten"]] = Field(min_length=1)
+    floor: int = Field(ge=0)
+    cap: int = Field(ge=1)
+    counts_toward_modality_floors: bool
     profile_included: bool
+    public_payload_count: int = Field(ge=0)
+    counted_count: int = Field(ge=0)
+    uncounted_over_cap: int = Field(ge=0)
+    floor_gap: int = Field(ge=0)
+    payload_modality_counts: dict[str, int] = Field(default_factory=dict)
+    counted_modality_counts: dict[str, int] = Field(default_factory=dict)
+    status: Literal["pass", "blocked"]
     operator_source_depth_target_scale_candidate_count: int = Field(ge=0)
     operator_source_depth_runnable_cached_candidate_count: int = Field(ge=0)
     operator_source_depth_feasibility_status: str
     operator_only_or_source_depth_inventory_not_counted: int = Field(ge=0)
 
+    @model_validator(mode="after")
+    def validate_counts(self) -> "PublicBetaSourceDepthCompositionSourceRecord":
+        if self.counted_count != min(self.public_payload_count, self.cap):
+            raise ValueError(f"{self.source_id}: counted items must be the payload count up to the cap")
+        if self.floor_gap != max(self.floor - self.public_payload_count, 0):
+            raise ValueError(f"{self.source_id}: floor gap does not match the floor and payload count")
+        if (self.status == "pass") != (self.floor_gap == 0):
+            raise ValueError(f"{self.source_id}: status must follow the floor gap")
+        return self
+
+
+class PublicBetaSourceDepthCompositionModalityRecord(ManifestModel):
+    modality: Literal["printed", "handwritten"]
+    floor: int = Field(ge=0)
+    counted_count: int = Field(ge=0)
+    public_payload_count: int = Field(ge=0)
+    gap: int = Field(ge=0)
+    status: Literal["pass", "blocked"]
+
+
+class PublicBetaSourceDepthCompositionGapRecord(ManifestModel):
+    kind: Literal["source_floor", "modality_floor", "real_total"]
+    id: str
+    actual: int = Field(ge=0)
+    required: int = Field(ge=0)
+
 
 class PublicBetaSourceDepthCompositionReport(ManifestModel):
-    schema_version: Literal[1] = 1
-    planning_notation: Literal["F6e"] = "F6e"
+    """Source-depth/composition readiness under ``real_source_composition.v2`` (F8g; schema 2)."""
+
+    schema_version: Literal[2] = 2
+    planning_notation: Literal["F8g"] = "F8g"
     artifact_scope: Literal["public_profile_candidate_payload"] = "public_profile_candidate_payload"
+    contract_id: Literal["real_source_composition.v2"] = "real_source_composition.v2"
+    decision_record: str
     readiness_contract: str
     profile_id: str
     status: Literal["pass", "blocked"]
@@ -498,17 +587,21 @@ class PublicBetaSourceDepthCompositionReport(ManifestModel):
         "blocked_source_target_contract_mismatch",
     ]
     target_real_item_count: int = Field(ge=0)
-    target_source_item_count: int = Field(ge=0)
-    target_source_count_matches_real_target: bool
+    counted_real_item_count: int = Field(ge=0)
     public_payload_real_item_count: int = Field(ge=0)
     public_payload_synthetic_item_count: int = Field(ge=0)
     source_depth_only_payload_item_count: int = Field(ge=0)
     source_depth_only_payload_item_ids: list[str] = Field(default_factory=list)
     source_stats_payload_mismatch_count: int = Field(ge=0)
     source_stats_payload_mismatches: list[PublicBetaSourceStatsPayloadMismatchRecord] = Field(default_factory=list)
+    uncontracted_payload_source_ids: list[str] = Field(default_factory=list)
+    unassigned_modality_item_count: int = Field(ge=0)
+    unassigned_modality_item_ids: list[str] = Field(default_factory=list)
     source_depth_feasibility_artifact_scope: str
     source_depth_feasibility_summary: dict[str, Any] = Field(default_factory=dict)
     sources: list[PublicBetaSourceDepthCompositionSourceRecord] = Field(default_factory=list)
+    modalities: list[PublicBetaSourceDepthCompositionModalityRecord] = Field(default_factory=list)
+    gaps: list[PublicBetaSourceDepthCompositionGapRecord] = Field(default_factory=list)
     limitation_disclosure: str
     blocked_gate_preserved: bool
 
@@ -520,8 +613,16 @@ class PublicBetaSourceDepthCompositionReport(ManifestModel):
             raise ValueError("source-depth-only count must match listed item ids")
         if self.source_stats_payload_mismatch_count != len(self.source_stats_payload_mismatches):
             raise ValueError("source-stats mismatch count must match listed mismatches")
-        if self.status == "pass" and not self.target_source_count_matches_real_target:
-            raise ValueError("passing source-depth/composition report requires a coherent real-source target contract")
+        if self.unassigned_modality_item_count != len(self.unassigned_modality_item_ids):
+            raise ValueError("unassigned-modality count must match listed item ids")
+        if self.counted_real_item_count != sum(source.counted_count for source in self.sources):
+            raise ValueError("counted real items must equal the sum of the per-source counted items")
+        if self.status == "pass" and (
+            self.gaps
+            or self.uncontracted_payload_source_ids
+            or self.counted_real_item_count < self.target_real_item_count
+        ):
+            raise ValueError("a passing composition report cannot carry gaps, uncontracted sources or a total shortfall")
         return self
 
 
@@ -558,7 +659,7 @@ class BenchmarkApprovedItemRecord(ManifestModel):
     rationale: str = Field(min_length=1)
 
 
-BenchmarkLeakageGroupKind = Literal["exact_duplicate", "near_duplicate", "source_group"]
+BenchmarkLeakageGroupKind = Literal["exact_duplicate", "near_duplicate", "source_group", "work_group", "synthetic_training_work"]
 BenchmarkLeakageEnforcementContext = Literal["build_release", "f1_trial", "alpha_export"]
 BenchmarkLeakageResolutionAction = Literal[
     "exclude_related_group_from_holdout_public_beta_claims",

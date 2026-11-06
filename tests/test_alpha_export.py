@@ -60,6 +60,7 @@ from hocrgen.package.alpha import (
     export_alpha_release,
 )
 from hocrgen.synthetic.reporting import synthetic_composition_report
+from legacy_profile import restrict_open_profile_to_legacy_sources
 
 
 def _fixture_config_root(tmp_path: Path) -> Path:
@@ -73,6 +74,7 @@ def _fixture_config_root(tmp_path: Path) -> Path:
         ),
         encoding="utf-8",
     )
+    restrict_open_profile_to_legacy_sources(config_root)
     return config_root
 
 
@@ -1180,7 +1182,7 @@ def test_export_alpha_handles_cli_error_paths(monkeypatch, tmp_path: Path, capsy
         max_synthetic_items=2,
     )
 
-    def raise_config(_: Path | None) -> None:
+    def raise_config(_: Path | None, *_args) -> None:
         raise ConfigValidationError("broken config")
 
     monkeypatch.setattr("hocrgen.cli._load_bundle", raise_config)

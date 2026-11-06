@@ -23,6 +23,7 @@ from hocrgen.manifests.models import (
     ReviewQueueRecord,
     SplitAssignmentRecord,
 )
+from hocrgen.package.release_terms import attribution_manifest, notice_doc
 from hocrgen.package.common import (
     REPO_ROOT,
     ReleaseDocs,
@@ -55,15 +56,13 @@ from hocrgen.package.common import (
     write_release_archive,
     write_standard_release_artifacts,
 )
-from hocrgen.source_ops import F1_REAL_TARGET_COUNT, F1_SOURCE_TARGETS, F1_SYNTHETIC_TARGET_COUNT
+from hocrgen.composition import composition_gap_summary, real_source_composition
+from hocrgen.config.loader import load_real_source_contract
+from hocrgen.config.models import RealSourceContract
+from hocrgen.source_ops import F1_REAL_TARGET_COUNT, F1_SYNTHETIC_TARGET_COUNT
 from hocrgen.synthetic.reporting import synthetic_composition_report
 
 PUBLIC_BETA_CURRENT_PLANNING_NOTATION = "F6e"
-PUBLIC_BETA_REAL_SOURCE_TARGETS = {
-    source_id: target_count
-    for source_id, target_count in F1_SOURCE_TARGETS.items()
-    if source_id != "project_synthetic"
-}
 
 
 @dataclass(frozen=True)
@@ -102,6 +101,7 @@ PUBLIC_BETA_REQUIRED_DOCS = {
     "docs/CHANGELOG.md": ["# Changelog"],
     "docs/RELEASE_NOTES.md": ["## Publication Status", "## Takedown and Corrections"],
     "docs/BENCHMARK_CARD.md": ["# Benchmark"],
+    "docs/NOTICE.md": ["# NOTICE"],
     "docs/HANDOFF.md": ["## Stop Conditions", "Do not publish to HeOCR"],
 }
 
@@ -118,8 +118,9 @@ BLOCKER_CLOSURE_ACTIONS = {
         "closure_state": "requires_public_profile_candidate_input",
         "required_action": (
             "Promote enough real public-profile candidates through normal release-profile, review, privacy, split, "
-            "benchmark, and portability gates to satisfy the NLI/Pinkas/BiblIA composition targets; do not count "
-            "F1c operator-only or source-depth-only inventory as public payload readiness."
+            "benchmark, and portability gates to satisfy the real_source_composition.v2 source floors, modality "
+            "floors and capped real total; do not count F1c operator-only or source-depth-only inventory as public "
+            "payload readiness."
         ),
         "closure_artifacts": [
             "manifests/public_beta_source_depth_composition_report.json",
@@ -219,7 +220,8 @@ def export_public_beta_release(
 
     if export_dir.exists():
         shutil.rmtree(export_dir)
-    exported_items = copy_export_assets(release_items, export_dir / "data")
+    exported_items = copy_export_assets(release_items, export_dir / "data", contract=bundle.real_source_contract)
+    release_attribution_manifest = attribution_manifest(exported_items, bundle.real_source_contract)
     selected_ids = {item.item_id for item in exported_items}
     selected_benchmark_items = [item for item in benchmark_inputs.items if item.item_id in selected_ids]
     selected_benchmark_ids = {item.item_id for item in selected_benchmark_items}
@@ -266,6 +268,7 @@ def export_public_beta_release(
         exported_items=exported_items,
         source_depth_feasibility=source_depth_feasibility,
         source_stats=source_stats,
+        contract=bundle.real_source_contract,
     )
     annotation_manifest = build_annotation_manifest(exported_items, subset_id="public_beta")
     exported_annotation_pilot_manifest = filter_annotation_pilot_manifest(annotation_pilot_inputs.manifest, selected_ids)
@@ -411,6 +414,7 @@ def export_public_beta_release(
                     blocked_items,
                     included_sources,
                     bundle.public_beta_governance,
+                    source_depth_composition_report,
                 ),
                 release_notes=_release_notes(
                     config.version,
@@ -431,8 +435,10 @@ def export_public_beta_release(
                     bundle.public_beta_governance,
                 ),
                 benchmark_card=benchmark_card,
+                notice=notice_doc(release_attribution_manifest, title=f"HeOCR public beta {config.version}"),
             ),
             audit_item_payload=audit_item_payload_for_export,
+            attribution_manifest=release_attribution_manifest,
         )
     )
 
@@ -1342,7 +1348,16 @@ def _source_depth_composition_report(
     exported_items: list[PrivacyScannedItemRecord],
     source_depth_feasibility: dict[str, Any],
     source_stats: dict[str, Any],
+    contract: RealSourceContract | None = None,
 ) -> dict[str, Any]:
+    """Public-beta source-depth/composition readiness under ``real_source_composition.v2`` (F8g).
+
+    Replaces the fixed F1 27 / 27 / 26 NLI / Pinkas / BiblIA allocation: real public-payload items are counted per
+    source up to its cap, per-source and per-modality floors must be met, and the capped total must reach the
+    contract's ``min_real_items``. The F1c operator inventory stays informational and is never counted.
+    """
+
+    contract = contract or load_real_source_contract()
     source_stats_counts = {
         source_id: int(count)
         for source_id, count in (source_stats.get("sources") or {}).items()
@@ -1352,8 +1367,6 @@ def _source_depth_composition_report(
         exported_source_counts=exported_source_counts,
         source_stats_counts=source_stats_counts,
     )
-    target_source_item_count = sum(PUBLIC_BETA_REAL_SOURCE_TARGETS.values())
-    target_source_count_matches_real_target = target_source_item_count == F1_REAL_TARGET_COUNT
     source_depth_sources = {
         source.get("source_id"): source
         for source in source_depth_feasibility.get("sources", [])
@@ -1366,17 +1379,15 @@ def _source_depth_composition_report(
         for item in exported_items
         if _item_marked_source_depth_only(item)
     )
+    composition = real_source_composition(contract=contract, exported_items=exported_items, profile=profile)
     source_entries = [
         _source_depth_composition_source_entry(
-            source_id=source_id,
-            target_count=target_count,
-            public_payload_count=exported_source_counts.get(source_id, 0),
-            source_depth_source=source_depth_sources.get(source_id, {}),
-            profile=profile,
+            composition_entry=entry,
+            source_depth_source=source_depth_sources.get(entry["source_id"], {}),
         )
-        for source_id, target_count in PUBLIC_BETA_REAL_SOURCE_TARGETS.items()
+        for entry in composition["sources"]
     ]
-    blocked_sources = [entry for entry in source_entries if entry["status"] == "blocked"]
+    uncontracted = composition["uncontracted_payload_source_ids"] + composition["not_promoted_payload_source_ids"]
     if source_stats_payload_mismatches:
         assessment_status = "blocked_source_stats_payload_mismatch"
         closure_state = "requires_source_stats_payload_reconciliation"
@@ -1391,13 +1402,12 @@ def _source_depth_composition_report(
             f"Source stats do not match the exported public payload: {mismatch_summary}; "
             "source-depth/composition readiness must be derived from the exported public-profile payload"
         )
-    elif not target_source_count_matches_real_target:
+    elif uncontracted:
         assessment_status = "blocked_source_target_contract_mismatch"
         closure_state = "requires_source_target_contract_reconciliation"
         limitation = (
-            f"Configured real-source targets sum to {target_source_item_count}, "
-            f"but the public beta real target is {F1_REAL_TARGET_COUNT}; reconcile the F1 source target contract "
-            "before claiming F6e closure"
+            f"Real payload items come from sources the {contract.contract_id} contract does not admit: "
+            f"{', '.join(sorted(set(uncontracted)))}; add or promote their contract entries before claiming readiness"
         )
     elif source_depth_only_item_ids:
         assessment_status = "blocked_source_depth_only_payload_items_present"
@@ -1406,16 +1416,13 @@ def _source_depth_composition_report(
             f"{len(source_depth_only_item_ids)} source-depth-only item(s) reached the public payload; "
             "remove them or promote them through normal public-profile gates before claiming F6e closure"
         )
-    elif blocked_sources:
+    elif composition["gaps"]:
         assessment_status = "blocked_public_profile_candidate_gap"
         closure_state = "requires_public_profile_candidate_promotion"
-        missing = ", ".join(
-            f"{entry['source_id']} {entry['public_payload_count']} / {entry['target_count']}"
-            for entry in blocked_sources
-        )
         limitation = (
-            f"Public-profile payload source composition is incomplete: {missing}; "
-            "operator-only and source-depth-only inventory is not counted as public beta readiness evidence"
+            f"Public-profile payload composition is incomplete under {contract.contract_id}: "
+            f"{composition_gap_summary(composition['gaps'])}; operator-only and source-depth-only inventory is not "
+            "counted as public beta readiness evidence"
         )
     else:
         assessment_status = "closed_with_public_profile_candidate_evidence"
@@ -1423,27 +1430,33 @@ def _source_depth_composition_report(
         limitation = "none for current public-profile source-depth/composition evidence"
     status = "pass" if closure_state == "pass" else "blocked"
     payload = {
-        "schema_version": 1,
-        "planning_notation": "F6e",
+        "schema_version": 2,
+        "planning_notation": "F8g",
         "artifact_scope": "public_profile_candidate_payload",
+        "contract_id": contract.contract_id,
+        "decision_record": contract.decision_record,
         "readiness_contract": (
-            "Source-depth/composition readiness can pass only when real public-profile candidate payload items, "
-            "not F1c operator-only or source-depth-only inventory, satisfy the NLI/Pinkas/BiblIA source targets "
-            "after normal release-profile, review, privacy, split, benchmark, and portability gates."
+            f"{contract.contract_id}: real public-profile payload items (never F1c operator-only or source-depth-only "
+            "inventory) count per source up to the source's cap after the normal release-profile, review, privacy, "
+            f"split, benchmark and portability gates. Every source floor must be met, the printed and handwritten "
+            f"modality floors must be met by counted scan items, and the counted total must reach "
+            f"{contract.min_real_items}."
         ),
         "profile_id": profile.id,
         "status": status,
         "closure_state": closure_state,
         "assessment_status": assessment_status,
-        "target_real_item_count": F1_REAL_TARGET_COUNT,
-        "target_source_item_count": target_source_item_count,
-        "target_source_count_matches_real_target": target_source_count_matches_real_target,
+        "target_real_item_count": contract.min_real_items,
+        "counted_real_item_count": composition["counted_real_item_count"],
         "public_payload_real_item_count": len(real_items),
         "public_payload_synthetic_item_count": len(synthetic_items),
         "source_depth_only_payload_item_count": len(source_depth_only_item_ids),
         "source_depth_only_payload_item_ids": source_depth_only_item_ids,
         "source_stats_payload_mismatch_count": len(source_stats_payload_mismatches),
         "source_stats_payload_mismatches": source_stats_payload_mismatches,
+        "uncontracted_payload_source_ids": sorted(set(uncontracted)),
+        "unassigned_modality_item_count": composition["unassigned_modality_item_count"],
+        "unassigned_modality_item_ids": composition["unassigned_modality_item_ids"],
         "source_depth_feasibility_artifact_scope": source_depth_feasibility.get("artifact_scope", "unknown"),
         "source_depth_feasibility_summary": {
             key: source_depth_feasibility.get("summary", {}).get(key)
@@ -1458,6 +1471,8 @@ def _source_depth_composition_report(
             ]
         },
         "sources": source_entries,
+        "modalities": composition["modalities"],
+        "gaps": composition["gaps"],
         "limitation_disclosure": limitation,
         "blocked_gate_preserved": status == "blocked",
     }
@@ -1487,27 +1502,18 @@ def _source_stats_payload_mismatches(
 
 def _source_depth_composition_source_entry(
     *,
-    source_id: str,
-    target_count: int,
-    public_payload_count: int,
+    composition_entry: dict[str, Any],
     source_depth_source: dict[str, Any],
-    profile: ReleaseProfile,
 ) -> dict[str, Any]:
     source_depth_target_scale_count = int(source_depth_source.get("target_scale_candidate_count", 0) or 0)
     source_depth_runnable_count = int(source_depth_source.get("runnable_cached_candidate_count", 0) or 0)
-    public_payload_gap = max(target_count - public_payload_count, 0)
     return {
-        "source_id": source_id,
-        "target_count": target_count,
-        "public_payload_count": public_payload_count,
-        "public_payload_gap": public_payload_gap,
-        "status": "pass" if public_payload_gap == 0 else "blocked",
-        "profile_included": source_id in profile.include_sources and source_id not in profile.exclude_sources,
+        **composition_entry,
         "operator_source_depth_target_scale_candidate_count": source_depth_target_scale_count,
         "operator_source_depth_runnable_cached_candidate_count": source_depth_runnable_count,
-        "operator_source_depth_feasibility_status": source_depth_source.get("feasibility_status", "missing"),
+        "operator_source_depth_feasibility_status": source_depth_source.get("feasibility_status", "not_in_f1_trial"),
         "operator_only_or_source_depth_inventory_not_counted": max(
-            source_depth_target_scale_count - public_payload_count,
+            source_depth_target_scale_count - composition_entry["public_payload_count"],
             0,
         ),
     }
@@ -1537,7 +1543,7 @@ def _source_depth_composition_closure_entry(
         "required_action": _source_depth_composition_required_action(gate["status"], closure_state),
         "counts": {
             "target_real_item_count": report.get("target_real_item_count", F1_REAL_TARGET_COUNT),
-            "target_source_item_count": report.get("target_source_item_count", F1_REAL_TARGET_COUNT),
+            "counted_real_item_count": report.get("counted_real_item_count", 0),
             "public_payload_real_item_count": report.get("public_payload_real_item_count", 0),
             "public_payload_synthetic_item_count": report.get("public_payload_synthetic_item_count", 0),
             "source_depth_only_payload_item_count": report.get("source_depth_only_payload_item_count", 0),
@@ -1560,7 +1566,10 @@ def _source_depth_composition_closure_entry(
             ),
             "blocked_gate_preserved": gate["status"] == "blocked",
         },
+        "contract_id": report.get("contract_id"),
         "sources": report.get("sources", []),
+        "modalities": report.get("modalities", []),
+        "gaps": report.get("gaps", []),
         "source_stats_payload_mismatches": report.get("source_stats_payload_mismatches", []),
         "source_depth_feasibility_summary": report.get("source_depth_feasibility_summary", {}),
         "source_depth_only_payload_item_ids": report.get("source_depth_only_payload_item_ids", []),
@@ -1582,15 +1591,16 @@ def _source_depth_composition_required_action(gate_status: str, closure_state: s
             "public payload item counts, not stale or inflated source_stats, must drive the gate."
         ),
         "requires_source_target_contract_reconciliation": (
-            "Reconcile the configured NLI/Pinkas/BiblIA source targets with the hard 80-real-item public beta target "
-            "before claiming source-depth/composition readiness."
+            "Add or promote real_source_contract.yaml entries for every real source in the public payload "
+            "(real_source_composition.v2) before claiming source-depth/composition readiness."
         ),
     }
     return actions.get(
         closure_state,
         (
-            "Promote enough real NLI, Pinkas, and BiblIA candidates through the normal public profile and release gates; "
-            "do not count F1c operator-only or source-depth-only inventory as public payload readiness."
+            "Promote enough real candidates through the normal public profile and release gates to meet every source "
+            "floor, both modality floors and the capped real total of real_source_composition.v2; do not count F1c "
+            "operator-only or source-depth-only inventory as public payload readiness."
         ),
     )
 
@@ -1607,7 +1617,7 @@ def _gate(gate_id: str, status: bool, evidence_paths: list[str], rationale: str)
 def _source_depth_gate(source_depth_composition_report: dict[str, Any] | None) -> dict[str, Any]:
     report = source_depth_composition_report or {}
     status = report.get("status") == "pass"
-    real_count = int(report.get("public_payload_real_item_count", 0) or 0)
+    real_count = int(report.get("counted_real_item_count", 0) or 0)
     target_count = int(report.get("target_real_item_count", F1_REAL_TARGET_COUNT) or F1_REAL_TARGET_COUNT)
     limitation = str(report.get("limitation_disclosure") or "source-depth/composition report is unavailable")
     return _gate(
@@ -1620,7 +1630,8 @@ def _source_depth_gate(source_depth_composition_report: dict[str, Any] | None) -
             "docs/DATASET_CARD.md",
         ],
         (
-            f"Public-profile candidate evidence covers source-depth/composition targets: {real_count} / {target_count} real items."
+            f"Public-profile candidate evidence covers source-depth/composition targets: {real_count} counted / "
+            f"{target_count} real items under {report.get('contract_id')}."
             if status
             else f"Public-profile candidate evidence does not yet satisfy source-depth/composition targets: {limitation}."
         ),
@@ -1979,6 +1990,7 @@ def _dataset_card(
     blocked_items: list[PrivacyScannedItemRecord],
     included_sources: list[str],
     governance: PublicBetaGovernanceConfig,
+    composition_report: dict[str, Any] | None = None,
 ) -> str:
     split_counts = Counter(item.split for item in items if item.split)
     synthetic_composition = synthetic_composition_report(items)
@@ -2004,6 +2016,13 @@ def _dataset_card(
             "## Synthetic Composition",
             *(synthetic_composition_lines(synthetic_composition)),
             "",
+            "## Real Source Composition",
+            *_real_source_composition_lines(composition_report),
+            "",
+            "## Licences and Attribution",
+            "- Per-source licences, attribution, share-alike and evaluation scope are in `docs/NOTICE.md` and "
+            "`manifests/attribution_manifest.json`; each item carries them in `release_terms`.",
+            "",
             "## Known Blockers",
             "- Public beta readiness remains blocked until a larger validated hocrsyngen batch satisfies the synthetic target-scale gate.",
             "- Operator-only F1c artifacts are not public beta readiness evidence by themselves.",
@@ -2017,6 +2036,28 @@ def _dataset_card(
             "",
         ]
     )
+
+
+def _real_source_composition_lines(report: dict[str, Any] | None) -> list[str]:
+    if not report:
+        return ["- Composition report unavailable."]
+    lines = [
+        f"- Contract: `{report.get('contract_id')}`; status `{report.get('status')}`.",
+        f"- Counted real items: {report.get('counted_real_item_count')} / {report.get('target_real_item_count')} "
+        f"({report.get('public_payload_real_item_count')} real items in the payload).",
+    ]
+    for modality in report.get("modalities", []):
+        lines.append(
+            f"- Modality `{modality['modality']}`: {modality['counted_count']} counted / floor {modality['floor']} "
+            f"({modality['public_payload_count']} in the payload)."
+        )
+    for source in report.get("sources", []):
+        if source["public_payload_count"] or source["floor"]:
+            lines.append(
+                f"- `{source['source_id']}`: {source['public_payload_count']} items, {source['counted_count']} counted "
+                f"(floor {source['floor']}, cap {source['cap']})."
+            )
+    return lines
 
 
 def _release_notes(

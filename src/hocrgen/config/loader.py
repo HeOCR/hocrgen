@@ -14,8 +14,12 @@ from hocrgen.config.models import (
     PrivacyRules,
     PublicBetaGovernanceConfig,
     QualityThresholds,
+    RealSourceContract,
+    RealSourcePromotion,
     ReleaseProfile,
     SourceRegistry,
+    SourceStatus,
+    SyntheticTrainingWorkRegistry,
 )
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 
@@ -29,6 +33,10 @@ class ConfigBundle:
     privacy_rules: PrivacyRules
     public_beta_governance: PublicBetaGovernanceConfig
     config_root: Path
+    real_source_contract: RealSourceContract | None = None
+    synthetic_training_works: SyntheticTrainingWorkRegistry | None = None
+    # F8g: the materialized real tranche the tranche sources read from (``--real-tranche-root``), if any.
+    real_tranche_root: Path | None = None
 
     def resolve_path(self, reference: str | Path) -> Path:
         return resolve_path(reference, self.config_root)
@@ -143,6 +151,32 @@ def load_public_beta_governance(config_root: Path | None = None) -> PublicBetaGo
     return _validate("public beta governance", PublicBetaGovernanceConfig, load_yaml_file(path), path)
 
 
+REAL_SOURCE_CONTRACT_FILE = "real_source_contract.yaml"
+
+
+def load_real_source_contract(config_root: Path | None = None) -> RealSourceContract:
+    """The F8g real-source composition contract; a config root without one falls back to the packaged contract."""
+
+    root = config_root or default_config_root()
+    path = root / REAL_SOURCE_CONTRACT_FILE
+    if config_root is not None and not path.exists():
+        path = default_config_root() / REAL_SOURCE_CONTRACT_FILE
+    return _validate("real-source contract", RealSourceContract, load_yaml_file(path), path)
+
+
+SYNTHETIC_TRAINING_WORKS_FILE = "synthetic_training_works.yaml"
+
+
+def load_synthetic_training_works(config_root: Path | None = None) -> SyntheticTrainingWorkRegistry:
+    """The F8g synthetic-training work registry; a config root without one falls back to the packaged registry."""
+
+    root = config_root or default_config_root()
+    path = root / SYNTHETIC_TRAINING_WORKS_FILE
+    if config_root is not None and not path.exists():
+        path = default_config_root() / SYNTHETIC_TRAINING_WORKS_FILE
+    return _validate("synthetic-training work registry", SyntheticTrainingWorkRegistry, load_yaml_file(path), path)
+
+
 def load_config_bundle(config_root: Path | None = None) -> ConfigBundle:
     root = config_root or default_config_root()
     return ConfigBundle(
@@ -153,6 +187,8 @@ def load_config_bundle(config_root: Path | None = None) -> ConfigBundle:
         privacy_rules=load_privacy_rules(root),
         public_beta_governance=load_public_beta_governance(root),
         config_root=root,
+        real_source_contract=load_real_source_contract(root),
+        synthetic_training_works=load_synthetic_training_works(root),
     )
 
 
@@ -180,12 +216,61 @@ def validate_bundle_references(bundle: ConfigBundle) -> None:
                 f"privacy rule {rule.id} references unknown source ids",
                 details=[{"privacy_rule_id": rule.id, "unknown_source_ids": sorted(unknown_rule_sources)}],
             )
+    validate_real_source_contract(bundle)
     for source in bundle.source_registry.sources:
         if source.fetcher == "modern_handwriting_intake":
             try:
                 validate_modern_intake_source_config(source)
             except StageExecutionError as exc:
                 raise ConfigValidationError(f"modern handwriting intake validation failed for {source.id}: {exc}") from exc
+
+
+# Real sources outside the composition contract: synthetic and contributor-consent sources are not real scans of
+# public-domain documents, and they are governed elsewhere (synthetic cap, F3 consent policy).
+NON_CONTRACT_SOURCE_FETCHERS = {"hocrsyngen_manifest", "synthetic", "modern_handwriting_intake"}
+
+
+def validate_real_source_contract(bundle: ConfigBundle) -> None:
+    """Bind the F8g contract to the source registry (F8g).
+
+    Every contract entry names a registered source; a promoted or legacy entry must be an ``allowed``, default-public
+    source, and a not-promoted entry must not be. Every ``allowed`` real source in any profile must have an entry, so
+    a newly promoted source cannot ship outside the composition contract.
+    """
+
+    contract = bundle.real_source_contract
+    if contract is None:
+        return
+    sources = {source.id: source for source in bundle.source_registry.sources}
+    problems: list[dict[str, Any]] = []
+    for entry in contract.sources:
+        source = sources.get(entry.source_id)
+        if source is None:
+            problems.append({"source_id": entry.source_id, "problem": "unknown_source"})
+            continue
+        public = source.status == SourceStatus.allowed and source.default_public_release
+        if entry.promotion == RealSourcePromotion.not_promoted and public:
+            problems.append({"source_id": entry.source_id, "problem": "not_promoted_source_is_public"})
+        if entry.promotion != RealSourcePromotion.not_promoted and not public:
+            problems.append({"source_id": entry.source_id, "problem": "contract_source_not_public"})
+        if entry.release_terms.licence != source.normalized_license:
+            problems.append(
+                {
+                    "source_id": entry.source_id,
+                    "problem": "release_terms_licence_mismatch",
+                    "contract_licence": entry.release_terms.licence,
+                    "source_licence": source.normalized_license,
+                }
+            )
+    profiled = {source_id for profile in bundle.profiles.values() for source_id in profile.include_sources}
+    for source_id in sorted(profiled):
+        source = sources.get(source_id)
+        if source is None or source.fetcher in NON_CONTRACT_SOURCE_FETCHERS or source.status != SourceStatus.allowed:
+            continue
+        if contract.entry(source_id) is None:
+            problems.append({"source_id": source_id, "problem": "allowed_real_source_missing_from_contract"})
+    if problems:
+        raise ConfigValidationError("real-source contract does not match the source registry", details=problems)
 
 
 def load_and_validate_bundle(config_root: Path | None = None) -> ConfigBundle:

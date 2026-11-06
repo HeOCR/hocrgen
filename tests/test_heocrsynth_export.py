@@ -34,6 +34,7 @@ from hocrgen.package.heocrsynth import (
     export_synthetic_release,
 )
 from hocrgen.pipeline import execute_pipeline
+from legacy_profile import restrict_open_profile_to_legacy_sources
 
 
 def _fixture_config_root(tmp_path: Path) -> Path:
@@ -47,6 +48,7 @@ def _fixture_config_root(tmp_path: Path) -> Path:
         ),
         encoding="utf-8",
     )
+    restrict_open_profile_to_legacy_sources(config_root)
     return config_root
 
 
@@ -243,7 +245,7 @@ def test_export_synthetic_rejects_source_filter_before_pipeline(tmp_path: Path, 
 
 
 def test_export_synthetic_cli_reports_config_load_error(tmp_path: Path, capsys, monkeypatch) -> None:
-    def fail_load(_config_root):
+    def fail_load(_config_root, *_args):
         raise ConfigValidationError("bad config")
 
     monkeypatch.setattr("hocrgen.cli._load_bundle", fail_load)

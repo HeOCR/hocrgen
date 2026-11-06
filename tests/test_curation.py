@@ -284,7 +284,9 @@ def test_validate_leakage_skips_items_without_split_metadata() -> None:
     assert report["group_count"] == 0
 
 
-def test_assign_splits_uses_canonical_split_when_duplicate_group_assignment_missing(monkeypatch) -> None:
+def test_assign_splits_keeps_a_duplicate_in_its_canonical_component(monkeypatch) -> None:
+    """F8g: a duplicate whose own F1d group differs still shares its canonical's component, so its split too."""
+
     profile = load_and_validate_bundle().profiles["profile_open_v1"]
     dedupe_outputs = deduplicate_items(
         [
@@ -307,7 +309,7 @@ def test_assign_splits_uses_canonical_split_when_duplicate_group_assignment_miss
     canonical = outputs.retained_items[0]
     duplicate = outputs.duplicate_items[0]
     assert duplicate.split == canonical.split
-    assert duplicate.split_group_id != canonical.split_group_id
+    assert duplicate.split_group_id == canonical.split_group_id
 
 
 def test_assign_splits_raises_when_leakage_report_is_error(monkeypatch) -> None:
@@ -326,7 +328,7 @@ def test_assign_splits_raises_when_leakage_report_is_error(monkeypatch) -> None:
     monkeypatch.setattr(
         split_assign_module,
         "_validate_leakage",
-        lambda items: {
+        lambda items, *_args: {
             "duplicate_cluster_leaks": [],
             "group_count": 1,
             "split_group_leaks": [{"split_group_id": "forced", "splits": ["train", "test"]}],

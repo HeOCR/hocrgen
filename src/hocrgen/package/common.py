@@ -15,7 +15,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from hocrgen.config.models import ReleaseProfile, SourceConfig
+from hocrgen.config.models import RealSourceContract, ReleaseProfile, SourceConfig
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.manifests.io import write_json
 from hocrgen.manifests.models import (
@@ -36,6 +36,7 @@ from hocrgen.manifests.models import (
     ReviewQueueRecord,
 )
 from hocrgen.normalize.files import sanitize_item_id
+from hocrgen.package.release_terms import item_release_terms, write_paired_text
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -69,6 +70,7 @@ class ReleaseDocs:
     provenance: str
     handoff: str
     benchmark_card: str
+    notice: str | None = None
 
 
 @dataclass(frozen=True)
@@ -104,6 +106,7 @@ class StandardReleaseArtifacts:
     exported_benchmark_reference_files: list[Path]
     docs: ReleaseDocs
     audit_item_payload: Any | None = None
+    attribution_manifest: dict[str, Any] | None = None
 
 
 def copy_export_assets(
@@ -111,7 +114,14 @@ def copy_export_assets(
     data_dir: Path,
     *,
     release_root: Path | None = None,
+    contract: RealSourceContract | None = None,
 ) -> list[ExportedItemRecord]:
+    """Copy each item's assets, and (F8g) its paired human text, into ``data/<split>/<item_id>/``.
+
+    With a real-source ``contract`` every item also gets typed ``release_terms`` checked against its source's
+    contract terms; an item that cannot carry them stops the export.
+    """
+
     release_root = release_root or data_dir.parent
     exported_items: list[ExportedItemRecord] = []
     for item in items:
@@ -140,7 +150,16 @@ def copy_export_assets(
                     release_preview_path=release_preview_path,
                 )
             )
-        exported_items.append(ExportedItemRecord(**item.model_dump(mode="python"), exported_assets=exported_assets))
+        terms = item_release_terms(item, contract) if contract is not None else None
+        exported_texts = write_paired_text(item, item_dir, release_root, terms) if terms is not None else []
+        exported_items.append(
+            ExportedItemRecord(
+                **item.model_dump(mode="python"),
+                exported_assets=exported_assets,
+                exported_texts=exported_texts,
+                release_terms=terms,
+            )
+        )
     return exported_items
 
 
@@ -209,6 +228,8 @@ def write_core_release_manifests(
     )
     write_json(manifests_dir / "release_record.json", inputs.release_record.model_dump(mode="json"))
     write_json(manifests_dir / "release_diff.json", inputs.release_diff.model_dump(mode="json"))
+    if inputs.attribution_manifest is not None:
+        write_json(manifests_dir / "attribution_manifest.json", inputs.attribution_manifest)
 
 
 def write_benchmark_release_manifests(
@@ -247,6 +268,8 @@ def write_release_docs(docs: ReleaseDocs, docs_dir: Path) -> None:
     write_markdown(docs_dir / "PROVENANCE.md", docs.provenance)
     write_markdown(docs_dir / "HANDOFF.md", docs.handoff)
     write_markdown(docs_dir / "BENCHMARK_CARD.md", docs.benchmark_card)
+    if docs.notice is not None:
+        write_markdown(docs_dir / "NOTICE.md", docs.notice)
 
 
 def sha256_file(path: Path) -> str:
@@ -443,6 +466,8 @@ def release_artifact_paths(
         docs_dir / "PROVENANCE.md",
         docs_dir / "HANDOFF.md",
         docs_dir / "BENCHMARK_CARD.md",
+        *([docs_dir / "NOTICE.md"] if inputs.docs.notice is not None else []),
+        *([manifests_dir / "attribution_manifest.json"] if inputs.attribution_manifest is not None else []),
         summary_path,
     ]
     return artifact_paths

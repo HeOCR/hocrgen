@@ -99,11 +99,11 @@ def _items(enriched) -> list[ItemRecord]:
     ("source_id", "fetcher", "content_type"),
     [(RESHUMOT_ID, "reshumot", "printed_modern"), (KNESSET_ID, "knesset_committee", "typewritten_historical")],
 )
-def test_f8e_sources_are_review_only_and_outside_the_public_profile(source_id: str, fetcher: str, content_type: str) -> None:
+def test_f8e_sources_are_promoted_into_the_public_profile(source_id: str, fetcher: str, content_type: str) -> None:
     bundle, source = _bundle_and_source(source_id)
     assert source.fetcher == fetcher
-    assert source.status.value == "review_only"
-    assert source.default_public_release is False
+    assert source.status.value == "allowed"
+    assert source.default_public_release is True
     assert source.allowed_content_types == [content_type]
     assert source.rights_strategy.values == ["PD-IL"]
     assert source.normalized_license == "PD-IL"
@@ -111,7 +111,9 @@ def test_f8e_sources_are_review_only_and_outside_the_public_profile(source_id: s
     # No privacy-review gate for public-domain official publications (maintainer decision 2026-11-06).
     assert source.requires_manual_review is False
     assert bundle.privacy_rules.source_defaults[source_id].value == "clear"
-    assert source_id not in bundle.profiles["profile_open_v1"].include_sources
+    # F8g: promoted into the public path; the real-source contract governs its composition.
+    assert source_id in bundle.profiles["profile_open_v1"].include_sources
+    assert bundle.real_source_contract.entry(source_id).promotion.value == "promoted"
     assert source_id in bundle.profiles["profile_review_v1"].include_sources
 
 

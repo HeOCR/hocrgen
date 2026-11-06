@@ -1,0 +1,21 @@
+version: 1
+registry_id: synthetic_training_works.v1
+# F8g leakage cross-check. A real item whose work-group keys (see hocrgen.split.work_groups) match a work listed
+# here stays in train with its whole split group and is never benchmark or holdout material.
+producers:
+  - producer: HeOCR/hocrsyngen
+    plan: >-
+      S15a (HeOCR/hocrsyngen#90, merged 2026-11-06): Project Ben-Yehuda public-domain text as recognizer training
+      text. Each corpus build publishes a work-level exclusion list of every PBY work it uses; hocrgen owns the
+      real-scan side of the exclusion (E2d, HeOCR/hocrgen#102).
+    status: planned
+    exclusion_list: null
+  - producer: HeOCR/hletterscriptgen
+    plan: >-
+      hletterscriptgen crops glyphs from HASH scans for hocrsyngen through hletterscript (F7). HASH writer groups are
+      recorded here when F7d promotes a HASH tranche.
+    status: planned
+    exclusion_list: null
+# No corpus build exists yet, so no work is registered. The F8f pilot's PBY-to-NLI edition matches are the first
+# candidates: when S15a builds its corpus, each PBY work in it is recorded with the nli_record keys F8f matched.
+works: []

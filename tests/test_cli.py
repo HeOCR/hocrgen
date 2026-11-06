@@ -89,14 +89,15 @@ def test_f1_beta_trial_command_creates_operator_report(tmp_path: Path, capsys) -
     assert exit_code == 0
     assert payload["stage"] == "f1-beta-trial"
     assert payload["f1_target_scale_trial_report"].endswith("f1_target_scale_trial_report.json")
-    assert len(candidates["items"]) == 82
+    # F8g: 85 F1-allocation candidates (30 NLI after the printed-book promotion) plus 16 promoted F8 fixture items.
+    assert len(candidates["items"]) == 101
     assert report["artifact_scope"] == "operator_only"
     assert report["planning_notation"] == "F1c"
     assert report["status"] == "blocked"
     assert report["target_scale_execution_status"] == "blocked"
     assert report["gate_status"] == "ok"
-    assert report["target_scale_exercised"]["candidate_count"] == 82
-    assert report["target_scale_exercised"]["acquired_count"] == 82
+    assert report["target_scale_exercised"]["candidate_count"] == 85
+    assert report["target_scale_exercised"]["acquired_count"] == 85
     assert report["target_counts"] == {"real": 80, "synthetic": 80, "total": 160}
     assert report["source_allocation"] == {
         "biblia_open": 26,
@@ -104,7 +105,7 @@ def test_f1_beta_trial_command_creates_operator_report(tmp_path: Path, capsys) -
         "pinkas_open": 27,
         "project_synthetic": 80,
     }
-    assert report["rights_outcomes"]["accepted_count"] == 82
+    assert report["rights_outcomes"]["accepted_count"] == 101
     assert report["dedupe_outcomes"]["duplicate_removed_count"] == 0
     assert (
         report["dedupe_outcomes"]["near_duplicate_policy"]
@@ -114,8 +115,8 @@ def test_f1_beta_trial_command_creates_operator_report(tmp_path: Path, capsys) -
     assert report["split_and_benchmark_eligibility"]["benchmark_holdout_leakage"]["status"] == "ok"
     assert report["split_and_benchmark_eligibility"]["benchmark_holdout_leakage"]["accepted_resolution_count"] == 1
     assert report["gate_outcomes"]["synthetic_cap"] == {
-        "allowed_synthetic_count": 30,
-        "real_release_ready_count": 30,
+        "allowed_synthetic_count": 33,
+        "real_release_ready_count": 33,
         "status": "ok",
         "synthetic_fraction_max": 0.5,
         "synthetic_release_ready_count": 2,
@@ -137,7 +138,7 @@ def test_f1_beta_trial_reports_unknown_profile(capsys) -> None:
 
 
 def test_f1_beta_trial_reports_config_validation_errors(monkeypatch, capsys) -> None:
-    monkeypatch.setattr("hocrgen.cli._load_bundle", lambda _config_root: (_ for _ in ()).throw(ConfigValidationError("bad config")))
+    monkeypatch.setattr("hocrgen.cli._load_bundle", lambda _config_root, *_args: (_ for _ in ()).throw(ConfigValidationError("bad config")))
 
     exit_code = main(["f1-beta-trial", "--profile", "profile_open_v1", "--dry-run"])
     payload = json.loads(capsys.readouterr().out)

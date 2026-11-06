@@ -6,6 +6,7 @@ import shutil
 import tarfile
 from datetime import date
 from pathlib import Path
+from collections import Counter
 from types import SimpleNamespace
 
 import pytest
@@ -35,6 +36,7 @@ from hocrgen.package.public_beta import (
     _takedown_gate,
     _validate_takedown_workflow,
 )
+from legacy_profile import restrict_open_profile_to_legacy_sources
 
 
 def _fixture_config_root(tmp_path: Path) -> Path:
@@ -48,6 +50,7 @@ def _fixture_config_root(tmp_path: Path) -> Path:
         ),
         encoding="utf-8",
     )
+    restrict_open_profile_to_legacy_sources(config_root)
     return config_root
 
 
@@ -159,68 +162,55 @@ def test_export_public_beta_creates_blocked_readiness_handoff(tmp_path: Path, ca
         "synthetic_target_scale",
     ]
     repo_entries = {entry["gate_id"]: entry for entry in repo_owned_report["entries"]}
-    assert repo_entries["source_depth_composition"]["counts"] == {
+    composition_entry = repo_entries["source_depth_composition"]
+    assert composition_entry["counts"] == {
         "target_real_item_count": 80,
-        "target_source_item_count": 80,
+        "counted_real_item_count": 2,
         "public_payload_real_item_count": 2,
         "public_payload_synthetic_item_count": 2,
         "source_depth_only_payload_item_count": 0,
         "source_stats_payload_mismatch_count": 0,
     }
-    assert repo_entries["source_depth_composition"]["f6e_assessment"] == {
-        "planning_notation": "F6e",
-        "assessment_status": "blocked_public_profile_candidate_gap",
-        "closure_state": "requires_public_profile_candidate_promotion",
-        "readiness_contract": (
-            "Source-depth/composition readiness can pass only when real public-profile candidate payload items, "
-            "not F1c operator-only or source-depth-only inventory, satisfy the NLI/Pinkas/BiblIA source targets "
-            "after normal release-profile, review, privacy, split, benchmark, and portability gates."
-        ),
-        "limitation_disclosure": (
-            "Public-profile payload source composition is incomplete: nli_any_use_permitted 1 / 27, "
-            "pinkas_open 1 / 27, biblia_open 0 / 26; operator-only and source-depth-only inventory is not "
-            "counted as public beta readiness evidence"
-        ),
-        "blocked_gate_preserved": True,
+    assert composition_entry["contract_id"] == "real_source_composition.v2"
+    assessment = composition_entry["f6e_assessment"]
+    assert assessment["assessment_status"] == "blocked_public_profile_candidate_gap"
+    assert assessment["closure_state"] == "requires_public_profile_candidate_promotion"
+    assert assessment["readiness_contract"].startswith("real_source_composition.v2: real public-profile payload items")
+    assert assessment["limitation_disclosure"].startswith(
+        "Public-profile payload composition is incomplete under real_source_composition.v2: "
+        "source floor wikisource_he_proofread 0 / 20"
+    )
+    assert "counted real total min_real_items 2 / 80" in assessment["limitation_disclosure"]
+    assert assessment["blocked_gate_preserved"] is True
+    # The B-phase fixture config drops the promoted F8 sources from the profile, so their floors are the gaps.
+    assert {(gap["kind"], gap["id"]) for gap in composition_entry["gaps"]} == {
+        ("source_floor", "wikisource_he_proofread"),
+        ("source_floor", "yidtaknl_vaybertaytsh_gt"),
+        ("source_floor", "pinkas_dataset_bgu"),
+        ("modality_floor", "printed"),
+        ("modality_floor", "handwritten"),
+        ("real_total", "min_real_items"),
     }
-    assert repo_entries["source_depth_composition"]["sources"] == [
-        {
-            "source_id": "nli_any_use_permitted",
-            "target_count": 27,
-            "public_payload_count": 1,
-            "public_payload_gap": 26,
-            "status": "blocked",
-            "profile_included": True,
-            "operator_source_depth_target_scale_candidate_count": 1,
-            "operator_source_depth_runnable_cached_candidate_count": 1,
-            "operator_source_depth_feasibility_status": "needs_promotion",
-            "operator_only_or_source_depth_inventory_not_counted": 0,
-        },
-        {
-            "source_id": "pinkas_open",
-            "target_count": 27,
-            "public_payload_count": 1,
-            "public_payload_gap": 26,
-            "status": "blocked",
-            "profile_included": True,
-            "operator_source_depth_target_scale_candidate_count": 27,
-            "operator_source_depth_runnable_cached_candidate_count": 1,
-            "operator_source_depth_feasibility_status": "needs_target_scale_trial",
-            "operator_only_or_source_depth_inventory_not_counted": 26,
-        },
-        {
-            "source_id": "biblia_open",
-            "target_count": 26,
-            "public_payload_count": 0,
-            "public_payload_gap": 26,
-            "status": "blocked",
-            "profile_included": True,
-            "operator_source_depth_target_scale_candidate_count": 26,
-            "operator_source_depth_runnable_cached_candidate_count": 1,
-            "operator_source_depth_feasibility_status": "needs_target_scale_trial",
-            "operator_only_or_source_depth_inventory_not_counted": 26,
-        },
-    ]
+    sources = {entry["source_id"]: entry for entry in composition_entry["sources"]}
+    assert sources["nli_any_use_permitted"] | {} == {
+        **sources["nli_any_use_permitted"],
+        "promotion": "legacy",
+        "floor": 0,
+        "cap": 20,
+        "public_payload_count": 1,
+        "counted_count": 1,
+        "floor_gap": 0,
+        "status": "pass",
+        "profile_included": True,
+        "operator_source_depth_target_scale_candidate_count": 1,
+        "operator_source_depth_feasibility_status": "needs_promotion",
+    }
+    assert sources["pinkas_open"]["operator_only_or_source_depth_inventory_not_counted"] == 26
+    assert sources["biblia_open"]["public_payload_count"] == 0
+    assert sources["wikisource_he_proofread"]["profile_included"] is False
+    assert sources["wikisource_he_proofread"]["floor_gap"] == 20
+    assert sources["hash_nli_any_use"]["promotion"] == "not_promoted"
+    assert sources["hash_nli_any_use"]["operator_source_depth_feasibility_status"] == "not_in_f1_trial"
     assert repo_entries["privacy_review"]["counts"]["review_required"] == 1
     assert repo_entries["privacy_review"]["counts"]["blocked"] == 0
     assert repo_entries["privacy_review"]["counts"]["suggested_decision"] == {
@@ -639,130 +629,107 @@ def test_source_status_evidence_uses_consistent_schema_for_unknown_sources() -> 
     ]
 
 
+CONTRACT_PROFILE = SimpleNamespace(
+    id="profile_open_v1",
+    include_sources=[
+        "nli_any_use_permitted",
+        "pinkas_open",
+        "biblia_open",
+        "wikisource_he_proofread",
+        "yidtaknl_vaybertaytsh_gt",
+        "pinkas_dataset_bgu",
+        "reshumot_born_digital",
+        "knesset_committee_protocols_pre1976",
+        "project_synthetic",
+    ],
+    exclude_sources=[],
+)
+
+
+def _real_item(source_id: str, index: int, content_type: str | None = None, **metadata: object) -> SimpleNamespace:
+    return SimpleNamespace(
+        item_id=f"{source_id}:item-{index:04d}",
+        source_id=source_id,
+        is_synthetic=False,
+        metadata={**({"content_type": content_type} if content_type else {}), **metadata},
+        raw_metadata={},
+        content_class=None,
+    )
+
+
+def _items(counts: dict[str, tuple[int, str]]) -> list[SimpleNamespace]:
+    return [_real_item(source_id, index, content_type) for source_id, (count, content_type) in counts.items() for index in range(count)]
+
+
+PASSING_COUNTS = {
+    "wikisource_he_proofread": (1448, "printed_historical"),
+    "yidtaknl_vaybertaytsh_gt": (123, "printed_historical"),
+    "pinkas_dataset_bgu": (30, "handwritten_historical"),
+    "reshumot_born_digital": (2, "printed_modern"),
+    "knesset_committee_protocols_pre1976": (3, "typewritten_historical"),
+}
+
+
+def _composition(items: list[SimpleNamespace], *, source_stats: dict[str, int] | None = None, feasibility: dict | None = None) -> dict:
+    stats = source_stats if source_stats is not None else dict(Counter(item.source_id for item in items))
+    return _source_depth_composition_report(
+        profile=CONTRACT_PROFILE,
+        exported_items=items,
+        source_depth_feasibility=feasibility or {"artifact_scope": "operator_only", "sources": [], "summary": {}},
+        source_stats={"sources": stats},
+    )
+
+
 def test_source_depth_composition_report_counts_only_public_profile_payload_candidates() -> None:
-    report = _source_depth_composition_report(
-        profile=SimpleNamespace(
-            id="profile_open_v1",
-            include_sources=["nli_any_use_permitted", "pinkas_open", "biblia_open", "project_synthetic"],
-            exclude_sources=[],
-        ),
-        exported_items=[
-            SimpleNamespace(
-                item_id="nli_any_use_permitted:nli-001",
-                source_id="nli_any_use_permitted",
-                is_synthetic=False,
-                metadata={"f1_source_depth_only": False},
-                raw_metadata={},
-            ),
-            SimpleNamespace(
-                item_id="pinkas_open:pinkas-001",
-                source_id="pinkas_open",
-                is_synthetic=False,
-                metadata={},
-                raw_metadata={},
-            ),
-            SimpleNamespace(
-                item_id="project_synthetic:synthetic-0",
-                source_id="project_synthetic",
-                is_synthetic=True,
-                metadata={},
-                raw_metadata={},
-            ),
-        ],
-        source_depth_feasibility={
+    synthetic = SimpleNamespace(item_id="project_synthetic:s-1", source_id="project_synthetic", is_synthetic=True, metadata={}, raw_metadata={})
+    items = [_real_item("nli_any_use_permitted", 1, "manuscript_scan"), _real_item("pinkas_open", 1, "handwritten_historical"), synthetic]
+    report = _composition(
+        items,
+        feasibility={
             "artifact_scope": "operator_only",
-            "summary": {
-                "real_target_count": 80,
-                "target_count": 160,
-                "runnable_cached_candidate_count": 31,
-                "target_scale_candidate_count": 82,
-                "target_scale_gap": 78,
-                "overall_feasibility_status": "not_feasible",
-                "not_ready_sources": ["pinkas_open", "biblia_open", "project_synthetic"],
-            },
+            "summary": {"real_target_count": 80, "target_scale_gap": 78, "overall_feasibility_status": "not_feasible"},
             "sources": [
-                {
-                    "source_id": "nli_any_use_permitted",
-                    "target_scale_candidate_count": 27,
-                    "runnable_cached_candidate_count": 27,
-                    "feasibility_status": "feasible",
-                },
-                {
-                    "source_id": "pinkas_open",
-                    "target_scale_candidate_count": 27,
-                    "runnable_cached_candidate_count": 1,
-                    "feasibility_status": "needs_target_scale_trial",
-                },
-                {
-                    "source_id": "biblia_open",
-                    "target_scale_candidate_count": 26,
-                    "runnable_cached_candidate_count": 1,
-                    "feasibility_status": "needs_target_scale_trial",
-                },
+                {"source_id": "pinkas_open", "target_scale_candidate_count": 27, "runnable_cached_candidate_count": 1, "feasibility_status": "needs_target_scale_trial"},
             ],
         },
-        source_stats={"sources": {"nli_any_use_permitted": 1, "pinkas_open": 1, "project_synthetic": 1}},
     )
 
     assert report["status"] == "blocked"
+    assert report["contract_id"] == "real_source_composition.v2"
     assert report["closure_state"] == "requires_public_profile_candidate_promotion"
     assert report["public_payload_real_item_count"] == 2
     assert report["public_payload_synthetic_item_count"] == 1
-    assert report["source_depth_only_payload_item_count"] == 0
+    assert report["counted_real_item_count"] == 2
     assert report["source_depth_feasibility_artifact_scope"] == "operator_only"
     assert "operator-only and source-depth-only inventory is not counted" in report["limitation_disclosure"]
-    sources_by_id = {entry["source_id"]: entry for entry in report["sources"]}
-    assert sources_by_id["nli_any_use_permitted"]["public_payload_gap"] == 26
-    assert sources_by_id["pinkas_open"]["operator_only_or_source_depth_inventory_not_counted"] == 26
-    assert sources_by_id["biblia_open"]["public_payload_count"] == 0
-    assert sources_by_id["biblia_open"]["public_payload_gap"] == 26
+    sources = {entry["source_id"]: entry for entry in report["sources"]}
+    # F1c operator inventory is reported, never counted.
+    assert sources["pinkas_open"]["operator_only_or_source_depth_inventory_not_counted"] == 26
+    assert sources["wikisource_he_proofread"]["floor_gap"] == 20
+    modalities = {entry["modality"]: entry for entry in report["modalities"]}
+    assert modalities["handwritten"]["counted_count"] == 2
+    assert modalities["printed"]["counted_count"] == 0
 
 
 def test_source_depth_composition_report_passes_with_public_profile_payload_targets() -> None:
-    source_counts = {
-        "nli_any_use_permitted": 27,
-        "pinkas_open": 27,
-        "biblia_open": 26,
-    }
-    exported_items = [
-        SimpleNamespace(
-            item_id=f"{source_id}:item-{index:03d}",
-            source_id=source_id,
-            is_synthetic=False,
-            metadata={},
-            raw_metadata={},
-        )
-        for source_id, count in source_counts.items()
-        for index in range(count)
-    ]
+    """The F8g tranche shape: the counted total is capped per source, and both modality floors are met."""
 
-    report = _source_depth_composition_report(
-        profile=SimpleNamespace(
-            id="profile_open_v1",
-            include_sources=["nli_any_use_permitted", "pinkas_open", "biblia_open"],
-            exclude_sources=[],
-        ),
-        exported_items=exported_items,
-        source_depth_feasibility={
-            "artifact_scope": "operator_only",
-            "sources": [
-                {
-                    "source_id": source_id,
-                    "target_scale_candidate_count": count,
-                    "runnable_cached_candidate_count": count,
-                    "feasibility_status": "feasible",
-                }
-                for source_id, count in source_counts.items()
-            ],
-            "summary": {},
-        },
-        source_stats={"sources": source_counts},
-    )
+    report = _composition(_items(PASSING_COUNTS))
 
     assert report["status"] == "pass"
     assert report["assessment_status"] == "closed_with_public_profile_candidate_evidence"
-    assert report["closure_state"] == "pass"
     assert report["limitation_disclosure"] == "none for current public-profile source-depth/composition evidence"
+    assert report["public_payload_real_item_count"] == 1606
+    # wikisource 40 + yidtaknl 15 + pinkas 30 + reshumot 2 + knesset 3: every item ships, the caps limit the count.
+    assert report["counted_real_item_count"] == 90
+    sources = {entry["source_id"]: entry for entry in report["sources"]}
+    assert sources["wikisource_he_proofread"]["counted_count"] == 40
+    assert sources["wikisource_he_proofread"]["uncounted_over_cap"] == 1408
+    modalities = {entry["modality"]: entry for entry in report["modalities"]}
+    # Reshumot pages are rendered, not scanned: they count toward the total, never toward the printed floor.
+    assert modalities["printed"]["counted_count"] == 40 + 15 + 3
+    assert modalities["printed"]["public_payload_count"] == 1448 + 123 + 2 + 3
+    assert modalities["handwritten"]["counted_count"] == 30
     closure_entry = _source_depth_composition_closure_entry(
         {
             "gate_id": "source_depth_composition",
@@ -775,29 +742,45 @@ def test_source_depth_composition_report_passes_with_public_profile_payload_targ
     assert closure_entry["required_action"] == "No source-depth/composition action remains for current public-profile candidates."
 
 
+@pytest.mark.parametrize(
+    ("change", "gap"),
+    [
+        ({"pinkas_dataset_bgu": (9, "handwritten_historical")}, ("source_floor", "pinkas_dataset_bgu")),
+        ({"pinkas_dataset_bgu": (20, "handwritten_historical")}, ("modality_floor", "handwritten")),
+        ({"wikisource_he_proofread": (20, "printed_historical")}, ("real_total", "min_real_items")),
+    ],
+)
+def test_source_depth_composition_report_blocks_each_floor(change: dict, gap: tuple[str, str]) -> None:
+    report = _composition(_items({**PASSING_COUNTS, **change}))
+
+    assert report["status"] == "blocked"
+    assert report["assessment_status"] == "blocked_public_profile_candidate_gap"
+    assert gap in {(entry["kind"], entry["id"]) for entry in report["gaps"]}
+
+
+def test_source_depth_composition_report_does_not_let_one_source_fill_the_target() -> None:
+    report = _composition(_items({"wikisource_he_proofread": (1448, "printed_historical")}))
+
+    assert report["status"] == "blocked"
+    assert report["counted_real_item_count"] == 40
+    assert ("real_total", "min_real_items") in {(entry["kind"], entry["id"]) for entry in report["gaps"]}
+
+
+def test_source_depth_composition_report_assigns_unmapped_items_no_modality() -> None:
+    items = [*_items(PASSING_COUNTS), _real_item("nli_any_use_permitted", 1)]
+    report = _composition(items)
+
+    assert report["unassigned_modality_item_ids"] == ["nli_any_use_permitted:item-0001"]
+    assert report["status"] == "pass"
+
+
 def test_source_depth_composition_report_blocks_source_depth_only_payload_items() -> None:
-    report = _source_depth_composition_report(
-        profile=SimpleNamespace(
-            id="profile_open_v1",
-            include_sources=["nli_any_use_permitted", "pinkas_open", "biblia_open"],
-            exclude_sources=[],
-        ),
-        exported_items=[
-            SimpleNamespace(
-                item_id="nli_any_use_permitted:nli-source-depth-only",
-                source_id="nli_any_use_permitted",
-                is_synthetic=False,
-                metadata={"f1_source_depth_only": True},
-                raw_metadata={},
-            )
-        ],
-        source_depth_feasibility={"artifact_scope": "operator_only", "sources": [], "summary": {}},
-        source_stats={"sources": {"nli_any_use_permitted": 1}},
-    )
+    items = [*_items(PASSING_COUNTS), _real_item("nli_any_use_permitted", 1, "manuscript_scan", f1_source_depth_only=True)]
+    report = _composition(items)
 
     assert report["status"] == "blocked"
     assert report["assessment_status"] == "blocked_source_depth_only_payload_items_present"
-    assert report["source_depth_only_payload_item_ids"] == ["nli_any_use_permitted:nli-source-depth-only"]
+    assert report["source_depth_only_payload_item_ids"] == ["nli_any_use_permitted:item-0001"]
     closure_entry = _source_depth_composition_closure_entry(
         {
             "gate_id": "source_depth_composition",
@@ -813,44 +796,16 @@ def test_source_depth_composition_report_blocks_source_depth_only_payload_items(
 
 
 def test_source_depth_composition_report_blocks_source_stats_payload_mismatch() -> None:
-    report = _source_depth_composition_report(
-        profile=SimpleNamespace(
-            id="profile_open_v1",
-            include_sources=["nli_any_use_permitted", "pinkas_open", "biblia_open"],
-            exclude_sources=[],
-        ),
-        exported_items=[
-            SimpleNamespace(
-                item_id="nli_any_use_permitted:nli-001",
-                source_id="nli_any_use_permitted",
-                is_synthetic=False,
-                metadata={},
-                raw_metadata={},
-            ),
-            SimpleNamespace(
-                item_id="pinkas_open:pinkas-001",
-                source_id="pinkas_open",
-                is_synthetic=False,
-                metadata={},
-                raw_metadata={},
-            ),
-        ],
-        source_depth_feasibility={"artifact_scope": "operator_only", "sources": [], "summary": {}},
-        source_stats={"sources": {"nli_any_use_permitted": 27, "pinkas_open": 27, "biblia_open": 26}},
-    )
+    items = [_real_item("nli_any_use_permitted", 1), _real_item("pinkas_open", 1)]
+    report = _composition(items, source_stats={"nli_any_use_permitted": 27, "pinkas_open": 27, "biblia_open": 26})
 
     assert report["status"] == "blocked"
     assert report["assessment_status"] == "blocked_source_stats_payload_mismatch"
-    assert report["source_stats_payload_mismatch_count"] == 3
     assert report["source_stats_payload_mismatches"] == [
         {"source_id": "biblia_open", "exported_items_count": 0, "source_stats_count": 26},
         {"source_id": "nli_any_use_permitted", "exported_items_count": 1, "source_stats_count": 27},
         {"source_id": "pinkas_open", "exported_items_count": 1, "source_stats_count": 27},
     ]
-    sources_by_id = {entry["source_id"]: entry for entry in report["sources"]}
-    assert sources_by_id["nli_any_use_permitted"]["public_payload_count"] == 1
-    assert sources_by_id["pinkas_open"]["public_payload_count"] == 1
-    assert sources_by_id["biblia_open"]["public_payload_count"] == 0
     closure_entry = _source_depth_composition_closure_entry(
         {
             "gate_id": "source_depth_composition",
@@ -863,54 +818,13 @@ def test_source_depth_composition_report_blocks_source_stats_payload_mismatch() 
     assert "Reconcile source_stats with the exported public payload" in closure_entry["required_action"]
 
 
-def test_source_depth_composition_report_blocks_target_contract_mismatch(
-    monkeypatch: pytest.MonkeyPatch,
-) -> None:
-    monkeypatch.setattr(
-        public_beta,
-        "PUBLIC_BETA_REAL_SOURCE_TARGETS",
-        {"nli_any_use_permitted": 1, "pinkas_open": 1, "biblia_open": 1},
-    )
-    exported_items = [
-        SimpleNamespace(
-            item_id="nli_any_use_permitted:nli-001",
-            source_id="nli_any_use_permitted",
-            is_synthetic=False,
-            metadata={},
-            raw_metadata={},
-        ),
-        SimpleNamespace(
-            item_id="pinkas_open:pinkas-001",
-            source_id="pinkas_open",
-            is_synthetic=False,
-            metadata={},
-            raw_metadata={},
-        ),
-        SimpleNamespace(
-            item_id="biblia_open:biblia-001",
-            source_id="biblia_open",
-            is_synthetic=False,
-            metadata={},
-            raw_metadata={},
-        ),
-    ]
-
-    report = _source_depth_composition_report(
-        profile=SimpleNamespace(
-            id="profile_open_v1",
-            include_sources=["nli_any_use_permitted", "pinkas_open", "biblia_open"],
-            exclude_sources=[],
-        ),
-        exported_items=exported_items,
-        source_depth_feasibility={"artifact_scope": "operator_only", "sources": [], "summary": {}},
-        source_stats={"sources": {"nli_any_use_permitted": 1, "pinkas_open": 1, "biblia_open": 1}},
-    )
+@pytest.mark.parametrize("source_id", ["hash_nli_any_use", "some_new_real_source"])
+def test_source_depth_composition_report_blocks_uncontracted_or_not_promoted_sources(source_id: str) -> None:
+    report = _composition([*_items(PASSING_COUNTS), _real_item(source_id, 1, "handwritten_historical")])
 
     assert report["status"] == "blocked"
     assert report["assessment_status"] == "blocked_source_target_contract_mismatch"
-    assert report["target_real_item_count"] == 80
-    assert report["target_source_item_count"] == 3
-    assert report["target_source_count_matches_real_target"] is False
+    assert report["uncontracted_payload_source_ids"] == [source_id]
     closure_entry = _source_depth_composition_closure_entry(
         {
             "gate_id": "source_depth_composition",
@@ -920,7 +834,7 @@ def test_source_depth_composition_report_blocks_target_contract_mismatch(
         },
         report,
     )
-    assert "hard 80-real-item public beta target" in closure_entry["required_action"]
+    assert "real_source_contract.yaml entries" in closure_entry["required_action"]
 
 
 def test_source_depth_composition_closure_entry_uses_candidate_gap_action() -> None:
@@ -934,39 +848,16 @@ def test_source_depth_composition_closure_entry_uses_candidate_gap_action() -> N
         {"closure_state": "requires_public_profile_candidate_promotion"},
     )
 
-    assert "Promote enough real NLI, Pinkas, and BiblIA candidates" in closure_entry["required_action"]
+    assert "both modality floors and the capped real total of real_source_composition.v2" in closure_entry["required_action"]
 
 
 def _valid_source_depth_composition_report_payload() -> dict[str, object]:
-    return {
-        "schema_version": 1,
-        "planning_notation": "F6e",
-        "artifact_scope": "public_profile_candidate_payload",
-        "readiness_contract": "contract",
-        "profile_id": "profile_open_v1",
-        "status": "blocked",
-        "closure_state": "requires_public_profile_candidate_promotion",
-        "assessment_status": "blocked_public_profile_candidate_gap",
-        "target_real_item_count": 80,
-        "target_source_item_count": 80,
-        "target_source_count_matches_real_target": True,
-        "public_payload_real_item_count": 2,
-        "public_payload_synthetic_item_count": 2,
-        "source_depth_only_payload_item_count": 0,
-        "source_depth_only_payload_item_ids": [],
-        "source_stats_payload_mismatch_count": 0,
-        "source_stats_payload_mismatches": [],
-        "source_depth_feasibility_artifact_scope": "operator_only",
-        "source_depth_feasibility_summary": {},
-        "sources": [],
-        "limitation_disclosure": "blocked",
-        "blocked_gate_preserved": True,
-    }
+    return _composition(_items(PASSING_COUNTS))
 
 
 def test_source_depth_composition_report_model_rejects_status_closure_mismatch() -> None:
     payload = _valid_source_depth_composition_report_payload()
-    payload["closure_state"] = "pass"
+    payload["closure_state"] = "requires_public_profile_candidate_promotion"
 
     with pytest.raises(ValidationError, match="status must match closure_state"):
         PublicBetaSourceDepthCompositionReport.model_validate(payload)
@@ -992,14 +883,23 @@ def test_source_depth_composition_report_model_rejects_source_stats_mismatch_cou
         PublicBetaSourceDepthCompositionReport.model_validate(payload)
 
 
-def test_source_depth_composition_report_model_rejects_pass_without_coherent_targets() -> None:
+def test_source_depth_composition_report_model_rejects_pass_with_a_shortfall() -> None:
     payload = _valid_source_depth_composition_report_payload()
-    payload["status"] = "pass"
-    payload["closure_state"] = "pass"
-    payload["assessment_status"] = "closed_with_public_profile_candidate_evidence"
-    payload["target_source_count_matches_real_target"] = False
+    payload["target_real_item_count"] = 500
 
-    with pytest.raises(ValidationError, match="coherent real-source target contract"):
+    with pytest.raises(ValidationError, match="cannot carry gaps, uncontracted sources or a total shortfall"):
+        PublicBetaSourceDepthCompositionReport.model_validate(payload)
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [("counted_count", 39, "up to the cap"), ("floor_gap", 3, "floor gap"), ("status", "blocked", "status must follow")],
+)
+def test_source_depth_composition_source_record_checks_its_counts(field: str, value: object, message: str) -> None:
+    payload = _valid_source_depth_composition_report_payload()
+    payload["sources"][0][field] = value
+
+    with pytest.raises(ValidationError, match=message):
         PublicBetaSourceDepthCompositionReport.model_validate(payload)
 
 

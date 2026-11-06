@@ -74,11 +74,11 @@ def _items(enriched) -> list[ItemRecord]:
     ]
 
 
-def test_yidtaknl_source_is_review_only_and_outside_the_public_profile() -> None:
+def test_yidtaknl_source_is_promoted_into_the_public_profile() -> None:
     bundle, source = _bundle_and_source()
     assert source.fetcher == "yidtaknl"
-    assert source.status.value == "review_only"
-    assert source.default_public_release is False
+    assert source.status.value == "allowed"
+    assert source.default_public_release is True
     assert source.allowed_content_types == ["printed_historical"]
     assert source.rights_strategy.values == ["CC-BY-4.0"]
     assert source.normalized_license == "CC-BY-4.0"
@@ -86,7 +86,9 @@ def test_yidtaknl_source_is_review_only_and_outside_the_public_profile() -> None
     # No privacy-review gate for public-domain historical sources (maintainer decision 2026-11-06).
     assert source.requires_manual_review is False
     assert bundle.privacy_rules.source_defaults[SOURCE_ID].value == "clear"
-    assert SOURCE_ID not in bundle.profiles["profile_open_v1"].include_sources
+    # F8g: promoted into the public path; the real-source contract governs its composition.
+    assert SOURCE_ID in bundle.profiles["profile_open_v1"].include_sources
+    assert bundle.real_source_contract.entry(SOURCE_ID).promotion.value == "promoted"
     assert SOURCE_ID in bundle.profiles["profile_review_v1"].include_sources
 
 
