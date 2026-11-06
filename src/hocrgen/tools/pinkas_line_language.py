@@ -16,7 +16,8 @@ The method is deliberately small and transparent, so a reviewer can see why each
 3. Record weak Yiddish orthography markers on unmatched tokens (`orthography_markers`): word-initial `וו`, a `יי`
    digraph, a final `ען`, or a Yiddish ligature (`װ ױ ײ`). They never decide a language; they lower confidence.
 4. Decide: Yiddish and Hebrew markers both present gives `mixed`; only Yiddish gives `yi`; only Hebrew gives `he`;
-   none gives `unknown`; a line without Hebrew-script letters (a numeral, or empty) gives `unknown`.
+   none gives `unknown`; a line without a Hebrew-script letter (U+05D0-U+05EA: a numeral, or empty) gives
+   `unknown`. Such a line is scope-neutral whatever its tag (F8d3b).
 5. Confidence: `high` with two or more deciding markers and no orthography markers, `medium` with one, and `low`
    for `unknown` lines with letters and for any `he` proposal that carries orthography markers.
 """
@@ -42,6 +43,7 @@ from hocrgen.fetchers.pinkas_line_language import (
     LineLanguageTag,
     LineLanguageTagFile,
     PageLineLanguageTags,
+    has_hebrew_letter,
     line_language_tags_path,
     load_line_language_tags,
     page_scope_summary,
@@ -86,10 +88,6 @@ def tokenize(text: str) -> list[str]:
     return tokens
 
 
-def _has_hebrew_letter(text: str) -> bool:
-    return any("א" <= char <= "ת" or char in YIDDISH_LIGATURES for char in text)
-
-
 def _orthography_marker(token: str) -> bool:
     bare = token.strip("'\"")
     return (
@@ -107,7 +105,7 @@ def _unique(tokens: list[str]) -> list[str]:
 def propose_line_language(text: str) -> tuple[LineLanguageProposal, str]:
     """Propose a language for one line; return the proposal and a one-line human-readable rationale."""
 
-    if not _has_hebrew_letter(text):
+    if not has_hebrew_letter(text):
         proposal = LineLanguageProposal(method=PROPOSAL_METHOD, language="unknown", confidence="high")
         return proposal, f"{PROPOSAL_METHOD} proposal (high): no Hebrew-script letters (a numeral or an empty line)"
     tokens = tokenize(text)
@@ -253,6 +251,7 @@ def summarize(root: Path) -> tuple[dict[str, Any], list[str]]:
             "agent_proposals_by_confidence": dict(sorted(confidence.items())),
             "page_scopes": {entry_id: summary["page_evaluation_scope"] for entry_id, summary in sorted(page_scopes.items())},
             "word_level_hebrew_line_count": sum(summary["word_level_hebrew_line_count"] for summary in page_scopes.values()),
+            "scope_neutral_line_count": sum(summary["scope_neutral_line_count"] for summary in page_scopes.values()),
         },
         problems,
     )

@@ -1064,6 +1064,7 @@ def _inspect_pinkas_dataset_source(source: SourceConfig, bundle: ConfigBundle) -
                 for scope, count in (
                     ("word_level_hebrew", summary["word_level_hebrew_line_count"]),
                     ("character_level_only", summary["character_level_only_line_count"]),
+                    ("scope_neutral", summary["scope_neutral_line_count"]),
                 ):
                     scope_counts[scope] = scope_counts.get(scope, 0) + count
             except (OSError, ValueError, StageExecutionError) as exc:

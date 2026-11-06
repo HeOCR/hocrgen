@@ -9,6 +9,10 @@ and never change scope. Only a `human` tag with language `he` unlocks word-level
 Tags live in a reviewable YAML sidecar next to the snapshot (`line_language_tags.yaml`), keyed by entry id and PAGE
 XML line id, and bound to the annotation checksum and the exact line text they were made against. A tag whose
 binding no longer matches is stale: its line falls back to `character_level_only` and source health reports it.
+
+A line whose pinned text has no Hebrew-script letter (U+05D0-U+05EA: digits, punctuation, years, empty) is
+scope-neutral (F8d3b, coordinator decision 2026-11-06). That is decided from the text, never from a tag: the line
+never becomes word-level evaluable itself, and it never keeps its page from `word_level_hebrew`.
 """
 
 from __future__ import annotations
@@ -46,6 +50,7 @@ REASON_HUMAN_HEBREW = "human_tagged_he"
 REASON_UNTAGGED = "untagged"
 REASON_AGENT_PROPOSED = "agent_proposed_tag_is_advisory"
 REASON_STALE = "tag_stale"
+REASON_SCOPE_NEUTRAL = "scope_neutral_no_hebrew_letters"
 HUMAN_NON_HEBREW_REASONS = {"yi": "human_tagged_yi", "mixed": "human_tagged_mixed", "unknown": "human_tagged_unknown"}
 
 
@@ -127,19 +132,36 @@ class LineEvaluationScope(ManifestModel):
     tag_source: TagSource | None = None
     tagged_by: str | None = None
     evaluation_scope: Literal["character_level_only", "word_level_hebrew"]
+    scope_neutral: bool = False
     allowed_uses: list[str]
     excluded_evaluations: list[str]
     reason: str
     geometry: BenchmarkGeometryRecord | None = None
 
 
-def line_scope_fields(tag: LineLanguageTag | None, *, stale: bool = False) -> dict[str, Any]:
-    """Derive one line's scope from its tag. This is the only place a tag can widen a line's scope.
+def has_hebrew_letter(text: str) -> bool:
+    """True if the text holds at least one Hebrew-script letter, U+05D0 (alef) to U+05EA (tav)."""
 
-    Word-level Hebrew evaluation needs `tag_source: human` **and** `language: he` on a tag that still binds to the
-    line. Everything else, including every `agent_proposed` tag, keeps `character_level_only`.
+    return any("\u05d0" <= char <= "\u05ea" for char in text)
+
+
+def line_scope_fields(tag: LineLanguageTag | None, line_text: str, *, stale: bool = False) -> dict[str, Any]:
+    """Derive one line's scope from its pinned text and its tag. This is the only place a line's scope is decided.
+
+    A line with no Hebrew-script letter is scope-neutral whatever its tag says: `character_level_only`, never
+    word-level, and ignored by the page rule. Otherwise word-level Hebrew evaluation needs `tag_source: human`
+    **and** `language: he` on a tag that still binds to the line. Everything else, including every
+    `agent_proposed` tag, keeps `character_level_only`.
     """
 
+    if not has_hebrew_letter(line_text):
+        return {
+            "evaluation_scope": CHARACTER_LEVEL_ONLY,
+            "scope_neutral": True,
+            "allowed_uses": list(CHARACTER_LEVEL_USES),
+            "excluded_evaluations": list(CHARACTER_LEVEL_EXCLUSIONS),
+            "reason": REASON_SCOPE_NEUTRAL,
+        }
     if tag is None or stale:
         reason = REASON_STALE if stale else REASON_UNTAGGED
     elif tag.tag_source != "human":
@@ -147,6 +169,7 @@ def line_scope_fields(tag: LineLanguageTag | None, *, stale: bool = False) -> di
     elif tag.language == "he":
         return {
             "evaluation_scope": WORD_LEVEL_HEBREW,
+            "scope_neutral": False,
             "allowed_uses": list(WORD_LEVEL_HEBREW_USES),
             "excluded_evaluations": list(WORD_LEVEL_HEBREW_EXCLUSIONS),
             "reason": REASON_HUMAN_HEBREW,
@@ -155,6 +178,7 @@ def line_scope_fields(tag: LineLanguageTag | None, *, stale: bool = False) -> di
         reason = HUMAN_NON_HEBREW_REASONS[tag.language]
     return {
         "evaluation_scope": CHARACTER_LEVEL_ONLY,
+        "scope_neutral": False,
         "allowed_uses": list(CHARACTER_LEVEL_USES),
         "excluded_evaluations": list(CHARACTER_LEVEL_EXCLUSIONS),
         "reason": reason,
@@ -193,27 +217,34 @@ def derive_line_scopes(entry_id: str, annotation_sha256: str, lines: list[Any], 
                 tag_source=tag.tag_source if tag is not None and not stale else None,
                 tagged_by=tag.tagged_by if tag is not None and not stale else None,
                 geometry=line.geometry,
-                **line_scope_fields(tag, stale=stale),
+                **line_scope_fields(tag, line.text, stale=stale),
             )
         )
     return scopes
 
 
 def page_scope_summary(scopes: list[LineEvaluationScope]) -> dict[str, Any]:
-    """Summarize a page's line scopes. The page is `word_level_hebrew` only if every line is; otherwise it stays
-    `character_level_only`, so any untagged, stale, advisory or non-Hebrew line keeps the page conservative."""
+    """Summarize a page's line scopes. Scope-neutral lines (no Hebrew-script letter) are left out of the page rule.
+
+    The page is `word_level_hebrew` only if it has at least one non-neutral line and every non-neutral line is
+    `word_level_hebrew`. Otherwise it stays `character_level_only`, so any untagged, stale, advisory or non-Hebrew
+    text line keeps the page conservative.
+    """
 
     reasons: dict[str, int] = {}
     for scope in scopes:
         reasons[scope.reason] = reasons.get(scope.reason, 0) + 1
-    word_level = [scope.line_id for scope in scopes if scope.evaluation_scope == WORD_LEVEL_HEBREW]
-    all_hebrew = bool(scopes) and len(word_level) == len(scopes)
+    text_lines = [scope for scope in scopes if not scope.scope_neutral]
+    word_level = [scope.line_id for scope in text_lines if scope.evaluation_scope == WORD_LEVEL_HEBREW]
+    all_hebrew = bool(text_lines) and len(word_level) == len(text_lines)
     return {
         "page_evaluation_scope": WORD_LEVEL_HEBREW if all_hebrew else CHARACTER_LEVEL_ONLY,
         "line_count": len(scopes),
         "word_level_hebrew_line_count": len(word_level),
-        "character_level_only_line_count": len(scopes) - len(word_level),
+        "character_level_only_line_count": len(text_lines) - len(word_level),
+        "scope_neutral_line_count": len(scopes) - len(text_lines),
         "word_level_hebrew_line_ids": word_level,
+        "scope_neutral_line_ids": [scope.line_id for scope in scopes if scope.scope_neutral],
         "reasons": dict(sorted(reasons.items())),
     }
 
