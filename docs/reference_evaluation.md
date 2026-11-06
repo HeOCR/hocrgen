@@ -128,8 +128,9 @@ text for those pages. Nothing existing changes.
   rebuilt in `line_index` order. A segment with `logical_join: "cell"` starts a new line, `"space"` still joins with
   one space, and lines with `logical_line_index: null` are skipped. The view is driven by `logical_join` only, so a
   literal `|` inside a segment's text stays in the reference and is still scored.
-- **When it appears.** Only for `--synthetic-batch` runs whose batch has the sidecar. Without it there is no
-  `reference_views` key anywhere in the report and nothing is guessed. A sidecar that is present must name this
+- **When it appears.** Only for `--synthetic-batch` runs whose batch has the sidecar and at least one item with a
+  cell join. Otherwise there is no `reference_views` key anywhere in the report (nor `run_record.reference_views`
+  or `comparison.reference_view_deltas`), rather than an empty view with null rates, and nothing is guessed. A sidecar that is present must name this
   manifest's sha256, annotate every item on exactly one page, and rebuild every item's `logical_order` exactly with
   the hocrsyngen separators; otherwise the run fails closed.
 - **Scope.** Items with at least one cell join (every ledger page). They are scored twice under the requested

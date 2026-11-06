@@ -26,20 +26,26 @@ LEDGER_GOLD = "פנקס חשבונות\n01 | 19/05 | 563 | סעיף ראשון |
 LEDGER_PER_CELL = "פנקס חשבונות\n01\n19/05\n563\nסעיף ראשון\n1200\nהערה | ללא שינוי"
 
 
-def _batch(tmp_path: Path, *, annotate: bool = True) -> Path:
-    """A raw public copy of the fixture batch whose second sample is a ledger page, plus its line sidecar."""
-    batch = tmp_path / ("annotated" if annotate else "plain")
+def _batch(tmp_path: Path, *, annotate: bool = True, ledger: bool = True) -> Path:
+    """A raw public copy of the fixture batch whose second sample is a ledger page, plus its line sidecar.
+
+    With ``ledger=False`` both samples keep their fixture text and the sidecar has no cell joins.
+    """
+    batch = tmp_path / ("annotated" if annotate else "plain") / ("ledger" if ledger else "no-cells")
     shutil.copytree(BATCH, batch)
     manifest_path = batch / "generation_manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     manifest.pop("provider_metadata")
-    manifest["samples"][1]["text"]["logical_order"] = LEDGER_GOLD
-    manifest["samples"][1]["provenance"]["template_id"] = "ledger"
+    if ledger:
+        manifest["samples"][1]["text"]["logical_order"] = LEDGER_GOLD
+        manifest["samples"][1]["provenance"]["template_id"] = "ledger"
     raw = json.dumps(manifest, ensure_ascii=False).encode("utf-8")
     manifest_path.write_bytes(raw)
     if annotate:
-        first = manifest["samples"][0]["text"]["logical_order"].split("\n")
-        segments = [[(text, index, None) for index, text in enumerate(first)], LEDGER_SEGMENTS]
+        segments = [[(text, index, None) for index, text in enumerate(sample["text"]["logical_order"].split("\n"))]
+                    for sample in manifest["samples"]]
+        if ledger:
+            segments[1] = LEDGER_SEGMENTS
         pages = [{"page_id": sample["pages"][0]["page_id"], "page_sha256": sample["pages"][0]["sha256"],
                   "sample_id": sample["sample_id"],
                   "lines": [{"line_index": i, "logical_line_index": index, "logical_join": join, "text": text}
@@ -128,19 +134,38 @@ def test_existing_report_fields_are_byte_identical_with_and_without_line_annotat
     annotated, plain = _batch(tmp_path), _batch(tmp_path, annotate=False)
     texts = {LEDGER_ITEM: LEDGER_PER_CELL}
     for name, kwargs in (("single", {}), ("compare", {"baseline": {}})):
-        runs = {}
-        for batch in (annotated, plain):
-            candidate = _predictions(tmp_path / f"{name}-{batch.name}-cand", batch, texts)
-            extra = {}
-            if "baseline" in kwargs:
-                extra["baseline_predictions_dir"] = _predictions(tmp_path / f"{name}-{batch.name}-base", batch, {})
-            runs[batch.name] = run_reference_evaluation(predictions_dir=candidate, synthetic_batch=batch,
-                                                        profiles=["primary.v1", "raw.v1", "punct_folded.v1"], **extra)
-        with_views, without = runs["annotated"], runs["plain"]
+        with_views, without = (_run(tmp_path / name, batch, texts, compare="baseline" in kwargs)
+                               for batch in (annotated, plain))
         assert "reference_views" not in without and "reference_views" not in without["run_record"]
         assert "reference_view_deltas" not in without.get("comparison", {})
         assert "reference_views" in with_views
         assert _dump(_without_views(with_views)) == _dump(without)
+
+
+def _run(directory: Path, batch: Path, texts: dict[str, str], *, compare: bool) -> dict:
+    tag = "-".join(batch.parts[-2:])
+    extra = {"baseline_predictions_dir": _predictions(directory / f"{tag}-base", batch, {})} if compare else {}
+    return run_reference_evaluation(predictions_dir=_predictions(directory / f"{tag}-cand", batch, texts),
+                                    synthetic_batch=batch, profiles=["primary.v1", "raw.v1", "punct_folded.v1"],
+                                    **extra)
+
+
+def test_sidecar_without_cell_joins_adds_no_view_and_still_fails_closed(tmp_path: Path) -> None:
+    """No item with a cell join: no reference_views, run-record or comparison entry, rather than empty null rates."""
+    annotated, plain = _batch(tmp_path, ledger=False), _batch(tmp_path, annotate=False, ledger=False)
+    assert load_per_cell_view(annotated, load_synthetic_gold(annotated)) is None
+    for compare in (False, True):
+        with_sidecar, without = (_run(tmp_path / f"zero-{compare}", batch, {}, compare=compare)
+                                 for batch in (annotated, plain))
+        assert "reference_views" not in with_sidecar and "reference_views" not in with_sidecar["run_record"]
+        assert "reference_view_deltas" not in with_sidecar.get("comparison", {})
+        assert _dump(with_sidecar) == _dump(without)
+    path = annotated / "line_annotations.json"
+    sidecar = json.loads(path.read_text(encoding="utf-8"))
+    sidecar["pages"][1]["lines"][0]["text"] += " שונה"
+    path.write_text(json.dumps(sidecar, ensure_ascii=False), encoding="utf-8")
+    with pytest.raises(StageExecutionError, match="do not rebuild logical_order"):
+        load_per_cell_view(annotated, load_synthetic_gold(annotated))
 
 
 @pytest.mark.parametrize("tamper, message", [

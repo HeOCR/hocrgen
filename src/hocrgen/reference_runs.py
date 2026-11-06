@@ -288,8 +288,9 @@ def load_per_cell_view(batch_dir: Path, gold: Mapping[str, Any]) -> dict[str, An
     """Derive the per-cell reference view (E2c7) from a batch's hocrsyngen line annotations.
 
     Each ``logical_join: "cell"`` segment starts a new line instead of joining with ``" | "``; every other join, and
-    any ``|`` inside a segment's text, is kept as is. Returns None when the batch has no ``line_annotations.json``.
-    A sidecar that is present but does not rebuild every item's ``logical_order`` exactly fails closed.
+    any ``|`` inside a segment's text, is kept as is. Returns None when the batch has no ``line_annotations.json``
+    or no item has a cell join. A sidecar that is present but does not rebuild every item's ``logical_order``
+    exactly fails closed, with or without cell joins.
     """
     path = batch_dir / "line_annotations.json"
     if not path.is_file():
@@ -319,6 +320,8 @@ def load_per_cell_view(batch_dir: Path, gold: Mapping[str, Any]) -> dict[str, An
             texts[item_id] = _rebuild_logical_order(page["lines"], {**LOGICAL_JOINS, "cell": "\n"}, where)[0]
     if seen != item_pages.keys():
         raise StageExecutionError(f"{path.name} does not annotate every item: {sorted(item_pages.keys() - seen)}")
+    if not texts:
+        return None  # no cell joins: an empty view would only report null rates
     return {"view_id": PER_CELL_VIEW_ID, "texts": texts,
             "source": {"kind": "hocrsyngen_line_annotations", "schema": LINE_ANNOTATIONS_SCHEMA_VERSION,
                        "sha256": sidecar_sha}}

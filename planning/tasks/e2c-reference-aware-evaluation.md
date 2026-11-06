@@ -88,7 +88,7 @@ synthetic-gold reference view, `per_cell.v1`, in which every `logical_join: "cel
 given, and record the sidecar's sha256 in the run record.
 
 Constraints: drive the view from `logical_join`, never from a blanket `|` replacement, so a literal `|` in page
-text stays scored. If the batch has no sidecar the view is absent; a present sidecar that does not rebuild every
+text stays scored. If the batch has no sidecar, or no item has a cell join, the view is absent; a present sidecar that does not rebuild every
 item's `logical_order` exactly, or does not match the manifest, fails closed. The change is additive: `scored`,
 `primary.v1`, `comparison.deltas` and the existing run-record fields stay byte-identical, pinned by a test that
 scores the same batch with and without the sidecar. The view is not a headline and does not change scored
