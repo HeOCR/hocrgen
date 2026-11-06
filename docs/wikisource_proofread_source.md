@@ -112,3 +112,22 @@ PYTHONPATH=src python -c 'from pathlib import Path; from hocrgen.config.loader i
 ```
 
 On the fixture, one page converts (Seliḥot p. 34). Bostenay p. 47 is skipped because its validator added a missing space 14 seconds after validating; Hyman p. 41 is skipped as quality 3.
+
+## Operator-only full inventory (F8b2)
+
+`hocrgen.tools.wikisource_inventory` runs every `מפתח:` Index on he.wikisource.org through the gates above, without changing them. It is an operator tool: it calls the Wikisource, Commons, Wikipedia and Wikidata APIs, with a contact User-Agent, `maxlag` and a 0.5 s delay between uncached requests. CI never runs it, and it never edits any wiki.
+
+For each Index it records:
+
+- **creators**, from the Index fields (`מחבר`, `מתרגם`, `עורך`, `מאייר`, plus role markers such as `מתרגם:` in the title and notes) and the Commons `Author` / `Translator` / `Editor` / `Illustrator` fields;
+- **death years**, from Wikidata `P570` or the Wikisource author page. A creator named only as plain text keeps `death_year: null`, so the gate rejects the Index with `creator_death_year_missing`. A death year is never guessed;
+- the Commons licence templates, the scan source and the Google-digitization check.
+
+The scan basis follows the Commons licence templates. The Google check reads the file's metadata and text layer; it is no substitute for the render inspection a fixture needs. The render checks and creator Wikidata ids recorded by hand in the packaged snapshot are reused. Pages of admitted Indexes are pinned into an operator snapshot root and run through `page_exclusion_reasons` and `page_attestation`. Transcription coverage is not assessed, so the summary counts pages for which `transcription_coverage_unrecorded` is the only open gate.
+
+```bash
+PYTHONPATH=src python -m hocrgen.tools.wikisource_inventory --work-dir <operator folder outside the repo> --checked-at 2026-11-06 \
+  --summary-json docs/wikisource_index_inventory.json --summary-md docs/wikisource_index_inventory.md
+```
+
+The raw API cache, the pinned page wikitext and text, and the full `wikisource_inventory.json` stay in the operator folder. Only the per-Index summary is committed: [`wikisource_index_inventory.md`](./wikisource_index_inventory.md) and its JSON, with ids, rights evidence, gate reasons and page counts, but no page text or images. A test replays every committed record through `index_exclusion_reasons` and re-renders the markdown.

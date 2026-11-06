@@ -211,7 +211,7 @@ def test_compact_inventory_and_summary_are_deterministic_and_text_free() -> None
     ]
     compact = inv.compact_inventory(_inventory_with([admitted, rejected], pages))
     gate = compact["indexes"][0]["page_gate"]
-    assert gate == {"checked": 3, "pending_coverage_only": {"3": 1, "4": 1}, "reference_eligible_q4": 1, "rejected_by_first_reason": {"quality_editor_not_named_human": 1}}
+    assert gate == {"checked": 3, "pending_coverage_only": {"3": 1, "4": 1}, "reference_eligible_q4": 1, "rejected_by_first_reason": {"quality_editor_not_named_human": 1}, "unsupported_markup": {}}
     assert compact["indexes"][1]["page_gate"] is None
     summary = inv.render_summary(compact)
     assert summary == inv.render_summary(json.loads(json.dumps(compact)))

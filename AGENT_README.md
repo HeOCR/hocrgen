@@ -149,6 +149,7 @@ public-domain-hand-written-hebrew-scans   → real-handwriting page-level scan c
   - page text `CC-BY-SA-4.0` / `sharealike`; scan rights per Commons file; admitted per Index only on evidence that the work is PD in Israel and the scan's rights are clear; Birnbaum works and `PD-US-*`-only files rejected
   - records revision ids, Commons file SHA-1s, the named proofreader and validator, and adjudication eligibility; derives plain text with `wikisource_plain_text.v1` (see `docs/wikisource_proofread_source.md`)
   - included only in `profile_review_v1`; never edits Wikisource
+  - F8b2: the operator-only `python -m hocrgen.tools.wikisource_inventory` runs every Index through the same gates (network; outputs outside the repo); its committed summary is `docs/wikisource_index_inventory.md`
 - `pinkas_dataset_bgu` (F8d2, review-only)
   - packaged-static-records importer over a pinned excerpt of the BGU Pinkas Dataset (`src/hocrgen/data/pinkas_dataset_bgu/snapshot/`): handwritten pages of NLI Ms. Heb. 4°662 (Frankfurt am Main community pinkas) with their upstream PAGE XML (gzipped)
   - `review_only`, `CC-BY-4.0` / `open_with_attribution` for the annotations; scans admitted only with the NLI `public-domain-free-use` slug and a recorded canvas match; privacy default `clear`; included only in `profile_review_v1`

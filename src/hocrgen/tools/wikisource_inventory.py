@@ -862,6 +862,7 @@ def run_inventory(fetch: FetchJson, *, checked_at: str, snapshot_root: Path, wit
                         "reasons": reasons,
                         "adjudication_eligible": attestation["adjudication_eligible"],
                         "adjudication_ineligible_reason": attestation["adjudication_ineligible_reason"],
+                        "unsupported_markup": unsupported_markup(page, snapshot_root) if "wikitext_unsupported_markup" in reasons else None,
                         "proofreader": (attestation["proofreader"] or {}).get("user"),
                         "validator": (attestation["validator"] or {}).get("user"),
                     }
@@ -877,6 +878,16 @@ def run_inventory(fetch: FetchJson, *, checked_at: str, snapshot_root: Path, wit
         "indexes": records,
         "pages": page_results,
     }
+
+
+def unsupported_markup(page: dict[str, Any], root: Path) -> str | None:
+    """The converter's message for a page rejected with ``wikitext_unsupported_markup``."""
+
+    try:
+        wikitext_to_plain_text((root / page["wikitext_path"]).read_text(encoding="utf-8"))
+    except UnsupportedWikitextError as exc:
+        return str(exc)
+    return None
 
 
 def build_index_record(
@@ -1226,12 +1237,15 @@ def compact_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
 
 def _page_gate_counts(pages: list[dict[str, Any]]) -> dict[str, Any]:
     reasons: Counter[str] = Counter()
+    markup: Counter[str] = Counter()
     pending = {"3": 0, "4": 0}
     reference = 0
     for page in pages:
         remaining = [reason for reason in page["reasons"] if reason != COVERAGE_PENDING_REASON]
         if remaining:
             reasons[remaining[0]] += 1
+            if page.get("unsupported_markup"):
+                markup[str(page["unsupported_markup"])] += 1
             continue
         pending[str(page["quality"])] += 1
         if page["quality"] == 4 and page["adjudication_eligible"]:
@@ -1241,6 +1255,7 @@ def _page_gate_counts(pages: list[dict[str, Any]]) -> dict[str, Any]:
         "pending_coverage_only": pending,
         "reference_eligible_q4": reference,
         "rejected_by_first_reason": dict(sorted(reasons.items())),
+        "unsupported_markup": dict(sorted(markup.items())),
     }
 
 
@@ -1294,6 +1309,7 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
             any_reason[reason] += 1
             pages_any[reason] += _q(record, "3") + _q(record, "4")
     page_reasons: Counter[str] = Counter()
+    markup: Counter[str] = Counter()
     pending3 = pending4 = reference = checked = 0
     for record in admitted:
         gate = record.get("page_gate") or {}
@@ -1302,8 +1318,10 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
         pending4 += int((gate.get("pending_coverage_only") or {}).get("4", 0))
         reference += int(gate.get("reference_eligible_q4", 0))
         page_reasons.update(gate.get("rejected_by_first_reason") or {})
+        markup.update(gate.get("unsupported_markup") or {})
     only_google = [r for r in records if r["gate"]["reasons"] == ["google_digitization_unchecked"]]
     not_hebrew = [r for r in admitted if r["work"].get("language") != "he"]
+    english = [r for r in not_hebrew if r["work"].get("language")]
 
     lines = [
         "# Hebrew Wikisource Index inventory (F8b2)",
@@ -1325,7 +1343,7 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
         f"| Pages passing every page gate except transcription coverage: quality 3 / quality 4 | {pending3} / {pending4} |",
         f"| Of those, quality-4 pages that are reference-eligible (adjudication-eligible) | {reference} |",
         f"| Pages eligible now (transcription coverage recorded `full_page`) | 0 |",
-        f"| Admitted Indexes whose recorded language is not `he` (Q3 / Q4 pages) | {len(not_hebrew)} ({sum(_q(r, '3') for r in not_hebrew)} / {sum(_q(r, '4') for r in not_hebrew)}) |",
+        f"| Admitted Indexes not recorded as `he`: another language / none recorded (Q3 / Q4 pages) | {len(english)} ({sum(_q(r, '3') for r in english)} / {sum(_q(r, '4') for r in english)}) / {len(not_hebrew) - len(english)} ({sum(_q(r, '3') for r in not_hebrew) - sum(_q(r, '3') for r in english)} / {sum(_q(r, '4') for r in not_hebrew) - sum(_q(r, '4') for r in english)}) |",
         "",
         "No page is eligible yet: transcription coverage is an operator check against the page render, and the inventory",
         "does not record it, so every page carries `transcription_coverage_unrecorded`. The rows above count pages for which that",
@@ -1355,14 +1373,28 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
     ]
     for reason, count in sorted(page_reasons.items(), key=lambda item: (-item[1], item[0])):
         lines.append(f"| rejected: `{reason}` | {count} |")
+    if markup:
+        lines += [
+            "",
+            "Markup outside the closed-world `wikisource_plain_text.v1` converter, by the first construct it rejects on a page:",
+            "",
+            "| Unsupported construct | Pages |",
+            "| --- | ---: |",
+        ]
+        for message, count in sorted(markup.items(), key=lambda item: (-item[1], item[0])):
+            lines.append(f"| {_cell(message.removeprefix('unsupported wikitext '))} | {count} |")
     lines += [
         "",
-        f"## Top {top} Indexes by quality-3/4 pages in admitted Indexes",
+        f"## Top {top} admitted Indexes by pages pending only the coverage check",
         "",
         "| Index | Language | Scan source | Q3 / Q4 pages | Pending coverage only (Q3 / Q4) | Reference-eligible Q4 |",
         "| --- | --- | --- | ---: | ---: | ---: |",
     ]
-    ranked = sorted(admitted, key=lambda r: (-(_q(r, "3") + _q(r, "4")), r["index_title"]))
+    def _pending(record: dict[str, Any]) -> int:
+        pending = (record.get("page_gate") or {}).get("pending_coverage_only") or {}
+        return int(pending.get("3", 0)) + int(pending.get("4", 0))
+
+    ranked = sorted(admitted, key=lambda r: (-_pending(r), -(_q(r, "3") + _q(r, "4")), r["index_title"]))
     for record in ranked[:top]:
         gate = record.get("page_gate") or {}
         pending = gate.get("pending_coverage_only") or {}
