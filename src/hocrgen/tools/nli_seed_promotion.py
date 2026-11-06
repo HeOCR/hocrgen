@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import mimetypes
 import os
@@ -10,13 +11,27 @@ import time
 from io import BytesIO
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from datetime import date
+from typing import Any, Callable
+from urllib.error import HTTPError, URLError
 from urllib.parse import urljoin, urlparse
+from urllib.request import Request, urlopen
 
 import yaml
 from PIL import Image
 
 from hocrgen.core.errors import StageExecutionError
+from hocrgen.fetchers.nli_iiif import (
+    NLI_CAPTURE_FORMAT,
+    NliManifestCapture,
+    canvas_image_service,
+    capture_asset_problems,
+    capture_from_payload,
+    decide_nli_rights,
+    load_nli_manifest_capture,
+    manifest_canvases,
+    trim_manifest,
+)
 
 
 DEFAULT_REQUIRED_RIGHTS = "Any Use Permitted"
@@ -30,6 +45,16 @@ FAILURE_FIXTURE_MISSING = "fixture_missing"
 FAILURE_SEED_ALREADY_RUNNABLE = "seed_already_runnable"
 FAILURE_SEED_OUTSIDE_BATCH_LIMIT = "seed_outside_batch_limit"
 FAILURE_CHALLENGE_NOT_RESOLVED = "challenge_not_resolved"
+FAILURE_CANVAS_INDEX = "nli_iiif_canvas_index_out_of_range"
+FAILURE_MANIFEST_URL_MISSING = "nli_iiif_manifest_url_missing"
+FAILURE_CAPTURE_CONFLICT = "nli_iiif_capture_conflict"
+FAILURE_CAPTURE_ASSET_MISMATCH = "nli_iiif_capture_asset_mismatch"
+NLI_RIGHTS_FAILURE_PREFIXES = ("nli_license_", "nli_iiif_")
+# F8c seed fields carried from the catalog entry into the runnable seed entry on promotion.
+F8C_SEED_FIELDS = ("content_type", "period", "iiif_manifest_url", "iiif_canvas_indices")
+NLI_IIIF_IMAGE_WIDTH = 800
+NLI_IIIF_MAX_PAGES = 2
+NLI_IIIF_USER_AGENT = "hocrgen-nli-seed-promotion (+https://github.com/HeOCR/hocrgen)"
 CHALLENGE_MARKERS = (
     "just a moment",
     "verify you are human",
@@ -77,6 +102,8 @@ class ExtractedSeedPage:
     description: str
     rights: str
     asset_urls: list[str]
+    license_url: str | None = None
+    manifest: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -98,6 +125,8 @@ class PromotionSuccess:
     fixture_reference: str
     asset_downloads: list[AssetDownload]
     promoted_seed_entry: dict[str, Any]
+    capture_file_name: str | None = None
+    capture_json: str | None = None
 
 
 @dataclass(frozen=True)
@@ -228,11 +257,34 @@ def build_promotion(
     require_rights: str,
     output_dir: Path | None = None,
     runnable_seeds_path: Path | None = None,
+    capture: NliManifestCapture | None = None,
+    capture_payload: dict[str, Any] | None = None,
 ) -> PromotionSuccess:
-    if not extracted.rights:
-        raise StageExecutionError(FAILURE_RIGHTS_MISSING)
-    if extracted.rights != require_rights:
-        raise StageExecutionError(f"{FAILURE_RIGHTS_NOT_ALLOWED}:{extracted.rights}")
+    if capture is None and capture_payload is None and extracted.manifest is not None:
+        # Persist the viewer manifest the rights check used, so later cached promotions re-check
+        # the same pinned evidence instead of falling back to the display-string path.
+        capture_payload = live_manifest_capture_payload(
+            extracted.manifest,
+            manifest_url=str(seed.get("iiif_manifest_url") or extracted.manifest.get("@id") or seed.get("url") or ""),
+            asset_urls=[url for url, _type, _data in downloaded_assets],
+        )
+    if capture is None and capture_payload is not None:
+        capture = capture_from_payload(capture_payload)
+    rights_value = extracted.rights
+    if capture is not None:
+        display = extracted.rights if extracted.rights and extracted.rights != extracted.license_url else None
+        decision = decide_nli_rights(display_rights=display, capture=capture)
+        if not decision.accepted:
+            raise StageExecutionError(
+                f"{decision.reason.split(':', 1)[0]}:{decision.license_url or decision.display_rights or ''}"
+                f" ({seed['id']}: {decision.reason})"
+            )
+        rights_value = decision.raw_rights_text or ""
+    else:
+        if not extracted.rights:
+            raise StageExecutionError(FAILURE_RIGHTS_MISSING)
+        if extracted.rights != require_rights:
+            raise StageExecutionError(f"{FAILURE_RIGHTS_NOT_ALLOWED}:{extracted.rights}")
     if not extracted.asset_urls:
         raise StageExecutionError(FAILURE_ASSETS_MISSING)
     if len(extracted.asset_urls) != len(downloaded_assets):
@@ -279,18 +331,78 @@ def build_promotion(
         "title": extracted.title,
         "fixture_html": fixture_reference,
     }
+    for key in F8C_SEED_FIELDS:
+        if seed.get(key) is not None:
+            promoted_seed_entry[key] = seed[key]
+    capture_file_name: str | None = None
+    capture_json: str | None = None
+    capture_reference: str | None = None
+    capture_sha256: str | None = None
+    if capture_payload is not None:
+        payload = json.loads(json.dumps(capture_payload))
+        for selected, record in zip(payload.get("selected_canvases", []), asset_download_records):
+            selected["asset"] = record.relative_path
+            selected["sha256"] = hashlib.sha256(record.data).hexdigest()
+        capture_file_name = f"{slug}_manifest_capture.json"
+        capture_json = json.dumps(payload, ensure_ascii=False, indent=2, sort_keys=True) + "\n"
+        capture_reference = build_fixture_reference(
+            fixture_file_name=f"iiif/{capture_file_name}",
+            output_dir=output_dir,
+            runnable_seeds_path=runnable_seeds_path,
+        ) if output_dir is not None and runnable_seeds_path is not None else f"package://data/nli/iiif/{capture_file_name}"
+        capture_sha256 = hashlib.sha256(capture_json.encode("utf-8")).hexdigest()
+    if capture_reference is not None:
+        promoted_seed_entry["iiif_manifest_capture"] = capture_reference
+        if capture_sha256 is not None:
+            promoted_seed_entry["iiif_manifest_capture_sha256"] = capture_sha256
     if seed.get("notes"):
         promoted_seed_entry["notes"] = seed["notes"]
     return PromotionSuccess(
         seed_id=str(seed["id"]),
         title=extracted.title,
-        rights=extracted.rights,
+        rights=rights_value,
         fixture_file_name=fixture_file_name,
         fixture_html=fixture_html,
         fixture_reference=fixture_reference,
         asset_downloads=asset_download_records,
         promoted_seed_entry=promoted_seed_entry,
+        capture_file_name=capture_file_name,
+        capture_json=capture_json,
     )
+
+
+def live_manifest_capture_payload(
+    manifest: dict[str, Any],
+    *,
+    manifest_url: str,
+    asset_urls: list[str],
+    today: Callable[[], date] = date.today,
+) -> dict[str, Any]:
+    """A pinned capture for a manifest read through the browser viewer API (no upstream bytes)."""
+
+    return {
+        "canvas_count": len(manifest_canvases(manifest)),
+        "capture_format": NLI_CAPTURE_FORMAT,
+        "capture_source": "browser_viewer_manifest",
+        "captured_on": today().isoformat(),
+        "http_status": 200,
+        "manifest": trim_manifest(manifest, []),
+        "manifest_url": manifest_url or "unknown",
+        "selected_canvases": [
+            {"canvas_id": None, "image_url": url, "index": None, "label": None} for url in asset_urls
+        ],
+        "upstream_bytes": None,
+        "upstream_sha256": None,
+    }
+
+
+def capture_conflicts(promotion: PromotionSuccess, *, output_dir: Path, overwrite: bool) -> bool:
+    """True when an existing capture file differs from the one whose checksum the seed entry pins."""
+
+    if overwrite or not promotion.capture_file_name or promotion.capture_json is None:
+        return False
+    capture_path = output_dir / "iiif" / promotion.capture_file_name
+    return capture_path.exists() and capture_path.read_text(encoding="utf-8") != promotion.capture_json
 
 
 def load_yaml_manifest(path: Path) -> dict[str, Any]:
@@ -322,6 +434,7 @@ def build_cached_promotion(
     require_rights: str,
     output_dir: Path,
     runnable_seeds_path: Path,
+    seed_manifest_path: Path | None = None,
 ) -> PromotionSuccess:
     from hocrgen.fetchers.nli import parse_nli_fixture_html
 
@@ -340,6 +453,28 @@ def build_cached_promotion(
                 asset_path.read_bytes(),
             )
         )
+    capture_payload: dict[str, Any] | None = None
+    if seed.get("iiif_manifest_capture"):
+        manifest_path = seed_manifest_path or runnable_seeds_path
+        capture_path = resolve_fixture_path(str(seed["iiif_manifest_capture"]), manifest_path=manifest_path)
+        if not capture_path.exists():
+            raise StageExecutionError(f"{FAILURE_FIXTURE_MISSING}: cached manifest capture missing: {capture_path}")
+        capture_sha256 = seed.get("iiif_manifest_capture_sha256")
+        if capture_sha256 is None or hashlib.sha256(capture_path.read_bytes()).hexdigest() != capture_sha256:
+            raise StageExecutionError(f"nli_iiif_capture_checksum_mismatch: {seed['id']}: {capture_path.name}")
+        try:
+            capture = load_nli_manifest_capture(capture_path)
+        except ValueError as exc:
+            raise StageExecutionError(f"nli_iiif_capture_invalid: {seed['id']}: {exc}") from exc
+        rights_accepted = decide_nli_rights(display_rights=parsed_fixture.rights or None, capture=capture).accepted
+        problems = capture_asset_problems(capture, fixture_path.parent, parsed_fixture.assets) if rights_accepted else []
+        if problems:
+            raise StageExecutionError(f"{FAILURE_CAPTURE_ASSET_MISMATCH}: {seed['id']}: {', '.join(problems)}")
+        # Re-emit the capture with its canvases in fixture-image order, so build_promotion can bind
+        # each canvas to the renamed image it writes and pin the rewritten capture.
+        capture_payload = json.loads(capture_path.read_text(encoding="utf-8"))
+        by_asset = {entry["asset"]: entry for entry in capture.selected_canvases if isinstance(entry.get("asset"), str)}
+        capture_payload["selected_canvases"] = [by_asset[reference] for reference in parsed_fixture.assets if reference in by_asset]
     return build_promotion(
         seed=seed,
         extracted=ExtractedSeedPage(
@@ -352,6 +487,7 @@ def build_cached_promotion(
         require_rights=require_rights,
         output_dir=output_dir,
         runnable_seeds_path=runnable_seeds_path,
+        capture_payload=capture_payload,
     )
 
 
@@ -543,6 +679,9 @@ def write_promotion_outputs(
     report: dict[str, Any],
     overwrite: bool,
 ) -> None:
+    conflicting = [promotion.seed_id for promotion in promotions if capture_conflicts(promotion, output_dir=output_dir, overwrite=overwrite)]
+    if conflicting:
+        raise StageExecutionError(f"{FAILURE_CAPTURE_CONFLICT}: existing capture differs for {', '.join(conflicting)}; rerun with --overwrite")
     output_dir.mkdir(parents=True, exist_ok=True)
     assets_dir = output_dir / "assets"
     for promotion in promotions:
@@ -554,6 +693,11 @@ def write_promotion_outputs(
             if overwrite or not asset_path.exists():
                 asset_path.parent.mkdir(parents=True, exist_ok=True)
                 asset_path.write_bytes(asset.data)
+        if promotion.capture_file_name and promotion.capture_json is not None:
+            capture_path = output_dir / "iiif" / promotion.capture_file_name
+            if overwrite or not capture_path.exists():
+                capture_path.parent.mkdir(parents=True, exist_ok=True)
+                capture_path.write_text(promotion.capture_json, encoding="utf-8")
     write_yaml_manifest(runnable_seeds_path, runnable_manifest)
     write_yaml_manifest(seed_catalog_path, catalog_manifest)
     write_json(report_path, report)
@@ -581,6 +725,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--pause-on-every-challenge", action=argparse.BooleanOptionalAction, default=False)
     parser.add_argument("--manual-wait-timeout", type=int, default=60)
     parser.add_argument("--require-rights", default=DEFAULT_REQUIRED_RIGHTS)
+    parser.add_argument(
+        "--capture-mode",
+        choices=("browser", "iiif"),
+        default="browser",
+        help="How to capture fixtureless seeds: the item page in a browser, or the open IIIF manifest directly (F8c).",
+    )
+    parser.add_argument("--iiif-image-width", type=int, default=NLI_IIIF_IMAGE_WIDTH)
+    parser.add_argument("--iiif-max-pages", type=int, default=NLI_IIIF_MAX_PAGES)
+    parser.add_argument("--request-delay", type=float, default=1.0, help="Seconds to wait between IIIF requests.")
     return parser.parse_args(argv)
 
 
@@ -615,6 +768,7 @@ def main(argv: list[str] | None = None) -> int:
                     require_rights=args.require_rights,
                     output_dir=args.output_dir,
                     runnable_seeds_path=args.runnable_seeds,
+                    seed_manifest_path=args.runnable_seeds,
                 )
                 skipped.append(
                     build_cached_skip(
@@ -634,6 +788,23 @@ def main(argv: list[str] | None = None) -> int:
                     require_rights=args.require_rights,
                     output_dir=args.output_dir,
                     runnable_seeds_path=args.runnable_seeds,
+                    seed_manifest_path=fixture_manifest_path,
+                )
+            elif args.capture_mode == "iiif":
+                extracted, downloads, capture_payload = capture_seed_via_iiif(
+                    seed=seed,
+                    image_width=args.iiif_image_width,
+                    max_pages=args.iiif_max_pages,
+                    request_delay=args.request_delay,
+                )
+                promotion = build_promotion(
+                    seed=seed,
+                    extracted=extracted,
+                    downloaded_assets=downloads,
+                    require_rights=args.require_rights,
+                    output_dir=args.output_dir,
+                    runnable_seeds_path=args.runnable_seeds,
+                    capture_payload=capture_payload,
                 )
             else:
                 extracted, downloads = capture_seed_via_browser(
@@ -664,6 +835,18 @@ def main(argv: list[str] | None = None) -> int:
                     rights=_extract_rights_hint(str(exc)),
                 )
             )
+    conflict_ids = {
+        promotion.seed_id for promotion in promotions if capture_conflicts(promotion, output_dir=args.output_dir, overwrite=args.overwrite)
+    }
+    for seed_id in sorted(conflict_ids):
+        failures.append(
+            PromotionFailure(
+                seed_id=seed_id,
+                reason=FAILURE_CAPTURE_CONFLICT,
+                message=f"{FAILURE_CAPTURE_CONFLICT}: existing capture for {seed_id} differs from the new one; rerun with --overwrite.",
+            )
+        )
+    promotions = [promotion for promotion in promotions if promotion.seed_id not in conflict_ids]
     updated_runnable, updated_catalog, manifest_failures = apply_promotions(
         runnable_manifest=runnable_manifest,
         catalog_manifest=catalog_manifest,
@@ -692,6 +875,136 @@ def main(argv: list[str] | None = None) -> int:
         )
     print(json.dumps(report, ensure_ascii=False, indent=2))
     return 0 if not all_failures else 1
+
+
+FetchResult = tuple[int, str | None, bytes]
+
+
+def fetch_url(url: str, *, timeout: float = 60.0) -> FetchResult:  # pragma: no cover - live network path
+    request = Request(url, headers={"User-Agent": NLI_IIIF_USER_AGENT, "Accept": "application/json, image/jpeg;q=0.9, */*;q=0.1"})
+    try:
+        with urlopen(request, timeout=timeout) as response:
+            return int(response.status), response.headers.get("content-type"), response.read()
+    except HTTPError as exc:
+        return int(exc.code), exc.headers.get("content-type") if exc.headers else None, exc.read() or b""
+    except URLError as exc:
+        raise StageExecutionError(f"{FAILURE_PAGE_LOAD}: {url}: {exc.reason}") from exc
+
+
+def _manifest_metadata_text(manifest: dict[str, Any], label: str) -> str | None:
+    value = _manifest_metadata_value(manifest, label)
+    return value.split("$$", 1)[0].strip() if value else None
+
+
+def capture_seed_via_iiif(
+    *,
+    seed: dict[str, Any],
+    image_width: int = NLI_IIIF_IMAGE_WIDTH,
+    max_pages: int = NLI_IIIF_MAX_PAGES,
+    request_delay: float = 1.0,
+    fetch: Callable[[str], FetchResult] = fetch_url,
+    sleep: Callable[[float], None] = time.sleep,
+    today: Callable[[], date] = date.today,
+) -> tuple[ExtractedSeedPage, list[tuple[str, str | None, bytes]], dict[str, Any]]:
+    """Capture one seed from the open NLI IIIF endpoint (no key, no browser).
+
+    The licence slug is checked before any page image is requested, so non-free items never have
+    images downloaded. HTTP errors and zero-canvas manifests raise with explicit reason codes, which
+    the promotion report lists under failed seeds.
+    """
+
+    manifest_url = str(seed.get("iiif_manifest_url") or "")
+    if not manifest_url:
+        raise StageExecutionError(f"{FAILURE_MANIFEST_URL_MISSING}: {seed['id']} has no iiif_manifest_url")
+    status, _content_type, body = fetch(manifest_url)
+    if status != 200:
+        raise StageExecutionError(f"nli_iiif_manifest_http_{status}: {seed['id']}: {manifest_url}")
+    try:
+        manifest = json.loads(body.decode("utf-8"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise StageExecutionError(f"nli_iiif_capture_invalid: {seed['id']}: manifest is not JSON: {exc}") from exc
+    if not isinstance(manifest, dict):
+        raise StageExecutionError(f"nli_iiif_capture_invalid: {seed['id']}: manifest is not an object")
+    canvases = manifest_canvases(manifest)
+    capture = NliManifestCapture(manifest_url=manifest_url, http_status=200, canvas_count=len(canvases), manifest=manifest)
+    decision = decide_nli_rights(display_rights=None, capture=capture)
+    if not decision.accepted:
+        raise StageExecutionError(
+            f"{decision.reason.split(':', 1)[0]}:{decision.license_url or ''} ({seed['id']}: {decision.reason})"
+        )
+    indices = seed.get("iiif_canvas_indices")
+    if indices is None:
+        indices = list(range(min(max_pages, len(canvases))))
+    if not isinstance(indices, list) or not indices or any(
+        not isinstance(index, int) or isinstance(index, bool) or index < 0 or index >= len(canvases) for index in indices
+    ):
+        raise StageExecutionError(f"{FAILURE_CANVAS_INDEX}: {seed['id']}: {indices!r} for {len(canvases)} canvases")
+    selected_canvases: list[dict[str, Any]] = []
+    downloads: list[tuple[str, str | None, bytes]] = []
+    for index in indices:
+        canvas = canvases[index]
+        service = canvas_image_service(canvas)
+        if service is None:
+            raise StageExecutionError(f"{FAILURE_ASSETS_MISSING}: {seed['id']}: canvas {index} has no image service")
+        image_url = f"{service}/full/{image_width},/0/default.jpg"
+        # The Image API info.json carries its own "rights" URL. It is recorded as evidence only: on
+        # 2026-11-06 it was a blanket nli-copying-prohibited value on every image checked, including
+        # public-domain-free-use items, so the item-level manifest licence stays the rights key.
+        sleep(request_delay)
+        info_status, _info_type, info_body = fetch(f"{service}/info.json")
+        image_service_rights: str | None = None
+        if info_status == 200:
+            try:
+                info = json.loads(info_body.decode("utf-8"))
+            except (UnicodeDecodeError, json.JSONDecodeError):
+                info = {}
+            rights_value = info.get("rights") if isinstance(info, dict) else None
+            image_service_rights = rights_value if isinstance(rights_value, str) else None
+        sleep(request_delay)
+        image_status, image_type, image_body = fetch(image_url)
+        if image_status != 200 or _asset_signature(image_body) != "jpeg":
+            raise StageExecutionError(f"{FAILURE_DOWNLOAD}: {image_url}: HTTP {image_status}")
+        downloads.append((image_url, image_type or "image/jpeg", image_body))
+        selected_canvases.append(
+            {
+                "canvas_id": canvas.get("@id"),
+                "image_service_info_status": info_status,
+                "image_service_rights": image_service_rights,
+                "image_url": image_url,
+                "index": index,
+                "label": canvas.get("label"),
+            }
+        )
+    label = manifest.get("label") if isinstance(manifest.get("label"), str) else None
+    description_parts = [
+        value
+        for value in (
+            _manifest_metadata_text(manifest, "Publisher"),
+            _manifest_metadata_text(manifest, "Creation Date"),
+            _manifest_metadata_text(manifest, "Type"),
+            _manifest_metadata_text(manifest, "Language"),
+        )
+        if value
+    ]
+    capture_payload = {
+        "canvas_count": len(canvases),
+        "capture_format": NLI_CAPTURE_FORMAT,
+        "captured_on": today().isoformat(),
+        "http_status": 200,
+        "manifest": trim_manifest(manifest, [str(item["canvas_id"]) for item in selected_canvases]),
+        "manifest_url": manifest_url,
+        "selected_canvases": selected_canvases,
+        "upstream_bytes": len(body),
+        "upstream_sha256": hashlib.sha256(body).hexdigest(),
+    }
+    extracted = ExtractedSeedPage(
+        title=label or str(seed.get("title") or "Untitled NLI item"),
+        description=" | ".join(description_parts),
+        rights="",
+        asset_urls=[url for url, _type, _data in downloads],
+        license_url=decision.license_url,
+    )
+    return extracted, downloads, capture_payload
 
 
 def capture_seed_via_browser(
@@ -785,11 +1098,11 @@ def extract_page_data(page) -> ExtractedSeedPage:  # pragma: no cover - exercise
         _manifest_value(manifest, "description"),
         "",
     )
-    rights = _first_non_empty(
-        _text_or_none(page.locator(".rights-label").first),
-        _normalize_nli_rights(_manifest_first(manifest, "license")),
-        _normalize_nli_rights(_text_or_none(page.locator("#accessRights-collapse").first)),
-        _fallback_find_rights(page.content()),
+    rights = select_page_rights(
+        label=_text_or_none(page.locator(".rights-label").first),
+        access_rights=_text_or_none(page.locator("#accessRights-collapse").first),
+        manifest_license=_manifest_first(manifest, "license"),
+        page_fallback=_fallback_find_rights(page.content()),
     )
     asset_urls = [
         urljoin(page.url, value)
@@ -807,6 +1120,29 @@ def extract_page_data(page) -> ExtractedSeedPage:  # pragma: no cover - exercise
         description=description or "",
         rights=rights or "",
         asset_urls=asset_urls,
+        license_url=_manifest_first(manifest, "license"),
+        manifest=manifest,
+    )
+
+
+def select_page_rights(
+    *,
+    label: str | None,
+    access_rights: str | None,
+    manifest_license: str | None,
+    page_fallback: str | None,
+) -> str | None:
+    """Item-page display text first, then the manifest licence URL, then a page-wide text match.
+
+    The display text must win over the manifest licence, so a conflicting display (for example
+    "Copyright") reaches the slug check as a display mismatch instead of being hidden.
+    """
+
+    return _first_non_empty(
+        label,
+        _normalize_nli_rights(access_rights),
+        _normalize_nli_rights(manifest_license),
+        page_fallback,
     )
 
 
@@ -853,6 +1189,8 @@ def _extract_failure_reason(message: str) -> str:
             FAILURE_SEED_OUTSIDE_BATCH_LIMIT,
         }:
             return prefix
+        if prefix.startswith(NLI_RIGHTS_FAILURE_PREFIXES):
+            return prefix
     if message in {
         FAILURE_RIGHTS_MISSING,
         FAILURE_ASSETS_MISSING,
@@ -862,6 +1200,10 @@ def _extract_failure_reason(message: str) -> str:
 
 
 def _extract_rights_hint(message: str) -> str | None:
+    prefix = message.split(":", 1)[0]
+    if prefix.startswith(("nli_license_",)):
+        hint = message.split(":", 1)[1].split(" (", 1)[0].strip()
+        return hint or None
     if not message.startswith(f"{FAILURE_RIGHTS_NOT_ALLOWED}:"):
         return None
     return message.split(":", 1)[1].strip() or None
@@ -1044,6 +1386,8 @@ def _normalize_nli_rights(rights: str | None) -> str | None:
     normalized = rights.strip()
     lowered = normalized.lower()
     if normalized == DEFAULT_REQUIRED_RIGHTS:
+        return normalized
+    if any(marker in lowered for marker in ("non-commercial", "non commercial", "noncommercial", "שימוש לא מסחרי")):
         return normalized
     if "ללא מגבלות" in normalized or "public domain" in lowered or "no known copyright restrictions" in lowered:
         return DEFAULT_REQUIRED_RIGHTS

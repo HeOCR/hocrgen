@@ -1,0 +1,12 @@
+{
+  "canvas_count": null,
+  "capture_format": "hocrgen.nli_iiif_manifest_capture.v1",
+  "captured_on": "2026-11-06",
+  "http_status": 403,
+  "manifest": null,
+  "manifest_url": "https://iiif.nli.org.il/IIIFv21/DOCID/NNL_ALEPH990017916250205171/manifest",
+  "selected_canvases": [],
+  "test_note": "Real response: the DOCID form of this manifest returned 403 while the record-id form returned 200.",
+  "upstream_bytes": null,
+  "upstream_sha256": null
+}

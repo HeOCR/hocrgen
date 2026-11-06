@@ -399,7 +399,7 @@ def test_f1_source_depth_feasibility_reports_nli_ready_after_f1b4_promotion() ->
     assert sources["nli_any_use_permitted"]["observed_candidate_count"] == 27
     assert sources["nli_any_use_permitted"]["runnable_cached_candidate_count"] == 27
     assert sources["nli_any_use_permitted"]["target_scale_candidate_count"] == 27
-    assert sources["nli_any_use_permitted"]["exploratory_catalog_count"] == 0
+    assert sources["nli_any_use_permitted"]["exploratory_catalog_count"] == 4  # F8c printed-book seeds stay exploratory; allocation stays 27
     assert sources["nli_any_use_permitted"]["source_health_status"] == "ok"
     assert sources["nli_any_use_permitted"]["gap"] == 0
     assert sources["nli_any_use_permitted"]["target_scale_gap"] == 0

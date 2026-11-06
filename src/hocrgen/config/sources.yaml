@@ -8,10 +8,14 @@ sources:
     allowed_content_types:
       - handwritten_modern
       - printed_modern
+      - printed_historical
       - manuscript_scan
     rights_strategy:
       type: exact_match
       values:
+        # F8c: keyed on the IIIF manifest licence slug; only public-domain-free-use maps to open.
+        - https://www.nli.org.il/contenteditors/pages-for-terms-of-use/public-domain-free-use
+        # Legacy item-page display string for seeds without a manifest capture.
         - Any Use Permitted
     normalized_license: PD-IL
     rights_classification: open

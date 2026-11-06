@@ -45,6 +45,17 @@ def _content_class(item: CuratedItemRecord, bundle: ConfigBundle) -> tuple[str, 
         return "handwritten", 0.95, reasons
     if template_id == "printed_letter":
         return "printed", 0.95, reasons
+    declared_type = str(item.metadata.get("content_type", ""))
+    if declared_type:
+        # A hand-vetted seed may declare its content type (F8c printed books). It only counts when the
+        # source config allows that type; otherwise the item is routed to review.
+        if declared_type not in allowed_types:
+            reasons.append("content_declared_type_conflicting_source_types")
+            return "mixed", 0.5, reasons
+        if declared_type.startswith("printed"):
+            return "printed", 0.9, reasons
+        if declared_type.startswith("handwritten") or declared_type == "manuscript_scan":
+            return "handwritten", 0.9, reasons
     if "כתב יד" in text or "מכתב" in text or "פנקס" in text or "note" in text:
         return "handwritten", 0.85, reasons
     if 'דו"ח' in text or "אישור" in text or "report" in text or "office copy" in text:

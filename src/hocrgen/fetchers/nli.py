@@ -8,6 +8,19 @@ from hocrgen.config.loader import ConfigBundle, load_yaml_file
 from hocrgen.config.models import SourceConfig
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.base import StageOptions
+from hocrgen.fetchers.nli_iiif import (
+    REASON_CAPTURE_ASSET_MISMATCH,
+    REASON_CAPTURE_CHECKSUM_MISMATCH,
+    REASON_CAPTURE_INVALID,
+    RIGHTS_BASIS_LICENSE_SLUG,
+    UNKNOWN_LICENSE_ID,
+    NliManifestCapture,
+    NliRightsDecision,
+    capture_asset_problems,
+    decide_nli_rights,
+    load_nli_manifest_capture,
+    nli_rights_metadata,
+)
 from hocrgen.manifests.models import AcquiredAsset, AcquiredItemRecord, AssetReference, CandidateRecord, EnrichedCandidateRecord, ItemRecord
 from hocrgen.utils.hashing import sha256_file
 from hocrgen.utils.io import copy_file, read_text
@@ -66,6 +79,44 @@ class ParsedNliFixture:
     assets: list[str]
 
 
+# Optional F8c seed fields. The capture reference and its checksum pin are operator inputs and are
+# removed from item metadata once read; content_type and period describe the item and are kept.
+SEED_CAPTURE_FIELD = "iiif_manifest_capture"
+SEED_CAPTURE_SHA256_FIELD = "iiif_manifest_capture_sha256"
+SEED_DESCRIPTIVE_FIELDS = ("content_type", "period", "iiif_manifest_url")
+RIGHTS_GATE_METADATA_KEY = "rights_gate"
+
+
+def resolve_seed_local_reference(reference: str, *, seed_manifest: Path, bundle: ConfigBundle) -> Path:
+    """Resolve a seed-manifest reference: ``package://``, absolute, or relative to the seed manifest."""
+
+    if reference.startswith("package://"):
+        return bundle.resolve_path(reference)
+    path = Path(reference)
+    if path.is_absolute():
+        return path
+    return (seed_manifest.parent / path).resolve()
+
+
+@dataclass(frozen=True)
+class SeedCaptureResult:
+    capture: NliManifestCapture | None
+    failure_reason: str | None = None
+
+
+def read_seed_capture(path: Path, expected_sha256: str | None) -> SeedCaptureResult:
+    """Load a pinned manifest capture. A missing file raises; a bad pin or malformed record is a rejection."""
+
+    if not path.exists():
+        raise StageExecutionError(f"NLI IIIF manifest capture is missing: {path.name}")
+    if expected_sha256 is not None and sha256_file(path) != expected_sha256:
+        return SeedCaptureResult(capture=None, failure_reason=REASON_CAPTURE_CHECKSUM_MISMATCH)
+    try:
+        return SeedCaptureResult(capture=load_nli_manifest_capture(path))
+    except (ValueError, UnicodeDecodeError) as exc:
+        return SeedCaptureResult(capture=None, failure_reason=f"{REASON_CAPTURE_INVALID}:{exc}")
+
+
 def parse_nli_fixture_html(path: Path) -> ParsedNliFixture:
     parser = _NLIHTMLParser()
     parser.feed(read_text(path))
@@ -99,6 +150,11 @@ class NliFetcher:
                         if Path(fixture_reference).is_absolute()
                         else (seed_manifest.parent / fixture_reference).resolve()
                     )
+            f8c_fields = {
+                key: item[key]
+                for key in (*SEED_DESCRIPTIVE_FIELDS, SEED_CAPTURE_FIELD, SEED_CAPTURE_SHA256_FIELD)
+                if item.get(key) is not None
+            }
             candidates.append(
                 CandidateRecord(
                     candidate_id=f"{source.id}:{item['id']}",
@@ -113,6 +169,7 @@ class NliFetcher:
                         "f1_source_depth_only": source_depth_only,
                         "notes": item.get("notes"),
                         "seed_manifest": str(seed_manifest),
+                        **f8c_fields,
                     },
                 )
             )
@@ -127,29 +184,72 @@ class NliFetcher:
     ) -> list[EnrichedCandidateRecord]:
         enriched: list[EnrichedCandidateRecord] = []
         for candidate in candidates:
-            if not candidate.fixture_path:
-                raise StageExecutionError(
-                    f"NLI seed {candidate.source_item_id} is missing fixture_html; live fetching is not implemented yet."
-                )
-            fixture_path = Path(candidate.fixture_path)
-            parsed_fixture = parse_nli_fixture_html(fixture_path)
-            asset_refs = [
-                AssetReference(
-                    reference=reference,
-                    resolved_path=str((fixture_path.parent / reference).resolve()),
-                )
-                for reference in parsed_fixture.assets
-            ]
             record_data = candidate.model_dump()
             metadata = dict(record_data.pop("raw_metadata"))
             record_data.pop("title", None)
+            capture_reference = metadata.pop(SEED_CAPTURE_FIELD, None)
+            capture_sha256 = metadata.pop(SEED_CAPTURE_SHA256_FIELD, None)
+            if not candidate.fixture_path and not capture_reference:
+                raise StageExecutionError(
+                    f"NLI seed {candidate.source_item_id} is missing fixture_html; live fetching is not implemented yet."
+                )
+            parsed_fixture = ParsedNliFixture(title=None, description=None, rights=None, assets=[])
+            asset_refs: list[AssetReference] = []
+            if candidate.fixture_path:
+                fixture_path = Path(candidate.fixture_path)
+                parsed_fixture = parse_nli_fixture_html(fixture_path)
+                asset_refs = [
+                    AssetReference(
+                        reference=reference,
+                        resolved_path=str((fixture_path.parent / reference).resolve()),
+                    )
+                    for reference in parsed_fixture.assets
+                ]
+            raw_rights_text = parsed_fixture.rights
+            if capture_reference:
+                seed_manifest = Path(str(metadata.get("seed_manifest") or ""))
+                capture_path = resolve_seed_local_reference(str(capture_reference), seed_manifest=seed_manifest, bundle=bundle)
+                capture_result = read_seed_capture(capture_path, str(capture_sha256) if capture_sha256 else None)
+                if (
+                    capture_result.capture is not None
+                    and candidate.fixture_path
+                    and decide_nli_rights(display_rights=parsed_fixture.rights, capture=capture_result.capture).accepted
+                ):
+                    # Rights rejections report their own reason; image binding matters for admitted items.
+                    asset_problems = capture_asset_problems(
+                        capture_result.capture, Path(candidate.fixture_path).parent, parsed_fixture.assets
+                    )
+                    if asset_problems:
+                        capture_result = SeedCaptureResult(
+                            capture=capture_result.capture,
+                            failure_reason=f"{REASON_CAPTURE_ASSET_MISMATCH}:{', '.join(asset_problems)}",
+                        )
+                if capture_result.failure_reason is not None:
+                    decision = NliRightsDecision(
+                        accepted=False,
+                        reason=capture_result.failure_reason.split(":", 1)[0],
+                        rights_basis=RIGHTS_BASIS_LICENSE_SLUG,
+                        raw_rights_text=parsed_fixture.rights,
+                        display_rights=parsed_fixture.rights,
+                        normalized_license_hint=UNKNOWN_LICENSE_ID,
+                    )
+                else:
+                    decision = decide_nli_rights(display_rights=parsed_fixture.rights, capture=capture_result.capture)
+                metadata["nli_rights"] = nli_rights_metadata(decision, capture_result.capture)
+                if decision.gate_reason is not None:
+                    metadata[RIGHTS_GATE_METADATA_KEY] = {
+                        "decision": "rejected",
+                        "normalized_license": decision.normalized_license_hint or UNKNOWN_LICENSE_ID,
+                        "reason": decision.gate_reason,
+                    }
+                raw_rights_text = decision.raw_rights_text
             if parsed_fixture.description:
                 metadata["description"] = parsed_fixture.description
             enriched.append(
                 EnrichedCandidateRecord(
                     **record_data,
                     title=parsed_fixture.title or candidate.title,
-                    raw_rights_text=parsed_fixture.rights,
+                    raw_rights_text=raw_rights_text,
                     asset_references=asset_refs,
                     metadata=metadata,
                 )
