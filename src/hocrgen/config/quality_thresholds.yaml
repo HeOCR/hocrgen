@@ -1,6 +1,10 @@
 version: 1
 minimum_width: 200
 minimum_height: 200
+# F8g2: a crop of a page's transcribed region (Wikisource decision 12) may be as short as one printed line. Its
+# source page must still pass minimum_width / minimum_height. One body line of a 960 px Commons render is about
+# 40-50 px of line pitch; 32 px holds one line of small type with its ascenders and descenders and rejects slivers.
+text_region_crop_minimum_height: 32
 minimum_bytes: 100
 allowed_raster_formats:
   - png

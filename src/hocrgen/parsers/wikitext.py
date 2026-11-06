@@ -35,6 +35,24 @@ Rules, applied in this order (see ``docs/wikisource_proofread_source.md``):
 Line breaks therefore follow the rendered paragraphs, not the printed lines. There is no line geometry.
 
 ``wikisource_plain_text.v2`` (F8b3) extends v1's closed set; every page v1 converts gives the same text under v2.
+
+``wikisource_plain_text.v3`` (F8g2, HeOCR/hocrgen#134) versions the F8b7 changes and repairs broken links:
+
+- F8b7 (unchanged here, now versioned): an editor's heading over the footnote list (``==הערות==``) is dropped, and
+  a caller may drop footnotes a reviewed check found not printed (``unprinted_notes``). Signed editors' notes were
+  already dropped. Editors' stand-ins are mapped after conversion (``hocrgen.fetchers.wikisource``), not here.
+- **Broken links** (``repair_broken_links``). An editor's broken link leaves a fragment MediaWiki shows literally
+  (or, for a doubled pipe, inside the link text); the print shows only the label:
+
+  - ``[[target||label]]`` renders ``label`` (MediaWiki: ``|label``);
+  - an unclosed ``[[target|label ...`` renders ``label ...`` (MediaWiki: the whole fragment);
+  - an unopened ``target|label]]`` renders ``label`` when ``target`` has the shape of a reference link target
+    (``BROKEN_LINK_TARGET``: a work of one word, or of two words from ``TWO_WORD_WORK_PREFIXES``, then one to three
+    letters, then one or two letters, as in ``כתובות סא א`` or ``ירושלמי קידושין א ד``). Any other leftover bracket
+    is dropped as before (``malformed_markup``).
+
+  Each repair is counted (``broken_link_double_pipe``, ``broken_link_unclosed``, ``broken_link_unopened``). Every
+  page v2 converts without such a fragment gives the same text under v3.
 """
 
 from __future__ import annotations
@@ -49,7 +67,7 @@ from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
 
-WIKITEXT_NORMALIZATION_VERSION = "wikisource_plain_text.v2"
+WIKITEXT_NORMALIZATION_VERSION = "wikisource_plain_text.v3"
 
 BIDI_CONTROL_CHARACTERS = frozenset("\u200e\u200f\u202a\u202b\u202c\u202d\u202e\u2066\u2067\u2068\u2069\ufeff")
 
@@ -1015,7 +1033,7 @@ def _render_blocks(text: str, ctx: _Context) -> str:
     text = _render_tables(text, ctx)
     text = re.sub(rf"</?(?:{'|'.join(BLOCK_HTML_TAGS)})\b[^>]*>", "\n\n", text, flags=re.IGNORECASE)
     malformed = [0]
-    text = _replace_links(text, malformed)
+    text = _replace_links(text, malformed, ctx.features)
     if malformed[0]:
         ctx.features["malformed_markup"] += malformed[0]
     text = re.sub(r"'{2,}", _quote_run, text)
@@ -1353,11 +1371,42 @@ def _render_template(body: str, ctx: _Context) -> str:
     return rendered
 
 
-def _replace_links(text: str, malformed: list[int] | None = None) -> str:
+# v3 (F8g2): the shape of a reference link target that an unopened link fragment (``target|label]]``) may drop.
+TWO_WORD_WORK_PREFIXES = ("בבא", "מועד", "ראש", "עבודה", "יום", "שיר", "דברי", "בבלי", "ירושלמי")
+BROKEN_LINK_TARGET = (
+    r"(?<![א-ת\"'׳״])(?:(?:" + "|".join(TWO_WORD_WORK_PREFIXES) + r") )?[א-ת]+ [א-ת]{1,3}[\"'׳״]? [א-ת]{1,2}"
+)
+_UNOPENED_LINK = re.compile(BROKEN_LINK_TARGET + r"\|([^\[\]|\n]*?)\]\]")
+_UNCLOSED_LINK = re.compile(r"\[\[[^\[\]|\n]{1,80}\|(?=[^\[\]\n]*(?:\n|$|\[\[))")
+
+
+def repair_broken_links(text: str, counts: Counter[str] | None = None) -> str:
+    """Render the label of an unclosed or unopened link fragment an editor left (v3, F8g2; see the module docstring).
+
+    Runs after every well-formed ``[[...]]`` is replaced. ``counts`` receives ``broken_link_unclosed`` and
+    ``broken_link_unopened``.
+    """
+
+    counts = counts if counts is not None else Counter()
+    text, unclosed = _UNCLOSED_LINK.subn("", text)
+    text, unopened = _UNOPENED_LINK.subn(lambda match: match.group(1), text)
+    if unclosed:
+        counts["broken_link_unclosed"] += unclosed
+    if unopened:
+        counts["broken_link_unopened"] += unopened
+    return text
+
+
+def _replace_links(text: str, malformed: list[int] | None = None, repairs: Counter[str] | None = None) -> str:
     malformed = malformed if malformed is not None else [0]
+    repairs = repairs if repairs is not None else Counter()
 
     def internal(match: re.Match[str]) -> str:
         target, _, label = match.group(1).partition("|")
+        if label.startswith("|"):
+            # v3: a doubled pipe (``[[target||label]]``); MediaWiki shows ``|label``, the print the label.
+            label = label.lstrip("|")
+            repairs["broken_link_double_pipe"] += 1
         namespace = target.strip().lstrip(":").split(":", 1)[0].strip().casefold() if ":" in target else ""
         if namespace in DROPPED_LINK_NAMESPACES and not target.strip().startswith(":"):
             return ""
@@ -1369,6 +1418,8 @@ def _replace_links(text: str, malformed: list[int] | None = None) -> str:
     while previous != text:
         previous = text
         text = re.sub(r"\[\[((?:[^\[\]]|\[[^\[\]]*\])*)\]\]", internal, text)
+    if "[[" in text or "]]" in text:
+        text = repair_broken_links(text, repairs)
     if "[[" in text or "]]" in text:
         # Broken link markup an editor left (a doubled or unclosed link): MediaWiki shows the brackets, the print
         # does not. The brackets are dropped and counted.

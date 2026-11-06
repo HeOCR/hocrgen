@@ -209,7 +209,7 @@ def test_split_keeps_connected_groups_whole_across_sources() -> None:
     assert len({by_id[item.item_id].split for item in items[:13]}) == 1
     assert len({by_id[item.item_id].split_group_id for item in items[:13]}) == 1
     assert len({by_id[item.item_id].split for item in items[13:]}) == 1
-    # A singleton keeps its F1d split group id, so pre-F8g items keep their splits.
+    # A singleton keeps its F1d split group id.
     assert by_id["pinkas_open:loose"].split_group_id == "pinkas_open:loose"
     assignments = {assignment.item_id: assignment for assignment in outputs.assignments}
     assert assignments["other_source:page"].work_group_ids == ["commons_file:sha-a"]
@@ -489,12 +489,18 @@ def test_committed_tranche_manifest_is_coherent_and_holds_no_page_text() -> None
         entry = contract.entry(item["source_id"])
         assert entry is not None and item["modality"] in {modality.value for modality in entry.modalities}
         assert re.fullmatch(r"[0-9a-f]{64}", item["asset"]["sha256"])
-        assert set(item["text"]) <= {"path", "sha256", "sha256_without_final_newline"}
+        # Knesset scans are images only (F8g2); every other tranche item pairs a text.
+        assert (item["text"] is None) == (item["source_id"] == "knesset_committee_protocols_pre1976")
+        assert set(item["text"] or {}) <= {"path", "sha256", "sha256_without_final_newline"}
     assert {source_id: source["item_count"] for source_id, source in manifest["sources"].items()} == {
+        "knesset_committee_protocols_pre1976": 205,
         "pinkas_dataset_bgu": 30,
-        "wikisource_he_proofread": 1456,
+        "reshumot_born_digital": 182,
+        "wikisource_he_proofread": 1455,
         "yidtaknl_vaybertaytsh_gt": 123,
     }
+    assert manifest["sources"]["pinkas_dataset_bgu"]["canvas_match_verified"] == 6
+    assert manifest["sources"]["reshumot_born_digital"]["pages_passed"] == 180
     assert "not published" in manifest["hosting"]
 
 

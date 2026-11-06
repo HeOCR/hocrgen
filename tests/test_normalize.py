@@ -135,3 +135,38 @@ def test_detect_asset_metadata_rejects_truncated_jpeg(tmp_path: Path) -> None:
         assert "truncated jpeg" in str(exc) or "jpeg dimensions not found" in str(exc)
     else:
         raise AssertionError("Expected truncated JPEG to fail metadata detection")
+
+
+def _crop_item(asset_path: Path, item_id: str, page_size: tuple[int, int] | None) -> AcquiredItemRecord:
+    item = _make_item(asset_path, item_id=item_id)
+    crop = {"source_page_image": {"path": "assets/page.jpg", "sha256": "x", "width": page_size[0], "height": page_size[1]}} if page_size else None
+    return item.model_copy(update={"metadata": {"crop": crop}})
+
+
+def test_text_region_crops_have_a_line_height_floor_only_on_a_passing_page(tmp_path: Path) -> None:
+    """F8g2: a one-line crop of a full-size page passes; the same image as a page, or cropped from a tiny page, fails."""
+
+    bundle = load_and_validate_bundle()
+    thresholds = bundle.quality_thresholds
+    assert thresholds.text_region_crop_minimum_height == 32
+    line = _write_jpeg(tmp_path / "line.jpg", size=(700, 83))
+    sliver = _write_jpeg(tmp_path / "sliver.jpg", size=(700, 31))
+    items = [
+        _crop_item(line, "test_source:crop-line", (960, 1501)),
+        _crop_item(sliver, "test_source:crop-sliver", (960, 1501)),
+        _crop_item(line, "test_source:crop-of-small-page", (960, 150)),
+        _crop_item(line, "test_source:not-a-crop", None),
+    ]
+
+    outputs = normalize_items(items=items, thresholds=thresholds, assets_dir=tmp_path / "assets", thumbnails_dir=tmp_path / "thumbnails")
+
+    assert [item.item_id for item in outputs.normalized_items] == ["test_source:crop-line"]
+    failed = {item.item_id: item.qa_fail_reasons for item in outputs.failed_items}
+    assert failed == {
+        "test_source:crop-sliver": ["height_below_threshold"],
+        "test_source:crop-of-small-page": ["height_below_threshold"],
+        "test_source:not-a-crop": ["height_below_threshold"],
+    }
+    unset = thresholds.model_copy(update={"text_region_crop_minimum_height": None})
+    outputs = normalize_items(items=items[:1], thresholds=unset, assets_dir=tmp_path / "a2", thumbnails_dir=tmp_path / "t2")
+    assert outputs.failed_items[0].qa_fail_reasons == ["height_below_threshold"]

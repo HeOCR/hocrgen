@@ -183,6 +183,9 @@ class QualityThresholds(ConfigBaseModel):
     version: Literal[1] = 1
     minimum_width: int = Field(ge=1)
     minimum_height: int = Field(ge=1)
+    # F8g2: the height floor for a text-region crop of a page (Wikisource decision 12), whose source page itself
+    # passes minimum_width and minimum_height. None applies minimum_height to crops too.
+    text_region_crop_minimum_height: int | None = Field(default=None, ge=1)
     minimum_bytes: int = Field(ge=1)
     allowed_raster_formats: list[RasterFormat] = Field(min_length=1)
     allow_svg: bool = True

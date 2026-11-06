@@ -6,7 +6,7 @@ Each item is one handwritten page of the Frankfurt am Main community pinkas, NLI
 
 ## Status and rights
 
-- `status: allowed`, `default_public_release: true` since `F8g`, and in `profile_open_v1` under the real-source composition contract ([`real_source_release_contract.md`](./real_source_release_contract.md)). Exports ship the PAGE XML, with CC BY 4.0 attribution and the per-line scope summary in `release_terms`. The 30-page tranche is built by `hocrgen.tools.real_tranche`.
+- `status: allowed`, `default_public_release: true` since `F8g`, and in `profile_open_v1` under the real-source composition contract ([`real_source_release_contract.md`](./real_source_release_contract.md)). Exports ship the PAGE XML, with CC BY 4.0 attribution and the per-line scope summary in `release_terms`. The 30-page tranche is built by `hocrgen.tools.real_tranche`. Each tranche page's canvas binding is checked in [`pinkas_canvas_match_checks.json`](./pinkas_canvas_match_checks.json) (`F8g2`): 6 verified by an agent against cached NLI canvas images, 24 `not_verified` while the NLI image server answers HTTP 520; the entry's `scan.match_check` and the item's `scan_match_check` carry the status.
 - Annotations: `CC-BY-4.0` / `open_with_attribution` (the Zenodo licence field). Scans: the NLI IIIF manifest's `public-domain-free-use` slug, decided by the F8c gate over a pinned manifest capture. The evidence is in the [F8d2 findings](../planning/tasks/f8-real-source-map.md#f8d2-findings-2026-11-06).
 - The text is human-annotated (semi-automatic segmentation, then corrected by a Hebrew paleographer), but not attested or adjudicated under F2: `not_adjudicated`, `reference_eligible: false`.
 

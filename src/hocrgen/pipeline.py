@@ -8,7 +8,13 @@ from typing import Any
 
 from hocrgen.annotation_pilots import load_annotation_pilot_config, select_annotation_pilot_items
 from hocrgen.annotations import build_annotation_manifest
-from hocrgen.benchmark import benchmark_holdout_leakage_artifact, load_benchmark_config, select_benchmark_items
+from hocrgen.benchmark import (
+    BENCHMARK_ID,
+    benchmark_holdout_leakage_artifact,
+    load_benchmark_config,
+    resolve_benchmark_data_root,
+    select_benchmark_items,
+)
 from hocrgen.benchmark_references import ingest_benchmark_references, materialize_benchmark_reference_files
 from hocrgen.classify.heuristics import classify_items
 from hocrgen.config.loader import ConfigBundle
@@ -632,18 +638,36 @@ def _run_review_merge(bundle: ConfigBundle, context: RunContext, options: StageO
     )
 
 
+def _committed_benchmark_splits(bundle: ConfigBundle) -> dict[str, str]:
+    """Benchmark items' committed splits (F8g2): the split stage pins their components, so size-aware balancing
+    never moves a benchmark item away from the split its approval records."""
+
+    root = resolve_benchmark_data_root(bundle.config_root)
+    if not (root / BENCHMARK_ID / "config.json").exists():
+        return {}
+    try:
+        config = load_benchmark_config(bundle.config_root)
+    except ConfigValidationError as exc:
+        raise StageExecutionError(f"benchmark config validation failed: {exc}") from exc
+    return {approved.item_id: approved.benchmark_split for approved in config.approved_items}
+
+
 def _run_split(bundle: ConfigBundle, context: RunContext, options: StageOptions, state: PipelineState) -> StageResult:
     del options
     stage_dir = context.stage_dir("split")
     stage_dir.mkdir(parents=True, exist_ok=True)
     registry = bundle.synthetic_training_works
     state.synthetic_training_keys = registry.match_keys() if registry is not None else {}
-    outputs = assign_splits(
-        retained_items=state.release_ready_items,
-        duplicate_items=[],
-        split_policy=bundle.profiles[context.profile_id].split_policy,
-        synthetic_training_keys=state.synthetic_training_keys,
-    )
+    try:
+        outputs = assign_splits(
+            retained_items=state.release_ready_items,
+            duplicate_items=[],
+            split_policy=bundle.profiles[context.profile_id].split_policy,
+            synthetic_training_keys=state.synthetic_training_keys,
+            pinned_splits=_committed_benchmark_splits(bundle),
+        )
+    except ValueError as exc:
+        raise StageExecutionError(f"split assignment failed: {exc}") from exc
 
     split_manifest_path = stage_dir / "split_manifest.json"
     leakage_report_path = stage_dir / "leakage_report.json"

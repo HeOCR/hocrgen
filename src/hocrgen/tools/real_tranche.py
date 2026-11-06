@@ -38,6 +38,7 @@ import time
 import urllib.parse
 import urllib.request
 import zipfile
+from datetime import date
 from pathlib import Path
 from typing import Any, Callable
 
@@ -56,7 +57,9 @@ from hocrgen.fetchers.wikisource import (
     page_exclusion_reasons,
     page_needs_crop,
 )
+from hocrgen.fetchers.government_print import knesset_entry_exclusion_reasons, reshumot_entry_exclusion_reasons
 from hocrgen.fetchers.yidtaknl import yidtaknl_entry_exclusion_reason
+from hocrgen.tools import government_print_tranche
 from hocrgen.real_tranche import (
     TRANCHE_CHECKSUMS,
     TRANCHE_DESCRIPTOR,
@@ -66,7 +69,8 @@ from hocrgen.real_tranche import (
     verify_tranche_files,
 )
 
-TRANCHE_ID = "f8g_real_tranche_v1"
+TRANCHE_ID = "f8g2_real_tranche_v2"
+CAPTURE_SEED = "f8g2-tranche-v2"
 USER_AGENT = "hocrgen-real-tranche/0.1 (https://github.com/HeOCR/hocrgen; operator capture)"
 SURFDRIVE_WEBDAV = "https://surfdrive.surf.nl/public.php/webdav/"
 YIDTAKNL_SHARE_TOKEN = "mov7H4wDaog4zkF"
@@ -77,10 +81,16 @@ PINKAS_RECORD = "nli_990000445290205171"
 PINKAS_MEMBER_PREFIX = "pinkas_dataset/pinkas_dataset_images_and_xmls/"
 PINKAS_PAGE_NAME = re.compile(r"^Page (\d+)_([12])\.(jpg|xml)$")
 DEFAULT_PAGE_CHECKS = ("docs/wikisource_page_checks.json", "docs/wikisource_page_tool_checks.json")
+DEFAULT_PINKAS_CHECKS = "docs/pinkas_canvas_match_checks.json"
+PINKAS_LABEL_RULE = (
+    "label rule from F8d2: dataset 'Page N_1' is the right half and 'Page N_2' the left half of the NLI canvas labelled 'Page N'"
+)
 
 SOURCE_WIKISOURCE = "wikisource_he_proofread"
 SOURCE_YIDTAKNL = "yidtaknl_vaybertaytsh_gt"
 SOURCE_PINKAS = "pinkas_dataset_bgu"
+SOURCE_RESHUMOT = "reshumot_born_digital"
+SOURCE_KNESSET = "knesset_committee_protocols_pre1976"
 
 
 def _data(relative: str) -> Path:
@@ -469,7 +479,38 @@ def materialize_yidtaknl(*, cache: Path, out_root: Path, log: Callable[[str], No
 # --- materialize: BGU Pinkas ---------------------------------------------------------------------------------------
 
 
-def materialize_pinkas(*, cache: Path, out_root: Path, log: Callable[[str], None] = print) -> dict[str, Any]:
+def load_pinkas_checks(path: Path) -> dict[str, dict[str, Any]]:
+    """Per-page canvas match checks (F8g2), keyed by dataset page ('Page 105_1')."""
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("schema") != "hocrgen.pinkas_canvas_match_checks.v1":
+        raise RuntimeError(f"{path} is not a hocrgen.pinkas_canvas_match_checks.v1 file")
+    return {check["dataset_page"]: check for check in payload["checks"]}
+
+
+def pinkas_match_scan_fields(check: dict[str, Any], *, number: int, side: str) -> dict[str, Any]:
+    """The scan's ``match_method`` and ``match_check`` for one page, from its recorded check (F8g2)."""
+
+    record = {key: check[key] for key in ("status", "checked_by", "checked_at", "method") if key in check}
+    if check.get("reason"):
+        record["reason"] = check["reason"]
+    if check["status"] == "verified":
+        method = (
+            f"{PINKAS_LABEL_RULE}; verified for this page by agent visual comparison with the {side} half of the NLI "
+            f"canvas 'Page {number}' ({check['method']}, {check['checked_at']})"
+        )
+    else:
+        method = f"{PINKAS_LABEL_RULE}; this page is not visually verified yet ({check.get('reason')}, {check['checked_at']})"
+    return {"match_method": method, "match_check": record}
+
+
+def materialize_pinkas(
+    *,
+    cache: Path,
+    out_root: Path,
+    checks_path: Path = Path(DEFAULT_PINKAS_CHECKS),
+    log: Callable[[str], None] = print,
+) -> dict[str, Any]:
     packaged_root = _data("pinkas_dataset_bgu/snapshot")
     root = out_root / "sources" / SOURCE_PINKAS / "snapshot"
     snapshot = load_yaml_file(packaged_root / "snapshot.yaml")
@@ -489,6 +530,7 @@ def materialize_pinkas(*, cache: Path, out_root: Path, log: Callable[[str], None
         raise RuntimeError("cached Pinkas zip does not match its Zenodo MD5")
     bundle = load_and_validate_bundle()
     source = next(item for item in bundle.source_registry.sources if item.id == SOURCE_PINKAS)
+    checks = load_pinkas_checks(checks_path)
     with zipfile.ZipFile(zip_path) as archive:
         names = {info.filename: info for info in archive.infolist()}
         splits: dict[str, str] = {}
@@ -558,12 +600,12 @@ def materialize_pinkas(*, cache: Path, out_root: Path, log: Callable[[str], None
                     "canvas_label": f"Page {number}",
                     "canvas_region": region,
                     "iiif_canvas": canvas_id,
-                    "match_method": (
-                        "label rule from F8d2: dataset 'Page N_1' is the right half and 'Page N_2' the left half of the "
-                        "NLI canvas labelled 'Page N'; verified by eye on Page 105_1, 105_2 and 112_1 at 1200 px"
-                    ),
                 }
             )
+            check = checks.get(stem)
+            if check is None or check.get("canvas_id") != canvas_id or check.get("dataset_image_sha256") != _sha256(image):
+                raise RuntimeError(f"Pinkas {stem} has no canvas match check for {canvas_id} and its image")
+            entry["scan"].update(pinkas_match_scan_fields(check, number=number, side=side))
             selected.append({"canvas_id": canvas_id, "dataset_page": stem, "index": position, "label": f"Page {number}", "region": region})
             entries.append(entry)
     capture = {**capture, "selected_canvases": selected}
@@ -584,12 +626,15 @@ def materialize_pinkas(*, cache: Path, out_root: Path, log: Callable[[str], None
         "notes": (
             f"F8g tranche ({TRANCHE_ID}). All 30 dataset pages from the Zenodo zip (MD5 pinned), images and PAGE XML "
             "unchanged (the XML gzip-compressed with mtime 0), each bound to its NLI canvas by the F8d2 label rule. The "
-            "line-language sidecar is the packaged one: lines of the other pages are untagged, so character_level_only."
+            "line-language sidecar is the packaged one: lines of the other pages are untagged, so character_level_only. "
+            "Each entry's scan.match_check records whether its canvas binding was visually verified (F8g2, "
+            "docs/pinkas_canvas_match_checks.json)."
         ),
     }
     _write(root / "snapshot.yaml", yaml.safe_dump(tranche_snapshot, allow_unicode=True, sort_keys=False).encode())
-    log(f"pinkas: {len(kept)} entries; skipped {skipped}")
-    return {"item_count": len(kept), "skipped": skipped}
+    verified = sum(1 for entry in kept if entry["scan"]["match_check"]["status"] == "verified")
+    log(f"pinkas: {len(kept)} entries ({verified} canvas matches visually verified); skipped {skipped}")
+    return {"item_count": len(kept), "skipped": skipped, "canvas_match_verified": verified, "canvas_match_not_verified": len(kept) - verified}
 
 
 # --- tree descriptor, checksums and the committed manifest -------------------------------------------------------
@@ -619,6 +664,8 @@ SNAPSHOT_DESCRIPTOR_FILES = {
     SOURCE_WIKISOURCE: ["snapshot.yaml", "indexes.json", "pages.jsonl"],
     SOURCE_YIDTAKNL: ["snapshot.yaml", "entries.jsonl"],
     SOURCE_PINKAS: ["snapshot.yaml", "entries.jsonl", "line_language_tags.yaml", "iiif/nli_990000445290205171_manifest_capture.json"],
+    SOURCE_RESHUMOT: ["snapshot.yaml", "entries.jsonl"],
+    SOURCE_KNESSET: ["snapshot.yaml", "entries.jsonl"],
 }
 
 
@@ -682,6 +729,50 @@ def _entry_items(root: Path, *, source_id: str, text_key: str, modality: str) ->
     return items
 
 
+def _government_print_items(root: Path, *, source_id: str) -> list[dict[str, Any]]:
+    items = []
+    for line in (root / "entries.jsonl").read_text(encoding="utf-8").splitlines():
+        entry = json.loads(line)
+        asset = entry["files"][0]
+        text = entry.get("text") or {}
+        if source_id == SOURCE_RESHUMOT:
+            group = f"reshumot:{entry['booklet']['series']}:{entry['booklet']['booklet_number']}"
+            provenance = {
+                "booklet": f"{entry['booklet']['series_name_he']} {entry['booklet']['booklet_number']}",
+                "publish_date": entry["booklet"]["publish_date"],
+                "pdf_page_index": entry["page"]["pdf_page_index"],
+                "pdf_sha256": entry["pdf"]["sha256"],
+            }
+        else:
+            group = f"knesset_committee:{entry['document']['document_id']}"
+            provenance = {
+                "committee": entry["committee"]["name"],
+                "session_date": entry["session"]["start_date"],
+                "knesset_num": entry["session"].get("knesset_num"),
+                "document_id": entry["document"]["document_id"],
+                "pdf_page_index": entry["page"]["pdf_page_index"],
+                "pdf_sha256": entry["pdf"]["sha256"],
+            }
+        items.append(
+            {
+                "source_item_id": entry["entry_id"],
+                "source_group": group,
+                "modality": "printed",
+                "asset": {
+                    "path": asset["local_path"],
+                    "sha256": asset["sha256"],
+                    "bytes": asset["bytes"],
+                    "width": asset["width_px"],
+                    "height": asset["height_px"],
+                },
+                "text": {"path": text["local_path"], "sha256": text["sha256"]} if text.get("local_path") else None,
+                "cropped": False,
+                "provenance": provenance,
+            }
+        )
+    return items
+
+
 def build_manifest(tranche_root: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     descriptor = json.loads((tranche_root / TRANCHE_DESCRIPTOR).read_text(encoding="utf-8"))
     sources: dict[str, Any] = {}
@@ -692,6 +783,8 @@ def build_manifest(tranche_root: Path) -> tuple[dict[str, Any], list[dict[str, A
             source_items = _wikisource_items(root)
         elif source_id == SOURCE_YIDTAKNL:
             source_items = _entry_items(root, source_id=source_id, text_key="text", modality="printed")
+        elif source_id in (SOURCE_RESHUMOT, SOURCE_KNESSET):
+            source_items = _government_print_items(root, source_id=source_id)
         else:
             source_items = _entry_items(root, source_id=source_id, text_key="annotation", modality="handwritten")
         snapshot_bytes = sum(path.stat().st_size for path in root.rglob("*") if path.is_file())
@@ -704,6 +797,7 @@ def build_manifest(tranche_root: Path) -> tuple[dict[str, Any], list[dict[str, A
                 f"{entry['snapshot']}/{name}": sha256_path(root / name) for name in SNAPSHOT_DESCRIPTOR_FILES[source_id]
             },
             "skipped": entry.get("skipped", {}),
+            **{key: entry[key] for key in ("pages_checked", "pages_passed", "canvas_match_verified", "canvas_match_not_verified") if key in entry},
         }
         items.extend({"source_id": source_id, **item} for item in source_items)
     checksums = tranche_root / TRANCHE_CHECKSUMS
@@ -711,7 +805,7 @@ def build_manifest(tranche_root: Path) -> tuple[dict[str, Any], list[dict[str, A
         "schema": TRANCHE_MANIFEST_SCHEMA,
         "tranche_id": descriptor["tranche_id"],
         "created_at": descriptor["created_at"],
-        "planning_notation": "F8g",
+        "planning_notation": "F8g2",
         "inputs": descriptor["inputs"],
         "item_count": len(items),
         "total_bytes": sum(path.stat().st_size for path in tranche_root.rglob("*") if path.is_file()),
@@ -739,8 +833,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     commands = parser.add_subparsers(dest="command", required=True)
     capture = commands.add_parser("capture", help="Fetch pinned upstream files into the operator cache (network).")
     capture.add_argument("--cache", type=Path, required=True)
-    capture.add_argument("--source", action="append", choices=("yidtaknl", "pinkas"), default=None)
+    capture.add_argument("--source", action="append", choices=("yidtaknl", "pinkas", "reshumot", "knesset"), default=None)
     capture.add_argument("--delay", type=float, default=1.0)
+    capture.add_argument("--seed", default=CAPTURE_SEED, help="Seed of the Reshumot booklet and Knesset protocol samples.")
+    capture.add_argument("--reshumot-per-query", type=int, default=1, help="Booklets per (series, Hebrew year) search.")
+    capture.add_argument("--reshumot-max-pages", type=int, default=24, help="Skip booklets longer than this.")
+    capture.add_argument("--reshumot-delay", type=float, default=4.0)
+    capture.add_argument("--knesset-terms", default="1-8", help="Knesset terms to sample, e.g. 1-8.")
+    capture.add_argument("--knesset-per-term", type=int, default=2)
+    capture.add_argument("--knesset-delay", type=float, default=15.0)
     capture.add_argument("--pinkas-manifest-copy", type=Path, default=None, help="Operator copy of the NLI manifest (used only if its sha256 is the pinned one).")
     materialize = commands.add_parser("materialize", help="Write the tranche tree from the operator caches (offline).")
     materialize.add_argument("--out", type=Path, required=True, help="Empty folder outside the repo for the tranche tree.")
@@ -750,6 +851,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     materialize.add_argument("--page-checks", type=Path, action="append", default=None)
     materialize.add_argument("--created-at", required=True, help="Tranche date recorded in the descriptor, e.g. 2026-11-06.")
     materialize.add_argument("--manifest-out", type=Path, default=None, help="Also write the committed manifest here.")
+    materialize.add_argument("--pinkas-checks", type=Path, default=Path(DEFAULT_PINKAS_CHECKS))
+    materialize.add_argument("--government-print-captured-at", default=None, help="Capture date of the Reshumot / Knesset caches.")
     manifest = commands.add_parser("manifest", help="Write the committed manifest for a materialized tree.")
     manifest.add_argument("--tranche", type=Path, required=True)
     manifest.add_argument("--out", type=Path, default=Path("src/hocrgen/data/real_tranche"))
@@ -766,6 +869,18 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - operator e
             print("yidtaknl", capture_yidtaknl(args.cache, delay=args.delay))
         if "pinkas" in sources:
             print("pinkas", capture_pinkas(args.cache, manifest_copy=args.pinkas_manifest_copy))
+        if "reshumot" in sources:
+            years = government_print_tranche.hebrew_years_since(date(2006, 1, 1), date.today())
+            print("reshumot", government_print_tranche.capture_reshumot(
+                args.cache, hebrew_years=years, seed=args.seed, per_query=args.reshumot_per_query,
+                max_pages=args.reshumot_max_pages, delay=args.reshumot_delay,
+            ))
+        if "knesset" in sources:
+            first, _, last = args.knesset_terms.partition("-")
+            print("knesset", government_print_tranche.capture_knesset(
+                args.cache, knesset_nums=range(int(first), int(last or first) + 1), seed=args.seed,
+                per_knesset=args.knesset_per_term, delay=args.knesset_delay,
+            ))
         return 0
     if args.command == "materialize":
         if args.out.exists() and any(args.out.iterdir()):
@@ -776,8 +891,21 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - operator e
                 work_dir=args.wikisource_work_dir, render_dirs=args.wikisource_renders, page_check_paths=page_checks, out_root=args.out
             ),
             SOURCE_YIDTAKNL: materialize_yidtaknl(cache=args.cache, out_root=args.out),
-            SOURCE_PINKAS: materialize_pinkas(cache=args.cache, out_root=args.out),
+            SOURCE_PINKAS: materialize_pinkas(cache=args.cache, out_root=args.out, checks_path=args.pinkas_checks),
         }
+        bundle = load_and_validate_bundle()
+        sources = {source.id: source for source in bundle.source_registry.sources}
+        captured_at = args.government_print_captured_at or args.created_at
+        if (args.cache / "reshumot" / "booklets.jsonl").is_file():
+            results[SOURCE_RESHUMOT] = government_print_tranche.materialize_reshumot(
+                cache=args.cache, out_root=args.out, packaged_root=_data("reshumot/snapshot"), source=sources[SOURCE_RESHUMOT],
+                captured_at=captured_at, gate=reshumot_entry_exclusion_reasons,
+            )
+        if (args.cache / "knesset" / "documents.jsonl").is_file():
+            results[SOURCE_KNESSET] = government_print_tranche.materialize_knesset(
+                cache=args.cache, out_root=args.out, packaged_root=_data("knesset_committees/snapshot"), source=sources[SOURCE_KNESSET],
+                captured_at=captured_at, gate=knesset_entry_exclusion_reasons,
+            )
         inputs = {
             "wikisource_inventory_checked_at": json.loads((args.wikisource_work_dir / "wikisource_inventory.json").read_text(encoding="utf-8"))["checked_at"],
             "wikisource_page_checks": {path.as_posix(): sha256_path(path) for path in page_checks},
@@ -787,7 +915,12 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - operator e
             "pinkas_zip": PINKAS_ZIP_URL,
             "pinkas_zip_md5": PINKAS_ZIP_MD5,
             "pinkas_manifest_sha256": _pinkas_capture()["upstream_sha256"],
+            "pinkas_canvas_match_checks": {args.pinkas_checks.as_posix(): sha256_path(args.pinkas_checks)},
         }
+        for name, source_id in (("reshumot", SOURCE_RESHUMOT), ("knesset", SOURCE_KNESSET)):
+            if source_id in results:
+                listing = args.cache / name / ("booklets.jsonl" if name == "reshumot" else "documents.jsonl")
+                inputs[f"{name}_capture"] = {"listing_sha256": sha256_path(listing), "captured_at": captured_at, "seed": CAPTURE_SEED}
         write_descriptor(args.out, created_at=args.created_at, results=results, inputs=inputs)
         if args.manifest_out:
             manifest = write_manifest(args.out, args.manifest_out)
