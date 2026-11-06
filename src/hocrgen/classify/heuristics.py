@@ -52,7 +52,9 @@ def _content_class(item: CuratedItemRecord, bundle: ConfigBundle) -> tuple[str, 
         if declared_type not in allowed_types:
             reasons.append("content_declared_type_conflicting_source_types")
             return "mixed", 0.5, reasons
-        if declared_type.startswith("printed"):
+        if declared_type.startswith(("printed", "typewritten")):
+            # Typewritten pages (F8e) are machine-set type, so they classify as printed; the declared
+            # content type keeps them distinct.
             return "printed", 0.9, reasons
         if declared_type.startswith("handwritten") or declared_type == "manuscript_scan":
             return "handwritten", 0.9, reasons

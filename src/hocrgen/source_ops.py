@@ -9,6 +9,14 @@ from hocrgen.config.loader import ConfigBundle, load_json_file, load_yaml_file, 
 from hocrgen.config.models import SourceConfig, SourceOperationalStatus
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.fetchers.base import StageOptions
+from hocrgen.fetchers.government_print import (
+    GOVERNMENT_PRINT_INTEGRITY_REASONS,
+    government_print_entry_asset,
+    government_print_snapshot_root,
+    knesset_entry_exclusion_reasons,
+    load_government_print_snapshot,
+    reshumot_entry_exclusion_reasons,
+)
 from hocrgen.fetchers.hash import hash_entry_asset, hash_entry_exclusion_reason, hash_snapshot_root, load_hash_snapshot
 from hocrgen.fetchers.hocrsyngen_manifest import validate_hocrsyngen_batch
 from hocrgen.fetchers.modern_handwriting import validate_modern_intake_manifest
@@ -615,6 +623,8 @@ def _inspect_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[di
         return _inspect_yidtaknl_source(source, bundle)
     if source.fetcher == "wikisource_proofread":
         return _inspect_wikisource_source(source, bundle)
+    if source.fetcher in {"reshumot", "knesset_committee"}:
+        return _inspect_government_print_source(source, bundle)
     if source.fetcher == "pinkas_dataset":
         return _inspect_pinkas_dataset_source(source, bundle)
     if source.fetcher == "hocrsyngen_manifest":
@@ -1073,6 +1083,49 @@ def _yidtaknl_matched_pages_check(root: Path, snapshot: dict[str, Any]) -> dict[
     if problems:
         check["message"] = "malformed metadata-only matched pages"
     return check
+
+
+def _inspect_government_print_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int]:
+    """F8e: Reshumot and Knesset committee snapshots; checks pins and reports exclusions by first reason."""
+
+    prefix = source.fetcher
+    exclusion_reasons = reshumot_entry_exclusion_reasons if source.fetcher == "reshumot" else knesset_entry_exclusion_reasons
+    try:
+        root = government_print_snapshot_root(source, bundle)
+    except StageExecutionError as exc:
+        return [{"name": f"{prefix}_snapshot_root", "status": "error", "message": str(exc)}], 0, 0
+    snapshot_path = root / "snapshot.yaml"
+    checks = [_path_check(f"{prefix}_snapshot", snapshot_path, bundle)]
+    if not snapshot_path.exists():
+        return checks, 0, 0
+    try:
+        _, entries = load_government_print_snapshot(root)
+    except (OSError, ValueError) as exc:
+        checks.append({"name": f"{prefix}_entries", "path": _format_health_path(root, bundle), "status": "error", "message": str(exc)})
+        return checks, 0, 0
+    candidate_count = 0
+    asset_count = 0
+    exclusions: dict[str, int] = {}
+    for entry in entries:
+        reasons = exclusion_reasons(entry, source, root)
+        integrity = [reason for reason in reasons if reason in GOVERNMENT_PRINT_INTEGRITY_REASONS]
+        if integrity:
+            checks.append({"name": f"{prefix}_entry_text", "record_id": entry.get("entry_id"), "status": "error", "message": ", ".join(integrity)})
+        if reasons:
+            exclusions[reasons[0]] = exclusions.get(reasons[0], 0) + 1
+            continue
+        candidate_count += 1
+        asset = government_print_entry_asset(entry) or {}
+        asset_path = (root / str(asset.get("local_path", ""))).resolve()
+        check = _path_check(f"{prefix}_entry_asset", asset_path, bundle)
+        if asset_path.is_file() and sha256_file(asset_path) != asset.get("sha256"):
+            check["status"] = "error"
+            check["message"] = f"checksum mismatch for {entry['entry_id']}"
+        if check["status"] == "ok":
+            asset_count += 1
+        checks.append(check)
+    checks.append({"name": f"{prefix}_entry_exclusions", "actual": dict(sorted(exclusions.items())), "status": "ok"})
+    return checks, candidate_count, asset_count
 
 
 def _source_depth_expansion_path(source: SourceConfig, bundle: ConfigBundle) -> tuple[str, list[dict[str, Any]]]:

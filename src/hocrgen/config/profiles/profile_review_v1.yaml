@@ -10,6 +10,8 @@ include_sources:
   - yidtaknl_vaybertaytsh_gt
   - wikisource_he_proofread
   - pinkas_dataset_bgu
+  - reshumot_born_digital
+  - knesset_committee_protocols_pre1976
 exclude_sources: []
 allowed_rights_classifications:
   - open
