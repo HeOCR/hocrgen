@@ -883,6 +883,42 @@ def test_f7_hash_source_integration_plan_is_documented_and_gate_preserving() -> 
         assert token in plan
 
 
+def test_f8_real_source_map_is_planning_only_and_gate_preserving() -> None:
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+    plan = Path("planning/tasks/f8-real-source-map.md").read_text(encoding="utf-8")
+    agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
+    roadmap_rows = _roadmap_table_rows(roadmap)
+
+    assert roadmap_rows["F8"][1] == "Real-source map and paired-text source intake"
+    assert roadmap_rows["F8"][2].split(", ") == ["F8a", "F8b", "F8c", "F8d", "F8e"]
+    assert roadmap_rows["F8"][4] == "partial"
+    assert roadmap_rows["F8a"][4] == "completed"
+    for pr_id in ["F8b", "F8c", "F8d"]:
+        assert roadmap_rows[pr_id][1] == "F8"
+        assert roadmap_rows[pr_id][4] == "planned"
+    assert roadmap_rows["F8e"][4] == "deferred"
+    assert "## Milestone F8 — Real-source map and paired-text source intake" in roadmap
+    assert "`F8a` now defines milestone F8" in agent_plan
+    for token in [
+        "OCR and HTR output is never ground truth",
+        "`review_only`",
+        "`profile_open_v1`",
+        "`benchmark_v1` membership stays frozen",
+        "`public-domain-free-use`",
+        "`PD-US-not renewed`",
+        "mr.gov.il tender pages",
+        "## Maintainer decisions needed",
+    ]:
+        assert token in plan
+    for name in [
+        "track_a_legislative_judicial.md",
+        "track_b_archives_aggregators.md",
+        "track_c_nli_books.md",
+        "track_d_transcribed_datasets.md",
+    ]:
+        assert Path("docs/2026_11_06_israeli_public_domain_documents_research/verification", name).exists()
+
+
 def test_e2d_real_scan_evaluation_direction_is_recorded_without_changing_scoring() -> None:
     roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
     stub = Path("planning/tasks/e2d-real-scan-evaluation.md").read_text(encoding="utf-8")
