@@ -148,6 +148,12 @@ Benchmark members also must not share exact duplicate, near-duplicate, or source
 
 Benchmark removals or replacements require a deliberate PR that updates the benchmark config, benchmark card, release notes, and planning docs. The PR must explain why the change is necessary and how consumers should compare results across the affected release versions.
 
+## Evaluation set direction
+
+Maintainer decision, 2026-11-06: evaluation should eventually run on real scanned text only, printed and handwritten, with no synthetic text in the eval set. Printed and handwritten Hebrew get separate evaluation tracks, and possibly separate pipelines. Synthetic evaluation stays in use until enough real reference data exists. This is a transition, and it changes no current scoring, release gate or benchmark. See [`planning/decisions/2026-11-06-real-scan-evaluation-direction.md`](../planning/decisions/2026-11-06-real-scan-evaluation-direction.md) and the `E2d` stub in [`planning/tasks/e2d-real-scan-evaluation.md`](../planning/tasks/e2d-real-scan-evaluation.md).
+
+Maintainer decision, 2026-11-06: new human transcription campaigns are allowed. The earlier "no new human transcription campaign" rule is removed; see [`planning/decisions/2026-11-06-human-transcription-campaigns-allowed.md`](../planning/decisions/2026-11-06-human-transcription-campaigns-allowed.md).
+
 ## Planning and PR metadata
 
 Roadmap-tracked PRs must update `.agent-plan.md`, `README.md`, and affected docs in the same branch. The PR title must use `<notation>: <sentence-case summary>`, and the PR body must include a top-level `## Planning notation` section naming:

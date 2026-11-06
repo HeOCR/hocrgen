@@ -1,6 +1,6 @@
 # F7 — Governed HASH real-handwriting source integration
 
-Status: `F7a` planning and the `F7b` review-only adapter are implemented on the current ref; `F7c` is **deferred** (no valid inputs); `F7d`–`F7e` are planned. Parent milestone: F7. It feeds the `F6g` readiness rerun. Source proposal: `HeOCR/hocrgen#89`.
+Status: `F7a` planning and the `F7b` review-only adapter are implemented on the current ref; `F7c`–`F7e` are planned. Parent milestone: F7. It feeds the `F6g` readiness rerun. Source proposal: `HeOCR/hocrgen#89`.
 
 The evidence was checked against `HeOCR/hash` commit `3cb163a`: 197 entries in 48 source groups. The scans come from NLI (143), the Library of Congress (24), Wikimedia Commons (29) and OPenn (1). Most date from 1900–1949 (158); 31 are pre-1900 and 5 are from 1950 on.
 
@@ -31,12 +31,11 @@ The adapter uses packaged static records, following the Pinkas/BiblIA pattern. `
 
 ## Ground-truth boundary (F7c)
 
-**Deferred on 2026-11-01.** `F7c` has no valid inputs:
+**Planned (2026-11-06).** `F7c` was deferred on 2026-11-01, partly on a "no new human transcription campaign or labeling target" rule taken from the "Maintainer decisions" text in issue #86. That text was written by an agent, and #86 is now closed. **Maintainer decision, 2026-11-06: the no-campaign rule is removed.** In the maintainer's words: "I don't remember dictating that rule, and anyway if I did, I remove it; we will have many new human transcription campaigns in the future, if we're lucky." New human transcription campaigns are allowed and expected. Decision record: [`planning/decisions/2026-11-06-human-transcription-campaigns-allowed.md`](../decisions/2026-11-06-human-transcription-campaigns-allowed.md).
 
-- The issue #86 maintainer decisions (2026-11-01) rule out any new human transcription campaign or labeling target. Issue #86 (tender pages) has since been closed on 2026-11-06 as unusable; whether this no-campaign rule still stands is an open question for the maintainer.
-- None of the 10 HASH `status: reviewed` transcripts meets the human-reviewed bar (see below).
+What `F7c` needs is human-attested HASH transcripts. A transcript is an input only when a HASH-side attestation record names a human reviewer, the method, the base text, the niqqud policy and the text SHA-256 (see below). None of the 10 current `status: reviewed` HASH transcripts meets that bar, so `F7c` has no inputs yet. Those inputs may come from a new human transcription campaign.
 
-Until human-attested inputs exist without a new campaign, HASH text may be scored only as explicitly `unreviewed` diagnostics through E2c evaluation, never as references. Source proposal #89 stays open. The design below is kept for when inputs exist.
+Until attested transcripts exist, HASH text may be scored only as explicitly `unreviewed` diagnostics through E2c evaluation, never as references. Source proposal #89 stays open.
 
 HTR candidate output is never ground truth. This covers the Kraken/eScriptorium, consolidated and GPT-4o files under HASH `data/transcripts/candidates/`, and any `created_by: ocr` text without a human attestation. None of the current 10 `status: reviewed` HASH texts qualifies:
 
