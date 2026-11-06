@@ -977,11 +977,13 @@ def test_e2d_real_scan_evaluation_direction_is_recorded_without_changing_scoring
     assert "## E2d — Real-scan evaluation direction" in roadmap
     assert "### 3.7 Evaluation moves to real scans (direction, 2026-11-06)" in roadmap
     assert "E2d" not in _roadmap_table_rows(roadmap)
-    assert "planned direction only (2026-11-06)" in stub
+    assert "`E2d1` and `E2d2` implemented on the current ref (2026-11-06); `E2d3` planned." in stub
+    assert "no synthetic score, profile, view or report changed" in stub
     for text in (stub, decision):
         assert "no synthetic text" in text
         assert "printed" in text and "handwritten" in text
         assert "separate pipelines" in text
     assert "current scoring is unchanged" in decision
     assert "we will have many new human transcription campaigns in the future, if we're lucky." in campaigns
-    assert "`E2d` is a planned direction only" in agent_plan
+    assert "`E2d1` and `E2d2` are implemented" in agent_plan
+    assert Path("docs/e2d2_real_printed_evaluation.md").exists()

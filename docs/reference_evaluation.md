@@ -2,7 +2,7 @@
 
 `hocrgen.reference_evaluation` scores explicit predictions against reviewed or adjudicated `benchmark_transcription_reference.v1` records. It does not acquire references or run an OCR engine. Existing `hocrgen.evaluation` and `evaluate-benchmark` retain their raw E2a behavior.
 
-**Direction (2026-11-06).** Synthetic gold is the scored set for now. Evaluation is to move, over time, to real scans only, with separate printed and handwritten tracks. Nothing here changes until a later E2d PR; see [`planning/tasks/e2d-real-scan-evaluation.md`](../planning/tasks/e2d-real-scan-evaluation.md).
+**Direction (2026-11-06).** Synthetic gold is the headline scored set for now. Evaluation is to move, over time, to real scans only, with separate printed and handwritten tracks. `E2d1`/`E2d2` add a printed modality track beside it ([modality tracks](#modality-tracks-and-real-printed-references-e2d1-e2d2)); the cutover is `E2d3`. See [`planning/tasks/e2d-real-scan-evaluation.md`](../planning/tasks/e2d-real-scan-evaluation.md).
 
 ```python
 from hocrgen.manifests.models import BenchmarkTranscriptionReferenceRecord
@@ -150,3 +150,30 @@ On the mixed-script recipe's 25 ledger pages, R3d on gold baselines scores 3,112
 `logical_order` and 130 against the per-cell view (12,038 and 10,038 reference characters).
 
 For a frozen, rights-clean mixed-script example, see the [synthetic evaluation recipe](evaluation-fixtures/bidi-synthetic-recipe.md).
+
+## Modality tracks and real printed references (E2d1, E2d2)
+
+`--modality printed|handwritten` (with `--reference-manifest`; refused with `--diagnostic-only`) makes a run one modality track. The modality track is distinct from the open/proprietary prediction `track`; both are reported.
+
+- **Input.** `benchmark_reference_manifest.v1` items may declare `modality` (`printed` or `handwritten`) and `reference_normalization` (`footnote_marker_style`, `footnote_count`). Unset, both are omitted from serialized output, so existing manifests and release artifacts are unchanged.
+- **Scope.** Only adjudicated items of the run's modality are scored. Others are listed in `excluded_references` with a reason; a track with no scored item fails closed.
+- **Report.** `modality` at the top level, on `scored.adjudicated_reference`, in `strata.modality` and in the run record (`modality`, `modality_scope`). `scored.synthetic_gold` is identical with and without the flag; a run without it is byte-identical to one before E2d.
+
+**Footnote view (`footnote_masked.v1`, issue #124).** Adjudicated items whose manifest entry declares `footnote_marker_style: bracketed_index` (Hebrew Wikisource writes every printed mark as `[n]`) are also scored under `reference_views.adjudicated_reference."footnote_masked.v1"`:
+
+- `views.as_is`: the same per-item results as `scored`;
+- `views."footnote_masked.v1"`: the reference with its `[n]` marks removed, and the prediction with the characters a Levenshtein alignment against the unmasked reference places on those marks removed (the E2c3 alignment rule);
+- `masking`: mark, masked-reference-character and removed-prediction-character counts per item, and skipped items (alignments above 25 million cells).
+
+The view is heuristic near the marks, appears only when a scored item declares the fact, and never changes `scored` or `primary.v1`. `comparison.reference_view_deltas` covers it.
+
+**Intervals.** `--bootstrap-resamples N` (with `--baseline-predictions`; `--bootstrap-seed`, default 0) adds `paired_bootstrap` to every comparison delta: the 95% percentile interval of ΔCER and ΔWER over common items resampled with replacement, re-aggregated as sums. The run record lists the settings. The default, 0, adds nothing.
+
+**Real printed references.** `python -m hocrgen.tools.wikisource_eval_references SNAPSHOT OUT` (operator-only) writes, from a pinned Wikisource snapshot:
+
+- adjudicated `benchmark_transcription_reference.v1` records for quality-4 pages, each with a `wikisource_adjudication_record.v1` that names the two Wikisource editors as the attesting humans (maintainer decision 2; no agent attests);
+- a manifest with `modality: printed`;
+- quality-3 pages as `--unreviewed-texts` (`reference_origin: wikisource_single_reviewer`);
+- an `--asset-index` that maps each item to its page image, or to its decision-12 crop.
+
+`python -m hocrgen.tools.eval_text_leakage` checks reference texts against training corpora (word 8-gram exclusion, 3-gram share flag above 20%) and writes the `--hold-out` list. The first run is in [`e2d2_real_printed_evaluation.md`](./e2d2_real_printed_evaluation.md).

@@ -90,7 +90,7 @@ Source health checks every cropped page: the crop asset exists with its SHA-256,
 
 ### Reference normalisation facts (F8b4)
 
-Each item's metadata, and each F2 reference-pool entry, records `reference_normalization`: `footnote_marker_style` is `bracketed_index` when the page has footnotes (each printed mark is written `[n]`, see below) and `null` otherwise, with `footnote_count`. Evaluation can mask the marks from this fact; E2c scoring is unchanged (follow-up: `HeOCR/hocrgen#124`). A page with text the scan does not show also lists its `excluded_spans` (F8b7, below).
+Each item's metadata, and each F2 reference-pool entry, records `reference_normalization`: `footnote_marker_style` is `bracketed_index` when the page has footnotes (each printed mark is written `[n]`, see below) and `null` otherwise, with `footnote_count`. Evaluation can mask the marks from this fact: `E2d2` carries it onto reference-manifest items, and `evaluate-references` reports those items also under the `footnote_masked.v1` view (issue #124, [reference evaluation](./reference_evaluation.md)); `primary.v1` is unchanged. A page with text the scan does not show also lists its `excluded_spans` (F8b7, below).
 
 ## Pair text: unprinted footnotes, stand-ins and text the scan hides (F8b7)
 

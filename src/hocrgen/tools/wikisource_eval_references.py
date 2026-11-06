@@ -16,6 +16,11 @@ evaluation inputs for ``hocrgen evaluate-references``:
   ``partial_page`` page its decision-12 crop (F8b4).
 
 Pages can be held out by item id (for example after a training-text leakage check); each is listed with its reason.
+
+With a release ``split_manifest.json`` (F8g: whole source and work groups are assigned to one split), every item records
+the release split its page belongs to (``train``, ``validation``, ``test`` or ``not_in_release``) and its split group;
+adjudicated manifest items carry it as ``benchmark_split``. A page in the release ``train`` split ships as training
+data, so it must never be presented as held-out evaluation.
 Everything this writes holds CC BY-SA 4.0 Wikisource text and stays operator-only. ``benchmark_v1`` is untouched.
 """
 from __future__ import annotations
@@ -48,6 +53,8 @@ EVAL_SET_SCHEMA = "wikisource_eval_reference_set.v1"
 SINGLE_REVIEWER_ORIGIN = "wikisource_single_reviewer"
 MODALITY = "printed"
 DOCUMENT_TYPE = "printed_book_page"
+RELEASE_SPLITS = ("train", "validation", "test")
+NOT_IN_RELEASE = "not_in_release"
 ADJUDICATION_RULE = (
     "maintainer decision 2 (2026-11-06): a Wikisource quality-4 page, validated by a second named human editor "
     "with its text unchanged since validation, counts as human-attested and adjudication-eligible; the validator's "
@@ -115,9 +122,22 @@ def adjudicated_reference(page: Mapping[str, Any], root: Path, *, source_id: str
     return adjudicated, adjudication
 
 
+def load_release_splits(path: Path) -> dict[str, dict[str, Any]]:
+    """Item id -> ``{split, split_group_id, split_constraint}`` from a release ``split_manifest.json``."""
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    splits = {}
+    for item in payload.get("items", []):
+        if item.get("split") not in RELEASE_SPLITS:
+            raise StageExecutionError(f"split manifest item {item.get('item_id')} has an unknown split")
+        splits[item["item_id"]] = {"split": item["split"], "split_group_id": item.get("split_group_id"),
+                                   "split_constraint": item.get("split_constraint")}
+    return splits
+
+
 def write_eval_reference_set(
     root: Path, output_dir: Path, *, source_id: str = SOURCE_ID, reference_manifest_id: str,
-    held_out: Mapping[str, str] | None = None,
+    held_out: Mapping[str, str] | None = None, release_splits: Mapping[str, Mapping[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """Write the adjudicated printed reference manifest, the single-reviewer texts and the asset index.
 
@@ -156,6 +176,13 @@ def write_eval_reference_set(
                  "page_title": page["page_title"], "page_revision_id": page["revision_id"],
                  "transcription_coverage": page["transcription_coverage"], "image": image,
                  "reference_normalization": facts}
+        split = None
+        if release_splits is not None:
+            assigned = release_splits.get(item_id)
+            split = assigned["split"] if assigned else None
+            entry["release_split"] = split or NOT_IN_RELEASE
+            entry["release_split_group_id"] = assigned.get("split_group_id") if assigned else None
+            entry["release_split_constraint"] = assigned.get("split_constraint") if assigned else None
         if stratum == "adjudicated":
             record, adjudication = adjudicated_reference(page, root, source_id=source_id)
             base = f"references/{page['source_item_id']}"
@@ -166,7 +193,7 @@ def write_eval_reference_set(
             manifest_items.append({
                 "reference_id": f"{reference_manifest_id}:{page['source_item_id']}",
                 "item_id": item_id, "source_id": source_id, "source_item_id": page["source_item_id"],
-                "benchmark_split": None, "visibility": "hidden_reference", "public_reference_status": "adjudicated",
+                "benchmark_split": split, "visibility": "hidden_reference", "public_reference_status": "adjudicated",
                 "transcription_reference": {"path": f"{base}/transcription.json",
                                             "schema_version": "benchmark_transcription_reference.v1",
                                             "sha256": _sha256(payload)},
@@ -182,6 +209,7 @@ def write_eval_reference_set(
                 "item_id": item_id, "text": page_plain_text(page, root), "reference_origin": SINGLE_REVIEWER_ORIGIN,
                 "modality": MODALITY, "source_id": source_id, "document_type": DOCUMENT_TYPE,
                 "language_script": "he-Hebr",
+                **({"release_split": entry["release_split"]} if release_splits is not None else {}),
             })
         asset_index.append({"item_id": item_id, "page_sha256": [image["sha256"]]})
         items.append(entry)
@@ -200,6 +228,12 @@ def write_eval_reference_set(
         for line in single_reviewer:
             handle.write(json.dumps(line, ensure_ascii=False, sort_keys=True) + "\n")
     (output_dir / "asset_index.json").write_text(_dump({"items": asset_index}), encoding="utf-8")
+    split_counts = None
+    if release_splits is not None:
+        split_counts = {}
+        for entry in items:
+            key = f"{entry['stratum']}:{entry['release_split']}"
+            split_counts[key] = split_counts.get(key, 0) + 1
     summary = {
         "schema_version": EVAL_SET_SCHEMA,
         "source_id": source_id,
@@ -209,6 +243,10 @@ def write_eval_reference_set(
         "operator_only": True,
         "counts": {"adjudicated": len(manifest_items), "single_reviewer": len(single_reviewer),
                    "held_out": len(excluded), "skipped": dict(sorted(skipped.items()))},
+        "release_split_counts": dict(sorted(split_counts.items())) if split_counts is not None else None,
+        "release_split_policy": ("a page in the release train split ships as training data and is never held-out "
+                                 "evaluation; not_in_release pages were dropped before the split stage")
+        if split_counts is not None else None,
         "held_out": excluded,
         "items": items,
     }
@@ -223,15 +261,19 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--reference-manifest-id", default="e2d2_wikisource_printed_v1")
     parser.add_argument("--hold-out", type=Path, default=None,
                         help="JSON {item_id: reason} of pages to leave out (for example training-text overlap)")
+    parser.add_argument("--split-manifest", type=Path, default=None,
+                        help="A release split_manifest.json: record each page's release split (F8g group-whole splits)")
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     held_out = json.loads(args.hold_out.read_text(encoding="utf-8")) if args.hold_out else None
-    summary = write_eval_reference_set(args.snapshot_root, args.output_dir,
-                                       reference_manifest_id=args.reference_manifest_id, held_out=held_out)
-    print(json.dumps({"counts": summary["counts"]}, indent=2))  # counts only, never text
+    splits = load_release_splits(args.split_manifest) if args.split_manifest else None
+    summary = write_eval_reference_set(args.snapshot_root, args.output_dir, reference_manifest_id=args.reference_manifest_id,
+                                       held_out=held_out, release_splits=splits)
+    print(json.dumps({"counts": summary["counts"], "release_split_counts": summary["release_split_counts"]},
+                     indent=2))  # counts only, never text
     return 0
 
 

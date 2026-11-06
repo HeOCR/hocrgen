@@ -143,3 +143,28 @@ def test_leakage_cli_writes_counts_and_hold_out_list(tmp_path: Path) -> None:
     with pytest.raises(StageExecutionError, match="NAME=PATH"):
         leakage.main(["--texts", str(tmp_path / "set" / "single_reviewer_texts.jsonl"), "--corpus", "bad",
                       "--output", str(out)])
+
+
+def test_release_splits_are_recorded_so_train_pages_are_never_presented_as_held_out(tmp_path: Path) -> None:
+    from hocrgen.tools.wikisource_eval_references import load_release_splits
+
+    split_manifest = tmp_path / "split_manifest.json"
+    split_manifest.write_text(json.dumps({"items": [
+        {"item_id": SELIHOT, "split": "train", "split_group_id": "source-group:a", "split_constraint": None},
+        {"item_id": BUBER, "split": "test", "split_group_id": "source-group:b", "split_constraint": None},
+    ]}), encoding="utf-8")
+    splits = load_release_splits(split_manifest)
+    summary = write_eval_reference_set(SNAPSHOT, tmp_path / "set", reference_manifest_id="e2d2_test", release_splits=splits)
+    items = {item["item_id"]: item for item in summary["items"]}
+    assert items[SELIHOT]["release_split"] == "train" and items[SELIHOT]["release_split_group_id"] == "source-group:a"
+    assert items[BUBER]["release_split"] == "test"
+    assert summary["release_split_counts"] == {"adjudicated:train": 1, "single_reviewer:not_in_release": 2,
+                                               "single_reviewer:test": 1}
+    manifest = json.loads((tmp_path / "set" / "reference_manifest.json").read_text("utf-8"))
+    assert manifest["items"][0]["benchmark_split"] == "train"
+    texts = [json.loads(line) for line in (tmp_path / "set" / "single_reviewer_texts.jsonl").read_text("utf-8").splitlines()]
+    assert {text["release_split"] for text in texts} == {"test", "not_in_release"}
+    assert eval_refs_main([str(SNAPSHOT), str(tmp_path / "cli"), "--split-manifest", str(split_manifest)]) == 0
+    split_manifest.write_text(json.dumps({"items": [{"item_id": SELIHOT, "split": "holdout"}]}), encoding="utf-8")
+    with pytest.raises(StageExecutionError, match="unknown split"):
+        load_release_splits(split_manifest)
