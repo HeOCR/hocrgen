@@ -3,14 +3,6 @@
   "description": "Recorded per-Index evidence the F8b inventory applies on top of what it gathers itself: cited creator death years for creators it found only as plain text, scan sources, and Index languages the wikis do not record. Each entry names who recorded it (agent or human), the source and the date checked. A recorded fact only fills evidence the tool did not find; it never replaces it. Facts not found reliably are left missing, so the gate keeps rejecting.",
   "not_recorded": [
     {
-      "index_title": "מפתח:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf",
-      "what": "death year for Yosef Nachmuli (translator and printer, Corfu 1885); the Index language; scan source",
-      "why": "Not recorded pending the maintainer (F8b5). Facts found: the book (Corfu 5645/1885) is the traditional Hebrew Sephardic liturgy with a facing Greek translation, printed 'at the translator's expense' with Abraham m' Yitzhaki at the translator's press; rare-book catalogues call it the only edition. Columbia University Libraries' exhibition 'The Jews of Corfu' (https://online-exhibitions.library.columbia.edu/exhibits/show/jews_corfu/print) dates Giuseppe Nacamulli, Corfu printer and founder of Cronaca Israelitica, 1821-1886; Encyclopaedia Judaica ('Corfu') names Joseph Nahamuli as the printer and Greek translator who published that paper, so the two are very likely the same man. That is a secondary source, not Wikidata or NLI (Q134717556 is him, with no dates; Q112144527, died 1785, is another man). All 214 quality-3/4 pages are the even PDF pages: the Hebrew title page and 213 pages of Hebrew liturgy, with no Greek; the Greek translation is on the odd pages, empty {{iwpage|el}} stubs here. The partner Abraham Yitzhaki cannot be identified. The scan's origin is not recorded on Commons.",
-      "recorded_by": "agent",
-      "recorder": "Claude Code (claude-opus-5-5), F8b5",
-      "checked_at": "2026-11-06"
-    },
-    {
       "index_title": "מפתח:ויכוח על חכמת הקבלה.pdf",
       "what": "scan source",
       "why": "The Commons file page and its upload history (Simon.montagu, 2015, UploadWizard) give only the title and year, not who scanned the copy.",
@@ -125,12 +117,66 @@
     {
       "index_title": "מפתח:Hebrewbooks org 9418.pdf",
       "commons_file_sha1": "59a484990cf5993f543e3af09beaf3df04f84fdc",
-      "creators": [],
+      "creators": [
+        {
+          "names": [
+            "רב סעדיה גאון",
+            "Saadia Gaon"
+          ],
+          "role": "author",
+          "death_year": 942,
+          "wikidata": "Q328748",
+          "evidence_url": "https://www.wikidata.org/wiki/Q328748",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007267716905171",
+          "note": "Saadia Gaon, author of Emunot ve-De'ot; Wikidata P570 942-05-16.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b6",
+          "checked_at": "2026-11-06"
+        },
+        {
+          "names": [
+            "יהודה אבן תיבון",
+            "Judah ibn Tibbon"
+          ],
+          "role": "translator",
+          "death_year": 1190,
+          "wikidata": "Q745336",
+          "add": true,
+          "evidence_url": "https://www.wikidata.org/wiki/Q745336",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007262871205171",
+          "note": "Judah ibn Tibbon, whose Hebrew translation this is (named on the 1562 title page, PDF p. 2); Wikidata P570 1190.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b6",
+          "checked_at": "2026-11-06"
+        }
+      ],
       "language": {
         "value": "he",
         "evidence": "Neither wiki records a language; Hebrew from the work itself: Hebrew translation of Saadia's ספר האמונות והדעות (HebrewBooks 9418).",
         "recorded_by": "agent",
         "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      },
+      "creator_corrections": [
+        {
+          "names": [
+            "רבנו"
+          ],
+          "correction": "not_a_creator",
+          "evidence": "An honorific from the Index author field 'רבנו [[מחבר:רב סעדיה גאון|סעדיה גאון]]', not a separate person.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b6",
+          "checked_at": "2026-11-06"
+        }
+      ],
+      "published_year": {
+        "value": 1562,
+        "evidence": "The first edition, Constantinople 5322 (1562): its title page is PDF p. 2, and p. 1 is the 1972 Makor photo-reprint's title ('צילום הדפוס הראשון, קושטא שכ\"ב')",
+        "evidence_url": "https://he.wikisource.org/wiki/%D7%A7%D7%95%D7%91%D7%A5:Hebrewbooks_org_9418.pdf",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b6",
         "checked_at": "2026-11-06"
       }
     },
@@ -605,6 +651,127 @@
         "recorder": "Claude Code (claude-opus-5-5), F8b5",
         "checked_at": "2026-11-06"
       }
+    },
+    {
+      "index_title": "מפתח:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf",
+      "commons_file_sha1": "00ead8b3b6fcc9d862e54bb871710134f48b6d23",
+      "creators": [
+        {
+          "names": [
+            "יוסף נחמולי",
+            "Yosef Nachmuli",
+            "Joseph Nahamuli",
+            "Giuseppe Nacamulli"
+          ],
+          "role": "translator",
+          "death_year": 1886,
+          "wikidata": "Q134717556",
+          "evidence_url": "https://online-exhibitions.library.columbia.edu/exhibits/show/jews_corfu/print",
+          "evidence_kind": "secondary_sources",
+          "note": "Joseph (Giuseppe) Nahamuli / Nacamulli, Corfu printer and Greek translator of this 1885 siddur. Columbia University Libraries' exhibition 'The Jews of Corfu' dates Giuseppe Nacamulli, founder of Cronaca Israelitica, 1821-1886; Encyclopaedia Judaica, 'Corfu' (https://www.encyclopedia.com/religion/encyclopedias-almanacs-transcripts-and-maps/corfu) names Joseph Nahamuli as the printer and Greek translator who published that paper, which links the two names. Secondary sources: Wikidata Q134717556 is him with no dates (Q112144527, died 1785, is another man), and NLI's authority records could not be checked. Recorded on the team lead's decision (F8b6).",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b6",
+          "checked_at": "2026-11-06"
+        }
+      ],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; every quality-3/4 page is a Hebrew page of this Hebrew-Greek siddur (the even PDF pages: the Hebrew title page and the Hebrew liturgy, with no Greek characters); the Greek pages are untranscribed stubs.",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b6",
+        "checked_at": "2026-11-06"
+      },
+      "additional_grounds": [
+        {
+          "ground": "Independently of Nachmuli: every transcribed page is the traditional Hebrew Sephardic liturgy, centuries old, or the Hebrew title page. His own work, the facing Greek translation, is on the odd PDF pages, which are untranscribed {{iwpage|el}} stubs here, so it is in no pair. The printing partner Abraham m' Yitzhaki (title page) cannot be identified; his part is the printing.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b6",
+          "checked_at": "2026-11-06"
+        }
+      ]
+    },
+    {
+      "index_title": "מפתח:ספר דורות הראשונים א'.pdf",
+      "commons_file_sha1": "019260668395ff6faff8ba8e772c3f40f837f806",
+      "creators": [
+        {
+          "names": [
+            "יצחק אייזיק הלוי",
+            "Yitzhak Isaac Halevy Rabinowitz"
+          ],
+          "role": "author",
+          "death_year": 1914,
+          "wikidata": "Q8053923",
+          "add": true,
+          "evidence_url": "https://www.wikidata.org/wiki/Q8053923",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007262352605171",
+          "note": "Yitzhak Isaac Halevy Rabinowitz, author of Dorot ha-Rishonim (this volume: Frankfurt am Main 5666/1906, per its title page, PDF p. 4, in an undated Israeli photo-reprint); neither wiki names a creator. Wikidata P570 1914-05-15.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b6",
+          "checked_at": "2026-11-06"
+        }
+      ]
+    },
+    {
+      "index_title": "מפתח:AgadatHamelekhArtush recognized.pdf",
+      "commons_file_sha1": "83c57f83d6aa324559c89ab40f39c7342659bd9d",
+      "creators": [
+        {
+          "names": [
+            "Abraham Berliner",
+            "אברהם ברלינר"
+          ],
+          "role": "editor",
+          "death_year": 1915,
+          "wikidata": "Q90649",
+          "add": true,
+          "evidence_url": "https://www.wikidata.org/wiki/Q90649",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007258395705171",
+          "note": "Abraham Berliner, who edited this text in Otzar Tov 1885, pp. 1-11 (Jewish Encyclopedia, 'Arthur Legend', https://www.jewishencyclopedia.com/articles/1831); neither wiki names a creator. Wikidata P570 1915-04-21.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b6",
+          "checked_at": "2026-11-06"
+        }
+      ],
+      "additional_grounds": [
+        {
+          "ground": "The text Berliner edited is the anonymous Hebrew translation of the Arthurian tale made in 5039 (1279), from Vatican MS ebr. 100 (Jewish Encyclopedia, 'Arthur Legend'): a medieval anonymous work.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b6",
+          "checked_at": "2026-11-06"
+        }
+      ]
+    },
+    {
+      "index_title": "מפתח:Kol Machzike Hadas, \"Yamin u-Smol\".pdf",
+      "commons_file_sha1": "eebd22ce8a34e25118f82f21462a0286e5db9025",
+      "creators": [],
+      "creator_corrections": [
+        {
+          "names": [
+            "מערכת העלון \"קול מחזיקי הדת\""
+          ],
+          "correction": "anonymous",
+          "evidence": "An unsigned editorial by the newspaper's editorial board, Kol Machzike ha-Dat, 15 Heshvan 5644 (15 November 1883): neither transcribed page carries a signature.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b6",
+          "checked_at": "2026-11-06"
+        },
+        {
+          "names": [
+            "Editorial published in the Hebrew-language",
+            "traditionalist newspaper קול מחזיקי הדת",
+            "15 November 1883"
+          ],
+          "correction": "not_a_creator",
+          "evidence": "Fragments of the Commons author sentence ('Editorial published in the Hebrew-language, traditionalist newspaper ..., 15 November 1883'): the newspaper and the date, not people.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b6",
+          "checked_at": "2026-11-06"
+        }
+      ]
     }
   ]
 }

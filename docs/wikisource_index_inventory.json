@@ -132,6 +132,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -263,6 +268,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -395,6 +405,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -526,6 +541,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -655,6 +675,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -783,6 +808,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -911,6 +941,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1041,6 +1076,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1172,6 +1212,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1199,11 +1244,22 @@
         "published_year_evidence": null,
         "language": "he",
         "language_evidence": "Index page field שפה: he",
-        "creators": []
+        "creators": [
+          {
+            "name": "Abraham Berliner",
+            "role": "editor",
+            "wikidata": "Q90649",
+            "death_year": 1915,
+            "death_year_evidence_url": "https://www.wikidata.org/wiki/Q90649"
+          }
+        ],
+        "additional_grounds": [
+          "The text Berliner edited is the anonymous Hebrew translation of the Arthurian tale made in 5039 (1279), from Vatican MS ebr. 100 (Jewish Encyclopedia, 'Arthur Legend'): a medieval anonymous work. (recorded by agent, 2026-11-06)"
+        ]
       },
       "work_rights": {
         "basis": "author_died_by_1955",
-        "evidence": "No creator is recorded on the Index page or the Commons file page."
+        "evidence": "Creators: Abraham Berliner (editor, died 1915)."
       },
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
@@ -1223,12 +1279,76 @@
         }
       },
       "gate": {
-        "admitted": false,
-        "reasons": [
-          "creators_missing"
-        ]
+        "admitted": true,
+        "reasons": []
       },
-      "page_gate": null
+      "page_gate": {
+        "checked": 7,
+        "converts": {
+          "3": 2,
+          "4": 5
+        },
+        "eligible": {
+          "3": 2,
+          "4": 4
+        },
+        "cropped": {
+          "3": 0,
+          "4": 1
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_regions": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_reviewed": {
+          "3": 0,
+          "4": 1
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "needs_crop": {
+          "3": 0,
+          "4": 1
+        },
+        "pending_coverage_only": {
+          "3": 0,
+          "4": 0
+        },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 2
+        },
+        "transcluding_pages": 0,
+        "reference_eligible_q4": 2,
+        "reference_eligible_now_q4": 2,
+        "render_checks": {
+          "by_agent": 1,
+          "by_tool": 6,
+          "checked": 7,
+          "full_page": 6,
+          "partial_page": 1,
+          "stale": 0
+        },
+        "crop_unresolved_pages": [],
+        "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
+        "rejected_by_first_reason": {},
+        "unsupported_markup": {}
+      }
     },
     {
       "index_key": "ws_index_1705960",
@@ -1371,6 +1491,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1665,6 +1790,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1795,6 +1925,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2008,6 +2143,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2203,6 +2343,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2330,6 +2475,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2468,6 +2618,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2596,6 +2751,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2724,6 +2884,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2844,6 +3009,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2965,6 +3135,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -3086,6 +3261,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -3159,8 +3339,8 @@
       },
       "work": {
         "title": "ספר האמונות והדעות",
-        "published_year": null,
-        "published_year_evidence": null,
+        "published_year": 1562,
+        "published_year_evidence": "The first edition, Constantinople 5322 (1562): its title page is PDF p. 2, and p. 1 is the 1972 Makor photo-reprint's title ('צילום הדפוס הראשון, קושטא שכ\"ב') (https://he.wikisource.org/wiki/%D7%A7%D7%95%D7%91%D7%A5:Hebrewbooks_org_9418.pdf; recorded by agent, 2026-11-06)",
         "language": "he",
         "language_evidence": "Neither wiki records a language; Hebrew from the work itself: Hebrew translation of Saadia's ספר האמונות והדעות (HebrewBooks 9418). (recorded by agent, 2026-11-06)",
         "creators": [
@@ -3172,17 +3352,17 @@
             "death_year_evidence_url": "https://www.wikidata.org/wiki/Q328748"
           },
           {
-            "name": "רבנו",
-            "role": "author",
-            "wikidata": null,
-            "death_year": null,
-            "death_year_evidence_url": null
+            "name": "יהודה אבן תיבון",
+            "role": "translator",
+            "wikidata": "Q745336",
+            "death_year": 1190,
+            "death_year_evidence_url": "https://www.wikidata.org/wiki/Q745336"
           }
         ]
       },
       "work_rights": {
         "basis": "author_died_by_1955",
-        "evidence": "Creators: רב סעדיה גאון (author, died 942); רבנו (author, death year not evidenced)."
+        "evidence": "Creators: רב סעדיה גאון (author, died 942); יהודה אבן תיבון (translator, died 1190)."
       },
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
@@ -3201,12 +3381,75 @@
         }
       },
       "gate": {
-        "admitted": false,
-        "reasons": [
-          "creator_death_year_missing"
-        ]
+        "admitted": true,
+        "reasons": []
       },
-      "page_gate": null
+      "page_gate": {
+        "checked": 2,
+        "converts": {
+          "3": 2,
+          "4": 0
+        },
+        "eligible": {
+          "3": 2,
+          "4": 0
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_regions": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_reviewed": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "needs_crop": {
+          "3": 0,
+          "4": 0
+        },
+        "pending_coverage_only": {
+          "3": 0,
+          "4": 0
+        },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
+        "reference_eligible_q4": 0,
+        "reference_eligible_now_q4": 0,
+        "render_checks": {
+          "by_tool": 2,
+          "checked": 2,
+          "full_page": 2,
+          "partial_page": 0,
+          "stale": 0
+        },
+        "crop_unresolved_pages": [],
+        "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
+        "rejected_by_first_reason": {},
+        "unsupported_markup": {}
+      }
     },
     {
       "index_key": "ws_index_1735107",
@@ -3336,6 +3579,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -3487,6 +3735,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -4829,6 +5082,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -4960,6 +5218,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -4994,28 +5257,7 @@
         "creators": [
           {
             "name": "מערכת העלון \"קול מחזיקי הדת\"",
-            "role": "author",
-            "wikidata": null,
-            "death_year": null,
-            "death_year_evidence_url": null
-          },
-          {
-            "name": "Editorial published in the Hebrew-language",
-            "role": "author",
-            "wikidata": null,
-            "death_year": null,
-            "death_year_evidence_url": null
-          },
-          {
-            "name": "traditionalist newspaper קול מחזיקי הדת",
-            "role": "author",
-            "wikidata": null,
-            "death_year": null,
-            "death_year_evidence_url": null
-          },
-          {
-            "name": "15 November 1883",
-            "role": "author",
+            "role": "anonymous",
             "wikidata": null,
             "death_year": null,
             "death_year_evidence_url": null
@@ -5023,8 +5265,8 @@
         ]
       },
       "work_rights": {
-        "basis": "author_died_by_1955",
-        "evidence": "Creators: מערכת העלון \"קול מחזיקי הדת\" (author, death year not evidenced); Editorial published in the Hebrew-language (author, death year not evidenced); traditionalist newspaper קול מחזיקי הדת (author, death year not evidenced); 15 November 1883 (author, death year not evidenced)."
+        "basis": "anonymous_published_by_1955",
+        "evidence": "Every creator field carries an anonymous or unknown-author marker; published 1883."
       },
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
@@ -5046,12 +5288,75 @@
         }
       },
       "gate": {
-        "admitted": false,
-        "reasons": [
-          "creator_death_year_missing"
-        ]
+        "admitted": true,
+        "reasons": []
       },
-      "page_gate": null
+      "page_gate": {
+        "checked": 2,
+        "converts": {
+          "3": 2,
+          "4": 0
+        },
+        "eligible": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped": {
+          "3": 2,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_regions": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped_reviewed": {
+          "3": 2,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "needs_crop": {
+          "3": 2,
+          "4": 0
+        },
+        "pending_coverage_only": {
+          "3": 0,
+          "4": 0
+        },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
+        "reference_eligible_q4": 0,
+        "reference_eligible_now_q4": 0,
+        "render_checks": {
+          "by_agent": 2,
+          "checked": 2,
+          "full_page": 0,
+          "partial_page": 2,
+          "stale": 0
+        },
+        "crop_unresolved_pages": [],
+        "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
+        "rejected_by_first_reason": {},
+        "unsupported_markup": {}
+      }
     },
     {
       "index_key": "ws_index_1755241",
@@ -5265,6 +5570,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -5396,6 +5706,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -5595,6 +5910,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -5732,6 +6052,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -5931,6 +6256,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -6316,7 +6646,7 @@
           "4": 1
         },
         "cropped": {
-          "3": 79,
+          "3": 76,
           "4": 1
         },
         "cropped_review_recommended": {
@@ -6328,7 +6658,7 @@
           "4": 0
         },
         "cropped_reviewed": {
-          "3": 62,
+          "3": 59,
           "4": 1
         },
         "crop_unresolved": {
@@ -6336,7 +6666,7 @@
           "4": 0
         },
         "needs_crop": {
-          "3": 79,
+          "3": 76,
           "4": 1
         },
         "pending_coverage_only": {
@@ -6364,8 +6694,30 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 3,
+          "4": 0
+        },
+        "text_not_on_page_pages": [
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/138",
+            "quality": 3,
+            "detail": "the [1] note: an editor's correction with no printed counterpart"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/149",
+            "quality": 3,
+            "detail": "the [1] note: an editor's remark on an unclear print, with no printed counterpart"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/152",
+            "quality": 3,
+            "detail": "the [1] note: an editor's identification, with no printed counterpart"
+          }
+        ],
         "rejected_by_first_reason": {
-          "page_text_empty": 1
+          "page_text_empty": 1,
+          "text_not_on_page": 3
         },
         "unsupported_markup": {}
       }
@@ -6510,6 +6862,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {
           "page_text_empty": 1
         },
@@ -6639,6 +6996,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -6832,6 +7194,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -6969,6 +7336,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7110,6 +7482,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7249,6 +7626,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7388,6 +7770,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7527,6 +7914,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7664,6 +8056,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7798,6 +8195,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7937,6 +8339,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7969,28 +8376,31 @@
         "title": "סדר תפילות כמנהג ק״ק ספרדים",
         "published_year": 1885,
         "published_year_evidence": "Commons date field: 1885-01-01; Index page field שנה: 1885",
-        "language": null,
-        "language_evidence": "Neither the Index page nor the Commons file page records a language.",
+        "language": "he",
+        "language_evidence": "Neither wiki records a language; every quality-3/4 page is a Hebrew page of this Hebrew-Greek siddur (the even PDF pages: the Hebrew title page and the Hebrew liturgy, with no Greek characters); the Greek pages are untranscribed stubs. (recorded by agent, 2026-11-06)",
         "creators": [
           {
             "name": "יוסף נחמולי",
             "role": "author",
-            "wikidata": null,
-            "death_year": null,
-            "death_year_evidence_url": null
+            "wikidata": "Q134717556",
+            "death_year": 1886,
+            "death_year_evidence_url": "https://online-exhibitions.library.columbia.edu/exhibits/show/jews_corfu/print"
           },
           {
             "name": "Yosef Nachmuli",
             "role": "author",
-            "wikidata": null,
-            "death_year": null,
-            "death_year_evidence_url": null
+            "wikidata": "Q134717556",
+            "death_year": 1886,
+            "death_year_evidence_url": "https://online-exhibitions.library.columbia.edu/exhibits/show/jews_corfu/print"
           }
+        ],
+        "additional_grounds": [
+          "Independently of Nachmuli: every transcribed page is the traditional Hebrew Sephardic liturgy, centuries old, or the Hebrew title page. His own work, the facing Greek translation, is on the odd PDF pages, which are untranscribed {{iwpage|el}} stubs here, so it is in no pair. The printing partner Abraham m' Yitzhaki (title page) cannot be identified; his part is the printing. (recorded by agent, 2026-11-06)"
         ]
       },
       "work_rights": {
         "basis": "author_died_by_1955",
-        "evidence": "Creators: יוסף נחמולי (author, death year not evidenced); Yosef Nachmuli (author, death year not evidenced)."
+        "evidence": "Creators: יוסף נחמולי (author, died 1886); Yosef Nachmuli (author, died 1886)."
       },
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
@@ -8011,13 +8421,76 @@
         }
       },
       "gate": {
-        "admitted": false,
-        "reasons": [
-          "creator_death_year_missing",
-          "index_language_unrecorded"
-        ]
+        "admitted": true,
+        "reasons": []
       },
-      "page_gate": null
+      "page_gate": {
+        "checked": 214,
+        "converts": {
+          "3": 213,
+          "4": 1
+        },
+        "eligible": {
+          "3": 213,
+          "4": 1
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_regions": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_reviewed": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "needs_crop": {
+          "3": 0,
+          "4": 0
+        },
+        "pending_coverage_only": {
+          "3": 0,
+          "4": 0
+        },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 8,
+          "4": 1
+        },
+        "transcluding_pages": 0,
+        "reference_eligible_q4": 1,
+        "reference_eligible_now_q4": 1,
+        "render_checks": {
+          "by_agent": 7,
+          "by_tool": 207,
+          "checked": 214,
+          "full_page": 214,
+          "partial_page": 0,
+          "stale": 0
+        },
+        "crop_unresolved_pages": [],
+        "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
+        "rejected_by_first_reason": {},
+        "unsupported_markup": {}
+      }
     },
     {
       "index_key": "ws_index_376147",
@@ -8142,6 +8615,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -8285,6 +8763,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -8678,6 +9161,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -8885,6 +9373,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -8966,7 +9459,7 @@
           "4": 0
         },
         "eligible": {
-          "3": 22,
+          "3": 20,
           "4": 0
         },
         "cropped": {
@@ -9018,7 +9511,25 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
-        "rejected_by_first_reason": {},
+        "text_not_on_page": {
+          "3": 2,
+          "4": 0
+        },
+        "text_not_on_page_pages": [
+          {
+            "page_title": "עמוד:Siddur Torah Ohr (Schulzinger Bros. 1940).pdf/192",
+            "quality": 3,
+            "detail": "the [1] note: a modern editor's note on the custom, with no printed counterpart"
+          },
+          {
+            "page_title": "עמוד:Siddur Torah Ohr (Schulzinger Bros. 1940).pdf/194",
+            "quality": 3,
+            "detail": "the [1] note: a modern editor's note on the custom, with no printed counterpart"
+          }
+        ],
+        "rejected_by_first_reason": {
+          "text_not_on_page": 2
+        },
         "unsupported_markup": {}
       }
     },
@@ -9267,28 +9778,28 @@
           "4": 2
         },
         "cropped": {
-          "3": 17,
-          "4": 1
+          "3": 12,
+          "4": 0
         },
         "cropped_review_recommended": {
           "3": 0,
           "4": 0
         },
         "cropped_regions": {
-          "3": 4,
+          "3": 0,
           "4": 0
         },
         "cropped_reviewed": {
-          "3": 5,
-          "4": 1
+          "3": 0,
+          "4": 0
         },
         "crop_unresolved": {
           "3": 0,
           "4": 0
         },
         "needs_crop": {
-          "3": 17,
-          "4": 1
+          "3": 12,
+          "4": 0
         },
         "pending_coverage_only": {
           "3": 0,
@@ -9303,8 +9814,8 @@
           "4": 0
         },
         "transcluding_pages": 0,
-        "reference_eligible_q4": 3,
-        "reference_eligible_now_q4": 3,
+        "reference_eligible_q4": 2,
+        "reference_eligible_now_q4": 2,
         "render_checks": {
           "by_agent": 23,
           "by_tool": 43,
@@ -9315,7 +9826,45 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
-        "rejected_by_first_reason": {},
+        "text_not_on_page": {
+          "3": 5,
+          "4": 1
+        },
+        "text_not_on_page_pages": [
+          {
+            "page_title": "עמוד:The Seliḥot for the Entire Year.pdf/10",
+            "quality": 3,
+            "detail": "a bracketed passage that the editors' own footnote says is not printed on this page"
+          },
+          {
+            "page_title": "עמוד:The Seliḥot for the Entire Year.pdf/26",
+            "quality": 4,
+            "detail": "an editors' Hebrew paraphrase of the printed Yiddish rubric, which the page does not print in Hebrew"
+          },
+          {
+            "page_title": "עמוד:The Seliḥot for the Entire Year.pdf/30",
+            "quality": 3,
+            "detail": "an editors' Hebrew paraphrase of the printed Yiddish rubric, which the page does not print in Hebrew"
+          },
+          {
+            "page_title": "עמוד:The Seliḥot for the Entire Year.pdf/42",
+            "quality": 3,
+            "detail": "an editors' placeholder asking for a translation, in place of the printed Yiddish rubric"
+          },
+          {
+            "page_title": "עמוד:The Seliḥot for the Entire Year.pdf/58",
+            "quality": 3,
+            "detail": "an editors' Hebrew paraphrase of the printed Yiddish rubric, which the page does not print in Hebrew"
+          },
+          {
+            "page_title": "עמוד:The Seliḥot for the Entire Year.pdf/67",
+            "quality": 3,
+            "detail": "an editors' Hebrew paraphrase of the printed Yiddish rubric, which the page does not print in Hebrew"
+          }
+        ],
+        "rejected_by_first_reason": {
+          "text_not_on_page": 6
+        },
         "unsupported_markup": {}
       }
     },
@@ -9443,6 +9992,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -9572,6 +10126,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -9700,6 +10259,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -10090,6 +10654,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -10216,6 +10785,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -10696,6 +11270,11 @@
             "checked_by": "tool"
           }
         ],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -10817,6 +11396,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -10944,6 +11528,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -11122,6 +11711,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -11318,6 +11912,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -11620,6 +12219,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -11695,7 +12299,7 @@
           "4": 0
         },
         "eligible": {
-          "3": 11,
+          "3": 10,
           "4": 0
         },
         "cropped": {
@@ -11746,7 +12350,20 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
-        "rejected_by_first_reason": {},
+        "text_not_on_page": {
+          "3": 1,
+          "4": 0
+        },
+        "text_not_on_page_pages": [
+          {
+            "page_title": "עמוד:משלי עם פירוש קב ונקי.pdf/15",
+            "quality": 3,
+            "detail": "the [1] note: a modern editor's note, with no printed counterpart"
+          }
+        ],
+        "rejected_by_first_reason": {
+          "text_not_on_page": 1
+        },
         "unsupported_markup": {}
       }
     },
@@ -11874,6 +12491,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -11999,6 +12621,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -12122,6 +12749,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -12355,7 +12987,7 @@
           "4": 0
         },
         "eligible": {
-          "3": 8,
+          "3": 7,
           "4": 0
         },
         "cropped": {
@@ -12407,7 +13039,20 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
-        "rejected_by_first_reason": {},
+        "text_not_on_page": {
+          "3": 1,
+          "4": 0
+        },
+        "text_not_on_page_pages": [
+          {
+            "page_title": "עמוד:משפטי הטעמים רעדעלהיים תקס\"ח.pdf/14",
+            "quality": 3,
+            "detail": "the continuation of the foot note, merged in from the following pages; only its first line is printed here"
+          }
+        ],
+        "rejected_by_first_reason": {
+          "text_not_on_page": 1
+        },
         "unsupported_markup": {}
       }
     },
@@ -12563,6 +13208,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -12590,11 +13240,19 @@
         "published_year_evidence": null,
         "language": "he",
         "language_evidence": "Index page field שפה: he",
-        "creators": []
+        "creators": [
+          {
+            "name": "יצחק אייזיק הלוי",
+            "role": "author",
+            "wikidata": "Q8053923",
+            "death_year": 1914,
+            "death_year_evidence_url": "https://www.wikidata.org/wiki/Q8053923"
+          }
+        ]
       },
       "work_rights": {
         "basis": "author_died_by_1955",
-        "evidence": "No creator is recorded on the Index page or the Commons file page."
+        "evidence": "Creators: יצחק אייזיק הלוי (author, died 1914)."
       },
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
@@ -12616,12 +13274,76 @@
         }
       },
       "gate": {
-        "admitted": false,
-        "reasons": [
-          "creators_missing"
-        ]
+        "admitted": true,
+        "reasons": []
       },
-      "page_gate": null
+      "page_gate": {
+        "checked": 10,
+        "converts": {
+          "3": 2,
+          "4": 8
+        },
+        "eligible": {
+          "3": 2,
+          "4": 8
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_regions": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_reviewed": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "needs_crop": {
+          "3": 0,
+          "4": 0
+        },
+        "pending_coverage_only": {
+          "3": 0,
+          "4": 0
+        },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
+        "reference_eligible_q4": 4,
+        "reference_eligible_now_q4": 4,
+        "render_checks": {
+          "by_agent": 2,
+          "by_tool": 8,
+          "checked": 10,
+          "full_page": 10,
+          "partial_page": 0,
+          "stale": 0
+        },
+        "crop_unresolved_pages": [],
+        "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
+        "rejected_by_first_reason": {},
+        "unsupported_markup": {}
+      }
     },
     {
       "index_key": "ws_index_288444",
@@ -12759,6 +13481,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -12897,6 +13624,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -13026,6 +13758,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -13486,6 +14223,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -13744,6 +14486,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -14011,6 +14758,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -14414,6 +15166,11 @@
         },
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }

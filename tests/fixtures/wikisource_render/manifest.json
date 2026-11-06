@@ -196,6 +196,30 @@
      "wikitext_sha256": "043f5304443a265d13058200d1183cc130df918f5bd23ac52784693c0cb3bd76"
     }
    ]
+  },
+  {
+   "slug": "ws_index_398674__p0009",
+   "page_title": "עמוד:ספר דורות הראשונים א'.pdf/9",
+   "revision_id": 2948670,
+   "wikitext_sha256": "617f0038abc36dbc5e25b49a1efe09c3fb0f383fd7d1dd9df3897494ec46782d",
+   "html_sha256": "6a231023fa01e19b648b3801501c8f31ac3d65d3e32f7638b1ac97eb19dead86",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_336412__p0156",
+   "page_title": "עמוד:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf/156",
+   "revision_id": 809323,
+   "wikitext_sha256": "9ae49c55668ae8901bee7a885012134836dfa2b4eb3f6981b8df4d7aa7234621",
+   "html_sha256": "792ca3bb0968df7e3298cccf7e5f4bd49f54223cd996a474efad7c4ae1626ef7",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_336412__p0054",
+   "page_title": "עמוד:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf/54",
+   "revision_id": 787376,
+   "wikitext_sha256": "198770800d57e07dcb5515887515df360edde77bccff5572336ec7ee42176120",
+   "html_sha256": "46f2cc8bc1e0bda1429038966c7745c373a4b6a4a7bfaf8fa6646642dec5ff39",
+   "lines_equal": true
   }
  ]
 }

@@ -1,4 +1,4 @@
-# Hebrew Wikisource proofread-page source (F8b, F8b3, F8b4, F8b5)
+# Hebrew Wikisource proofread-page source (F8b, F8b3, F8b4, F8b5, F8b6)
 
 Source id `wikisource_he_proofread`, fetcher `wikisource_proofread`. Source proposal: `HeOCR/hocrgen#103`. Plan: [`planning/tasks/f8-real-source-map.md`](../planning/tasks/f8-real-source-map.md).
 
@@ -46,6 +46,7 @@ Real protection still excludes:
   - an editor who set quality is not a named human (an empty name, an IP edit, the `bot` group, or a name ending in "bot");
   - the `<pagequality user=...>` attribute disagrees with the editor who made that revision. The attribute keeps the name the editor had at the time, and the history shows the account's current name, so a rename is followed (F8b5): the inventory records the global (Meta `gblrename`) and local (`renameuser`) rename log entries of an editor whose attribute differs (`user_renames`, with the log id and time), and the attribute matches when a recorded rename of the same account, made after the edit, leads from it to the current name;
   - the validator is also the proofreader, by username or by user id;
+  - a check found words in its text that the scan page does not show (`text_not_on_page`, F8b6): an editor's paraphrase of a printed rubric, an editor's placeholder or note with no printed counterpart, or text merged in from other pages. Text and image do not match, so the page is not a pair; the check says what the text holds, and the summary lists the pages;
   - its transcription coverage was never recorded (`transcription_coverage_unrecorded`), or is not `full_page` / `partial_page` (`transcription_coverage_unknown`);
   - the pinned wikitext does not carry the recorded quality, or uses markup the converter does not support (`wikitext_unsupported_markup`).
 - **Partial pages are cropped, not dropped** (decision 12, F8b4). A `partial_page` transcription (for example commentary without the verse above it) pairs its text with a crop of the page image to the transcribed region (see [Crops](#crops-of-partial-pages-f8b4)). The item carries `needs_crop: true` and its `crop` provenance. A partial page without a crop is rejected and reported: `crop_unrecorded` (no tool crop for the pinned revision and scan), `crop_unresolved` (the tool could not place one) or `crop_geometry_invalid` (the box is not inside the page).
@@ -166,6 +167,13 @@ For each Index it records:
 - the **publication year** (the latest of the Commons date and the Index `שנה`; a Hebrew-letter year is read as its latest Gregorian year) and where it was read;
 - the **language** and where it was read;
 - the Commons licence templates, the scan source and the Google-digitization record (provenance).
+
+Since F8b6 the evidence file can also fill these gaps, each with its source and recorder, for the unchanged gate to read:
+
+- a **creator the wikis do not name** (`creators[].add: true`), with its cited death year; it is added only when no parsed creator has its name;
+- **corrections** of creators parsed from free text (`creator_corrections`): `not_a_creator` drops a date or a fragment of a sentence, and `anonymous` marks an unsigned work (a newspaper's editorial board). A creator with a death year is never corrected;
+- a **publication year** the wikis do not record (`published_year`), never replacing one they do;
+- **additional grounds** (`additional_grounds`), shown on the Index record: facts that support the work's status beside the gate's basis, for example that every transcribed page is a traditional text centuries old.
 
 The evidence file records each fact with its source URL (Wikidata, with the National Library of Israel authority id), `recorded_by` (`agent` or `human`), the recorder and the date. A recorded fact only fills a gap the tool left; it never replaces evidence the tool found. Facts looked for and not found are listed under `not_recorded` with the reason. The render checks recorded in the packaged snapshot, and the page render checks in [`wikisource_page_checks.json`](./wikisource_page_checks.json) (`--page-checks`), are applied. Pages of admitted Indexes are pinned into an operator snapshot root and run through `page_exclusion_reasons` and `page_attestation`.
 

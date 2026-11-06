@@ -792,3 +792,11 @@ def test_a_multi_region_crop_masks_the_rest_of_its_box_and_keeps_the_regions_pix
     assert record.metadata["expected_asset_sha256"] == crop["asset"]["sha256"]
     manifest = write_wikisource_reference_pool(source, bundle, tmp_path / "pool")
     assert manifest["skipped"]  # quality 3: not adjudication-eligible, so no reference; the pool still builds
+
+
+def test_text_not_on_the_page_keeps_a_page_out_of_pairs() -> None:
+    indexes, pages = _snapshot()
+    page = copy.deepcopy(pages[HYMAN])
+    assert "text_not_on_page" not in page_exclusion_reasons(page, indexes, SNAPSHOT_ROOT)
+    page["text_not_on_page"] = "an editor's note with no printed counterpart"
+    assert page_exclusion_reason(page, indexes, SNAPSHOT_ROOT) == "text_not_on_page"
