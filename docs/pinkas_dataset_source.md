@@ -6,7 +6,7 @@ Each item is one handwritten page of the Frankfurt am Main community pinkas, NLI
 
 ## Status and rights
 
-- `status: review_only`, `default_public_release: false`. Included only in `profile_review_v1`; not in `profile_open_v1`.
+- `status: allowed`, `default_public_release: true` since `F8g`, and in `profile_open_v1` under the real-source composition contract ([`real_source_release_contract.md`](./real_source_release_contract.md)). Exports ship the PAGE XML, with CC BY 4.0 attribution and the per-line scope summary in `release_terms`. The 30-page tranche is built by `hocrgen.tools.real_tranche`.
 - Annotations: `CC-BY-4.0` / `open_with_attribution` (the Zenodo licence field). Scans: the NLI IIIF manifest's `public-domain-free-use` slug, decided by the F8c gate over a pinned manifest capture. The evidence is in the [F8d2 findings](../planning/tasks/f8-real-source-map.md#f8d2-findings-2026-11-06).
 - The text is human-annotated (semi-automatic segmentation, then corrected by a Hebrew paleographer), but not attested or adjudicated under F2: `not_adjudicated`, `reference_eligible: false`.
 

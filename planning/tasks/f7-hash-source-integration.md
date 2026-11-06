@@ -58,6 +58,8 @@ Output goes to an operator-only `hash_reference_pool_v1` manifest. It never edit
 | `source_depth_composition` | 2 / 80 (NLI 1/27, Pinkas 1/27, BiblIA 0/26) | 0 until `F7d` changes the per-source contract. With floors of 10 per source and 80 in total, HASH can supply up to 50. |
 | `benchmark_references` | 1 / 3 | 0 for frozen `benchmark_v1`; `F7e` proposes `benchmark_v2`. |
 
+`F8g` replaced the fixed allocation with `real_source_composition.v2` (`src/hocrgen/config/real_source_contract.yaml`). It already lists `hash_nli_any_use` and `hash_public_domain` as `not_promoted` entries with caps of 40 and 20. `F7d` sets their promotion and a floor, and ships its tranche through `hocrgen.tools.real_tranche`; the contract needs no new shape. See [`docs/real_source_release_contract.md`](../../docs/real_source_release_contract.md).
+
 ## Leakage
 
-`hletterscriptgen` crops glyphs from HASH scans, and those glyphs feed `hocrsyngen` through `hletterscript`. HASH items therefore carry `writer_group`, so that `F7d` can govern writer-level overlap between real test or benchmark items and synthetic training data.
+`hletterscriptgen` crops glyphs from HASH scans, and those glyphs feed `hocrsyngen` through `hletterscript`. HASH items therefore carry `writer_group`, so that `F7d` can govern writer-level overlap between real test or benchmark items and synthetic training data. Since `F8g`, a `writer:` work-group key keeps a writer's items in one split, and a writer recorded in `config/synthetic_training_works.yaml` keeps them in train.

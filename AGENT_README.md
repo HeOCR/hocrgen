@@ -140,29 +140,30 @@ public-domain-hand-written-hebrew-scans   → real-handwriting page-level scan c
   - `review_only`, privacy default `clear`, `requires_manual_review: false` (maintainer decision 2026-11-06: HASH needs no human privacy review); included only in `profile_review_v1` and kept out of `profile_open_v1` until F7d changes the composition contract, governs writer-group leakage, and vendors tranche assets
   - rights lanes: NLI "Any Use Permitted" (`LicenseRef-Public-Domain-Israel`) normalized as `PD-IL`; `PDM-1.0` / `LicenseRef-Public-Domain-Ukraine` normalized as `PDM-1.0`; `CC-BY-SA-3.0`, non-Hebrew, and partial-Hebrew entries are never emitted
   - emits `source_group_id` and `writer_group_id` metadata, verifies asset checksums, and never reads HASH transcripts or HTR candidates
-- `yidtaknl_vaybertaytsh_gt` (F8d, review-only)
+- `yidtaknl_vaybertaytsh_gt` (F8d; public since F8g)
   - packaged-static-records importer over a pinned YidTakNL snapshot (`src/hocrgen/data/yidtaknl/snapshot/`): printed Yiddish in Vaybertaytsh, Amsterdam 1781, with page-level Transkribus text (human-corrected HTR) by reference and checksum
-  - `review_only`, `CC-BY-4.0` / `open_with_attribution`, privacy default `clear`; included only in `profile_review_v1`
+  - `allowed` in `profile_open_v1` since F8g (was `review_only`), `CC-BY-4.0` / `open_with_attribution`, privacy default `clear`
   - every page is marked language `yi`, evaluation scope `character_level_only` (training and character-level evaluation only, never word- or language-level Hebrew evaluation) and `not_adjudicated`; entries without that marker, or whose scan lacks an open licence (the HUC-scanned works), are never emitted
-- `wikisource_he_proofread` (F8b, review-only)
+- `wikisource_he_proofread` (F8b; public since F8g)
   - packaged-static-records importer over a pinned Hebrew Wikisource ProofreadPage snapshot (`src/hocrgen/data/wikisource/snapshot/`): quality 3/4 pages paired with their Commons page renders
   - page text `CC-BY-SA-4.0` / `sharealike`; scan rights per Commons file; admitted per Index on evidence that the work is PD in Israel (decisions 9-10: cited death years or a pre-1856 publication; the Commons tag, scan source and Google digitization are provenance only) and that the Index is Hebrew; Birnbaum works and creators who died after 1955 rejected
   - records revision ids, Commons file SHA-1s, the named proofreader and validator, and adjudication eligibility; derives plain text with `wikisource_plain_text.v2`, checked against MediaWiki's rendering by `hocrgen.tools.wikisource_render_check` (see `docs/wikisource_proofread_source.md`); partial-page transcriptions pair with a crop of the transcribed region (F8b4), or are `crop_unresolved`; labelled-section transclusions are pinned by revision
-  - included only in `profile_review_v1`; never edits Wikisource
+  - `allowed` in `profile_open_v1` since F8g (was `review_only` in `profile_review_v1` only); never edits Wikisource
   - F8b2: the operator-only `python -m hocrgen.tools.wikisource_inventory` runs every Index through the same gates (network; outputs outside the repo); its committed summary is `docs/wikisource_index_inventory.md`; F8b3 adds the recorded evidence `docs/wikisource_index_evidence.json` and the coverage checks `docs/wikisource_page_checks.json`; F8b4 adds the operator-only `python -m hocrgen.tools.wikisource_coverage` (Tesseract boxes only, never text) and its tool checks `docs/wikisource_page_tool_checks.json`
-- `pinkas_dataset_bgu` (F8d2, review-only)
+- `pinkas_dataset_bgu` (F8d2; public since F8g)
   - packaged-static-records importer over a pinned excerpt of the BGU Pinkas Dataset (`src/hocrgen/data/pinkas_dataset_bgu/snapshot/`): handwritten pages of NLI Ms. Heb. 4°662 (Frankfurt am Main community pinkas) with their upstream PAGE XML (gzipped)
-  - `review_only`, `CC-BY-4.0` / `open_with_attribution` for the annotations; scans admitted only with the NLI `public-domain-free-use` slug and a recorded canvas match; privacy default `clear`; included only in `profile_review_v1`
+  - `allowed` in `profile_open_v1` since F8g (was `review_only`), `CC-BY-4.0` / `open_with_attribution` for the annotations; scans admitted only with the NLI `public-domain-free-use` slug and a recorded canvas match; privacy default `clear`
   - `parse_page_xml_lines` yields typed line records with polygons scaled to the thumbnail; entries are marked languages `he`/`yi`, scope `character_level_only` and `not_adjudicated`
   - F8d3: per-line language tags in `line_language_tags.yaml`; only a human `he` tag makes a line `full_hebrew`; `python -m hocrgen.tools.pinkas_line_language propose|check` writes advisory proposals and validates the sidecar (see `docs/pinkas_dataset_source.md`)
-- `reshumot_born_digital` (F8e, review-only)
+- `reshumot_born_digital` (F8e; public since F8g)
   - packaged-static-records importer over a pinned Reshumot snapshot (`src/hocrgen/data/reshumot/snapshot/`): ספר החוקים and קובץ התקנות pages from 2006 on, `PD-IL` / `open` under Copyright Act section 6; ילקוט הפרסומים, bills and scanned-era booklets are never emitted
   - each page image is rendered from the born-digital PDF (`rendering.is_scan: false`, renderer, version, dpi and pixel checksum recorded) and is not a scan
   - the embedded text is converted from poppler bidi markup to logical order (`hocrgen.parsers.pdf_bidi`) and re-checked on every run against the committed `pdftotext` output and gazette-API phrases; pages that fail are rejected (`extraction_order_not_verified`); text is tier 2, `not_adjudicated`
-- `knesset_committee_protocols_pre1976` (F8e, review-only)
+- `knesset_committee_protocols_pre1976` (F8e; public since F8g)
   - packaged-static-records importer over a pinned Knesset snapshot (`src/hocrgen/data/knesset_committees/snapshot/`): committee protocol page scans, content type `typewritten_historical`, `PD-IL` / `open` under sections 36 and 42
   - admitted only for open sessions dated on or before 1975-12-31; later sessions are rejected (`post_1975_committee_protocol_pending_legal_opinion`, maintainer decision 5) and committee background material (חומר רקע) is never emitted
   - images only: the lossless embedded 300 ppi bitonal scans; the upstream Imagestore OCR is never carried
+- F8g: the real sources above are governed by `real_source_composition.v2` (`src/hocrgen/config/real_source_contract.yaml`: per-source floors and caps, printed and handwritten floors); exports carry per-item `release_terms`, the paired text, `docs/NOTICE.md` and `manifests/attribution_manifest.json`; the full promoted pool is materialized outside git by `python -m hocrgen.tools.real_tranche` and read with `--real-tranche-root` (see `docs/real_source_release_contract.md`)
 - `project_synthetic`
   - hocrsyngen `generation_manifest.v1` fixture-backed synthetic candidate input source
   - consumes a configured manifest batch and keeps legacy in-repo generator fixtures out of the active source path
