@@ -96,7 +96,7 @@ Each item's metadata, and each F2 reference-pool entry, records `reference_norma
 
 `HeOCR/hocrgen#130` and `#111`. The pair text is derived in three steps, each recorded on the page and re-derived by the gate (`hocrgen.fetchers.wikisource.derive_page_text`):
 
-1. the **faithful conversion** of the pinned wikitext (MediaWiki's rendering, `wikisource_plain_text.v2`). Its SHA-256 is kept as the raw-text checksum: `text_adjustments.converted_text_sha256` on the page, `converted_text_sha256` in the item metadata. Attestation compares it with the validated revision's text, so an adjustment never costs a page its adjudication eligibility;
+1. the **faithful conversion** of the pinned wikitext (MediaWiki's rendering, `wikisource_plain_text.v3`). Its SHA-256 is kept as the raw-text checksum: `text_adjustments.converted_text_sha256` on the page, `converted_text_sha256` in the item metadata. Attestation compares it with the validated revision's text, so an adjustment never costs a page its adjudication eligibility;
 2. without the footnotes a reviewed check found **not printed** (`unprinted_notes`);
 3. with the reviewed **stand-in mappings** of the page's Index file applied (`editor_standins`).
 
@@ -127,7 +127,7 @@ The survey of the pool (1,473 pinned pages) found these other candidates. None i
 | `'` after a letter | geresh U+05F3 | 8,934 / 742 | 1,524 / 232 | as for gershayim |
 | `:` after a pointed letter | sof pasuq U+05C3 | 1,252 / 258 | 1,243 / 91 | the printed colon and sof pasuq have the same shape |
 | `-` between Hebrew letters | maqaf U+05BE | 206 / 82 | 4,147 / 354 | mostly unpointed prose, where a printed hyphen is likely; the 3 in pointed Seliḥot text are not yet checked |
-| `\|` after a link target | none | 5 / 5 | — | not a stand-in: an editor's broken link (`target\|label]]` without `[[`) whose target MediaWiki shows and the print does not (Hyman I and II, *Sefer Arakhim*, *Pri Megadim*); a converter follow-up |
+| `\|` after a link target | none | 5 / 5 | — | not a stand-in: an editor's broken link (`target\|label]]` without `[[`) whose target MediaWiki shows and the print does not (Hyman I and II, *Sefer Arakhim*); `wikisource_plain_text.v3` renders the label (F8g2). The *Pri Megadim* one is an editor's expansion of a printed abbreviation: `text_not_on_page` |
 
 E2c's `primary.v1` keeps `|` and ׀ (and each pair above) apart, so they are never silently conflated; `punct_folded.v1` folds punctuation and is report-only.
 
@@ -144,7 +144,7 @@ The gate rejects spans pinned to another text, outside it, across a line or not 
 
 The tool called 207 Korfu pages `full_page`, none reviewed one by one. An agent checked 30 of them (method `agent_tool_verdict_spot_check_960px`): six strata by the tool's alignment score (0.385 to 0.900), five pages each, spread through the book. The coverage verdict agreed on all 30 (100%; with no disagreement in 30, the rule of three puts the disagreement rate under 10% at 95% confidence). The check found four text facts the verdict does not cover: p. 156 writes out the abbreviation of the refrain *Avinu Malkenu* that the page prints on fifteen lines (`text_not_on_page`); p. 90 has the gutter shadow above; pp. 78 and 356 carry unsigned editors' notes (dropped).
 
-## Wikitext to plain text (`wikisource_plain_text.v2`)
+## Wikitext to plain text (`wikisource_plain_text.v3`)
 
 `hocrgen.parsers.wikitext.convert_wikitext` is a closed-world converter: every template it knows has a rendering written from its he.wikisource source, and anything else raises `UnsupportedWikitextError` (`wikitext_unsupported_markup`), so an unknown construct fails loudly rather than being dropped or guessed (decision 11). It returns the text, `size_spans` (counts of small and large type) and `features` (counts of footnotes, editors' notes dropped, citations, added quotation marks, tables, columns, hidden arguments and repaired markup errors), which each item records as `text_size_spans` and the inventory as `text_features`. The steps:
 
@@ -167,6 +167,10 @@ The tool called 207 Korfu pages `full_page`, none reviewed one by one. An agent 
 **Editors' markup errors** that MediaWiki shows literally, and the print does not, are rendered as printed and counted as `malformed_markup`: broken link brackets, a stray third brace, an unclosed template (`{{name|a}` is read as the call meant; any other unclosed opener is dropped), heading `=` signs after a bidi mark, and two mistyped template names (`קטם` for `קטן`, `:פסוק` for `מ:פסוק`) plus one broken citation (`שם מד`), each on one pinned page.
 
 **Checked against MediaWiki.** `hocrgen.tools.wikisource_render_check` asks MediaWiki to render each pinned page body (`action=parse`) and compares its visible lines with the converter's, dropping display-only parts (the status banner, tooltips, footnote backlinks, TemplateStyles CSS) and tolerating the deliberate differences above. On 313 rendered pages of the F8b3 inventory, 299 match token for token and the other 14 differ only by those deliberate repairs and dropped editors' notes. The committed test fixtures under `tests/fixtures/wikisource_render/` cover every new construct.
+
+**Broken links (v3, F8g2, HeOCR/hocrgen#134).** An editor's broken link leaves a fragment MediaWiki shows literally (or, for a doubled pipe, inside the link text). The print shows only the label, so v3 renders it: `[[target||label]]` gives `label` (`broken_link_double_pipe`); an unclosed `[[target|label …` gives `label …` (`broken_link_unclosed`); an unopened `target|label]]` gives `label` when `target` has the shape of a reference link target, a work of one word (or two, from a closed list of first words such as בבא and מועד) then the folio or chapter and the side or verse (`broken_link_unopened`). Other leftover brackets are dropped as before. On the tranche this changes 4 pages (Hyman I pp. 44 and 414, Hyman II p. 239, *Sefer Arakhim* p. 11), each checked against the page render and MediaWiki's `action=parse` rendering; the render check tolerates exactly these repairs. A fifth `|` (Pri Megadim p. 244) is no link but an editor's expansion of the printed abbreviation ה"פ, so that page is `text_not_on_page`.
+
+**Versions.** `wikisource_plain_text.v3` versions F8b7's text changes, which had kept the v2 string: the note-list heading drop above, and the reviewed steps after conversion (unprinted notes dropped, stand-ins mapped). Each item's `text_derivation` records the converter version, its repairs (`converter_repairs`: editors' notes and headings dropped, broken links, other markup errors), the unprinted notes dropped and the stand-in mappings applied, next to `converted_text_sha256` and `text_adjustments`. Every page v2 converts without a broken-link fragment gives the same text under v3.
 
 `wikisource_plain_text.v2` keeps v1's text for v1's three fixture pages. It changes v1's text where v1 was wrong against MediaWiki's rendering: block HTML now ends a paragraph, and an editor's in-body `<noinclude>` (for example Bostenay's chapter headings) is kept.
 

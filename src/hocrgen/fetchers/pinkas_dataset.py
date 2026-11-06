@@ -345,6 +345,8 @@ class PinkasDatasetImporter:
                         "scan_iiif_canvas": scan.get("iiif_canvas"),
                         "scan_canvas_region": scan.get("canvas_region"),
                         "scan_verified_at": scan.get("verified_at"),
+                        # F8g2: whether this page's canvas binding was visually verified, or rests on the label rule.
+                        "scan_match_check": scan.get("match_check"),
                         "scan_rights": nli_scan_evidence(root, scan).metadata(),
                         "expected_asset_sha256": asset.get("sha256"),
                     },

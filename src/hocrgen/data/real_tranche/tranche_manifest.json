@@ -1,49 +1,95 @@
 {
- "created_at": "2026-11-06",
- "file_count": 4934,
+ "created_at": "2026-11-07",
+ "file_count": 5689,
  "hosting": "not published; see docs/real_source_release_contract.md (hosting proposal, maintainer decision)",
  "inputs": {
+  "knesset_capture": {
+   "captured_at": "2026-11-07",
+   "listing_sha256": "c9ffd717ce15ba211a3729b5d593583d98080255f47376a3213d43a43bd14579",
+   "seed": "f8g2-tranche-v2"
+  },
+  "pinkas_canvas_match_checks": {
+   "docs/pinkas_canvas_match_checks.json": "1ec0ba7667540dde972a97cc1ed7fecb862a6ac76dc77541f0976a5beef911e2"
+  },
   "pinkas_manifest_sha256": "a25ce383746dbd9780e22ffad8b0a01c14a017b2c6a29ead119c6e5b91958f46",
   "pinkas_zip": "https://zenodo.org/api/records/3569694/files/pinkas_dataset.zip/content",
   "pinkas_zip_md5": "802f14fbdb400efab9cb0808c3620be8",
+  "reshumot_capture": {
+   "captured_at": "2026-11-07",
+   "listing_sha256": "431c44a01c8a0138cb71c3068b0e989bba9152a418f8ec93390f56a834fbaf68",
+   "seed": "f8g2-tranche-v2"
+  },
   "wikisource_inventory_checked_at": "2026-11-06",
   "wikisource_page_checks": {
-   "docs/wikisource_page_checks.json": "bf9d1e4259096bda064fc6eeb1c47d9fc2b88776b41e7eabd7adf4ad06f86fe2",
+   "docs/wikisource_page_checks.json": "d32d2a53487e403d3953584058aec66736a8a417a195bbc2969a53ca68b7a536",
    "docs/wikisource_page_tool_checks.json": "711160616839e9e350344b69f881d7f73931542ef76fc931b9fd7170e4833f44"
   },
   "wikisource_renders": "960 px Commons renders of the pinned files (wikisource_coverage --capture), unchanged",
   "yidtaknl_matched_pages_sha256": "8341fd13b71bb54daf2c87844cfbd3e2ec59af65e46a945d0682042ff23ff0e8",
   "yidtaknl_share": "https://surfdrive.surf.nl/files/index.php/s/mov7H4wDaog4zkF"
  },
- "item_count": 1609,
+ "item_count": 1995,
  "items_path": "tranche_items.jsonl",
- "planning_notation": "F8g",
+ "planning_notation": "F8g2",
  "schema": "hocrgen_real_tranche_manifest.v1",
- "sha256sums_sha256": "350d087205b2239d74c7a5d2c74f79242d1752d28e3953e671c9d27ca7cc13f0",
+ "sha256sums_sha256": "3232f52147fcbca16bbbd5098f4a645eb85b5edde80e1eceb1519f12a8f21e9a",
  "sources": {
+  "knesset_committee_protocols_pre1976": {
+   "item_count": 205,
+   "pages_checked": 202,
+   "pages_passed": 202,
+   "skipped": {},
+   "snapshot": "sources/knesset_committee_protocols_pre1976/snapshot",
+   "snapshot_bytes": 45880172,
+   "snapshot_file_count": 207,
+   "snapshot_files": {
+    "sources/knesset_committee_protocols_pre1976/snapshot/entries.jsonl": "cbb614eca4dc7298ac3446a3b2e1ea4626d81ada5a2458e39e1e3db8085a9f9c",
+    "sources/knesset_committee_protocols_pre1976/snapshot/snapshot.yaml": "cff17aa9381251429a51cba8ce19bbe77fa3347fb6221bfedc0f0cc4571e42c9"
+   }
+  },
   "pinkas_dataset_bgu": {
+   "canvas_match_not_verified": 24,
+   "canvas_match_verified": 6,
    "item_count": 30,
    "skipped": {},
    "snapshot": "sources/pinkas_dataset_bgu/snapshot",
-   "snapshot_bytes": 48729392,
+   "snapshot_bytes": 48736116,
    "snapshot_file_count": 64,
    "snapshot_files": {
-    "sources/pinkas_dataset_bgu/snapshot/entries.jsonl": "6ab10a853256713aec44d57164ba21ed5e3063b0933d32bc8ecc933d4ee17541",
+    "sources/pinkas_dataset_bgu/snapshot/entries.jsonl": "8bb674022057769b0280348b87f2add25708e37f1cb5f5586cc1cd95f55b4414",
     "sources/pinkas_dataset_bgu/snapshot/iiif/nli_990000445290205171_manifest_capture.json": "c5a321d13011e2c1bf2559dd88d8e9ec588bbdac3132e58792a7048e5174c16f",
     "sources/pinkas_dataset_bgu/snapshot/line_language_tags.yaml": "39534bcaf92925c3eedbf263f788dde627d846f971e585553ec176103718e397",
-    "sources/pinkas_dataset_bgu/snapshot/snapshot.yaml": "b6277faa9d2addff87a6b330655da90aa1abffd8fe7a148a03980fc3d6594675"
+    "sources/pinkas_dataset_bgu/snapshot/snapshot.yaml": "4d1185e9ca05565696e91a185b647a089acc202ffc7fed8f262a06834368d988"
+   }
+  },
+  "reshumot_born_digital": {
+   "item_count": 182,
+   "pages_checked": 886,
+   "pages_passed": 180,
+   "skipped": {
+    "extraction_order_not_verified": 594,
+    "pdf_not_born_digital": 112
+   },
+   "snapshot": "sources/reshumot_born_digital/snapshot",
+   "snapshot_bytes": 18942225,
+   "snapshot_file_count": 548,
+   "snapshot_files": {
+    "sources/reshumot_born_digital/snapshot/entries.jsonl": "54ffdfa474df8050306f3f85802368bca94ba70df15bbb3cef6c0fcb627d06da",
+    "sources/reshumot_born_digital/snapshot/snapshot.yaml": "ecee0a9e4763e5465b6f6d7b2674525c59508287cf7798ff748f317ec26e0a8d"
    }
   },
   "wikisource_he_proofread": {
-   "item_count": 1456,
-   "skipped": {},
+   "item_count": 1455,
+   "skipped": {
+    "text_not_on_page": 1
+   },
    "snapshot": "sources/wikisource_he_proofread/snapshot",
-   "snapshot_bytes": 631828525,
+   "snapshot_bytes": 631825055,
    "snapshot_file_count": 4618,
    "snapshot_files": {
     "sources/wikisource_he_proofread/snapshot/indexes.json": "2cd2c240492ac35ccdc639fdd42809af614cd21c069a9fa763e4fca99bc4d0ab",
-    "sources/wikisource_he_proofread/snapshot/pages.jsonl": "27f4e6c1b9536a80a6f21299497bc807211e73859e1f96f2aa00c698ecbb16c2",
-    "sources/wikisource_he_proofread/snapshot/snapshot.yaml": "2d654bff5ef693a388c49c6c96aa18a818c67ce499c31d96bc7b692e5e15efec"
+    "sources/wikisource_he_proofread/snapshot/pages.jsonl": "02a27eb8072f7e7a2a9306567ced57b84fce42bf61829c92d7a0eeeb20f6f2cd",
+    "sources/wikisource_he_proofread/snapshot/snapshot.yaml": "9f9be9fbb7e34526ed3c2919df19eed9d5094a48e2fba01fda9922d93fc88bf4"
    }
   },
   "yidtaknl_vaybertaytsh_gt": {
@@ -52,14 +98,14 @@
     "upstream_text_empty": 33
    },
    "snapshot": "sources/yidtaknl_vaybertaytsh_gt/snapshot",
-   "snapshot_bytes": 164157224,
+   "snapshot_bytes": 164157225,
    "snapshot_file_count": 251,
    "snapshot_files": {
     "sources/yidtaknl_vaybertaytsh_gt/snapshot/entries.jsonl": "a08788cff545ba57370dc669a487d083751548efad5888d9ac3736b8e7706171",
-    "sources/yidtaknl_vaybertaytsh_gt/snapshot/snapshot.yaml": "a8317bb77cbd0146d7e54377bcb2a15dd7dc55ec52fe3fbde419f0cc13279ee9"
+    "sources/yidtaknl_vaybertaytsh_gt/snapshot/snapshot.yaml": "37488bd0dfa7080ec34f6c41902566c418d57120a21a3b6efc5617d1ab0444d9"
    }
   }
  },
- "total_bytes": 845432227,
- "tranche_id": "f8g_real_tranche_v1"
+ "total_bytes": 910383408,
+ "tranche_id": "f8g2_real_tranche_v2"
 }

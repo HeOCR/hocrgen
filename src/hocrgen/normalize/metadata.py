@@ -3,6 +3,7 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from hocrgen.config.models import PreviewGenerationMode, QualityThresholds
 from hocrgen.manifests.models import AcquiredItemRecord, NormalizedAssetRecord, NormalizedItemRecord
@@ -23,10 +24,32 @@ def _preview_is_required(metadata: AssetTechnicalMetadata, thresholds: QualityTh
     return thresholds.preview_policy.require_for_raster
 
 
+def text_region_crop_height_floor(item_metadata: dict[str, Any] | None, thresholds: QualityThresholds) -> int:
+    """The height floor for an item's asset (F8g2).
+
+    A text-region crop (``metadata.crop`` with its ``source_page_image``, verified against the page by source health)
+    may be as short as ``text_region_crop_minimum_height``, but only when its source page itself passes the page
+    thresholds. Every other asset, and a crop of a page below them, keeps ``minimum_height``.
+    """
+
+    floor = thresholds.text_region_crop_minimum_height
+    crop = (item_metadata or {}).get("crop")
+    if floor is None or not isinstance(crop, dict):
+        return thresholds.minimum_height
+    page = crop.get("source_page_image") or {}
+    width, height = page.get("width"), page.get("height")
+    if not isinstance(width, int) or not isinstance(height, int):
+        return thresholds.minimum_height
+    if width < thresholds.minimum_width or height < thresholds.minimum_height:
+        return thresholds.minimum_height
+    return min(floor, thresholds.minimum_height)
+
+
 def _evaluate_asset(
     metadata: AssetTechnicalMetadata,
     normalized_path: Path,
     thresholds: QualityThresholds,
+    minimum_height: int | None = None,
 ) -> list[str]:
     reasons: list[str] = []
     if metadata.file_size_bytes < thresholds.minimum_bytes:
@@ -41,7 +64,7 @@ def _evaluate_asset(
     else:
         if metadata.width < thresholds.minimum_width:
             reasons.append("width_below_threshold")
-        if metadata.height < thresholds.minimum_height:
+        if metadata.height < (thresholds.minimum_height if minimum_height is None else minimum_height):
             reasons.append("height_below_threshold")
     if not normalized_path.exists():
         reasons.append("normalized_asset_missing")
@@ -55,6 +78,7 @@ def _normalize_asset(
     assets_dir: Path,
     thumbnails_dir: Path,
     thresholds: QualityThresholds,
+    minimum_height: int | None = None,
 ) -> tuple[NormalizedAssetRecord | None, list[str]]:
     if not source_path.exists():
         return None, ["asset_missing"]
@@ -67,7 +91,7 @@ def _normalize_asset(
 
     normalized_path = normalized_asset_destination(assets_dir, item_id, asset_index, metadata.asset_format)
     copy_asset(source_path, normalized_path)
-    reasons = _evaluate_asset(metadata, normalized_path, thresholds)
+    reasons = _evaluate_asset(metadata, normalized_path, thresholds, minimum_height)
 
     preview_generated = False
     preview_path: Path | None = None
@@ -134,6 +158,7 @@ def normalize_items(
                 assets_dir=assets_dir,
                 thumbnails_dir=thumbnails_dir,
                 thresholds=thresholds,
+                minimum_height=text_region_crop_height_floor(item.metadata, thresholds),
             )
             if normalized_asset is not None:
                 normalized_assets.append(normalized_asset)

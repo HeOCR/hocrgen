@@ -40,6 +40,7 @@ from hocrgen.parsers.wikitext import (
     UnsupportedWikitextError,
     convert_wikitext,
     page_body,
+    repair_broken_links,
 )
 
 WS_API = "https://he.wikisource.org/w/api.php"
@@ -126,8 +127,11 @@ def visible_lines(html: str) -> list[str]:
 
 def tolerate_editor_markup(line: str) -> str:
     """Editor markup errors MediaWiki shows literally and the converter renders as printed (see wikitext.py):
-    broken link brackets, and a heading's ``=`` signs left visible by a bidi mark before them."""
+    broken link brackets and fragments (v3: the label of an unclosed or unopened link, and of a doubled pipe, whose
+    link text MediaWiki starts with ``|``), and a heading's ``=`` signs left visible by a bidi mark before them."""
 
+    line = repair_broken_links(line)
+    line = re.sub(r"(?:(?<=\s)|^)\|(?=[^\s|])", "", line)
     line = line.replace("[[", "").replace("]]", "")
     heading = re.fullmatch(r"(={1,6})\s*(.*?)\s*\1", line)
     return re.sub(r"\s+", " ", heading.group(2) if heading else line).strip()

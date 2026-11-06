@@ -671,6 +671,37 @@ def derive_page_text(
     return PageText(faithful, conversion, text, adjustments)
 
 
+# Converter features that change what the text holds relative to MediaWiki's literal rendering (v3, F8g2).
+CONVERTER_TEXT_REPAIRS = (
+    "editor_notes_dropped",
+    "editor_headings_dropped",
+    "broken_link_double_pipe",
+    "broken_link_unclosed",
+    "broken_link_unopened",
+    "malformed_markup",
+)
+
+
+def text_derivation(derived: PageText) -> dict[str, Any]:
+    """How a page's pair text was derived (F8g2, HeOCR/hocrgen#134), for provenance.
+
+    ``converter`` is the ``wikisource_plain_text`` version; ``converter_repairs`` counts what it rendered as printed
+    where MediaWiki shows editors' markup (signed editors' notes and note-list headings dropped, broken links reduced
+    to their labels, stray brackets); ``unprinted_notes_dropped`` and ``editor_standins_applied`` are the F8b7 steps
+    after conversion (reviewed footnotes found not printed, reviewed stand-in mappings).
+    """
+
+    adjustments = derived.adjustments or {}
+    return {
+        "converter": WIKITEXT_NORMALIZATION_VERSION,
+        "converter_repairs": {name: derived.faithful.features[name] for name in CONVERTER_TEXT_REPAIRS if derived.faithful.features.get(name)},
+        "unprinted_notes_dropped": list(adjustments.get("unprinted_notes") or []),
+        "editor_standins_applied": [
+            {"mapping_id": entry["mapping_id"], "count": entry["count"]} for entry in adjustments.get("editor_standins") or []
+        ],
+    }
+
+
 def page_text_sha256_converted(page: dict[str, Any]) -> str | None:
     """The raw-text checksum: the SHA-256 of the faithful conversion (the pair text's, when nothing is adjusted)."""
 
@@ -940,6 +971,8 @@ class WikisourceProofreadImporter:
                         # (footnotes found not printed, editors' stand-ins mapped to the printed character).
                         "converted_text_sha256": page_text_sha256_converted(page),
                         "text_adjustments": derived.adjustments,
+                        # F8g2 (#134): every step from the pinned wikitext to the pair text, versioned.
+                        "text_derivation": text_derivation(derived),
                         "raw_wikitext_sha256": page["wikitext_sha256"],
                         "raw_wikitext_revision_sha1": page["revision_sha1"],
                         "work_title": work["title"],

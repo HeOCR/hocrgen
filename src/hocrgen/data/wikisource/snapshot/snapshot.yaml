@@ -10,7 +10,7 @@ text_licence:
   license_expression: CC-BY-SA-4.0
   evidence: "siteinfo rightsinfo on 2026-11-06: Creative Commons Attribution-Share Alike 4.0 (https://creativecommons.org/licenses/by-sa/4.0/deed.he)"
   attribution: Hebrew Wikisource contributors
-text_normalization: wikisource_plain_text.v2
+text_normalization: wikisource_plain_text.v3
 scope: fixture
 notes: >-
   F8b fixture snapshot. Three ProofreadPage pages from three admitted Index files, each with its page

@@ -522,7 +522,8 @@ def test_discovery_emits_stable_ids_and_provenance_metadata() -> None:
     assert metadata["scan_rights_basis"] == "explicit_open_licence"
     assert metadata["scan_licence"] == "CC0-1.0"
     assert metadata["source_group_id"] == "wikisource:selihot_baer_1885"
-    assert metadata["text_normalization"] == "wikisource_plain_text.v2"
+    assert metadata["text_normalization"] == "wikisource_plain_text.v3"
+    assert metadata["text_derivation"]["converter"] == "wikisource_plain_text.v3"
     assert metadata["text_size_spans"] == {"large": 1, "small": 2}
     assert metadata["work_language"] == "he"
     assert metadata["transcription_coverage_check"].startswith("Page render compared by eye")

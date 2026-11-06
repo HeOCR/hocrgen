@@ -245,24 +245,27 @@ def test_split_assignment_is_deterministic_and_cluster_safe() -> None:
     assert duplicate.split == canonical.split
 
 
-def test_pick_split_can_reach_test_bucket(monkeypatch) -> None:
-    profile = load_and_validate_bundle().profiles["profile_open_v1"]
-    monkeypatch.setattr(split_assign_module, "_stable_bucket", lambda _: 0.95)
+def test_size_aware_split_reaches_the_holdouts_in_a_stratum_of_singletons() -> None:
+    """F8g2: ten unrelated items of one source fill test and validation by item count (80 / 10 / 10)."""
 
+    profile = load_and_validate_bundle().profiles["profile_open_v1"]
     dedupe_outputs = deduplicate_items(
         [
             _normalized_item(
-                item_id="nli_any_use_permitted:item-test",
+                item_id=f"nli_any_use_permitted:item-{n}",
                 source_id="nli_any_use_permitted",
-                source_item_id="item-test",
-                asset_hashes=["test-bucket"],
+                source_item_id=f"item-{n}",
+                asset_hashes=[f"bucket-{n}"],
             )
+            for n in range(10)
         ],
         profile,
     )
     outputs = assign_splits(dedupe_outputs.retained_items, dedupe_outputs.duplicate_items, profile.split_policy)
 
-    assert outputs.retained_items[0].split == "test"
+    splits = [item.split for item in outputs.retained_items]
+    assert (splits.count("train"), splits.count("validation"), splits.count("test")) == (8, 1, 1)
+    assert outputs.leakage_report["split_assignment"]["algorithm"] == "size_aware_group_split.v1"
 
 
 def test_validate_leakage_skips_items_without_split_metadata() -> None:

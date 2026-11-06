@@ -1,13 +1,16 @@
 from __future__ import annotations
 
-import hashlib
+from collections import Counter
 from dataclasses import dataclass, field
 
 from hocrgen.config.models import SplitPolicy
 from hocrgen.manifests.models import CuratedItemRecord, SplitAssignmentRecord
+from hocrgen.split.balance import DEFAULT_SPLIT_SEED, SplitGroup, assign_group_splits, split_balance_report
 from hocrgen.split.work_groups import item_work_group_keys
 
 SYNTHETIC_TRAINING_SPLIT = "train"
+PIN_SYNTHETIC_TRAINING = "synthetic_training_overlap"
+PIN_COMMITTED = "committed_split"
 
 
 @dataclass(frozen=True)
@@ -39,20 +42,6 @@ class _UnionFind:
             self.parent[high] = low
 
 
-def _stable_bucket(value: str) -> float:
-    digest = hashlib.sha256(value.encode("utf-8")).hexdigest()
-    return int(digest, 16) / float(16**64)
-
-
-def _pick_split(split_group_id: str, split_policy: SplitPolicy) -> str:
-    bucket = _stable_bucket(split_group_id)
-    if bucket < split_policy.train:
-        return "train"
-    if bucket < split_policy.train + split_policy.validation:
-        return "validation"
-    return "test"
-
-
 def _split_group_id(item: CuratedItemRecord) -> str:
     """The item's own (F1d) split group: its exact-duplicate cluster, else its source group, else the item."""
 
@@ -82,7 +71,7 @@ def split_components(items: list[CuratedItemRecord]) -> dict[str, str]:
 
     Items are connected through exact-duplicate clusters, near-duplicate clusters, source groups and work groups
     (F8g), so a whole connected component lands in one split. The component's split group id is the smallest F1d
-    split group id among its members, so an item that shares nothing keeps the split it had before F8g.
+    split group id among its members.
     """
 
     union_find = _UnionFind()
@@ -173,6 +162,47 @@ def _validate_leakage(
     }
 
 
+def item_split_stratum(item: CuratedItemRecord) -> str:
+    """The stratum an item is balanced in (F8g2): its source and its declared content type, else its content class."""
+
+    metadata = item.metadata if isinstance(item.metadata, dict) else {}
+    modality = metadata.get("content_type") or getattr(item, "content_class", None) or "unclassified"
+    return f"{item.source_id}:{modality}"
+
+
+def split_groups_for_components(
+    items: list[CuratedItemRecord],
+    component_ids: dict[str, str],
+    pins: dict[str, tuple[str, str]],
+    counted_item_ids: set[str],
+) -> list[SplitGroup]:
+    """One ``SplitGroup`` per component: its counted (retained) items, its commonest stratum and its pin.
+
+    ``pins`` maps a component id to ``(split, reason)``. A component's stratum is the stratum most of its counted
+    items have (ties: the smallest key), so a component spanning sources (one NLI record) is balanced once.
+    """
+
+    members: dict[str, list[CuratedItemRecord]] = {}
+    for item in items:
+        members.setdefault(component_ids[item.item_id], []).append(item)
+    groups = []
+    for group_id, component in sorted(members.items()):
+        counted = [item for item in component if item.item_id in counted_item_ids] or component
+        strata = Counter(item_split_stratum(item) for item in counted)
+        stratum = min(strata, key=lambda key: (-strata[key], key))
+        split, reason = pins.get(group_id, (None, None))
+        groups.append(
+            SplitGroup(
+                group_id=group_id,
+                size=sum(1 for item in component if item.item_id in counted_item_ids),
+                stratum=stratum,
+                pinned_split=split,
+                pin_reason=reason,
+            )
+        )
+    return groups
+
+
 def synthetic_training_matches(
     items: list[CuratedItemRecord],
     registry_keys: dict[str, list[str]] | None,
@@ -194,29 +224,39 @@ def assign_splits(
     duplicate_items: list[CuratedItemRecord],
     split_policy: SplitPolicy,
     synthetic_training_keys: dict[str, list[str]] | None = None,
+    pinned_splits: dict[str, str] | None = None,
+    seed: str = DEFAULT_SPLIT_SEED,
 ) -> SplitOutputs:
-    """Assign splits by connected group (F1d, F8g) and keep synthetic-training works in train (F8g).
+    """Assign whole connected groups to splits, size-aware per source and modality (F1d, F8g, F8g2).
 
     ``synthetic_training_keys`` maps a work-group key to the registered synthetic-training work ids that carry it
     (``SyntheticTrainingWorkRegistry.match_keys``). A component holding any matching item goes to train whole.
+    ``pinned_splits`` maps an item id to a committed split (the benchmark's ``benchmark_split``); its component takes
+    that split whole. Every other component is placed by ``hocrgen.split.balance.assign_group_splits``.
     """
 
     all_items = [*retained_items, *duplicate_items]
     component_ids = split_components(all_items)
     matches = synthetic_training_matches(all_items, synthetic_training_keys)
     forced_train_groups = {component_ids[item_id] for item_id in matches}
-    group_assignments: dict[str, str] = {}
-
-    def split_for(group_id: str) -> str:
-        if group_id in forced_train_groups:
-            return group_assignments.setdefault(group_id, SYNTHETIC_TRAINING_SPLIT)
-        return group_assignments.setdefault(group_id, _pick_split(group_id, split_policy))
+    pins: dict[str, tuple[str, str]] = {group_id: (SYNTHETIC_TRAINING_SPLIT, PIN_SYNTHETIC_TRAINING) for group_id in forced_train_groups}
+    for item_id, split in sorted((pinned_splits or {}).items()):
+        group_id = component_ids.get(item_id)
+        if group_id is None:
+            continue
+        existing = pins.get(group_id)
+        if existing is not None and existing[0] != split:
+            raise ValueError(f"split group {group_id} is pinned to both {existing[0]} ({existing[1]}) and {split} ({PIN_COMMITTED})")
+        if existing is None:
+            pins[group_id] = (split, PIN_COMMITTED)
+    groups = split_groups_for_components(all_items, component_ids, pins, {item.item_id for item in retained_items})
+    group_assignments = assign_group_splits(groups, split_policy, seed=seed)
 
     updated_retained: list[CuratedItemRecord] = []
     assignments: list[SplitAssignmentRecord] = []
     for item in sorted(retained_items, key=lambda record: record.item_id):
         split_group_id = component_ids[item.item_id]
-        split = split_for(split_group_id)
+        split = group_assignments[split_group_id]
         updated = item.model_copy(update={"split": split, "split_group_id": split_group_id})
         updated_retained.append(updated)
         assignments.append(
@@ -233,19 +273,14 @@ def assign_splits(
         )
 
     updated_duplicates: list[CuratedItemRecord] = []
-    canonical_by_cluster = {
-        item.dedupe_cluster_id: item for item in updated_retained if item.dedupe_cluster_id is not None
-    }
     for item in sorted(duplicate_items, key=lambda record: record.item_id):
         split_group_id = component_ids[item.item_id]
-        canonical = canonical_by_cluster.get(item.dedupe_cluster_id)
-        split = group_assignments.get(split_group_id)
-        if split is None and canonical is not None:
-            split = canonical.split
-        updated_duplicates.append(item.model_copy(update={"split": split, "split_group_id": split_group_id}))
+        updated_duplicates.append(item.model_copy(update={"split": group_assignments[split_group_id], "split_group_id": split_group_id}))
 
     leakage_report = _validate_leakage(updated_retained + updated_duplicates, matches)
     leakage_report["forced_train_group_count"] = len(forced_train_groups)
+    leakage_report["pinned_group_count"] = len(pins)
+    leakage_report["split_assignment"] = split_balance_report(groups, group_assignments, split_policy, seed=seed)
     if leakage_report["status"] != "ok":
         raise ValueError("split leakage detected")
 
