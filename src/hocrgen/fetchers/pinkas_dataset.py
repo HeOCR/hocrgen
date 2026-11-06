@@ -241,7 +241,7 @@ def load_entry_line_scopes(
     """Derive the per-line evaluation scope of one entry from the snapshot's language-tag sidecar.
 
     This is what an evaluator reads: a line may be scored at word level as Hebrew only when its scope is
-    `word_level_hebrew` (a human `he` tag that still binds to the line). Geometry is in thumbnail pixels.
+    `full_hebrew` (a human `he` tag that still binds to the line). Geometry is in thumbnail pixels.
     """
 
     page = page or load_entry_page_lines(root, entry)

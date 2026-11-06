@@ -32,4 +32,4 @@ line_language_tags: >-
   F8d3: line_language_tags.yaml holds one reviewable language tag per PAGE XML line (he, yi, mixed, unknown), bound
   to the annotation sha256 and the exact line text. All tags are agent_proposed (lexicon method
   pinkas_line_lexicon.v1) and advisory: they change no scope. Only a human tag with language he makes a line
-  word_level_hebrew (maintainer decision 8); every other line keeps the page default character_level_only.
+  full_hebrew (maintainer decision 8); every other line keeps the page default character_level_only.

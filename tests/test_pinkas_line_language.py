@@ -41,6 +41,7 @@ PAGE_112 = "nli_990000445290205171__page112_right"
 SHA = "a" * 64
 CHARACTER = {
     "evaluation_scope": "character_level_only",
+    "scope_neutral": False,
     "allowed_uses": ["training", "character_level_evaluation"],
     "excluded_evaluations": ["word_level", "language_level_hebrew"],
 }
@@ -102,7 +103,7 @@ def _set_human(root: Path, entry_id: str, line_ids: set[str], language: str = "h
 @pytest.mark.parametrize(
     ("tag_source", "language", "expected_scope", "reason"),
     [
-        ("human", "he", "word_level_hebrew", "human_tagged_he"),
+        ("human", "he", "full_hebrew", "human_tagged_he"),
         ("human", "yi", "character_level_only", "human_tagged_yi"),
         ("human", "mixed", "character_level_only", "human_tagged_mixed"),
         ("human", "unknown", "character_level_only", "human_tagged_unknown"),
@@ -113,20 +114,34 @@ def _set_human(root: Path, entry_id: str, line_ids: set[str], language: str = "h
     ],
 )
 def test_every_tag_combination_derives_its_scope(tag_source: str, language: str, expected_scope: str, reason: str) -> None:
-    fields = line_scope_fields(_tag(language=language, tag_source=tag_source))
+    fields = line_scope_fields(_tag(language=language, tag_source=tag_source), "שלום")
     assert fields["evaluation_scope"] == expected_scope
     assert fields["reason"] == reason
-    if expected_scope == "word_level_hebrew":
-        assert fields["allowed_uses"] == ["training", "character_level_evaluation", "word_level_evaluation"]
-        assert fields["excluded_evaluations"] == ["language_level_hebrew"]
+    if expected_scope == "full_hebrew":
+        # A human-tagged Hebrew line is Hebrew: full Hebrew scope, nothing excluded (decision 8 as clarified).
+        assert fields["allowed_uses"] == [
+            "training",
+            "character_level_evaluation",
+            "word_level_hebrew_evaluation",
+            "language_level_hebrew_evaluation",
+        ]
+        assert fields["excluded_evaluations"] == []
+        assert fields["scope_neutral"] is False
     else:
+        # Yiddish, mixed, unknown and every advisory tag keep both Hebrew exclusions.
         assert {key: fields[key] for key in CHARACTER} == CHARACTER
+        assert {"word_level", "language_level_hebrew"} <= set(fields["excluded_evaluations"])
+        assert not any("hebrew" in use for use in fields["allowed_uses"])
     # A stale tag never widens scope, whatever it says.
-    assert line_scope_fields(_tag(language=language, tag_source=tag_source), stale=True) == {**CHARACTER, "reason": "tag_stale"}
+    assert line_scope_fields(_tag(language=language, tag_source=tag_source), "שלום", stale=True) == {**CHARACTER, "reason": "tag_stale"}
+    # A line without a Hebrew-script letter is scope-neutral, whatever its tag says (F8d3b).
+    neutral = line_scope_fields(_tag(text="1656", language=language, tag_source=tag_source), "1656")
+    assert neutral == {**CHARACTER, "scope_neutral": True, "reason": "scope_neutral_no_hebrew_letters"}
 
 
 def test_untagged_line_keeps_character_level_only() -> None:
-    assert line_scope_fields(None) == {**CHARACTER, "reason": "untagged"}
+    assert line_scope_fields(None, "שלום") == {**CHARACTER, "reason": "untagged"}
+    assert line_scope_fields(None, "")["reason"] == "scope_neutral_no_hebrew_letters"
 
 
 def test_tag_records_are_typed_and_tie_source_to_tagger() -> None:
@@ -159,13 +174,13 @@ def test_page_scope_stays_character_level_while_any_line_is_untagged_or_not_huma
         return page_scope_summary(scopes)
 
     both_he = (_tag("l1", "שלום"), _tag("l2", "עולם"))
-    assert summary(*both_he)["page_evaluation_scope"] == "word_level_hebrew"
-    assert summary(*both_he)["word_level_hebrew_line_ids"] == ["l1", "l2"]
+    assert summary(*both_he)["page_evaluation_scope"] == "full_hebrew"
+    assert summary(*both_he)["full_hebrew_line_ids"] == ["l1", "l2"]
     # One line untagged.
     one = summary(_tag("l1", "שלום"))
     assert one["page_evaluation_scope"] == "character_level_only"
     assert one["reasons"] == {"human_tagged_he": 1, "untagged": 1}
-    assert one["word_level_hebrew_line_ids"] == ["l1"]
+    assert one["full_hebrew_line_ids"] == ["l1"]
     # One line human-tagged Yiddish, mixed or unknown.
     for language in ["yi", "mixed", "unknown"]:
         assert summary(_tag("l1", "שלום"), _tag("l2", "עולם", language=language))["page_evaluation_scope"] == "character_level_only"
@@ -189,7 +204,7 @@ def test_line_scopes_expose_tag_and_geometry_for_evaluation() -> None:
     scopes = derive_line_scopes("p", SHA, lines, PageLineLanguageTags(entry_id="p", annotation_sha256=SHA, lines=[_tag("l1", "שלום")]))
     first, second = scopes
     assert (first.line_id, first.language, first.tag_source, first.tagged_by) == ("l1", "he", "human", "Reviewer Name")
-    assert first.evaluation_scope == "word_level_hebrew" and first.geometry == lines[0].geometry
+    assert first.evaluation_scope == "full_hebrew" and first.geometry == lines[0].geometry
     assert (second.language, second.tag_source, second.evaluation_scope, second.reason) == (None, None, "character_level_only", "untagged")
 
 
@@ -222,7 +237,10 @@ def test_committed_sidecar_covers_every_fixture_line_with_advisory_proposals_onl
             languages[tag.language] = languages.get(tag.language, 0) + 1
         scopes = load_entry_line_scopes(SNAPSHOT_ROOT, entry, tag_file)
         assert {scope.evaluation_scope for scope in scopes} == {"character_level_only"}
-        assert {scope.reason for scope in scopes} == {"agent_proposed_tag_is_advisory"}
+        assert {scope.reason for scope in scopes} == {"agent_proposed_tag_is_advisory", "scope_neutral_no_hebrew_letters"}
+        for scope, line in zip(scopes, page.lines, strict=True):
+            assert scope.scope_neutral is (not any("\u05d0" <= char <= "\u05ea" for char in line.text))
+            assert scope.scope_neutral is (scope.reason == "scope_neutral_no_hebrew_letters")
         assert page_scope_summary(scopes)["page_evaluation_scope"] == "character_level_only"
     assert tag_file_problems(tag_file, pages) == []
     assert languages == {"he": 57, "mixed": 13, "unknown": 9}
@@ -270,7 +288,7 @@ def test_proposal_reports_its_evidence() -> None:
 # --- the human review path ------------------------------------------------------------------------------------
 
 
-def test_human_tags_unlock_word_level_hebrew_per_line_and_survive_reproposal(tmp_path: Path) -> None:
+def test_human_tags_unlock_full_hebrew_per_line_and_survive_reproposal(tmp_path: Path) -> None:
     config_root, root = _copy_snapshot_config(tmp_path)
     _set_human(root, PAGE_105, {"l12", "l14"})
     _set_human(root, PAGE_105, {"l0"}, language="yi")
@@ -282,17 +300,25 @@ def test_human_tags_unlock_word_level_hebrew_per_line_and_survive_reproposal(tmp
     page = metadata[PAGE_105]
     assert page["evaluation_scope"] == "character_level_only"
     assert page["usage_scope"]["evaluation_scope"] == "character_level_only"
-    assert page["line_scope_summary"]["word_level_hebrew_line_ids"] == ["l12", "l14"]
+    assert page["line_scope_summary"]["full_hebrew_line_ids"] == ["l12", "l14"]
     assert page["line_scope_summary"]["reasons"] == {
-        "agent_proposed_tag_is_advisory": 42,
+        "agent_proposed_tag_is_advisory": 37,
         "human_tagged_he": 2,
         "human_tagged_yi": 1,
+        "scope_neutral_no_hebrew_letters": 5,
     }
+    assert page["line_scope_summary"]["scope_neutral_line_ids"] == ["l426", "l39", "l487", "l571", "l573"]
     by_id = {line["line_id"]: line for line in page["line_scopes"]}
-    assert by_id["l12"]["evaluation_scope"] == "word_level_hebrew" and by_id["l12"]["tagged_by"] == "Test Reviewer"
+    assert by_id["l12"]["evaluation_scope"] == "full_hebrew" and by_id["l12"]["tagged_by"] == "Test Reviewer"
+    assert by_id["l12"]["excluded_evaluations"] == []
+    assert "language_level_hebrew_evaluation" in by_id["l12"]["allowed_uses"]
+    assert by_id["l0"]["excluded_evaluations"] == ["word_level", "language_level_hebrew"]
+    assert by_id["l1"]["excluded_evaluations"] == ["word_level", "language_level_hebrew"]  # agent_proposed
+    neutral = next(line for line in page["line_scopes"] if line["line_id"] == "l426")
+    assert neutral["excluded_evaluations"] == ["word_level", "language_level_hebrew"]
     assert by_id["l0"]["evaluation_scope"] == "character_level_only" and by_id["l0"]["reason"] == "human_tagged_yi"
     assert "geometry" not in by_id["l12"]
-    assert metadata[PAGE_112]["line_scope_summary"]["word_level_hebrew_line_count"] == 0
+    assert metadata[PAGE_112]["line_scope_summary"]["full_hebrew_line_count"] == 0
 
     # Re-running the proposer keeps every human tag and refreshes only the advisory ones.
     assert tool.main(["propose", "--snapshot-root", str(root), "--tagged-at", "2026-11-07"]) == 0
@@ -305,20 +331,66 @@ def test_human_tags_unlock_word_level_hebrew_per_line_and_survive_reproposal(tmp
     checks, _, _ = _inspect_source(source, bundle)
     tag_check = next(check for check in checks if check["name"] == "pinkas_dataset_line_language_tags")
     assert tag_check["status"] == "ok"
-    assert tag_check["actual"]["line_scopes"] == {"character_level_only": 77, "word_level_hebrew": 2}
+    assert tag_check["actual"]["line_scopes"] == {"character_level_only": 68, "scope_neutral": 9, "full_hebrew": 2}
     assert tag_check["actual"]["tags"]["human:he"] == 2
 
 
-def test_whole_page_of_human_hebrew_tags_widens_the_page_scope(tmp_path: Path) -> None:
+def test_human_hebrew_text_lines_widen_the_page_scope_and_non_text_lines_stay_neutral(tmp_path: Path) -> None:
     config_root, root = _copy_snapshot_config(tmp_path)
     entry = next(entry for entry in load_pinkas_dataset_snapshot(root)[1] if entry["entry_id"] == PAGE_112)
-    _set_human(root, PAGE_112, {line.line_id for line in load_entry_page_lines(root, entry).lines})
+    lines = load_entry_page_lines(root, entry).lines
+    # Only the lines with Hebrew-script letters are reviewed; the page numbers and years (260, 261, 1656, 1657)
+    # keep their advisory `unknown` proposals and are scope-neutral.
+    _set_human(root, PAGE_112, {line.line_id for line in lines if any("\u05d0" <= char <= "\u05ea" for char in line.text)})
     bundle, source = _source(config_root)
     importer = PinkasDatasetImporter()
     options = StageOptions()
     enriched = importer.fetch_candidate_metadata(source, bundle, importer.discover_candidates(source, bundle, options), options)
-    scopes = {record.source_item_id: record.metadata["evaluation_scope"] for record in enriched}
-    assert scopes == {PAGE_105: "character_level_only", PAGE_112: "word_level_hebrew"}
+    metadata = {record.source_item_id: record.metadata for record in enriched}
+    assert {key: value["evaluation_scope"] for key, value in metadata.items()} == {
+        PAGE_105: "character_level_only",
+        PAGE_112: "full_hebrew",
+    }
+    summary = metadata[PAGE_112]["line_scope_summary"]
+    assert (summary["full_hebrew_line_count"], summary["character_level_only_line_count"], summary["scope_neutral_line_count"]) == (30, 0, 4)
+    assert summary["scope_neutral_line_ids"] == ["l44", "l39", "l1", "l45"]
+    neutral = [line for line in metadata[PAGE_112]["line_scopes"] if line["scope_neutral"]]
+    assert {line["evaluation_scope"] for line in neutral} == {"character_level_only"}
+    assert {line["tag_source"] for line in neutral} == {"agent_proposed"}
+
+    # A human `he` tag on a non-text line does not give that line Hebrew scope.
+    _set_human(root, PAGE_112, {"l1"})
+    enriched = importer.fetch_candidate_metadata(source, bundle, importer.discover_candidates(source, bundle, options), options)
+    page = next(record.metadata for record in enriched if record.source_item_id == PAGE_112)
+    line = next(line for line in page["line_scopes"] if line["line_id"] == "l1")
+    assert (line["tag_source"], line["language"]) == ("human", "he")
+    assert (line["evaluation_scope"], line["reason"]) == ("character_level_only", "scope_neutral_no_hebrew_letters")
+    assert "l1" not in page["line_scope_summary"]["full_hebrew_line_ids"]
+    assert page["evaluation_scope"] == "full_hebrew"
+
+    # One text line left advisory keeps the page conservative.
+    _set_human(root, PAGE_112, {"l14"}, language="mixed")
+    enriched = importer.fetch_candidate_metadata(source, bundle, importer.discover_candidates(source, bundle, options), options)
+    assert next(record.metadata for record in enriched if record.source_item_id == PAGE_112)["evaluation_scope"] == "character_level_only"
+
+
+def test_scope_neutral_lines_follow_the_pinned_text_not_the_tag() -> None:
+    lines = [_line("l1", "שלום", 1), _line("l2", "243", 2), _line("l3", "", 3), _line("l4", "-- 1656 --", 4)]
+    tags = [_tag("l1", "שלום"), _tag("l2", "243", language="yi"), _tag("l4", "-- 1656 --")]
+    scopes = derive_line_scopes("p", SHA, lines, PageLineLanguageTags(entry_id="p", annotation_sha256=SHA, lines=tags))
+    assert [scope.scope_neutral for scope in scopes] == [False, True, True, True]
+    assert [scope.evaluation_scope for scope in scopes] == ["full_hebrew"] + ["character_level_only"] * 3
+    summary = page_scope_summary(scopes)
+    assert summary["page_evaluation_scope"] == "full_hebrew"
+    assert summary["scope_neutral_line_ids"] == ["l2", "l3", "l4"]
+    assert summary["reasons"] == {"human_tagged_he": 1, "scope_neutral_no_hebrew_letters": 3}
+    # A page of only non-text lines has no Hebrew text to evaluate.
+    only_neutral = derive_line_scopes("p", SHA, lines[1:], None)
+    assert page_scope_summary(only_neutral)["page_evaluation_scope"] == "character_level_only"
+    # A Yiddish ligature without a base letter is not in U+05D0-U+05EA, so it is scope-neutral too.
+    assert line_scope_fields(None, "\u05f2")["scope_neutral"] is True
+    # Neutral lines do not hide an untagged text line.
+    assert page_scope_summary(derive_line_scopes("p", SHA, lines[:2], None))["page_evaluation_scope"] == "character_level_only"
 
 
 def test_source_health_flags_stale_and_malformed_sidecars(tmp_path: Path) -> None:
@@ -328,7 +400,7 @@ def test_source_health_flags_stale_and_malformed_sidecars(tmp_path: Path) -> Non
     assert tag_check["status"] == "ok"
     assert tag_check["actual"] == {
         "tags": {"agent_proposed:he": 57, "agent_proposed:mixed": 13, "agent_proposed:unknown": 9},
-        "line_scopes": {"character_level_only": 79, "word_level_hebrew": 0},
+        "line_scopes": {"character_level_only": 70, "scope_neutral": 9, "full_hebrew": 0},
     }
     assert tool.main(["check"]) == 0
 
@@ -366,10 +438,10 @@ def test_missing_sidecar_leaves_every_line_untagged(tmp_path: Path) -> None:
     enriched = importer.fetch_candidate_metadata(source, bundle, importer.discover_candidates(source, bundle, options), options)
     for record in enriched:
         assert record.metadata["evaluation_scope"] == "character_level_only"
-        assert set(record.metadata["line_scope_summary"]["reasons"]) == {"untagged"}
+        assert set(record.metadata["line_scope_summary"]["reasons"]) == {"untagged", "scope_neutral_no_hebrew_letters"}
     checks, _, _ = _inspect_source(source, bundle)
     tag_check = next(check for check in checks if check["name"] == "pinkas_dataset_line_language_tags")
-    assert tag_check == {"name": "pinkas_dataset_line_language_tags", "status": "ok", "actual": {"tags": {}, "line_scopes": {"character_level_only": 79, "word_level_hebrew": 0}}}
+    assert tag_check == {"name": "pinkas_dataset_line_language_tags", "status": "ok", "actual": {"tags": {}, "line_scopes": {"character_level_only": 70, "scope_neutral": 9, "full_hebrew": 0}}}
 
 
 def test_malformed_sidecar_yaml_is_a_recorded_failure_not_a_crash(tmp_path: Path) -> None:
@@ -397,7 +469,7 @@ def test_reproposal_refuses_to_rebind_human_tags_to_a_changed_annotation(tmp_pat
         tool.build_proposals(root, date(2026, 11, 7))
     assert tool.main(["propose", "--snapshot-root", str(root)]) == 1
     assert path.read_text(encoding="utf-8") == before
-    # The stale human tag gives no word-level scope meanwhile.
+    # The stale human tag gives no Hebrew scope meanwhile.
     entry = next(entry for entry in load_pinkas_dataset_snapshot(root)[1] if entry["entry_id"] == PAGE_105)
     scopes = load_entry_line_scopes(root, entry, load_line_language_tags(root, load_pinkas_dataset_snapshot(root)[0]))
-    assert {scope.reason for scope in scopes} == {"tag_stale"}
+    assert {scope.reason for scope in scopes} == {"tag_stale", "scope_neutral_no_hebrew_letters"}

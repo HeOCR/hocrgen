@@ -22,7 +22,8 @@ These answer the "Maintainer decisions needed" list in [`planning/tasks/f8-real-
 5. **Knesset committee protocols from 1976 on.** A legal opinion will be requested. They stay excluded until it arrives. Committee protocols up to 1975 are state works, PD under §42.
 6. **Printed Yiddish in Hebrew script is in scope, but only for training and character-level evaluation.** Yiddish uses the Hebrew alphabet, so its characters are valid targets. It is not used for word-level or language-level Hebrew evaluation. This applies to YidTakNL in `F8d`.
 7. **NLI Search API key.** Request one. The agent handles the request and asks the maintainer only where it gets stuck.
-8. **Pinkas: Hebrew lines may be used for word-level Hebrew evaluation.** The BGU Pinkas text mixes Hebrew and Western Yiddish. Its **Hebrew lines** may be used for training, character-level evaluation and word-level Hebrew evaluation. Its **Yiddish lines** keep the decision-6 scope: training and character-level evaluation only. Decided on the same day, after `F8d2` shipped a page-level `character_level_only` default.
+8. **Pinkas: Hebrew lines may be used with full Hebrew scope, including word-level and language-level Hebrew evaluation.** The BGU Pinkas text mixes Hebrew and Western Yiddish. Its **Hebrew lines** may be used for training, character-level evaluation, and word-level and language-level Hebrew evaluation, with nothing excluded. Its **Yiddish lines** keep the decision-6 scope: training and character-level evaluation only. Decided on the same day, after `F8d2` shipped a page-level `character_level_only` default.
+   - **Clarified by the maintainer on 2026-11-06.** The first wording opened word-level Hebrew evaluation only, and `F8d3` kept `language_level_hebrew` excluded on Hebrew lines. A line tagged as Hebrew is Hebrew, so that exclusion was illogical. The `language_level_hebrew` exclusion exists to keep Yiddish from being treated as Hebrew-language data, so it does not apply to Hebrew lines. `F8d3b` implements this.
    - A line counts as Hebrew only through an explicit, reviewable per-line language tag. Until a line is tagged, it keeps the conservative `character_level_only` scope.
    - Tags are never inferred silently from a script or language heuristic.
 
@@ -30,7 +31,7 @@ These answer the "Maintainer decisions needed" list in [`planning/tasks/f8-real-
 
 - `F8b` is unblocked. HebrewBooks-sourced Index files are admitted only through the per-file rights check.
 - `F8d` admits YidTakNL with a scope marker limiting it to training and character-level evaluation.
-- `pinkas_dataset_bgu` needs per-line language tags before any line is used for word-level Hebrew evaluation (decision 8). This is follow-up work; the shipped page-level scope stays in force until then.
+- `pinkas_dataset_bgu` needs per-line language tags before any line is used for word-level or language-level Hebrew evaluation (decision 8). This is follow-up work; the shipped page-level scope stays in force until then.
 - `F8e` is planned rather than deferred. It covers Reshumot from about 2006 (born-digital) and Knesset committee scans up to 1975. Committee protocols from 1976 on wait for the legal opinion.
 - The other rules are unchanged:
   - Every new F8 source id starts `review_only` and outside `profile_open_v1`.
