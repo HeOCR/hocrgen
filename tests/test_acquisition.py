@@ -53,7 +53,9 @@ def test_nli_fetcher_parses_fixture_metadata() -> None:
     candidates = fetcher.discover_candidates(source, bundle, StageOptions())
     enriched = fetcher.fetch_candidate_metadata(source, bundle, candidates, StageOptions())
 
-    assert len(candidates) == 7
+    # 7 manuscript seeds plus the three F8c printed books promoted to runnable seeds in F8g.
+    assert len(candidates) == 10
+    assert {"nli-pb-001", "nli-pb-002", "nli-pb-003"} <= {candidate.source_item_id for candidate in candidates}
     assert candidates[0].source_item_id == "nli-ms-001"
     assert "nli-ms-seed-005" not in {candidate.source_item_id for candidate in candidates}
     assert enriched[0].raw_rights_text == "Any Use Permitted"

@@ -289,3 +289,187 @@ class PublicBetaGovernanceConfig(ConfigBaseModel):
     version: Literal[1] = 1
     public_reporting_path: ReportingPathConfig
     private_reporting_path: PrivateReportingPathConfig
+
+
+# --- F8g: real-source composition contract ---------------------------------------------------------------
+
+
+class RealSourceModality(str, Enum):
+    """E2d modality tracks. Printed covers machine-set type (typewritten included); handwritten covers manuscripts."""
+
+    printed = "printed"
+    handwritten = "handwritten"
+
+
+class RealSourcePromotion(str, Enum):
+    promoted = "promoted"  # moved from review_only into the public path by a planned PR (F8g, later F7d)
+    legacy = "legacy"  # an allowed source that predates the contract (B1/B2 NLI, Pinkas, BiblIA)
+    not_promoted = "not_promoted"  # known real source still review_only; counts nothing until its promotion PR
+
+
+class RealSourceEvaluationScope(str, Enum):
+    full_hebrew = "full_hebrew"
+    character_level_only = "character_level_only"
+    per_line = "per_line"  # a page-level default plus per-line scope (BGU Pinkas, decision 8)
+    images_only = "images_only"  # no text ships with the item
+
+
+class RealSourceReleaseTerms(ConfigBaseModel):
+    """What every exported item of a source must carry, and the NOTICE paragraph for the source."""
+
+    licence: str = Field(min_length=1)
+    attribution_required: bool
+    share_alike: bool = False
+    evaluation_scope: RealSourceEvaluationScope
+    rendered_not_scan: bool = False
+    paired_text: Literal["page_text", "page_xml", "none"] = "none"
+    notice: str = Field(min_length=1)
+
+
+class RealSourceContractEntry(ConfigBaseModel):
+    source_id: str = Field(pattern=r"^[a-z0-9_]+$")
+    promotion: RealSourcePromotion
+    planning_notation: str = Field(min_length=1)
+    modalities: list[RealSourceModality] = Field(min_length=1)
+    floor: int = Field(ge=0)
+    cap: int = Field(ge=1)
+    counts_toward_modality_floors: bool = True
+    leakage_group: str = Field(min_length=1)
+    release_terms: RealSourceReleaseTerms
+    notes: str = ""
+
+    @model_validator(mode="after")
+    def validate_floor_and_cap(self) -> "RealSourceContractEntry":
+        if self.floor > self.cap:
+            raise ValueError(f"{self.source_id}: floor {self.floor} exceeds cap {self.cap}")
+        if self.promotion == RealSourcePromotion.not_promoted and self.floor:
+            raise ValueError(f"{self.source_id}: a not_promoted source cannot carry a floor")
+        if self.release_terms.share_alike and not self.release_terms.attribution_required:
+            raise ValueError(f"{self.source_id}: share-alike terms always require attribution")
+        return self
+
+
+class RealSourceContract(ConfigBaseModel):
+    """``real_source_composition.v2`` (F8g): per-source floors and caps by modality, replacing the fixed
+    27 / 27 / 26 NLI / Pinkas / BiblIA allocation for public-beta readiness.
+
+    A source's public payload items count toward ``min_real_items`` only up to its ``cap``; its ``floor`` must be met
+    outright. Modality floors (E2d printed / handwritten tracks) are counted over the capped items of sources that
+    ``counts_toward_modality_floors``. The F1 trial keeps its own historical allocation (``hocrgen.source_ops``).
+    """
+
+    version: Literal[1] = 1
+    contract_id: Literal["real_source_composition.v2"] = "real_source_composition.v2"
+    planning_notation: str = Field(min_length=1)
+    decision_record: str = Field(min_length=1)
+    min_real_items: int = Field(ge=1)
+    modality_content_types: dict[RealSourceModality, list[str]]
+    modality_floors: dict[RealSourceModality, int]
+    sources: list[RealSourceContractEntry] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_contract(self) -> "RealSourceContract":
+        ids = [entry.source_id for entry in self.sources]
+        duplicates = sorted({source_id for source_id in ids if ids.count(source_id) > 1})
+        if duplicates:
+            raise ValueError(f"duplicate real-source contract entries: {', '.join(duplicates)}")
+        if set(self.modality_content_types) != set(RealSourceModality):
+            raise ValueError("modality_content_types must name every modality")
+        seen: dict[str, RealSourceModality] = {}
+        for modality, content_types in self.modality_content_types.items():
+            for content_type in content_types:
+                if content_type in seen:
+                    raise ValueError(f"content type {content_type} maps to both {seen[content_type].value} and {modality.value}")
+                seen[content_type] = modality
+        if any(value < 0 for value in self.modality_floors.values()):
+            raise ValueError("modality floors must be non-negative")
+        if sum(self.modality_floors.values()) > self.min_real_items:
+            raise ValueError("modality floors exceed min_real_items")
+        if sum(entry.floor for entry in self.sources) > self.min_real_items:
+            raise ValueError("per-source floors exceed min_real_items")
+        for modality, floor in self.modality_floors.items():
+            reachable = sum(
+                entry.cap
+                for entry in self.sources
+                if entry.promotion != RealSourcePromotion.not_promoted
+                and entry.counts_toward_modality_floors
+                and modality in entry.modalities
+            )
+            if reachable < floor:
+                raise ValueError(f"{modality.value} floor {floor} cannot be reached under the caps ({reachable})")
+        reachable_total = sum(entry.cap for entry in self.sources if entry.promotion != RealSourcePromotion.not_promoted)
+        if reachable_total < self.min_real_items:
+            raise ValueError(f"min_real_items {self.min_real_items} cannot be reached under the caps ({reachable_total})")
+        return self
+
+    def entry(self, source_id: str) -> RealSourceContractEntry | None:
+        return next((entry for entry in self.sources if entry.source_id == source_id), None)
+
+    def modality_for_content_type(self, content_type: str | None) -> RealSourceModality | None:
+        for modality, content_types in self.modality_content_types.items():
+            if content_type in content_types:
+                return modality
+        return None
+
+
+# --- F8g: works whose text or glyphs feed synthetic training (leakage cross-check) --------------------------
+
+
+class SyntheticTrainingProducer(ConfigBaseModel):
+    producer: str = Field(min_length=1)
+    plan: str = Field(min_length=1)
+    status: Literal["planned", "active", "retired"]
+    exclusion_list: str | None = None  # where the producer publishes its work-level exclusion list, once built
+
+
+class SyntheticTrainingWork(ConfigBaseModel):
+    work_id: str = Field(min_length=1)  # the producer's own id, e.g. pby:1234 (Project Ben-Yehuda) or hash:writer:...
+    producer: str = Field(min_length=1)
+    title: str = ""
+    match_keys: list[str] = Field(min_length=1)  # work-group keys of real items: nli_record:<id>, commons_file:<sha1>, ...
+    corpus_build: str | None = None
+    recorded_by: str = Field(min_length=1)
+    recorded_at: date
+
+    @field_validator("match_keys")
+    @classmethod
+    def validate_match_keys(cls, keys: list[str]) -> list[str]:
+        for key in keys:
+            kind, _, value = key.partition(":")
+            if not kind or not value:
+                raise ValueError(f"match key {key!r} must be <kind>:<value>")
+        return keys
+
+
+class SyntheticTrainingWorkRegistry(ConfigBaseModel):
+    """``synthetic_training_works.v1`` (F8g): real works whose text or glyphs feed synthetic training.
+
+    A real item whose work-group keys match a registered work is kept in ``train`` with its whole split group and is
+    never benchmark or holdout material. Producers record works here from their corpus builds (hocrsyngen S15a's
+    Project Ben-Yehuda work-level exclusion list; HASH writer groups through hletterscript, F7d).
+    """
+
+    version: Literal[1] = 1
+    registry_id: Literal["synthetic_training_works.v1"] = "synthetic_training_works.v1"
+    producers: list[SyntheticTrainingProducer] = Field(default_factory=list)
+    works: list[SyntheticTrainingWork] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_registry(self) -> "SyntheticTrainingWorkRegistry":
+        producers = {producer.producer for producer in self.producers}
+        ids = [work.work_id for work in self.works]
+        if len(ids) != len(set(ids)):
+            raise ValueError("duplicate synthetic-training work ids")
+        unknown = sorted({work.producer for work in self.works} - producers)
+        if unknown:
+            raise ValueError(f"synthetic-training works name unregistered producers: {', '.join(unknown)}")
+        return self
+
+    def match_keys(self) -> dict[str, list[str]]:
+        """Each registered match key, with the work ids that carry it."""
+
+        keys: dict[str, list[str]] = {}
+        for work in self.works:
+            for key in work.match_keys:
+                keys.setdefault(key, []).append(work.work_id)
+        return keys

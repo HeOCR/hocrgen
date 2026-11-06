@@ -75,17 +75,19 @@ def _copy_snapshot_config(tmp_path: Path) -> Path:
     return config_root
 
 
-def test_pinkas_dataset_source_is_review_only_and_distinct_from_pinkas_open() -> None:
+def test_pinkas_dataset_source_is_promoted_and_distinct_from_pinkas_open() -> None:
     bundle, source = _bundle_and_source()
     assert source.fetcher == "pinkas_dataset"
-    assert source.status.value == "review_only"
-    assert source.default_public_release is False
+    assert source.status.value == "allowed"
+    assert source.default_public_release is True
     assert source.requires_manual_review is False
     assert source.allowed_content_types == ["handwritten_historical"]
     assert source.rights_strategy.values == ["CC-BY-4.0"]
     assert source.rights_classification.value == "open_with_attribution"
     assert bundle.privacy_rules.source_defaults[SOURCE_ID].value == "clear"
-    assert SOURCE_ID not in bundle.profiles["profile_open_v1"].include_sources
+    # F8g: promoted into the public path; the real-source contract governs its composition.
+    assert SOURCE_ID in bundle.profiles["profile_open_v1"].include_sources
+    assert bundle.real_source_contract.entry(SOURCE_ID).promotion.value == "promoted"
     assert SOURCE_ID in bundle.profiles["profile_review_v1"].include_sources
     pinkas_open = next(candidate for candidate in bundle.source_registry.sources if candidate.id == "pinkas_open")
     assert pinkas_open.fetcher == "pinkas" and pinkas_open.settings.extra.get("pinkas_dataset_snapshot_root") is None

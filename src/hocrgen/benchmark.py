@@ -7,6 +7,7 @@ from pydantic import ValidationError
 
 from hocrgen.config.loader import package_root, load_json_file
 from hocrgen.core.errors import ConfigValidationError, StageExecutionError
+from hocrgen.split.work_groups import item_work_group_keys
 from hocrgen.manifests.models import (
     BenchmarkConfigRecord,
     BenchmarkItemRecord,
@@ -185,6 +186,7 @@ def benchmark_holdout_leakage_artifact(
     removed_duplicate_items: list[CuratedItemRecord],
     policy: BenchmarkLeakagePolicyRecord,
     enforcement_context: BenchmarkLeakageEnforcementContext,
+    synthetic_training_keys: dict[str, list[str]] | None = None,
 ) -> dict[str, object]:
     benchmark_ids = {item.item_id for item in benchmark_items}
     benchmark_splits = {
@@ -205,6 +207,9 @@ def benchmark_holdout_leakage_artifact(
             groups.setdefault(("near_duplicate", item.near_duplicate_cluster_id), set()).add(item.item_id)
         if item.source_group_id:
             groups.setdefault(("source_group", item.source_group_id), set()).add(item.item_id)
+        # F8g: work groups tie items of different sources that share one edition, scan file or writer.
+        for key in item_work_group_keys(item):
+            groups.setdefault(("work_group", key), set()).add(item.item_id)
 
     resolutions = {
         (resolution.group_kind, resolution.group_id): resolution
@@ -279,6 +284,27 @@ def benchmark_holdout_leakage_artifact(
         unresolved = {**risk, "resolution_status": "unresolved"}
         risks.append(unresolved)
         unresolved_risks.append(unresolved)
+
+    # F8g: a benchmark item whose work feeds synthetic training is never benchmark material. No resolution covers
+    # it: the item must leave the benchmark through a benchmark-membership change.
+    for item in candidate_items:
+        if item.item_id not in benchmark_ids:
+            continue
+        work_ids = sorted(
+            {work_id for key in item_work_group_keys(item) for work_id in (synthetic_training_keys or {}).get(key, [])}
+        )
+        for work_id in work_ids:
+            unresolved = {
+                "benchmark_item_ids": [item.item_id],
+                "group_id": work_id,
+                "group_kind": "synthetic_training_work",
+                "non_benchmark_item_ids": [],
+                "holdout_item_ids": [],
+                "splits": [benchmark_splits[item.item_id]] if benchmark_splits.get(item.item_id) else [],
+                "resolution_status": "unresolved",
+            }
+            risks.append(unresolved)
+            unresolved_risks.append(unresolved)
 
     unused_resolutions = [
         resolution.model_dump(mode="json")

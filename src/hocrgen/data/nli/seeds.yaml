@@ -186,3 +186,58 @@ items:
   f1_source_depth_only: true
   notes: Manually selected Any Use Permitted Yemenite prayer manuscript seed for F1b4
     NLI source-depth promotion.
+- id: nli-pb-001
+  url: https://www.nli.org.il/en/books/NNL_ALEPH990012682410205171
+  title: 'סדר הגדה של פסח : עם פירוש ... על כל ההגדה עם כל הפיוטים ... קידוש, הלל
+    והלל הגדול ... וקרא שמו ... תשבי מבשר ... / חברו ... בעהמ"ח ספר בתים לבריחים [=שבתי
+    בן אהרן] מ"מ ומ"ץ דק"ק טשאשניק ...'
+  fixture_html: package://data/nli/item_nli_pb_001.html
+  content_type: printed_historical
+  period: historical
+  iiif_manifest_url: https://iiif.nli.org.il/IIIFv21/990012682410205171/manifest
+  iiif_canvas_indices:
+  - 14
+  - 15
+  iiif_manifest_capture: package://data/nli/iiif/nli_pb_001_manifest_capture.json
+  iiif_manifest_capture_sha256: 318c50d5a6d4b5799f08c1136027cd0ae59a0e0e34763cd1cd34e5d6107e6cb6
+  notes: F8c hand-vetted printed book, found by probing record ids next to 001268237.
+    Passover Haggadah with the commentary of Shabbetai ben Aharon, Shklov 1819. IIIF
+    licence slug public-domain-free-use; attribution NLI collection. Promoted to a
+    runnable seed in F8g (cached fixture, no network).
+- id: nli-pb-002
+  url: https://www.nli.org.il/en/books/NNL_ALEPH990013541620205171
+  title: סדר הגדה של פסח / עם פירוש הגאון המקובל ... מו"ה יוסף [בן אברהם] גיקטליא
+    ... ועם פי' אדומו"ר הגאון ... מו"ה אליהו [בן שלמה זלמן] מווילנא ... והוספת כמה
+    דינים והנהגות טובות מאדומ"ור הגאון ז"ל ... הובא לבית הדפוס על ידי ... מרדכי צבי
+    בראן שטיין בהרבני ... ר' שמחה בעצש מזבאריז חתן ... המנוח מוהר"ר יואל חסיד מזלאטשב.
+    ועל ידי ה"ה מו' נפתלי הירץ בהמנוח מו' אהרן יוסף הכהן בודק מ"ס [מוכר ספרים] בחצר
+    בהכ"נ [בית הכנסת] חדשה דת"ה [דתוך העיר].
+  fixture_html: package://data/nli/item_nli_pb_002.html
+  content_type: printed_historical
+  period: historical
+  iiif_manifest_url: https://iiif.nli.org.il/IIIFv21/990013541620205171/manifest
+  iiif_canvas_indices:
+  - 9
+  - 10
+  iiif_manifest_capture: package://data/nli/iiif/nli_pb_002_manifest_capture.json
+  iiif_manifest_capture_sha256: f2433c7f4d69950cc7cf9de28d366083940102b0b5d6ec3655e59481e6bc5c22
+  notes: F8c hand-vetted printed book, found via the NLI Search API. Passover Haggadah
+    with the Gikatilla and Vilna Gaon commentaries, Lemberg c. 1807 (printer Naftali
+    Hirz Groisman). IIIF licence slug public-domain-free-use; attribution NLI collection.
+    Promoted to a runnable seed in F8g (cached fixture, no network).
+- id: nli-pb-003
+  url: https://www.nli.org.il/en/books/NNL_ALEPH990017220030205171
+  title: הגדה / עם פירוש הרב האבודרהם.
+  fixture_html: package://data/nli/item_nli_pb_003.html
+  content_type: printed_historical
+  period: historical
+  iiif_manifest_url: https://iiif.nli.org.il/IIIFv21/990017220030205171/manifest
+  iiif_canvas_indices:
+  - 6
+  - 7
+  iiif_manifest_capture: package://data/nli/iiif/nli_pb_003_manifest_capture.json
+  iiif_manifest_capture_sha256: 6ee0a1132070e6f3ec3182aa328e5e02a9912e1cde07bbe445f83cd754738b89
+  notes: F8c hand-vetted printed book, found via the NLI Search API. Haggadah with
+    the Abudarham commentary, Livorno 1855 (Shlomo Belforte). IIIF licence slug public-domain-free-use;
+    attribution NLI collection. Promoted to a runnable seed in F8g (cached fixture,
+    no network).

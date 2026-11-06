@@ -1,0 +1,171 @@
+version: 1
+contract_id: real_source_composition.v2
+planning_notation: F8g
+# Team-lead contract (F8g, 2026-11-06), under the F8 maintainer decisions 1-13 and the E2d modality direction.
+# It replaces the fixed 27 / 27 / 26 NLI / Pinkas / BiblIA allocation for public-beta readiness. The F1 trial
+# (hocrgen.source_ops.F1_SOURCE_TARGETS) keeps its historical allocation as an operator-only artifact.
+decision_record: planning/decisions/2026-11-06-f8-real-source-decisions.md
+# A source's public payload items count toward min_real_items only up to its cap; its floor must be met outright.
+min_real_items: 80
+modality_content_types:
+  printed:
+    - printed_historical
+    - printed_modern
+    - typewritten_historical
+  handwritten:
+    - handwritten_historical
+    - handwritten_modern
+    - manuscript_scan
+# E2d: printed and handwritten are separate tracks; each needs its own floor of counted (capped) items.
+modality_floors:
+  printed: 30
+  handwritten: 25
+sources:
+  - source_id: wikisource_he_proofread
+    promotion: promoted
+    planning_notation: F8g
+    modalities: [printed]
+    floor: 20
+    cap: 40
+    leakage_group: one Wikisource Index (one Commons scan file) is one source group
+    release_terms:
+      licence: CC-BY-SA-4.0
+      attribution_required: true
+      share_alike: true
+      evaluation_scope: full_hebrew
+      paired_text: page_text
+      notice: >-
+        Page text: Hebrew Wikisource contributors, CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/).
+        Each item names its pinned page permalink. Share-alike applies to the page text and to any reference file
+        derived from it (F8 decision 1). Scans: the Index's Commons file, a faithful reproduction of a work that is
+        public domain in Israel (decisions 3, 9 and 10).
+  - source_id: yidtaknl_vaybertaytsh_gt
+    promotion: promoted
+    planning_notation: F8g
+    modalities: [printed]
+    floor: 5
+    cap: 15
+    leakage_group: one YidTakNL work (one printed edition) is one source group; its NLI record is a work group
+    release_terms:
+      licence: CC-BY-4.0
+      attribution_required: true
+      evaluation_scope: character_level_only
+      paired_text: page_text
+      notice: >-
+        Text: Ronny Reshef and Mirjam Gutschow, Dataset for Transkribus Vaybertaytsh HTR model, figshare, 2024,
+        doi:10.6084/m9.figshare.25422844.v1, CC BY 4.0. Scans: National Library of Israel, public-domain-free-use
+        (decision 13). Printed Yiddish: training and character-level evaluation only, never word-level or
+        language-level Hebrew evaluation (decision 6).
+  - source_id: pinkas_dataset_bgu
+    promotion: promoted
+    planning_notation: F8g
+    modalities: [handwritten]
+    floor: 10
+    cap: 30
+    leakage_group: the whole manuscript (NLI Ms. Heb. 4°662) is one source group
+    release_terms:
+      licence: CC-BY-4.0
+      attribution_required: true
+      evaluation_scope: per_line
+      paired_text: page_xml
+      notice: >-
+        Annotations: Berat Kurar Barakat, Irina Rabaev and Jihad El-Sana, The Pinkas Dataset, ICDAR 2019, Zenodo
+        record 3569694, CC BY 4.0. Scan: National Library of Israel, Ms. Heb. 4°662 (Ktiv project),
+        public-domain-free-use. Scope is per line (decision 8): only a human `he` line tag gives full Hebrew scope;
+        every other line is character-level only.
+  - source_id: nli_any_use_permitted
+    promotion: legacy
+    planning_notation: F8c
+    modalities: [printed, handwritten]
+    floor: 0
+    cap: 20
+    leakage_group: one NLI record (an item and all its pages) is one work group
+    release_terms:
+      licence: PD-IL
+      attribution_required: false
+      evaluation_scope: images_only
+      notice: >-
+        Scans: National Library of Israel items whose IIIF manifest licence is public-domain-free-use ("Any Use
+        Permitted"), decided per item (decision 13). Credit: The National Library of Israel.
+  - source_id: reshumot_born_digital
+    promotion: promoted
+    planning_notation: F8g
+    modalities: [printed]
+    floor: 0
+    cap: 5
+    # Rendered by HeOCR from born-digital PDFs: real documents, not scans, so they never count toward a scan track.
+    counts_toward_modality_floors: false
+    leakage_group: one Reshumot booklet is one source group
+    release_terms:
+      licence: PD-IL
+      attribution_required: false
+      evaluation_scope: full_hebrew
+      rendered_not_scan: true
+      paired_text: page_text
+      notice: >-
+        Reshumot (ספר החוקים, קובץ התקנות), 2006 on: laws and regulations carry no copyright (Copyright Act 2007,
+        section 6). Page images are rendered by HeOCR from the born-digital PDFs and are not scans
+        (`rendering.is_scan: false`); the text is the PDF's embedded text, bidi-checked per page.
+  - source_id: knesset_committee_protocols_pre1976
+    promotion: promoted
+    planning_notation: F8g
+    modalities: [printed]
+    floor: 0
+    cap: 10
+    leakage_group: one protocol document is one source group
+    release_terms:
+      licence: PD-IL
+      attribution_required: false
+      evaluation_scope: images_only
+      notice: >-
+        Knesset committee protocols of sessions up to 1975-12-31: state works, public domain under section 42
+        (decision 5). Images only; the PDFs' OCR layer is not carried.
+  - source_id: pinkas_open
+    promotion: legacy
+    planning_notation: B2
+    modalities: [handwritten]
+    floor: 0
+    cap: 15
+    leakage_group: one pinkas (one Commons / WDL work) is one source group
+    release_terms:
+      licence: PD-IL
+      attribution_required: false
+      evaluation_scope: images_only
+      notice: Community pinkasim scans from Wikimedia Commons and the World Digital Library, public domain in Israel.
+  - source_id: biblia_open
+    promotion: legacy
+    planning_notation: B2
+    modalities: [handwritten]
+    floor: 0
+    cap: 15
+    leakage_group: the c. 1300 Bible manuscript is one source group
+    release_terms:
+      licence: PD-IL
+      attribution_required: false
+      evaluation_scope: images_only
+      notice: Wikimedia Commons images of a c. 1300 Bible manuscript, public domain in Israel. No transcription ships.
+  - source_id: hash_nli_any_use
+    promotion: not_promoted
+    planning_notation: F7d
+    modalities: [handwritten]
+    floor: 0
+    cap: 40
+    leakage_group: HASH source_id is the source group; the creator is the writer group
+    release_terms:
+      licence: PD-IL
+      attribution_required: false
+      evaluation_scope: images_only
+      notice: HASH handwritten scans from National Library of Israel "Any Use Permitted" items (F7d, not promoted).
+    notes: F7d promotes this entry by setting promotion and a floor; the contract shape needs no change.
+  - source_id: hash_public_domain
+    promotion: not_promoted
+    planning_notation: F7d
+    modalities: [handwritten]
+    floor: 0
+    cap: 20
+    leakage_group: HASH source_id is the source group; the creator is the writer group
+    release_terms:
+      licence: PDM-1.0
+      attribution_required: false
+      evaluation_scope: images_only
+      notice: HASH handwritten scans marked public domain by LoC or Commons (F7d, not promoted).

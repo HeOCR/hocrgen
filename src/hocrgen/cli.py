@@ -26,6 +26,7 @@ from hocrgen.package.alpha import AlphaExportConfig, export_alpha_release
 from hocrgen.package.heocrsynth import SyntheticExportConfig, export_synthetic_release
 from hocrgen.package.public_beta import PublicBetaExportConfig, export_public_beta_release
 from hocrgen.pipeline import execute_pipeline, write_run_metadata, write_run_summary
+from hocrgen.real_tranche import apply_real_tranche
 from hocrgen.review.merge import validate_review_data
 from hocrgen.runs import load_resumed_pipeline_state, render_run_summary_markdown, summarize_run
 from hocrgen.synthetic.hocrsyngen_preflight import run_hocrsyngen_preflight
@@ -51,6 +52,12 @@ def _add_pipeline_common_args(parser: argparse.ArgumentParser, *, dry_run_help: 
     parser.add_argument("--profile", required=True, help="Release profile id")
     parser.add_argument("--workdir", type=Path, default=None, help="Work directory root")
     parser.add_argument("--config-root", type=Path, default=None, help="Override config root directory")
+    parser.add_argument(
+        "--real-tranche-root",
+        type=Path,
+        default=None,
+        help="Materialized F8g real tranche (python -m hocrgen.tools.real_tranche); checked against the committed manifest",
+    )
     parser.add_argument("--dry-run", action="store_true", help=dry_run_help)
     parser.add_argument("--source", action="append", default=None, help="Limit execution to one or more source ids")
     parser.add_argument("--max-items", type=int, default=None, help="Limit items per source during discovery/import")
@@ -316,8 +323,11 @@ def _print_json(payload: dict) -> None:
     print(json.dumps(payload, indent=2, sort_keys=True))
 
 
-def _load_bundle(config_root: Path | None) -> ConfigBundle:
-    return load_and_validate_bundle(config_root.resolve() if config_root else None)
+def _load_bundle(config_root: Path | None, real_tranche_root: Path | None = None) -> ConfigBundle:
+    bundle = load_and_validate_bundle(config_root.resolve() if config_root else None)
+    if real_tranche_root is not None:
+        bundle = apply_real_tranche(bundle, real_tranche_root)
+    return bundle
 
 
 def _stage_options_from_args(args: argparse.Namespace) -> StageOptions:
@@ -337,7 +347,7 @@ def _stage_options_from_args(args: argparse.Namespace) -> StageOptions:
 
 def handle_config_validate(args: argparse.Namespace) -> int:
     try:
-        bundle = _load_bundle(args.config_root)
+        bundle = _load_bundle(args.config_root, getattr(args, "real_tranche_root", None))
         hocrsyngen_batches = []
         for source in bundle.source_registry.sources:
             if source.fetcher == "hocrsyngen_manifest":
@@ -405,7 +415,7 @@ def handle_config_validate(args: argparse.Namespace) -> int:
 
 def handle_stage(args: argparse.Namespace) -> int:
     try:
-        bundle = _load_bundle(args.config_root)
+        bundle = _load_bundle(args.config_root, getattr(args, "real_tranche_root", None))
     except ConfigValidationError as exc:
         _print_json({"status": "error", "error": str(exc)})
         return 1
@@ -482,7 +492,7 @@ def handle_stage(args: argparse.Namespace) -> int:
 
 def handle_f1_beta_trial(args: argparse.Namespace) -> int:
     try:
-        bundle = _load_bundle(args.config_root)
+        bundle = _load_bundle(args.config_root, getattr(args, "real_tranche_root", None))
     except ConfigValidationError as exc:
         _print_json({"status": "error", "error": str(exc)})
         return 1
@@ -686,7 +696,7 @@ def handle_export_review_queue(args: argparse.Namespace) -> int:
 
 def handle_export_alpha(args: argparse.Namespace) -> int:
     try:
-        bundle = _load_bundle(args.config_root)
+        bundle = _load_bundle(args.config_root, getattr(args, "real_tranche_root", None))
     except ConfigValidationError as exc:
         _print_json({"status": "error", "error": str(exc)})
         return 1
@@ -762,7 +772,7 @@ def handle_export_synthetic(args: argparse.Namespace) -> int:
         return 1
 
     try:
-        bundle = _load_bundle(args.config_root)
+        bundle = _load_bundle(args.config_root, getattr(args, "real_tranche_root", None))
     except ConfigValidationError as exc:
         _print_json({"status": "error", "error": str(exc)})
         return 1
@@ -855,7 +865,7 @@ def handle_export_public_beta(args: argparse.Namespace) -> int:
         return 1
 
     try:
-        bundle = _load_bundle(args.config_root)
+        bundle = _load_bundle(args.config_root, getattr(args, "real_tranche_root", None))
     except ConfigValidationError as exc:
         _print_json({"status": "error", "error": str(exc)})
         return 1

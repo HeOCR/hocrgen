@@ -75,16 +75,20 @@ def _copy_snapshot_config(tmp_path: Path) -> Path:
 # --- source policy -----------------------------------------------------------------------------------------
 
 
-def test_wikisource_source_is_review_only_sharealike_and_outside_the_public_profile() -> None:
+def test_wikisource_source_is_promoted_sharealike_and_in_the_public_profile() -> None:
     bundle, source = _bundle_and_source()
     assert source.fetcher == "wikisource_proofread"
-    assert source.status.value == "review_only"
-    assert source.default_public_release is False
+    assert source.status.value == "allowed"
+    assert source.default_public_release is True
     assert source.allowed_content_types == ["printed_historical"]
     assert source.normalized_license == "CC-BY-SA-4.0"
     assert source.rights_classification.value == "sharealike"
     assert source.rights_strategy.values == ["CC-BY-SA-4.0"]
-    assert SOURCE_ID not in bundle.profiles["profile_open_v1"].include_sources
+    # F8g: the per-Index rights evidence is recorded and replayed through the unchanged gate; no per-item review.
+    assert source.requires_manual_review is False
+    # F8g: promoted into the public path; the real-source contract governs its composition.
+    assert SOURCE_ID in bundle.profiles["profile_open_v1"].include_sources
+    assert bundle.real_source_contract.entry(SOURCE_ID).promotion.value == "promoted"
     assert SOURCE_ID in bundle.profiles["profile_review_v1"].include_sources
     # Public-domain historical print: no privacy-review gate (maintainer decision 2026-11-06).
     assert bundle.privacy_rules.source_defaults[SOURCE_ID].value == "clear"
@@ -663,19 +667,24 @@ def test_source_health_and_acquisition_verify_the_crop_against_its_page(tmp_path
     assert crop_asset_problems(by_id[BUBER], snapshot) == ["crop_asset_missing"]
 
 
-def test_review_profile_routes_pages_to_review_and_open_profile_ignores_them(tmp_path: Path, capsys) -> None:
-    assert main(["build-release", "--profile", "profile_review_v1", "--dry-run", "--workdir", str(tmp_path / "review")]) == 0
-    run_dir = Path(json.loads(capsys.readouterr().out)["run_dir"])
-    queue = json.loads((run_dir / "review" / "queue.json").read_text(encoding="utf-8"))
-    queued = {item["item_id"]: item for item in queue["items"] if item["source_id"] == SOURCE_ID}
-    assert sorted(queued) == [f"{SOURCE_ID}:{BOSTENAY}", f"{SOURCE_ID}:{BUBER}", f"{SOURCE_ID}:{HYMAN}", f"{SOURCE_ID}:{SELIHOT}", f"{SOURCE_ID}:{SIPPUREI}"]
-    assert all("policy:review_only_source" in item["review_reasons"] for item in queued.values())
-    classified = json.loads((run_dir / "classify" / "classified_items.json").read_text(encoding="utf-8"))
-    assert {item["content_class"] for item in classified["items"] if item["source_id"] == SOURCE_ID} == {"printed"}
+def test_open_profile_ships_pages_with_text_and_sharealike_terms(tmp_path: Path, capsys) -> None:
+    """F8g: the promoted source's pages reach the public payload with their page text and share-alike terms."""
 
     assert main(["build-release", "--profile", "profile_open_v1", "--dry-run", "--workdir", str(tmp_path / "open")]) == 0
-    open_run = Path(json.loads(capsys.readouterr().out)["run_dir"])
-    assert SOURCE_ID not in (open_run / "discover" / "candidates.json").read_text(encoding="utf-8")
+    run_dir = Path(json.loads(capsys.readouterr().out)["run_dir"])
+    queue = json.loads((run_dir / "review" / "queue.json").read_text(encoding="utf-8"))
+    assert not [item for item in queue["items"] if item["source_id"] == SOURCE_ID]
+    classified = json.loads((run_dir / "classify" / "classified_items.json").read_text(encoding="utf-8"))
+    assert {item["content_class"] for item in classified["items"] if item["source_id"] == SOURCE_ID} == {"printed"}
+    released = json.loads((run_dir / "build_release" / "item_manifest.json").read_text(encoding="utf-8"))["items"]
+    pages = {item["item_id"] for item in released if item["source_id"] == SOURCE_ID}
+    assert pages == {f"{SOURCE_ID}:{BOSTENAY}", f"{SOURCE_ID}:{BUBER}", f"{SOURCE_ID}:{HYMAN}", f"{SOURCE_ID}:{SELIHOT}", f"{SOURCE_ID}:{SIPPUREI}"}
+    # One Index is one source group; all of a group's pages share a split.
+    groups: dict[str, set[str]] = {}
+    for item in released:
+        if item["source_id"] == SOURCE_ID:
+            groups.setdefault(item["metadata"]["source_group_id"], set()).add(item["split"])
+    assert all(len(splits) == 1 for splits in groups.values())
 
 
 # --- operator-only F2 reference conversion -----------------------------------------------------------------

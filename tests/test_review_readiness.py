@@ -6,6 +6,7 @@ from pathlib import Path
 
 from hocrgen.cli import main
 from hocrgen.config.loader import default_config_root
+from legacy_profile import restrict_open_profile_to_legacy_sources
 
 
 def test_classify_stage_assigns_expected_source_priors(tmp_path: Path, capsys) -> None:
@@ -19,6 +20,7 @@ def test_classify_stage_assigns_expected_source_priors(tmp_path: Path, capsys) -
         ),
         encoding="utf-8",
     )
+    restrict_open_profile_to_legacy_sources(config_root)
     exit_code = main(
         [
             "classify",
@@ -279,6 +281,7 @@ def test_build_release_applies_review_decisions_and_overrides(tmp_path: Path, ca
         ),
         encoding="utf-8",
     )
+    restrict_open_profile_to_legacy_sources(config_root)
     review_root = tmp_path / "review_data"
     (review_root / "manual_decisions").mkdir(parents=True)
     (review_root / "allowlists").mkdir(parents=True)

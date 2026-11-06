@@ -151,7 +151,8 @@ def test_active_source_health_is_emitted_in_discover_and_build_release(tmp_path:
     source_stats = json.loads((run_dir / "build_release" / "source_stats.json").read_text(encoding="utf-8"))
 
     assert exit_code == 0
-    assert discover_summary["source_health"]["selected_source_count"] == 4
+    # F8g: the five promoted F8 sources join the four B-phase sources in profile_open_v1.
+    assert discover_summary["source_health"]["selected_source_count"] == 9
     assert discover_summary["source_depth_feasibility_report"] == "discover/source_depth_feasibility.json"
     assert source_health["summary"]["active_source_count"] == 11
     assert source_depth["artifact_scope"] == "operator_only"
@@ -396,10 +397,11 @@ def test_f1_source_depth_feasibility_reports_nli_ready_after_f1b4_promotion() ->
     assert report["summary"]["not_feasible_sources"] == []
     assert report["summary"]["target_scale_gap"] == 78
     assert sources["nli_any_use_permitted"]["target_count"] == 27
-    assert sources["nli_any_use_permitted"]["observed_candidate_count"] == 27
-    assert sources["nli_any_use_permitted"]["runnable_cached_candidate_count"] == 27
-    assert sources["nli_any_use_permitted"]["target_scale_candidate_count"] == 27
-    assert sources["nli_any_use_permitted"]["exploratory_catalog_count"] == 4  # F8c printed-book seeds stay exploratory; allocation stays 27
+    # F8g promoted the three cached F8c printed books to runnable seeds; the historical F1 allocation stays 27.
+    assert sources["nli_any_use_permitted"]["observed_candidate_count"] == 30
+    assert sources["nli_any_use_permitted"]["runnable_cached_candidate_count"] == 30
+    assert sources["nli_any_use_permitted"]["target_scale_candidate_count"] == 30
+    assert sources["nli_any_use_permitted"]["exploratory_catalog_count"] == 1
     assert sources["nli_any_use_permitted"]["source_health_status"] == "ok"
     assert sources["nli_any_use_permitted"]["gap"] == 0
     assert sources["nli_any_use_permitted"]["target_scale_gap"] == 0
@@ -440,10 +442,11 @@ def test_nli_source_depth_only_seeds_do_not_enter_normal_discovery() -> None:
     nli_health = next(result for result in source_health if result.source_id == "nli_any_use_permitted")
     candidates = NliFetcher().discover_candidates(source, bundle, StageOptions())
 
-    assert nli_health.candidate_count == 7
-    assert nli_health.asset_count == 7
-    assert nli_health.extra == {"source_depth_asset_count": 27, "source_depth_candidate_count": 27}
-    assert len(candidates) == 7
+    assert nli_health.candidate_count == 10
+    assert nli_health.asset_count == 10
+    assert nli_health.extra["source_depth_asset_count"] == 30
+    assert nli_health.extra["source_depth_candidate_count"] == 30
+    assert len(candidates) == 10
     assert all("nli-ms-seed-005" != candidate.source_item_id for candidate in candidates)
 
 
@@ -453,7 +456,7 @@ def test_f1_target_scale_trial_includes_nli_source_depth_only_seeds() -> None:
 
     candidates = NliFetcher().discover_candidates(source, bundle, StageOptions(f1_target_scale_trial=True))
 
-    assert len(candidates) == 27
+    assert len(candidates) == 30
     assert any(candidate.source_item_id == "nli-ms-seed-005" for candidate in candidates)
     assert any(candidate.discovery_method == "f1_target_scale_seed_manifest" for candidate in candidates)
 
@@ -670,7 +673,7 @@ def test_f1_source_depth_excludes_non_active_source_operations(tmp_path: Path) -
     report = evaluate_f1_source_depth_feasibility(bundle, source_health)
     nli = next(source for source in report["sources"] if source["source_id"] == "nli_any_use_permitted")
 
-    assert nli["observed_candidate_count"] == 27
+    assert nli["observed_candidate_count"] == 30
     assert nli["runnable_cached_candidate_count"] == 0
     assert nli["source_skip_reason"] == "source_frozen"
     assert any("Source is skipped for source_frozen" in note for note in nli["operator_notes"])

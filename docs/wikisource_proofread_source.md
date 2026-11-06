@@ -6,7 +6,7 @@ Each item is one ProofreadPage `עמוד:` (Page) page on he.wikisource.org at q
 
 ## Status and rights
 
-- `status: review_only`, `default_public_release: false`, `requires_manual_review: true`. Included only in `profile_review_v1`; not in `profile_open_v1`.
+- `status: allowed`, `default_public_release: true`, `requires_manual_review: false` since `F8g`. The source is in `profile_open_v1`, under the real-source composition contract ([`real_source_release_contract.md`](./real_source_release_contract.md)). Before `F8g` it was `review_only`, and its manual review covered the agent-recorded rights evidence; that evidence is now committed ([`wikisource_index_evidence.json`](./wikisource_index_evidence.json)) and replayed through the unchanged gate. Exports ship the page text with CC BY-SA 4.0 `release_terms` and a `NOTICE.md` entry.
 - Page text: `CC-BY-SA-4.0` / `sharealike` (the site licence, maintainer decision 1, 2026-11-06). Share-alike applies to any reference file HeOCR releases from it. Attribution is "Hebrew Wikisource contributors" plus the pinned page permalink.
 - Scan: rights per Commons file. Each item carries the Commons file title, its SHA-1, the file-page revision id and the licence templates.
 - Privacy source default `clear`. No privacy-review gate: this is public-domain historical print. Manual review covers the agent-recorded rights evidence.

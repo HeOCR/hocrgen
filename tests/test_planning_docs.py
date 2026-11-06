@@ -890,7 +890,13 @@ def test_f8_real_source_map_is_planning_only_and_gate_preserving() -> None:
     roadmap_rows = _roadmap_table_rows(roadmap)
 
     assert roadmap_rows["F8"][1] == "Real-source map and paired-text source intake"
-    assert roadmap_rows["F8"][2].split(", ") == ["F8a", "F8b", "F8b2", "F8b3", "F8b4", "F8b5", "F8b6", "F8c", "F8c2", "F8d", "F8d2", "F8d3", "F8d3b", "F8e", "F8f"]
+    assert roadmap_rows["F8"][2].split(", ") == ["F8a", "F8b", "F8b2", "F8b3", "F8b4", "F8b5", "F8b6", "F8c", "F8c2", "F8d", "F8d2", "F8d3", "F8d3b", "F8e", "F8f", "F8g"]
+    # F8g promoted the real sources under real_source_composition.v2; nothing is published.
+    assert roadmap_rows["F8g"][1] == "F8"
+    assert roadmap_rows["F8g"][4] == "completed"
+    assert "real_source_composition.v2" in roadmap_rows["F8g"][5]
+    assert "`F8g` (completed)" in plan
+    assert "`F8g` now promotes the real F8 sources" in agent_plan
     assert roadmap_rows["F8"][4] == "partial"
     assert roadmap_rows["F8a"][4] == "completed"
     assert roadmap_rows["F8b"][1] == "F8"

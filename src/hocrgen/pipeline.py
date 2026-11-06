@@ -143,6 +143,7 @@ class PipelineState:
     review_data_blocklist: list[ReviewOverrideRecord] = field(default_factory=list)
     split_assignments: list[SplitAssignmentRecord] = field(default_factory=list)
     leakage_report: dict[str, Any] = field(default_factory=dict)
+    synthetic_training_keys: dict[str, list[str]] = field(default_factory=dict)
     source_health: list[dict[str, Any]] = field(default_factory=list)
     benchmark_items: list[BenchmarkItemRecord] = field(default_factory=list)
     benchmark_leakage_policy: BenchmarkLeakagePolicyRecord | None = None
@@ -635,10 +636,13 @@ def _run_split(bundle: ConfigBundle, context: RunContext, options: StageOptions,
     del options
     stage_dir = context.stage_dir("split")
     stage_dir.mkdir(parents=True, exist_ok=True)
+    registry = bundle.synthetic_training_works
+    state.synthetic_training_keys = registry.match_keys() if registry is not None else {}
     outputs = assign_splits(
         retained_items=state.release_ready_items,
         duplicate_items=[],
         split_policy=bundle.profiles[context.profile_id].split_policy,
+        synthetic_training_keys=state.synthetic_training_keys,
     )
 
     split_manifest_path = stage_dir / "split_manifest.json"
@@ -684,6 +688,7 @@ def _benchmark_leakage_risk(
     state: PipelineState,
     enforcement_context: BenchmarkLeakageEnforcementContext,
 ) -> dict[str, Any]:
+    synthetic_training_keys = state.synthetic_training_keys
     policy = state.benchmark_leakage_policy or BenchmarkLeakagePolicyRecord(
         policy=(
             "Benchmark members must not share exact duplicate, near-duplicate, or source-group membership "
@@ -697,6 +702,7 @@ def _benchmark_leakage_risk(
         removed_duplicate_items=state.duplicate_items,
         policy=policy,
         enforcement_context=enforcement_context,
+        synthetic_training_keys=synthetic_training_keys,
     )
 
 

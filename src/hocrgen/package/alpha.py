@@ -22,6 +22,7 @@ from hocrgen.manifests.models import (
     ReviewQueueRecord,
     SplitAssignmentRecord,
 )
+from hocrgen.package.release_terms import attribution_manifest, notice_doc
 from hocrgen.package.common import (
     AnnotationPilotExportInputs,
     BenchmarkExportInputs,
@@ -171,7 +172,8 @@ def export_alpha_release(
 
     if export_dir.exists():
         shutil.rmtree(export_dir)
-    exported_items = copy_export_assets(selected_items, export_dir / "data")
+    exported_items = copy_export_assets(selected_items, export_dir / "data", contract=bundle.real_source_contract)
+    release_attribution_manifest = attribution_manifest(exported_items, bundle.real_source_contract)
     exported_benchmark_reference_files = copy_benchmark_reference_files(
         selected_benchmark_reference_manifest,
         build_dir,
@@ -353,8 +355,10 @@ def export_alpha_release(
                     handoff_repo_root,
                 ),
                 benchmark_card=benchmark_card,
+                notice=notice_doc(release_attribution_manifest, title=f"HeOCR alpha {config.version}"),
             ),
             audit_item_payload=audit_item_payload_for_export,
+            attribution_manifest=release_attribution_manifest,
         )
     )
     return AlphaExportResult(

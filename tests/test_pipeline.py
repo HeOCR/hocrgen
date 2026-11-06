@@ -16,6 +16,7 @@ from hocrgen.fetchers.base import StageOptions
 from hocrgen.manifests.models import BenchmarkLeakagePolicyRecord
 from hocrgen.pipeline import PipelineState, _build_f1_target_scale_trial_report, execute_pipeline, write_run_metadata, write_run_summary
 from hocrgen.runs import load_resumed_pipeline_state
+from legacy_profile import restrict_open_profile_to_legacy_sources
 
 
 def _is_portable_manifest_path(path: str) -> bool:
@@ -145,6 +146,7 @@ def test_end_to_end_open_build_has_expected_counts(tmp_path: Path, capsys) -> No
         ),
         encoding="utf-8",
     )
+    restrict_open_profile_to_legacy_sources(config_root)
     exit_code = main(
         [
             "build-release",
@@ -348,6 +350,7 @@ def test_unknown_rights_are_rejected_in_pipeline(tmp_path: Path, capsys) -> None
         ),
         encoding="utf-8",
     )
+    restrict_open_profile_to_legacy_sources(config_root)
 
     exit_code = main(
         [
@@ -548,6 +551,7 @@ non_goals:
         ),
         encoding="utf-8",
     )
+    restrict_open_profile_to_legacy_sources(config_root)
 
     exit_code = main(
         [
