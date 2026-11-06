@@ -858,10 +858,13 @@ def test_f7_hash_source_integration_plan_is_documented_and_gate_preserving() -> 
     assert roadmap_rows["F7a"][4] == "completed"
     assert roadmap_rows["F7b"][4] == "completed"
     assert "`F7b` now adds the fixture-backed review-only `hash` fetcher" in agent_plan
-    assert roadmap_rows["F7c"][4] == "deferred"
-    assert "no valid inputs" in roadmap_rows["F7c"][5]
-    assert "**Deferred on 2026-11-01.**" in plan
-    for pr_id in ["F7d", "F7e"]:
+    assert roadmap_rows["F7c"][4] == "planned"
+    assert "human-attested HASH transcripts" in roadmap_rows["F7c"][5]
+    assert "**Planned (2026-11-06).**" in plan
+    for text in (plan, roadmap, agent_plan):
+        assert "rule out any new human transcription campaign" not in text
+        assert "rules out a new human transcription campaign" not in text
+    for pr_id in ["F7c", "F7d", "F7e"]:
         assert roadmap_rows[pr_id][1] == "F7"
         assert roadmap_rows[pr_id][4] == "planned"
     assert "## Milestone F7 — Governed HASH real-handwriting source integration" in roadmap
@@ -878,3 +881,25 @@ def test_f7_hash_source_integration_plan_is_documented_and_gate_preserving() -> 
         "1 / 3",
     ]:
         assert token in plan
+
+
+def test_e2d_real_scan_evaluation_direction_is_recorded_without_changing_scoring() -> None:
+    roadmap = Path("docs/HeOCR_hocrgen_long_term_roadmap.md").read_text(encoding="utf-8")
+    stub = Path("planning/tasks/e2d-real-scan-evaluation.md").read_text(encoding="utf-8")
+    decision = Path("planning/decisions/2026-11-06-real-scan-evaluation-direction.md").read_text(encoding="utf-8")
+    campaigns = Path("planning/decisions/2026-11-06-human-transcription-campaigns-allowed.md").read_text(
+        encoding="utf-8"
+    )
+    agent_plan = Path(".agent-plan.md").read_text(encoding="utf-8")
+
+    assert "## E2d — Real-scan evaluation direction" in roadmap
+    assert "### 3.7 Evaluation moves to real scans (direction, 2026-11-06)" in roadmap
+    assert "E2d" not in _roadmap_table_rows(roadmap)
+    assert "planned direction only (2026-11-06)" in stub
+    for text in (stub, decision):
+        assert "no synthetic text" in text
+        assert "printed" in text and "handwritten" in text
+        assert "separate pipelines" in text
+    assert "current scoring is unchanged" in decision
+    assert "we will have many new human transcription campaigns in the future, if we're lucky." in campaigns
+    assert "`E2d` is a planned direction only" in agent_plan

@@ -2,6 +2,8 @@
 
 `hocrgen.reference_evaluation` scores explicit predictions against reviewed or adjudicated `benchmark_transcription_reference.v1` records. It does not acquire references or run an OCR engine. Existing `hocrgen.evaluation` and `evaluate-benchmark` retain their raw E2a behavior.
 
+**Direction (2026-11-06).** Synthetic gold is the scored set for now. Evaluation is to move, over time, to real scans only, with separate printed and handwritten tracks. Nothing here changes until a later E2d PR; see [`planning/tasks/e2d-real-scan-evaluation.md`](../planning/tasks/e2d-real-scan-evaluation.md).
+
 ```python
 from hocrgen.manifests.models import BenchmarkTranscriptionReferenceRecord
 from hocrgen.reference_evaluation import assemble_page_predictions, evaluate_reference_predictions
