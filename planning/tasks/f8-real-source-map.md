@@ -84,7 +84,7 @@ Scale, measured on 2026-11-06:
 
 ## Maintainer decisions needed
 
-These are rights or ground-truth calls, so they are the maintainer's. **Answered 2026-11-06:** 1, 2, 4 and 7 were accepted. For 5, a legal opinion will be requested. For 6, printed Yiddish is in scope for training and character-level evaluation only. 3 is open. See the [decision record](../decisions/2026-11-06-f8-real-source-decisions.md).
+These are rights or ground-truth calls, so they are the maintainer's. **Answered 2026-11-06:** 1, 2, 3, 4 and 7 were accepted. For 5, a legal opinion will be requested. For 6, printed Yiddish is in scope for training and character-level evaluation only. See the [decision record](../decisions/2026-11-06-f8-real-source-decisions.md).
 
 1. **Wikisource text licence.** Accept CC BY-SA 4.0 page text as references? Share-alike would then apply to the reference files we release. (`F8b`)
 2. **Wikisource proofreading as human attestation.** Each quality change is a named human edit in the page history. The proposal: quality 4 (validated by a second editor) counts as human-attested and adjudication-eligible; quality 3 counts as single-reviewer human proofreading. An agent never edits or attests these pages. (`F8b`, E2d)
@@ -103,7 +103,7 @@ These are rights or ground-truth calls, so they are the maintainer's. **Answered
 ## Planned PRs
 
 - `F8a`: this real-source map, the decisions above and the F8 notation (planning only).
-- `F8b`: a fixture-backed `review_only` Wikisource source. It pins page revision ids and Commons file SHA-1s, and emits page-level text with its quality level and editor provenance. It is gated per Index on evidence that the work and the scan are public domain. HebrewBooks-sourced Index files are excluded until decision 3.
+- `F8b`: a fixture-backed `review_only` Wikisource source. It pins page revision ids and Commons file SHA-1s, and emits page-level text with its quality level and editor provenance. It is gated per Index on evidence that the work and the scan are public domain. HebrewBooks-sourced Index files are admitted under the same per-file check (decision 3).
 - `F8c`: key the `nli` rights strategy on the IIIF `license` slug, and admit `public-domain-free-use` printed books as `printed_historical`. Images only.
 - `F8d`: fixture-backed `review_only` imports of the CC-BY-4.0 ground-truth datasets: `pinkas_dataset_bgu` (PAGE XML), and YidTakNL once its bundle is checked. YidTakNL is limited to training and character-level evaluation (decision 6). Scan provenance is verified first.
 - `F8e`: born-digital and typewritten government print (Reshumot from about 2006, Knesset committee scans up to 1975), with automated access allowed (decision 4) and hard throttling. Committee protocols from 1976 on wait for the legal opinion (decision 5).
