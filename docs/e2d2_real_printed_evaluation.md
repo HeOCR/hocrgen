@@ -1,5 +1,7 @@
 # E2d2: first evaluation on real printed Hebrew scans
 
+> **Superseded in part by [E2d3](./e2d3_real_printed_evaluation.md)** (F8g2 tranche v2). The release-split section below is stale: under `size_aware_group_split.v1` the 35 scored pages split 25 `train` / 5 `validation` / 5 `test`, and the crop listed as `not_in_release` now ships. E2d3 also adds book-level (cluster) intervals and the validation + test results. The scores, engines, synthetic comparison and tender results here are unchanged.
+
 Date: 2026-11-07, on the pair text after F8b7 (#132) and the F8g splits (#131). Plan: [`planning/tasks/e2d-real-scan-evaluation.md`](../planning/tasks/e2d-real-scan-evaluation.md). This is the printed modality track (E2d1). It is reported **beside** the synthetic scored set and does not replace it: the synthetic headline, `benchmark_v1` and every synthetic report are unchanged.
 
 The numbers below are aggregates. No page text appears here. The Wikisource references and predictions stay operator-only. The tender set is private, so only its aggregate metrics are given.

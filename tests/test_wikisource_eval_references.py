@@ -11,7 +11,7 @@ from hocrgen.config.loader import package_root
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.wikisource import page_plain_text
 from hocrgen.manifests.models import BenchmarkReferenceManifestRecord, BenchmarkTranscriptionReferenceRecord
-from hocrgen.reference_runs import load_adjudicated_references, run_reference_evaluation
+from hocrgen.reference_runs import load_adjudicated_references, load_bootstrap_clusters, run_reference_evaluation
 from hocrgen.tools import eval_text_leakage as leakage
 from hocrgen.tools.wikisource_eval_references import main as eval_refs_main
 from hocrgen.tools.wikisource_eval_references import write_eval_reference_set
@@ -65,6 +65,10 @@ def test_single_reviewer_texts_asset_index_and_crops(tmp_path: Path) -> None:
     pages = _pages()
     assert index[BUBER] == [pages[BUBER]["crop"]["asset"]["sha256"]]  # decision 12: the crop is scored
     assert index[SELIHOT] == [pages[SELIHOT]["image"]["sha256"]]
+    clusters = load_bootstrap_clusters(tmp_path / "set" / "bootstrap_clusters.json")
+    assert clusters["cluster_key"] == "wikisource_index"
+    assert clusters["clusters"] == {item["item_id"]: item["index_key"] for item in summary["items"]}
+    assert clusters["clusters"][BUBER] == pages[BUBER]["index_key"]
     buber = next(item for item in summary["items"] if item["item_id"] == BUBER)
     assert buber["image"]["kind"] == "crop" and buber["image"]["crop_of_page"] == pages[BUBER]["image"]["sha256"]
     assert buber["stratum"] == "single_reviewer" and "adjudication_record" not in buber

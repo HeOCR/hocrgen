@@ -1,12 +1,12 @@
 # E2d — Real-scan evaluation with separate printed and handwritten tracks
 
-Status: **`E2d1` and `E2d2` implemented on the current ref (2026-11-06); `E2d3` planned.** Synthetic gold stays the headline scored set: no synthetic score, profile, view or report changed. Parent milestone: E2, Baselines and evaluation utilities. Decision record: [`planning/decisions/2026-11-06-real-scan-evaluation-direction.md`](../decisions/2026-11-06-real-scan-evaluation-direction.md). Results: [`docs/e2d2_real_printed_evaluation.md`](../../docs/e2d2_real_printed_evaluation.md).
+Status: **`E2d1`, `E2d2` and `E2d3` implemented on the current ref (2026-11-07); `E2d4` planned.** Synthetic gold stays the headline scored set: no synthetic score, profile, view or report changed. Parent milestone: E2, Baselines and evaluation utilities. Decision record: [`planning/decisions/2026-11-06-real-scan-evaluation-direction.md`](../decisions/2026-11-06-real-scan-evaluation-direction.md). Results: [`docs/e2d3_real_printed_evaluation.md`](../../docs/e2d3_real_printed_evaluation.md), which supersedes the release-split and interval sections of [`docs/e2d2_real_printed_evaluation.md`](../../docs/e2d2_real_printed_evaluation.md).
 
 ## Direction
 
 - **Real scans only, eventually.** The eval set will be real scanned Hebrew text, both printed and handwritten. It will contain no synthetic text.
 - **Separate printed and handwritten tracks.** Printed and handwritten Hebrew are scored and reported separately. They may also need separate pipelines (segmentation and recognition); whether they do is decided later, on evidence.
-- **A transition, not a cutover.** Synthetic evaluation (E2c4–E2c7: synthetic gold as the scored set, `primary.v1` as the headline) stays in use until there is enough real reference data. Until `E2d3` changes it, every current synthetic score, profile, view and report stays as it is.
+- **A transition, not a cutover.** Synthetic evaluation (E2c4–E2c7: synthetic gold as the scored set, `primary.v1` as the headline) stays in use until there is enough real reference data. Until `E2d4` changes it, every current synthetic score, profile, view and report stays as it is.
 
 **Naming.** These are *modality* tracks. They are distinct from the existing open/proprietary `track` field in `evaluate-references` (heocr-engine decision 0005). The field is named `modality`, the name the E2c3 strata already use.
 
@@ -14,9 +14,10 @@ Status: **`E2d1` and `E2d2` implemented on the current ref (2026-11-06); `E2d3` 
 
 | Notation | Scope | State |
 | --- | --- | --- |
-| `E2d1` | The modality-track contract and the training-text leakage policy (below). Small, so folded into the `E2d2` PR. The cutover criteria are not part of it; they stay open for `E2d3`. | completed |
+| `E2d1` | The modality-track contract and the training-text leakage policy (below). Small, so folded into the `E2d2` PR. The cutover criteria are not part of it; they stay open for `E2d4`. | completed |
 | `E2d2` | The first real printed reference set (Hebrew Wikisource quality 4), engine runs on it, and a results doc beside the synthetic scored set. | completed |
-| `E2d3` | Retire synthetic text from the scored eval set once both tracks meet cutover criteria the maintainer sets. | planned |
+| `E2d3` | Refresh the real printed evaluation on the F8g2 tranche v2 splits: rebuild the pool, re-score (cached predictions), report all pages and the release `validation` + `test` pages separately, and add a book-level (cluster) bootstrap. | completed |
+| `E2d4` | Retire synthetic text from the scored eval set once both tracks meet cutover criteria the maintainer sets. | planned |
 
 ## E2d1 — Modality-track contract
 
@@ -64,6 +65,23 @@ Status: **`E2d1` and `E2d2` implemented on the current ref (2026-11-06); `E2d3` 
 
   All runs were scored with `--modality printed`. The private tender set was scored as aggregate unreviewed diagnostics only.
 
+## E2d3 — Refresh on the F8g2 tranche v2
+
+- **Why.** F8g2 (#135) changed the release splits (`size_aware_group_split.v1`, tranche `f8g2_real_tranche_v2`) and the converter (`wikisource_plain_text.v3`), so E2d2's split table went stale.
+- **Pool.** The same selection on tranche v2 gives the same 178 pages:
+  - 35 adjudicated quality-4 pages (31 full, 4 crops; 14 Indexes). The other 26 of the 61 quality-4 pages that pass the page gates have text edited after validation, so they are not adjudication-eligible;
+  - 143 quality-3 pages.
+
+  No adjudicated text changed and every scored image is byte-identical, so the cached E2d2 predictions were reused and nothing was re-predicted. Leakage was re-run: nothing excluded or flagged.
+- **Release splits.** 25 `train` / 5 `validation` / 5 `test`. The crop F8g dropped now ships.
+- **Two reported sets.**
+  - **All 35 pages** are valid only for engines that never trained on the release.
+  - **The 10 `validation` + `test` pages** (5 Indexes) are the only valid set for a model trained on the release. One book holds 81% of their characters.
+- **Book-level intervals.**
+  - `evaluate-references --bootstrap-clusters` (`hocrgen_bootstrap_clusters.v1`) adds a paired cluster bootstrap beside the item bootstrap. Without the flag, reports are unchanged.
+  - `wikisource_eval_references` writes `bootstrap_clusters.json`, which maps each item to its Wikisource Index: the book unit.
+- **Inventory.** `docs/wikisource_index_inventory.md` is re-rendered from the cache with F8g2's Pri Megadim p. 244 check (`text_not_on_page`).
+
 ## What it depends on
 
 - Human-attested real references in `benchmark_transcription_reference.v1` form (F2), adjudicated before they are scored.
@@ -71,9 +89,9 @@ Status: **`E2d1` and `E2d2` implemented on the current ref (2026-11-06); `E2d3` 
 - **Printed:** Hebrew Wikisource quality-4 pages (`E2d2`). The quality-3 pages are a single-reviewer diagnostic stratum. Other candidates remain NLI items (`printed_modern`) and later F8 sources.
 - The existing rules still hold: HTR or OCR output is never ground truth, and `benchmark_v1` membership stays frozen.
 
-## Open questions, for `E2d3`
+## Open questions, for `E2d4`
 
-1. What counts as "enough real data" per track: page count, writer and source diversity, and confidence-interval width. E2d2's printed set is 35 pages from 14 Indexes; 6 pages come from one book, and only 9 pages (4 Indexes) are outside the release `train` split.
+1. What counts as "enough real data" per track: page count, writer and source diversity, and confidence-interval width (page and book level). The printed set is 35 pages from 14 Indexes; 6 pages come from one book, and after F8g2 only 10 pages (5 Indexes, one with 81% of their characters) are outside the release `train` split.
 2. How a page is assigned to a track (for example from `content_class`), and how mixed printed/handwritten pages are handled.
 3. Whether synthetic results stay available as a labelled diagnostic after the cutover. They are never part of the scored eval set.
 4. How the switch is versioned, so that results before and after it are never compared as if they were alike.
