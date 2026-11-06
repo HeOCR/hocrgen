@@ -1,0 +1,1687 @@
+{
+ "format": "hocrgen.benyehuda_nli_pilot_summary.v1",
+ "match": {
+  "captured_on": "2026-11-06",
+  "summary": {
+   "candidates": 45,
+   "matched": 11,
+   "match_rate": 0.2444,
+   "unmatched_reasons": {
+    "edition_scan_non_commercial": 13,
+    "edition_scan_zero_canvases": 3,
+    "no_edition_hit": 15,
+    "search_failed": 3
+   }
+  },
+  "candidates": [
+   {
+    "candidate_id": "schulman-safa-berura-1864",
+    "label": "Schulman, Safa Berura, 2nd ed., Vilna 1864",
+    "pby_ids": ["162"],
+    "pby_source_edition": "מתוך \"שפה ברורה\", מהדורה שנייה, וילנה 1864.",
+    "pby_works_in_edition": 15,
+    "status": "unmatched",
+    "reason": "edition_scan_non_commercial",
+    "match": null,
+    "kept_hits": [
+     {
+      "nli_record_id": "990018563960205171",
+      "date": "18660101",
+      "publisher": "Lemberg : A. Druker",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 208,
+      "decision": "rejected"
+     },
+     {
+      "nli_record_id": "990020754490205171",
+      "date": "תרכ\"ד",
+      "publisher": "ווילנא : שי' פין וא\"צ ראזענקראנץ",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 94,
+      "decision": "rejected"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "schulman-harisut-beitar-1858",
+    "label": "Schulman, Harisut Beitar, Vilna 1858",
+    "pby_ids": ["14034"],
+    "pby_source_edition": "וילנה תרי\"ח 1858.",
+    "pby_works_in_edition": 1,
+    "status": "unmatched",
+    "reason": "edition_scan_non_commercial",
+    "match": null,
+    "kept_hits": [
+     {
+      "nli_record_id": "990017256690205171",
+      "date": "תרי\"ח",
+      "publisher": "ווילנא : דפוס י\"ר ראם",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 0,
+      "decision": "rejected"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "mulder-berurya-1859",
+    "label": "Mulder, Berurya, Amsterdam 1859",
+    "pby_ids": ["8176"],
+    "pby_source_edition": "אמסטרדם: דפוס קוטינהו וריקארדו, תרי\"ט",
+    "pby_works_in_edition": 1,
+    "status": "unmatched",
+    "reason": "edition_scan_non_commercial",
+    "match": null,
+    "kept_hits": [
+     {
+      "nli_record_id": "990010968870205171",
+      "date": "תרי\"ט",
+      "publisher": "אמסטרדם : דפוס קוטינהו וריקארדו",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 48,
+      "decision": "rejected"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "letteris-tofes-kinor-1860",
+    "label": "Letteris, Tofes Kinor ve-Ugav, Vienna 1860",
+    "pby_ids": ["243"],
+    "pby_source_edition": "ווין: דפוס ל“ק זאמארסקי וק' דיטטמארש, תר”כ",
+    "pby_works_in_edition": 63,
+    "status": "unmatched",
+    "reason": "edition_scan_non_commercial",
+    "match": null,
+    "kept_hits": [
+     {
+      "nli_record_id": "990019795980205171",
+      "date": "תר\"כ",
+      "publisher": "ווין : דפוס ל\"ק זאמארסקי וק' דיטטמארש",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 194,
+      "decision": "rejected"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "ben-avigdor-ahava-1891",
+    "label": "Ben-Avigdor, Ahava ve-Hova, Warsaw 1891",
+    "pby_ids": ["24674"],
+    "pby_source_edition": "ווארשא : בדפוס האחים שולדבערג, תרנ\"ב 2-1891",
+    "pby_works_in_edition": 1,
+    "status": "unmatched",
+    "reason": "no_edition_hit",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "ben-avigdor-lifnei-1892",
+    "label": "Ben-Avigdor, Lifnei Arba Me'ot Shana, Warsaw 1892",
+    "pby_ids": ["4219"],
+    "pby_source_edition": "ורשה: האחים שולדברג, תרנ\"ב",
+    "pby_works_in_edition": 1,
+    "status": "unmatched",
+    "reason": "edition_scan_non_commercial",
+    "match": null,
+    "kept_hits": [
+     {
+      "nli_record_id": "990018445450205171",
+      "date": "תרנ\"ב",
+      "publisher": "ורשה : האחים שולדברג",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 76,
+      "decision": "rejected"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "kahanovsky-metropolin-1892",
+    "label": "Kahanovsky, Metropolin, Warsaw 1892",
+    "pby_ids": ["8285"],
+    "pby_source_edition": "ורשה: יאקאבי, תרנ\"ב 1892",
+    "pby_works_in_edition": 1,
+    "status": "unmatched",
+    "reason": "edition_scan_zero_canvases",
+    "match": null,
+    "kept_hits": [
+     {
+      "nli_record_id": "990019618570205171",
+      "date": "תרנ\"ב",
+      "publisher": "ורשו : יאקאבי",
+      "license_slug": "public-domain-free-use",
+      "canvas_count": 0,
+      "decision": "rejected"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "kahanovsky-ele-ashirayikh-1893",
+    "label": "Kahanovsky, Ele Ashirayikh Yisrael, Warsaw 1893",
+    "pby_ids": ["2341"],
+    "pby_source_edition": "ורשה: דפוס מ. י. האלטער, תרנ\"ג",
+    "pby_works_in_edition": 1,
+    "status": "unmatched",
+    "reason": "edition_scan_non_commercial",
+    "match": null,
+    "kept_hits": [
+     {
+      "nli_record_id": "990019617600205171",
+      "date": "תרנ\"ג 1892",
+      "publisher": "ורשו : דפוס מ. י. האלטער",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 126,
+      "decision": "rejected"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "frey-tzadik-1895",
+    "label": "Frey tr. Astrinsky, Tzadik ve-Nosha, Lublin 1895",
+    "pby_ids": ["195"],
+    "pby_source_edition": "לובלין: דפוס א' פעדער וב' זעצער, תרנ\"ה",
+    "pby_works_in_edition": 1,
+    "status": "unmatched",
+    "reason": "no_edition_hit",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "berdyczewski-tipusim-1900",
+    "label": "Berashadsky, Tipusim u-Tzlalim, Tushiya 1900",
+    "pby_ids": ["650"],
+    "pby_source_edition": "מתוך טיפוסים וצללים, הוצאת תושיה, ורשה, תר\"ס",
+    "pby_works_in_edition": 10,
+    "status": "unmatched",
+    "reason": "no_edition_hit",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "nordau-paradoxim-1900",
+    "label": "Nordau tr. Brainin, Paradoxim, Piotrkow: Tushiya 1900",
+    "pby_ids": ["1961"],
+    "pby_source_edition": "מתוך \"פרדוקסים\" מאת מקס נורדאו, פיעטרקוב, תרס”א 1900, הוצאת “תושיה”",
+    "pby_works_in_edition": 12,
+    "status": "unmatched",
+    "reason": "edition_scan_non_commercial",
+    "match": null,
+    "kept_hits": [
+     {
+      "nli_record_id": "990018758600205171",
+      "date": "תרס\"א 1900",
+      "publisher": "ווארשא : תושיה",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 298,
+      "decision": "rejected"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "herzl-tel-aviv-1902",
+    "label": "Herzl tr. Sokolow, Tel-Aviv (Altneuland), Warsaw 1902",
+    "pby_ids": ["7260"],
+    "pby_source_edition": "וארשא : האורגניזציא הציונית הרוסית שנה\tתרס\"ב 1902",
+    "pby_works_in_edition": 1,
+    "status": "unmatched",
+    "reason": "no_edition_hit",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "smolenskin-hatoe-1905",
+    "label": "Smolenskin, Ha-To'e be-Darkhei ha-Hayim, Warsaw 1905",
+    "pby_ids": ["1909"],
+    "pby_source_edition": "ווארשא: מ. קאצענעלענבאגען שנת פרסום תרס\"ה 1905",
+    "pby_works_in_edition": 4,
+    "status": "unmatched",
+    "reason": "no_edition_hit",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "ben-avigdor-don-miguel-1907",
+    "label": "Ben-Avigdor, Don Miguel, Warsaw: Tushiya 1907",
+    "pby_ids": ["1369"],
+    "pby_source_edition": "ורשה: תושיה, תרס\"ז",
+    "pby_works_in_edition": 1,
+    "status": "unmatched",
+    "reason": "no_edition_hit",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "schatz-ehad-merabim-1907",
+    "label": "Schatz tr. Ben-Yehuda, Ehad me-Rabim, Jerusalem 1907",
+    "pby_ids": ["7203"],
+    "pby_source_edition": "ירושלים: שי“ש, אלף תתל”ז [תרס\"ז].",
+    "pby_works_in_edition": 1,
+    "status": "matched",
+    "reason": null,
+    "match": {
+     "nli_record_id": "990020873500205171",
+     "manifest_url": "https://iiif.nli.org.il/IIIFv21/990020873500205171/manifest",
+     "item_url": "https://www.nli.org.il/en/books/NNL_ALEPH990020873500205171",
+     "title": "אחד מרבים : מזכרונות פסל.",
+     "publisher": "ירושלם : שי\"ש",
+     "date": "אלף תתל\"ז [תרס\"ז]",
+     "canvas_count": 116,
+     "license_slug": "public-domain-free-use"
+    },
+    "kept_hits": [
+     {
+      "nli_record_id": "990020873500205171",
+      "date": "אלף תתל\"ז [תרס\"ז]",
+      "publisher": "ירושלם : שי\"ש",
+      "license_slug": "public-domain-free-use",
+      "canvas_count": 116,
+      "decision": "accepted"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "verne-around-world-1909",
+    "label": "Verne tr. Ben-Yehuda, Sviv ha-Aretz, Jerusalem 1909",
+    "pby_ids": ["3718"],
+    "pby_source_edition": "ירושלים, 1909",
+    "pby_works_in_edition": 1,
+    "status": "unmatched",
+    "reason": "search_failed",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "berashadsky-sipurim-1910",
+    "label": "Berashadsky, Sipurim (Ketavim Aharonim), Warsaw: Tushiya 1910",
+    "pby_ids": ["52"],
+    "pby_source_edition": "מתוך סיפורים, הוצאת תושיה, ורשה, תר\"ע",
+    "pby_works_in_edition": 40,
+    "status": "matched",
+    "reason": null,
+    "match": {
+     "nli_record_id": "990020308000205171",
+     "manifest_url": "https://iiif.nli.org.il/IIIFv21/990020308000205171/manifest",
+     "item_url": "https://www.nli.org.il/en/books/NNL_ALEPH990020308000205171",
+     "title": "כתבים אחרונים / י' ברשדסקי ; תולדותיו מאת פ' קפלן ; ועם מסה ספרותית: י' ברשדסקע בתור אדם ובתור מספר מאת בן אביגדור.",
+     "publisher": "ורשה : תושיה",
+     "date": "תר\"ע",
+     "canvas_count": 468,
+     "license_slug": "public-domain-free-use"
+    },
+    "kept_hits": [
+     {
+      "nli_record_id": "990018580490205171",
+      "date": "תר\"ע",
+      "publisher": "ורשה : תושיה",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 0,
+      "decision": "rejected"
+     },
+     {
+      "nli_record_id": "990020308000205171",
+      "date": "תר\"ע",
+      "publisher": "ורשה : תושיה",
+      "license_slug": "public-domain-free-use",
+      "canvas_count": 468,
+      "decision": "accepted"
+     }
+    ],
+    "edition_notes": "PBY cites 'סיפורים, תושיה, תר\"ע'; the NLI record is כתבים אחרונים (Tushiya 1910), whose title names the Kaplan biography and Ben-Avigdor essay that PBY also carries from 'ורשה: תושיה'; same edition unless alignment says otherwise"
+   },
+   {
+    "candidate_id": "markson-mul-ohel-1910",
+    "label": "Markson and Silkiner, Mul Ohel Timura, Jerusalem 1910",
+    "pby_ids": ["668"],
+    "pby_source_edition": "ירושלים: “אסף”, תר\"ע",
+    "pby_works_in_edition": 1,
+    "status": "unmatched",
+    "reason": "no_edition_hit",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "lilienblum-kol-kitvei-1912",
+    "label": "Lilienblum, Kol Kitvei, Krakow: Fischer 1912",
+    "pby_ids": ["127"],
+    "pby_source_edition": "מתוך כל כתבי משה ליב ליליינבלום, קרקא: דפוס יוסף פישר, תרע\"ב",
+    "pby_works_in_edition": 124,
+    "status": "unmatched",
+    "reason": "edition_scan_non_commercial",
+    "match": null,
+    "kept_hits": [
+     {
+      "nli_record_id": "990018904150205171",
+      "date": "תרע\"ב-תרע\"ד",
+      "publisher": "אודיסה : דפוס נ' היילפרין",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 446,
+      "decision": "rejected"
+     },
+     {
+      "nli_record_id": "990022190220205171",
+      "date": "תר\"ע-תרע\"ב",
+      "publisher": "קראקא : דפוס י' פישר",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 484,
+      "decision": "rejected"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "mane-kol-kitvei-1913",
+    "label": "Mane, Kol Kitvei, Warsaw: Tzentral 1913",
+    "pby_ids": ["419", "7196"],
+    "pby_source_edition": "מתוך \"כל כתבי מרדכי צבי מאנה: קובץ שיריו, מאמריו ומכתביו\", ורשה: צנטרל, תרע”ד 1913",
+    "pby_works_in_edition": 78,
+    "status": "unmatched",
+    "reason": "edition_scan_non_commercial",
+    "match": null,
+    "kept_hits": [
+     {
+      "nli_record_id": "990020038080205171",
+      "date": "תרע\"ד",
+      "publisher": "ורשה : תושיה",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 188,
+      "decision": "rejected"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "ben-yehuda-ad-ematai-1919",
+    "label": "Ben-Yehuda, Ad Ematai Dabru Ivrit?, New York 1919",
+    "pby_ids": ["1198"],
+    "pby_source_edition": "ניו-יורק, תרע\"ט",
+    "pby_works_in_edition": 11,
+    "status": "unmatched",
+    "reason": "edition_scan_non_commercial",
+    "match": null,
+    "kept_hits": [
+     {
+      "nli_record_id": "990013178400205171",
+      "date": "תרע\"ט",
+      "publisher": "ניו יורק : קדימה",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 140,
+      "decision": "rejected"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "levin-dekel-1920",
+    "label": "Alter Levin (Asaf Halevi), Jerusalem: Dekel 1920",
+    "pby_ids": ["154"],
+    "pby_source_edition": "ירושלים: דקל, תר\"ף",
+    "pby_works_in_edition": 99,
+    "status": "matched",
+    "reason": null,
+    "match": {
+     "nli_record_id": "990019742530205171",
+     "manifest_url": "https://iiif.nli.org.il/IIIFv21/990019742530205171/manifest",
+     "item_url": "https://www.nli.org.il/en/books/NNL_ALEPH990019742530205171",
+     "title": "שירי עם / אסף הלוי.",
+     "publisher": "ירושלם : דקל",
+     "date": "[לערך תר\"ף]",
+     "canvas_count": 16,
+     "license_slug": "public-domain-free-use"
+    },
+    "kept_hits": [
+     {
+      "nli_record_id": "990013151160205171",
+      "date": "[תר\"ף?]",
+      "publisher": "ירושלם : דקל",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 282,
+      "decision": "rejected"
+     },
+     {
+      "nli_record_id": "990019742530205171",
+      "date": "[לערך תר\"ף]",
+      "publisher": "ירושלם : דקל",
+      "license_slug": "public-domain-free-use",
+      "canvas_count": 16,
+      "decision": "accepted"
+     }
+    ],
+    "edition_notes": "PBY cites only 'ירושלים: דקל, תר\"ף' for 99 poems and essays; Dekel 1920 printed two Asaf Halevi books (מגלת קדם and שירי עם); which one carries which PBY work needs alignment"
+   },
+   {
+    "candidate_id": "brainin-ketavim-nivharim-1917",
+    "label": "Brainin, Ketavim Nivharim, New York 1917",
+    "pby_ids": ["201"],
+    "pby_source_edition": "ע\"פ “כתבים נבחרים”, ניו-יורק, 1917",
+    "pby_works_in_edition": 18,
+    "status": "unmatched",
+    "reason": "edition_scan_non_commercial",
+    "match": null,
+    "kept_hits": [
+     {
+      "nli_record_id": "990013394550205171",
+      "date": "תרע\"ז",
+      "publisher": "ניו יורק : אסף",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 0,
+      "decision": "rejected"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "brainin-kol-kitvei-1922",
+    "label": "Brainin, Kol Kitvei, 1922-1940",
+    "pby_ids": ["447"],
+    "pby_source_edition": "ע“פ “כל כתבי ראובן בן מרדכי בריינין: ישנים וגם חדשים” בשלושה כרכים, הועד להוצאת כל כתבי ראובן בן מרדכי בריינין, תרפ”ג-ת\"ש, 1922–1940",
+    "pby_works_in_edition": 37,
+    "status": "unmatched",
+    "reason": "search_failed",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "citron-ahorei-hapargod-1923",
+    "label": "Citron, Me-Ahorei ha-Pargod, Vilna: Matz 1923-1925",
+    "pby_ids": ["104", "4096"],
+    "pby_source_edition": "מתוך \"מאחורי הפרגוד: מומרים, בוגדים, מתכחשים\", וילנה: צבי מץ, תרפ\"ד 1923",
+    "pby_works_in_edition": 15,
+    "status": "matched",
+    "reason": null,
+    "match": {
+     "nli_record_id": "990020495520205171",
+     "manifest_url": "https://iiif.nli.org.il/IIIFv21/990020495520205171/manifest",
+     "item_url": "https://www.nli.org.il/en/books/NNL_ALEPH990020495520205171",
+     "title": "מאחורי הפרגוד : מומרים, בוגדים, מתכחשים.",
+     "publisher": "וילנה : צ' מץ",
+     "date": "תרפ\"ד 1923-1925",
+     "canvas_count": 436,
+     "license_slug": "public-domain-free-use"
+    },
+    "kept_hits": [
+     {
+      "nli_record_id": "990020495520205171",
+      "date": "תרפ\"ד 1923-1925",
+      "publisher": "וילנה : צ' מץ",
+      "license_slug": "public-domain-free-use",
+      "canvas_count": 436,
+      "decision": "accepted"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "frank-agadot-hazohar-1924",
+    "label": "Frank, Agadot ha-Zohar, Warsaw: Ahiasaf 1923-1924",
+    "pby_ids": ["48085"],
+    "pby_source_edition": "ורשה: אחיאסף, תרפ\"ד",
+    "pby_works_in_edition": 73,
+    "status": "matched",
+    "reason": null,
+    "match": {
+     "nli_record_id": "990019385920205171",
+     "manifest_url": "https://iiif.nli.org.il/IIIFv21/990019385920205171/manifest",
+     "item_url": "https://www.nli.org.il/en/books/NNL_ALEPH990019385920205171",
+     "title": "ספר אגדות הזהר / מלקטות, מסדרות, מתרגמות ומבארות ע\"י ע\"נ פרענק.",
+     "publisher": "ורשה : אחיאסף",
+     "date": "תרפ\"ג-תרפ\"ד",
+     "canvas_count": 206,
+     "license_slug": "public-domain-free-use"
+    },
+    "kept_hits": [
+     {
+      "nli_record_id": "990019385920205171",
+      "date": "תרפ\"ג-תרפ\"ד",
+      "publisher": "ורשה : אחיאסף",
+      "license_slug": "public-domain-free-use",
+      "canvas_count": 206,
+      "decision": "accepted"
+     }
+    ],
+    "edition_notes": "PBY cites 'ורשה: אחיאסף, תרפ\"ד' for 73 Zohar legends (Rashbi stories); the only Frank title at Ahiasaf in that year is ספר אגדות הזהר"
+   },
+   {
+    "candidate_id": "klatzkin-eshkol",
+    "label": "Klatzkin, Berlin: Eshkol (1920s)",
+    "pby_ids": ["47039", "53009"],
+    "pby_source_edition": "ברלין: אשכול",
+    "pby_works_in_edition": 235,
+    "status": "unmatched",
+    "reason": "no_edition_hit",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "bernfeld-sefer-hadmaot-1924",
+    "label": "Bernfeld, Sefer ha-Dema'ot, Berlin: Eshkol 1924-1926",
+    "pby_ids": ["44631"],
+    "pby_source_edition": "ברלין: אשכול",
+    "pby_works_in_edition": 235,
+    "status": "unmatched",
+    "reason": "no_edition_hit",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "heine-stybel",
+    "label": "Heine tr. Frischmann and Katzenelson, Warsaw: Stybel (1920s)",
+    "pby_ids": ["10891"],
+    "pby_source_edition": "ורשה: אברהם יוסף שטיבל",
+    "pby_works_in_edition": 28,
+    "status": "unmatched",
+    "reason": "no_edition_hit",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "katzenelson-mahamadim-1923",
+    "label": "Katzenelson, Mahamadim, Warsaw: Barkai 1923",
+    "pby_ids": ["52734"],
+    "pby_source_edition": "ברקאי, ורשה",
+    "pby_works_in_edition": 25,
+    "status": "matched",
+    "reason": null,
+    "match": {
+     "nli_record_id": "990017258010205171",
+     "manifest_url": "https://iiif.nli.org.il/IIIFv21/990017258010205171/manifest",
+     "item_url": "https://www.nli.org.il/en/books/NNL_ALEPH990017258010205171",
+     "title": "מחמדים : קבץ ספורים, שירים, אגדות ומחזות עם עשרה ציורים / מאת יצחק קצנלסון.",
+     "publisher": "ורשה : ברקאי",
+     "date": "תרפ\"ד 1923",
+     "canvas_count": 232,
+     "license_slug": "public-domain-free-use"
+    },
+    "kept_hits": [
+     {
+      "nli_record_id": "990017258010205171",
+      "date": "תרפ\"ד 1923",
+      "publisher": "ורשה : ברקאי",
+      "license_slug": "public-domain-free-use",
+      "canvas_count": 232,
+      "decision": "accepted"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "tchernowitz-hamadpis-1927",
+    "label": "Tchernowitz, essays, Jerusalem: Ha-Madpis 1927",
+    "pby_ids": ["1580"],
+    "pby_source_edition": "ירושלים: המדפיס, תרפ\"ז",
+    "pby_works_in_edition": 8,
+    "status": "matched",
+    "reason": null,
+    "match": {
+     "nli_record_id": "990020522850205171",
+     "manifest_url": "https://iiif.nli.org.il/IIIFv21/990020522850205171/manifest",
+     "item_url": "https://www.nli.org.il/en/books/NNL_ALEPH990020522850205171",
+     "title": "עם שחר.",
+     "publisher": "ירושלים : המדפיס",
+     "date": "תרפ\"ז",
+     "canvas_count": 280,
+     "license_slug": "public-domain-free-use"
+    },
+    "kept_hits": [
+     {
+      "nli_record_id": "990020522850205171",
+      "date": "תרפ\"ז",
+      "publisher": "ירושלים : המדפיס",
+      "license_slug": "public-domain-free-use",
+      "canvas_count": 280,
+      "decision": "accepted"
+     }
+    ],
+    "edition_notes": "PBY cites 'ירושלים: המדפיס, תרפ\"ז' for 8 essays; NLI holds one Tchernowitz book from that press and year, עם שחר"
+   },
+   {
+    "candidate_id": "silman-zimrei-am-1927",
+    "label": "Silman, Zimrei Am, Jerusalem 1927",
+    "pby_ids": ["22"],
+    "pby_source_edition": "מתוך \"זמרי עם\", ירושלים: לכו נרננה, תרפ\"ז 1927.",
+    "pby_works_in_edition": 10,
+    "status": "unmatched",
+    "reason": "no_edition_hit",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "brainin-mapu-1928",
+    "label": "Brainin, Avraham Mapu: Hayav u-Sfarav, Vilna: Tushiya 1928",
+    "pby_ids": ["3149"],
+    "pby_source_edition": "אברהם מאפו - חייו וספריו / ראובן בריינין ; וילנא: תושיה, 1928",
+    "pby_works_in_edition": 1,
+    "status": "matched",
+    "reason": null,
+    "match": {
+     "nli_record_id": "990018546440205171",
+     "manifest_url": "https://iiif.nli.org.il/IIIFv21/990018546440205171/manifest",
+     "item_url": "https://www.nli.org.il/en/books/NNL_ALEPH990018546440205171",
+     "title": "אברהם מאפו : חייו וספריו / מאת ראובן בריינין.",
+     "publisher": "ווילנא ; ורשה : תושיה",
+     "date": "תרפ\"ח",
+     "canvas_count": 162,
+     "license_slug": "public-domain-free-use"
+    },
+    "kept_hits": [
+     {
+      "nli_record_id": "990018546440205171",
+      "date": "תרפ\"ח",
+      "publisher": "ווילנא ; ורשה : תושיה",
+      "license_slug": "public-domain-free-use",
+      "canvas_count": 162,
+      "decision": "accepted"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "grayevsky-arbeh-1928",
+    "label": "Grayevsky, Ha-Arbeh be-Eretz Yisrael, Jerusalem 1928",
+    "pby_ids": ["11851"],
+    "pby_source_edition": "[ירושלים]: דפוס צוקרמן, [תרפ\"ח] 1928",
+    "pby_works_in_edition": 1,
+    "status": "unmatched",
+    "reason": "no_edition_hit",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "silman-sansinim-1929",
+    "label": "Silman, Sansinim, Jerusalem: Tarbut 1929",
+    "pby_ids": ["19081", "19128"],
+    "pby_source_edition": "מתוך: \"סנסנים: שנים עשר סיפורים\", ירושלים, תל אביב: תרבות, תרפ\"ט 1929.",
+    "pby_works_in_edition": 9,
+    "status": "matched",
+    "reason": null,
+    "match": {
+     "nli_record_id": "990020250940205171",
+     "manifest_url": "https://iiif.nli.org.il/IIIFv21/990020250940205171/manifest",
+     "item_url": "https://www.nli.org.il/en/books/NNL_ALEPH990020250940205171",
+     "title": "סנסנים : שנים עשר ספורים / מאת קדיש יהודה סילמן.",
+     "publisher": "ירושלים ; תל אביב : תרבות",
+     "date": "תרפ\"ט",
+     "canvas_count": 180,
+     "license_slug": "public-domain-free-use"
+    },
+    "kept_hits": [
+     {
+      "nli_record_id": "990020250940205171",
+      "date": "תרפ\"ט",
+      "publisher": "ירושלים ; תל אביב : תרבות",
+      "license_slug": "public-domain-free-use",
+      "canvas_count": 180,
+      "decision": "accepted"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "grayevsky-halalei-1929",
+    "label": "Grayevsky, Halalei Bat Ami, Jerusalem 1929",
+    "pby_ids": ["11849"],
+    "pby_source_edition": "ירושלים: דפוס ארץ-ישראל, תרפ\"ט",
+    "pby_works_in_edition": 1,
+    "status": "unmatched",
+    "reason": "no_edition_hit",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "shatz-al-gvul-1929",
+    "label": "Shatz, Al Gvul ha-Demama, Tel Aviv: Davar 1929",
+    "pby_ids": ["4439"],
+    "pby_source_edition": "מתוך \"על גבול הדממה\", תל אביב: דבר, תרפ\"ט",
+    "pby_works_in_edition": 15,
+    "status": "unmatched",
+    "reason": "edition_scan_zero_canvases",
+    "match": null,
+    "kept_hits": [
+     {
+      "nli_record_id": "990020875360205171",
+      "date": "תרפ\"ט",
+      "publisher": "תל-אביב : דבר",
+      "license_slug": "public-domain-free-use",
+      "canvas_count": 0,
+      "decision": "rejected"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "bilinson-tehiyat-italia-1930",
+    "label": "Bilinson, Bi-Ymei Tehiyat Italia, Tel Aviv 1930",
+    "pby_ids": ["206"],
+    "pby_source_edition": "מתוך \"בימי תחית איטליה\", תל אביב: חברה, תר\"ץ",
+    "pby_works_in_edition": 9,
+    "status": "unmatched",
+    "reason": "no_edition_hit",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "alfas-maase-1934",
+    "label": "Alfas, Maase Alfas, Jerusalem 1934",
+    "pby_ids": ["446"],
+    "pby_source_edition": "ירושלים: א. ל. כהנא, תרצ״ד",
+    "pby_works_in_edition": 1,
+    "status": "unmatched",
+    "reason": "search_failed",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "bialik-dvarim-1935",
+    "label": "Bialik, Dvarim she-be-al Pe, Tel Aviv: Dvir 1935",
+    "pby_ids": ["191"],
+    "pby_source_edition": "מתוך \"דברים שבעל פה\", תל אביב: דביר, תרצ\"ה 1935",
+    "pby_works_in_edition": 86,
+    "status": "unmatched",
+    "reason": "edition_scan_zero_canvases",
+    "match": null,
+    "kept_hits": [
+     {
+      "nli_record_id": "990012951350205171",
+      "date": "תרצ\"ה 1935",
+      "publisher": "תל אביב : דביר",
+      "license_slug": "public-domain-free-use",
+      "canvas_count": 0,
+      "decision": "rejected"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "katzenelson-shirim-1938",
+    "label": "Katzenelson, Shirim (3 vols.), Lodz: Hovevei Shira 1938",
+    "pby_ids": ["39977"],
+    "pby_source_edition": "לודז', חובבי שירה",
+    "pby_works_in_edition": 21,
+    "status": "matched",
+    "reason": null,
+    "match": {
+     "nli_record_id": "990013538860205171",
+     "manifest_url": "https://iiif.nli.org.il/IIIFv21/990013538860205171/manifest",
+     "item_url": "https://www.nli.org.il/en/books/NNL_ALEPH990013538860205171",
+     "title": "שירים : בשלשה כרכים / יצחק קצנלסון ; [הציורים מעשי ידי חנוך בארצ'ינסקי].",
+     "publisher": "לודז : חובבי שירה",
+     "date": "תרצ\"ח",
+     "canvas_count": 296,
+     "license_slug": "public-domain-free-use"
+    },
+    "kept_hits": [
+     {
+      "nli_record_id": "990013538860205171",
+      "date": "תרצ\"ח",
+      "publisher": "לודז : חובבי שירה",
+      "license_slug": "public-domain-free-use",
+      "canvas_count": 296,
+      "decision": "accepted"
+     }
+    ],
+    "edition_notes": "PBY cites 'הוצאת \"חובבי שירה\", לודז'' without a year for about 240 poems; NLI's Hovevei Shira edition of the collected poems is dated 1938"
+   },
+   {
+    "candidate_id": "mandelkern-shirei-1882",
+    "label": "Mandelkern, Shirei Sfat Ever, Leipzig: Selbstverlag 1882",
+    "pby_ids": ["62217"],
+    "pby_source_edition": "Leipzig : Selbstverlag des Verfassers",
+    "pby_works_in_edition": 107,
+    "status": "matched",
+    "reason": null,
+    "match": {
+     "nli_record_id": "990013637480205171",
+     "manifest_url": "https://iiif.nli.org.il/IIIFv21/990013637480205171/manifest",
+     "item_url": "https://www.nli.org.il/en/books/NNL_ALEPH990013637480205171",
+     "title": "שירי שפת עבר / מאת שלמה מאנדעלקערן.",
+     "publisher": "LEIPZIG : Selbstverlag des Verfassers",
+     "date": "תרמ\"ג 1882-תרס\"א 1901",
+     "canvas_count": 122,
+     "license_slug": "public-domain-free-use"
+    },
+    "kept_hits": [
+     {
+      "nli_record_id": "990013637480205171",
+      "date": "תרמ\"ג 1882-תרס\"א 1901",
+      "publisher": "LEIPZIG : Selbstverlag des Verfassers",
+      "license_slug": "public-domain-free-use",
+      "canvas_count": 122,
+      "decision": "accepted"
+     }
+    ],
+    "edition_notes": "PBY's source_edition 'Leipzig : Selbstverlag des Verfassers' (107 poems, no year) is NLI's publisher string verbatim for שירי שפת עבר (1882)"
+   },
+   {
+    "candidate_id": "mandelkern-vilna-fin",
+    "label": "Mandelkern, Vilna: Fin and Rosenkranz",
+    "pby_ids": ["20318"],
+    "pby_source_edition": "ווילנא: בדפוס ר' שמואל יוסף פין, ור' אברהם צבי ראזענקראנץ",
+    "pby_works_in_edition": 79,
+    "status": "unmatched",
+    "reason": "edition_scan_non_commercial",
+    "match": null,
+    "kept_hits": [
+     {
+      "nli_record_id": "990020039420205171",
+      "date": "תרכ\"ז",
+      "publisher": "ווילנא : שמואל יוסף יוסף פין ואברהם צבי ראזנקראנץ",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 36,
+      "decision": "rejected"
+     },
+     {
+      "nli_record_id": "990020405460205171",
+      "date": "תרכ\"ו",
+      "publisher": "ווילנא : דפוס י\"ש פין וא\"א ראזענקראנץ",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 92,
+      "decision": "rejected"
+     }
+    ],
+    "edition_notes": "Several Mandelkern books came from this press (1866-1867); the PBY works are poems with a preface, so the book is uncertain"
+   },
+   {
+    "candidate_id": "masliansky-hebrew-publishing",
+    "label": "Masliansky, Kitvei Masliansky, New York: Hebrew Publishing Co.",
+    "pby_ids": ["32170"],
+    "pby_source_edition": "ניו יורק: היברו פאבלישינג קאמפאני",
+    "pby_works_in_edition": 179,
+    "status": "unmatched",
+    "reason": "edition_scan_non_commercial",
+    "match": null,
+    "kept_hits": [
+     {
+      "nli_record_id": "990013469760205171",
+      "date": "19150101",
+      "publisher": "ניו יארק : היברו פאבלישינג קאמפאני",
+      "license_slug": "public-domain-non-commercial-use",
+      "canvas_count": 278,
+      "decision": "rejected"
+     }
+    ],
+    "edition_notes": null
+   },
+   {
+    "candidate_id": "targan-alexandria",
+    "label": "Targan, Alexandria: Palombo",
+    "pby_ids": ["40632"],
+    "pby_source_edition": "אלכסנדריה: דפוס ליאון פלומבו",
+    "pby_works_in_edition": 98,
+    "status": "unmatched",
+    "reason": "no_edition_hit",
+    "match": null,
+    "kept_hits": [],
+    "edition_notes": null
+   }
+  ]
+ },
+ "alignment": {
+  "works": 10,
+  "scans": 2,
+  "aligned_pages": 277,
+  "quality": {
+   "high": 275,
+   "medium": 2,
+   "low": 0
+  },
+  "score_histogram_2pt": {
+   "0.82": 1,
+   "0.88": 1,
+   "0.90": 1,
+   "0.94": 4,
+   "0.96": 21,
+   "0.98": 249
+  },
+  "crop": {
+   "cropped": 230,
+   "needs_review": 47
+  },
+  "difference_classes": {
+   "catchword_omitted": 21,
+   "footnote_reformatted": 24,
+   "pby_niqqud_present": 22,
+   "pby_text_not_located_on_print": 25,
+   "print_text_not_in_pby_span": 35,
+   "quote_style_normalized": 73,
+   "running_header_or_page_number_omitted": 263,
+   "span_overlaps_previous_page": 2,
+   "spelling_variant": 160
+  },
+  "plene_spelling_variants": 331,
+  "words_equal": 55084,
+  "works_detail": [
+   {
+    "pby_id": "3149",
+    "title": "אברהם מאפו: חייו וספריו",
+    "nli_record_id": "990018546440205171",
+    "summary": {
+     "pages": 162,
+     "page_status": {
+      "aligned": 145,
+      "outside_work": 16,
+      "weak": 1
+     },
+     "aligned_pages": 145,
+     "quality": {
+      "high": 143,
+      "medium": 2,
+      "low": 0
+     },
+     "alignment_score": {
+      "min": 0.8243,
+      "p10": 0.9717,
+      "median": 0.9873,
+      "max": 0.9976
+     },
+     "crop": {
+      "cropped": 105,
+      "needs_review": 40
+     },
+     "difference_classes": {
+      "catchword_omitted": 17,
+      "footnote_reformatted": 24,
+      "pby_niqqud_present": 19,
+      "pby_text_not_located_on_print": 25,
+      "print_text_not_in_pby_span": 32,
+      "quote_style_normalized": 72,
+      "running_header_or_page_number_omitted": 141,
+      "span_overlaps_previous_page": 1,
+      "spelling_variant": 97
+     },
+     "pby_letters": 167822,
+     "pby_letters_in_aligned_page_spans": 164289,
+     "pby_text_coverage": 0.9789,
+     "interior_text_pages_not_in_pby": [7, 8, 9, 10, 128],
+     "plene_spelling_variants": 247,
+     "words_equal": 32579
+    },
+    "pages": [
+     [6, "aligned", 0.9926, "high", "needs_review", 29, 297, ["pby_niqqud_present", "footnote_reformatted", "running_header_or_page_number_omitted", "print_text_not_in_pby_span"]],
+     [12, "aligned", 0.975, "high", "cropped", 266, 1214, ["footnote_reformatted", "print_text_not_in_pby_span", "span_overlaps_previous_page"]],
+     [13, "aligned", 0.989, "high", "cropped", 1215, 2894, ["quote_style_normalized", "running_header_or_page_number_omitted", "catchword_omitted"]],
+     [14, "aligned", 0.9851, "high", "cropped", 2895, 4529, ["quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [15, "aligned", 0.9904, "high", "cropped", 4530, 6116, ["quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [16, "aligned", 0.9871, "high", "needs_review", 6117, 7626, ["pby_niqqud_present", "quote_style_normalized", "running_header_or_page_number_omitted", "catchword_omitted"]],
+     [17, "aligned", 0.9796, "high", "cropped", 7627, 9102, ["quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [18, "aligned", 0.9821, "high", "cropped", 9103, 10602, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [19, "aligned", 0.9918, "high", "cropped", 10603, 12201, ["quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [20, "aligned", 0.9821, "high", "cropped", 12202, 13798, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [21, "aligned", 0.9842, "high", "needs_review", 13799, 15388, ["spelling_variant", "footnote_reformatted", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [22, "aligned", 0.9899, "high", "cropped", 15389, 16933, ["pby_niqqud_present", "running_header_or_page_number_omitted"]],
+     [23, "aligned", 0.9881, "high", "cropped", 16934, 18456, ["running_header_or_page_number_omitted"]],
+     [24, "aligned", 0.9856, "high", "cropped", 18457, 20018, ["running_header_or_page_number_omitted"]],
+     [25, "aligned", 0.9859, "high", "cropped", 20020, 21591, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [26, "aligned", 0.9785, "high", "cropped", 21592, 23019, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [27, "aligned", 0.9898, "high", "cropped", 23020, 24488, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [28, "aligned", 0.981, "high", "cropped", 24498, 25888, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [29, "aligned", 0.9917, "high", "cropped", 25889, 27379, ["spelling_variant", "footnote_reformatted", "running_header_or_page_number_omitted"]],
+     [30, "aligned", 0.9845, "high", "cropped", 27380, 28828, ["quote_style_normalized", "running_header_or_page_number_omitted", "catchword_omitted"]],
+     [31, "aligned", 0.9835, "high", "cropped", 28832, 30301, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [32, "aligned", 0.9956, "high", "cropped", 30302, 31872, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [33, "aligned", 0.978, "high", "cropped", 31873, 33403, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [34, "aligned", 0.9842, "high", "needs_review", 33404, 34997, ["spelling_variant", "footnote_reformatted", "running_header_or_page_number_omitted", "print_text_not_in_pby_span"]],
+     [35, "aligned", 0.9829, "high", "needs_review", 34998, 36520, ["pby_niqqud_present", "spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted", "catchword_omitted"]],
+     [36, "aligned", 0.9873, "high", "cropped", 36521, 38123, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [37, "aligned", 0.9869, "high", "needs_review", 38124, 39663, ["footnote_reformatted", "running_header_or_page_number_omitted", "print_text_not_in_pby_span", "pby_text_not_located_on_print"]],
+     [38, "aligned", 0.8243, "medium", "needs_review", 39766, 41154, ["spelling_variant", "footnote_reformatted", "running_header_or_page_number_omitted", "print_text_not_in_pby_span", "pby_text_not_located_on_print"]],
+     [39, "aligned", 0.985, "high", "cropped", 41170, 42528, ["pby_niqqud_present", "spelling_variant", "running_header_or_page_number_omitted", "pby_text_not_located_on_print"]],
+     [40, "aligned", 0.9821, "high", "needs_review", 42529, 44111, ["pby_niqqud_present", "spelling_variant", "running_header_or_page_number_omitted", "print_text_not_in_pby_span"]],
+     [41, "aligned", 0.9831, "high", "cropped", 44112, 45711, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [42, "aligned", 0.9783, "high", "needs_review", 45712, 47188, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted", "print_text_not_in_pby_span"]],
+     [43, "aligned", 0.9854, "high", "needs_review", 47189, 48561, ["spelling_variant", "running_header_or_page_number_omitted", "catchword_omitted", "print_text_not_in_pby_span", "pby_text_not_located_on_print"]],
+     [44, "aligned", 0.9881, "high", "cropped", 48562, 50093, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [45, "aligned", 0.9718, "high", "cropped", 50094, 51606, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [46, "aligned", 0.9424, "high", "needs_review", 51634, 53171, ["footnote_reformatted", "quote_style_normalized", "running_header_or_page_number_omitted", "print_text_not_in_pby_span", "pby_text_not_located_on_print"]],
+     [47, "aligned", 0.9914, "high", "cropped", 53172, 54665, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [48, "aligned", 0.9886, "high", "needs_review", 54666, 56207, ["quote_style_normalized", "running_header_or_page_number_omitted", "catchword_omitted"]],
+     [49, "aligned", 0.9903, "high", "cropped", 56208, 57710, ["quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [50, "aligned", 0.981, "high", "needs_review", 57711, 58974, ["spelling_variant", "running_header_or_page_number_omitted", "print_text_not_in_pby_span"]],
+     [51, "aligned", 0.9923, "high", "cropped", 58975, 60520, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [52, "aligned", 0.9961, "high", "cropped", 60521, 62029, ["running_header_or_page_number_omitted"]],
+     [53, "aligned", 0.9844, "high", "cropped", 62030, 63416, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [54, "aligned", 0.9724, "high", "needs_review", 63417, 64983, ["pby_niqqud_present", "quote_style_normalized", "running_header_or_page_number_omitted", "print_text_not_in_pby_span", "pby_text_not_located_on_print"]],
+     [55, "aligned", 0.9841, "high", "cropped", 65044, 66443, ["spelling_variant", "running_header_or_page_number_omitted", "pby_text_not_located_on_print"]],
+     [56, "aligned", 0.9951, "high", "needs_review", 66444, 68012, ["spelling_variant", "footnote_reformatted", "running_header_or_page_number_omitted", "print_text_not_in_pby_span", "pby_text_not_located_on_print"]],
+     [57, "aligned", 0.9911, "high", "cropped", 68013, 69625, ["quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [58, "aligned", 0.9863, "high", "cropped", 69626, 71245, ["pby_niqqud_present", "spelling_variant", "running_header_or_page_number_omitted", "pby_text_not_located_on_print"]],
+     [59, "aligned", 0.9922, "high", "cropped", 71246, 72853, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [60, "aligned", 0.971, "high", "needs_review", 72854, 74496, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted", "catchword_omitted"]],
+     [61, "aligned", 0.9485, "high", "needs_review", 74497, 75900, ["spelling_variant", "footnote_reformatted", "running_header_or_page_number_omitted", "print_text_not_in_pby_span", "pby_text_not_located_on_print"]],
+     [62, "aligned", 0.9887, "high", "cropped", 75901, 77354, ["quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [63, "aligned", 0.9909, "high", "cropped", 77355, 78942, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [64, "aligned", 0.9894, "high", "cropped", 78944, 80403, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [65, "aligned", 0.9909, "high", "cropped", 80404, 81944, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [66, "aligned", 0.9919, "high", "cropped", 81945, 83534, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [67, "aligned", 0.9843, "high", "cropped", 83535, 84845, ["pby_niqqud_present", "spelling_variant", "running_header_or_page_number_omitted", "pby_text_not_located_on_print"]],
+     [68, "aligned", 0.987, "high", "cropped", 84846, 86229, ["quote_style_normalized", "running_header_or_page_number_omitted", "pby_text_not_located_on_print"]],
+     [69, "aligned", 0.9919, "high", "cropped", 86230, 87764, ["quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [70, "aligned", 0.9862, "high", "cropped", 87765, 89315, ["quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [71, "aligned", 0.9894, "high", "cropped", 89320, 90974, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [72, "aligned", 0.9885, "high", "cropped", 90975, 92434, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [73, "aligned", 0.9879, "high", "cropped", 92435, 93909, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [74, "aligned", 0.9919, "high", "cropped", 93910, 95515, ["quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [75, "aligned", 0.9759, "high", "cropped", 95516, 96870, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [76, "aligned", 0.9872, "high", "cropped", 96871, 98320, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [77, "aligned", 0.993, "high", "cropped", 98321, 99761, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [78, "aligned", 0.9934, "high", "cropped", 99762, 101200, ["running_header_or_page_number_omitted"]],
+     [79, "aligned", 0.9814, "high", "cropped", 101201, 102366, ["footnote_reformatted", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [80, "aligned", 0.9931, "high", "cropped", 102367, 103811, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [81, "aligned", 0.9922, "high", "cropped", 103812, 105383, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [82, "aligned", 0.9878, "high", "cropped", 105384, 106768, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [83, "aligned", 0.9875, "high", "cropped", 106769, 108127, ["running_header_or_page_number_omitted"]],
+     [84, "aligned", 0.9803, "high", "needs_review", 108128, 109182, ["running_header_or_page_number_omitted", "catchword_omitted", "print_text_not_in_pby_span", "pby_text_not_located_on_print"]],
+     [85, "aligned", 0.9878, "high", "needs_review", 109183, 110220, ["quote_style_normalized", "catchword_omitted", "print_text_not_in_pby_span"]],
+     [86, "aligned", 0.8958, "medium", "needs_review", 110221, 110260, ["running_header_or_page_number_omitted", "print_text_not_in_pby_span"]],
+     [88, "aligned", 0.9901, "high", "cropped", 110271, 111392, ["pby_niqqud_present"]],
+     [89, "aligned", 0.9939, "high", "cropped", 111393, 112974, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [90, "aligned", 0.9857, "high", "needs_review", 113025, 114292, ["spelling_variant", "footnote_reformatted", "running_header_or_page_number_omitted", "pby_text_not_located_on_print"]],
+     [91, "aligned", 0.9976, "high", "cropped", 114293, 115734, ["running_header_or_page_number_omitted", "print_text_not_in_pby_span"]],
+     [92, "aligned", 0.9885, "high", "needs_review", 115735, 117285, ["quote_style_normalized", "running_header_or_page_number_omitted", "catchword_omitted"]],
+     [93, "aligned", 0.9896, "high", "cropped", 117286, 118835, ["spelling_variant", "quote_style_normalized"]],
+     [94, "aligned", 0.9809, "high", "cropped", 118836, 120374, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [95, "aligned", 0.9912, "high", "needs_review", 120375, 121990, ["running_header_or_page_number_omitted", "catchword_omitted"]],
+     [96, "aligned", 0.9922, "high", "cropped", 121991, 123356, ["spelling_variant", "running_header_or_page_number_omitted", "print_text_not_in_pby_span"]],
+     [97, "aligned", 0.9934, "high", "cropped", 123357, 124886, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [98, "aligned", 0.9944, "high", "needs_review", 124887, 126462, ["pby_niqqud_present", "footnote_reformatted", "quote_style_normalized", "running_header_or_page_number_omitted", "pby_text_not_located_on_print"]],
+     [99, "aligned", 0.9901, "high", "cropped", 126463, 128033, ["footnote_reformatted", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [100, "aligned", 0.9875, "high", "cropped", 128034, 129462, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [101, "aligned", 0.9891, "high", "cropped", 129463, 131055, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [102, "aligned", 0.9852, "high", "cropped", 131056, 132678, ["pby_niqqud_present", "spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [103, "aligned", 0.9869, "high", "cropped", 132679, 134174, ["quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [104, "aligned", 0.9816, "high", "needs_review", 134175, 135487, ["spelling_variant", "running_header_or_page_number_omitted", "print_text_not_in_pby_span", "pby_text_not_located_on_print"]],
+     [105, "aligned", 0.9813, "high", "cropped", 135488, 136916, ["pby_niqqud_present", "spelling_variant", "running_header_or_page_number_omitted"]],
+     [106, "aligned", 0.9898, "high", "cropped", 136917, 138453, ["spelling_variant", "running_header_or_page_number_omitted", "catchword_omitted"]],
+     [107, "aligned", 0.9956, "high", "needs_review", 138457, 139887, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted", "catchword_omitted"]],
+     [108, "aligned", 0.9939, "high", "cropped", 139888, 141447, ["quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [109, "aligned", 0.9903, "high", "cropped", 141448, 143012, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [110, "aligned", 0.9902, "high", "cropped", 143014, 144331, ["footnote_reformatted", "running_header_or_page_number_omitted"]],
+     [111, "aligned", 0.9873, "high", "cropped", 144333, 145580, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [112, "aligned", 0.9823, "high", "cropped", 145588, 147238, ["quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [113, "aligned", 0.9938, "high", "cropped", 147239, 148839, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [114, "aligned", 0.9848, "high", "cropped", 148840, 150517, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [115, "aligned", 0.9826, "high", "cropped", 150518, 152035, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [116, "aligned", 0.9914, "high", "needs_review", 152037, 153405, ["quote_style_normalized", "running_header_or_page_number_omitted", "print_text_not_in_pby_span"]],
+     [117, "aligned", 0.993, "high", "cropped", 153406, 154975, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [118, "aligned", 0.9874, "high", "cropped", 157767, 159218, ["spelling_variant", "running_header_or_page_number_omitted", "pby_text_not_located_on_print"]],
+     [119, "aligned", 0.9909, "high", "cropped", 159220, 160621, ["running_header_or_page_number_omitted"]],
+     [120, "aligned", 0.9941, "high", "cropped", 160622, 162187, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [121, "aligned", 0.9959, "high", "cropped", 162188, 163520, ["spelling_variant", "footnote_reformatted", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [122, "aligned", 0.9901, "high", "needs_review", 163522, 164999, ["spelling_variant", "footnote_reformatted", "running_header_or_page_number_omitted", "pby_text_not_located_on_print"]],
+     [123, "aligned", 0.9893, "high", "cropped", 165000, 166398, ["running_header_or_page_number_omitted"]],
+     [124, "aligned", 0.98, "high", "cropped", 166399, 167882, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [125, "aligned", 0.9825, "high", "needs_review", 167931, 169278, ["quote_style_normalized", "running_header_or_page_number_omitted", "catchword_omitted", "print_text_not_in_pby_span", "pby_text_not_located_on_print"]],
+     [126, "aligned", 0.9905, "high", "cropped", 169279, 170725, ["spelling_variant", "footnote_reformatted", "running_header_or_page_number_omitted"]],
+     [127, "aligned", 0.9842, "high", "needs_review", 170726, 172163, ["spelling_variant", "footnote_reformatted", "running_header_or_page_number_omitted", "print_text_not_in_pby_span"]],
+     [129, "aligned", 0.9897, "high", "cropped", 172167, 173847, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [130, "aligned", 0.9093, "high", "needs_review", 173849, 174820, ["pby_niqqud_present", "spelling_variant", "running_header_or_page_number_omitted", "print_text_not_in_pby_span", "pby_text_not_located_on_print"]],
+     [131, "aligned", 0.9909, "high", "cropped", 174841, 176229, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [132, "aligned", 0.9796, "high", "needs_review", 176230, 177895, ["spelling_variant", "running_header_or_page_number_omitted", "catchword_omitted", "print_text_not_in_pby_span"]],
+     [133, "aligned", 0.9765, "high", "cropped", 177896, 179565, ["pby_niqqud_present", "spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [134, "aligned", 0.9717, "high", "needs_review", 179584, 181336, ["pby_niqqud_present", "spelling_variant", "footnote_reformatted", "quote_style_normalized", "running_header_or_page_number_omitted", "print_text_not_in_pby_span", "pby_text_not_located_on_print"]],
+     [135, "aligned", 0.9709, "high", "cropped", 181337, 182836, ["pby_niqqud_present", "spelling_variant", "footnote_reformatted", "quote_style_normalized", "running_header_or_page_number_omitted", "print_text_not_in_pby_span"]],
+     [136, "aligned", 0.9665, "high", "needs_review", 182861, 184488, ["spelling_variant", "running_header_or_page_number_omitted", "print_text_not_in_pby_span", "pby_text_not_located_on_print"]],
+     [137, "aligned", 0.9706, "high", "needs_review", 184489, 186185, ["pby_niqqud_present", "spelling_variant", "footnote_reformatted", "running_header_or_page_number_omitted", "print_text_not_in_pby_span", "pby_text_not_located_on_print"]],
+     [138, "aligned", 0.9869, "high", "needs_review", 186186, 187769, ["spelling_variant", "footnote_reformatted", "running_header_or_page_number_omitted", "print_text_not_in_pby_span", "pby_text_not_located_on_print"]],
+     [139, "aligned", 0.9937, "high", "cropped", 187770, 189372, ["quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [140, "aligned", 0.9915, "high", "cropped", 189373, 190954, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [141, "aligned", 0.9813, "high", "cropped", 190963, 192513, ["quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [142, "aligned", 0.9819, "high", "cropped", 192514, 193876, ["pby_niqqud_present", "spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [143, "aligned", 0.9674, "high", "needs_review", 193877, 195486, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted", "print_text_not_in_pby_span", "pby_text_not_located_on_print"]],
+     [144, "aligned", 0.986, "high", "needs_review", 195487, 197033, ["running_header_or_page_number_omitted", "print_text_not_in_pby_span"]],
+     [145, "aligned", 0.9962, "high", "cropped", 197034, 198589, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [146, "aligned", 0.9904, "high", "needs_review", 198590, 200118, ["spelling_variant", "running_header_or_page_number_omitted", "catchword_omitted"]],
+     [147, "aligned", 0.9872, "high", "cropped", 200119, 201735, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [148, "aligned", 0.9733, "high", "cropped", 201736, 203223, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [149, "aligned", 0.9896, "high", "cropped", 203224, 204698, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [150, "aligned", 0.9869, "high", "needs_review", 204700, 206111, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted", "catchword_omitted", "print_text_not_in_pby_span"]],
+     [151, "aligned", 0.9585, "high", "cropped", 206112, 207680, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [152, "aligned", 0.9679, "high", "cropped", 207681, 209233, ["spelling_variant", "footnote_reformatted", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [153, "aligned", 0.9881, "high", "cropped", 209234, 210881, ["running_header_or_page_number_omitted"]],
+     [154, "aligned", 0.9848, "high", "cropped", 210882, 212490, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [155, "aligned", 0.9714, "high", "cropped", 212491, 214040, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [156, "aligned", 0.9498, "high", "cropped", 214042, 215656, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [157, "aligned", 0.9938, "high", "cropped", 215657, 217156, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [160, "weak", 0.75, "weak", "cropped", 217225, 217234, ["running_header_or_page_number_omitted", "pby_text_not_located_on_print"]]
+    ],
+    "page_columns": ["canvas_index", "status", "alignment_score", "quality", "crop", "pby_start", "pby_end", "difference_classes"]
+   },
+   {
+    "pby_id": "19081",
+    "title": "דִּין תּוֹרָה",
+    "nli_record_id": "990020250940205171",
+    "summary": {
+     "pages": 180,
+     "page_status": {
+      "aligned": 6,
+      "outside_work": 174
+     },
+     "aligned_pages": 6,
+     "quality": {
+      "high": 6,
+      "medium": 0,
+      "low": 0
+     },
+     "alignment_score": {
+      "min": 0.9918,
+      "p10": 0.9935,
+      "median": 0.9959,
+      "max": 0.999
+     },
+     "crop": {
+      "cropped": 5,
+      "needs_review": 1
+     },
+     "difference_classes": {
+      "pby_niqqud_present": 1,
+      "print_text_not_in_pby_span": 1,
+      "running_header_or_page_number_omitted": 5,
+      "spelling_variant": 3
+     },
+     "pby_letters": 3878,
+     "pby_letters_in_aligned_page_spans": 3871,
+     "pby_text_coverage": 0.9982,
+     "interior_text_pages_not_in_pby": [],
+     "plene_spelling_variants": 3,
+     "words_equal": 865
+    },
+    "pages": [
+     [44, "aligned", 0.9959, "high", "cropped", 19, 611, ["pby_niqqud_present"]],
+     [45, "aligned", 0.9951, "high", "cropped", 613, 1665, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [46, "aligned", 0.9935, "high", "cropped", 1667, 2749, ["running_header_or_page_number_omitted"]],
+     [47, "aligned", 0.9972, "high", "cropped", 2750, 3683, ["running_header_or_page_number_omitted"]],
+     [48, "aligned", 0.999, "high", "cropped", 3684, 4593, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [49, "aligned", 0.9918, "high", "needs_review", 4594, 5107, ["spelling_variant", "running_header_or_page_number_omitted", "print_text_not_in_pby_span"]]
+    ],
+    "page_columns": ["canvas_index", "status", "alignment_score", "quality", "crop", "pby_start", "pby_end", "difference_classes"]
+   },
+   {
+    "pby_id": "19082",
+    "title": "נַגְּנִי",
+    "nli_record_id": "990020250940205171",
+    "summary": {
+     "pages": 180,
+     "page_status": {
+      "aligned": 13,
+      "outside_work": 167
+     },
+     "aligned_pages": 13,
+     "quality": {
+      "high": 13,
+      "medium": 0,
+      "low": 0
+     },
+     "alignment_score": {
+      "min": 0.9913,
+      "p10": 0.9946,
+      "median": 0.9971,
+      "max": 0.9982
+     },
+     "crop": {
+      "cropped": 11,
+      "needs_review": 2
+     },
+     "difference_classes": {
+      "catchword_omitted": 1,
+      "print_text_not_in_pby_span": 1,
+      "running_header_or_page_number_omitted": 11,
+      "spelling_variant": 6
+     },
+     "pby_letters": 8170,
+     "pby_letters_in_aligned_page_spans": 8166,
+     "pby_text_coverage": 0.9995,
+     "interior_text_pages_not_in_pby": [],
+     "plene_spelling_variants": 8,
+     "words_equal": 1807
+    },
+    "pages": [
+     [50, "aligned", 0.9971, "high", "cropped", 14, 563, []],
+     [51, "aligned", 0.9971, "high", "cropped", 565, 1646, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [52, "aligned", 0.9972, "high", "needs_review", 1648, 2702, ["running_header_or_page_number_omitted", "catchword_omitted"]],
+     [53, "aligned", 0.9982, "high", "cropped", 2704, 3656, ["running_header_or_page_number_omitted"]],
+     [54, "aligned", 0.9913, "high", "needs_review", 3658, 4560, ["spelling_variant", "print_text_not_in_pby_span"]],
+     [55, "aligned", 0.9982, "high", "cropped", 4561, 5425, ["running_header_or_page_number_omitted"]],
+     [56, "aligned", 0.9954, "high", "cropped", 5427, 6312, ["running_header_or_page_number_omitted"]],
+     [57, "aligned", 0.9972, "high", "cropped", 6313, 7164, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [58, "aligned", 0.9973, "high", "cropped", 7165, 8040, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [59, "aligned", 0.9946, "high", "cropped", 8042, 8989, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [60, "aligned", 0.997, "high", "cropped", 8990, 9839, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [61, "aligned", 0.9975, "high", "cropped", 9841, 10678, ["running_header_or_page_number_omitted"]],
+     [62, "aligned", 0.9946, "high", "cropped", 10680, 10833, ["running_header_or_page_number_omitted"]]
+    ],
+    "page_columns": ["canvas_index", "status", "alignment_score", "quality", "crop", "pby_start", "pby_end", "difference_classes"]
+   },
+   {
+    "pby_id": "19083",
+    "title": "חָנַנְיָה",
+    "nli_record_id": "990020250940205171",
+    "summary": {
+     "pages": 180,
+     "page_status": {
+      "aligned": 7,
+      "outside_work": 173
+     },
+     "aligned_pages": 7,
+     "quality": {
+      "high": 7,
+      "medium": 0,
+      "low": 0
+     },
+     "alignment_score": {
+      "min": 0.983,
+      "p10": 0.9881,
+      "median": 0.9934,
+      "max": 0.9985
+     },
+     "crop": {
+      "cropped": 7
+     },
+     "difference_classes": {
+      "running_header_or_page_number_omitted": 6,
+      "spelling_variant": 4
+     },
+     "pby_letters": 5174,
+     "pby_letters_in_aligned_page_spans": 5169,
+     "pby_text_coverage": 0.999,
+     "interior_text_pages_not_in_pby": [],
+     "plene_spelling_variants": 4,
+     "words_equal": 1167
+    },
+    "pages": [
+     [63, "aligned", 0.9985, "high", "cropped", 15, 600, []],
+     [64, "aligned", 0.9963, "high", "cropped", 601, 1677, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [65, "aligned", 0.983, "high", "cropped", 1678, 2704, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [66, "aligned", 0.9881, "high", "cropped", 2705, 3782, ["running_header_or_page_number_omitted"]],
+     [67, "aligned", 0.9971, "high", "cropped", 3783, 4927, ["running_header_or_page_number_omitted"]],
+     [68, "aligned", 0.9934, "high", "cropped", 4928, 5939, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [69, "aligned", 0.9922, "high", "cropped", 5940, 6723, ["spelling_variant", "running_header_or_page_number_omitted"]]
+    ],
+    "page_columns": ["canvas_index", "status", "alignment_score", "quality", "crop", "pby_start", "pby_end", "difference_classes"]
+   },
+   {
+    "pby_id": "19128",
+    "title": "הַגְּבֶרֶת פִינְקֶל",
+    "nli_record_id": "990020250940205171",
+    "summary": {
+     "pages": 180,
+     "page_status": {
+      "aligned": 23,
+      "outside_work": 157
+     },
+     "aligned_pages": 23,
+     "quality": {
+      "high": 23,
+      "medium": 0,
+      "low": 0
+     },
+     "alignment_score": {
+      "min": 0.9886,
+      "p10": 0.9887,
+      "median": 0.9949,
+      "max": 0.9976
+     },
+     "crop": {
+      "cropped": 23
+     },
+     "difference_classes": {
+      "running_header_or_page_number_omitted": 23,
+      "spelling_variant": 9
+     },
+     "pby_letters": 18034,
+     "pby_letters_in_aligned_page_spans": 18024,
+     "pby_text_coverage": 0.9994,
+     "interior_text_pages_not_in_pby": [],
+     "plene_spelling_variants": 10,
+     "words_equal": 4130
+    },
+    "pages": [
+     [70, "aligned", 0.9896, "high", "cropped", 25, 627, ["running_header_or_page_number_omitted"]],
+     [71, "aligned", 0.9976, "high", "cropped", 628, 1775, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [72, "aligned", 0.9918, "high", "cropped", 1776, 2899, ["running_header_or_page_number_omitted"]],
+     [73, "aligned", 0.9949, "high", "cropped", 2901, 4039, ["running_header_or_page_number_omitted"]],
+     [74, "aligned", 0.9952, "high", "cropped", 4040, 5189, ["running_header_or_page_number_omitted"]],
+     [75, "aligned", 0.9886, "high", "cropped", 5190, 6328, ["running_header_or_page_number_omitted"]],
+     [76, "aligned", 0.9959, "high", "cropped", 6329, 7383, ["running_header_or_page_number_omitted"]],
+     [77, "aligned", 0.9968, "high", "cropped", 7384, 8424, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [78, "aligned", 0.9886, "high", "cropped", 8425, 9506, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [79, "aligned", 0.9934, "high", "cropped", 9508, 10632, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [80, "aligned", 0.991, "high", "cropped", 10636, 11562, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [81, "aligned", 0.9976, "high", "cropped", 11563, 12622, ["running_header_or_page_number_omitted"]],
+     [82, "aligned", 0.9956, "high", "cropped", 12623, 13701, ["running_header_or_page_number_omitted"]],
+     [83, "aligned", 0.9888, "high", "cropped", 13702, 14679, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [84, "aligned", 0.9944, "high", "cropped", 14680, 15700, ["running_header_or_page_number_omitted"]],
+     [85, "aligned", 0.9971, "high", "cropped", 15701, 16558, ["running_header_or_page_number_omitted"]],
+     [86, "aligned", 0.9962, "high", "cropped", 16560, 17608, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [87, "aligned", 0.9961, "high", "cropped", 17609, 18791, ["running_header_or_page_number_omitted"]],
+     [88, "aligned", 0.9887, "high", "cropped", 18792, 19881, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [89, "aligned", 0.9959, "high", "cropped", 19882, 20856, ["running_header_or_page_number_omitted"]],
+     [90, "aligned", 0.9914, "high", "cropped", 20865, 22010, ["running_header_or_page_number_omitted"]],
+     [91, "aligned", 0.9962, "high", "cropped", 22011, 23081, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [92, "aligned", 0.9908, "high", "cropped", 23082, 23914, ["running_header_or_page_number_omitted"]]
+    ],
+    "page_columns": ["canvas_index", "status", "alignment_score", "quality", "crop", "pby_start", "pby_end", "difference_classes"]
+   },
+   {
+    "pby_id": "19129",
+    "title": "שָעוֹת",
+    "nli_record_id": "990020250940205171",
+    "summary": {
+     "pages": 180,
+     "page_status": {
+      "aligned": 24,
+      "outside_work": 156
+     },
+     "aligned_pages": 24,
+     "quality": {
+      "high": 24,
+      "medium": 0,
+      "low": 0
+     },
+     "alignment_score": {
+      "min": 0.9788,
+      "p10": 0.9896,
+      "median": 0.9961,
+      "max": 1.0
+     },
+     "crop": {
+      "cropped": 23,
+      "needs_review": 1
+     },
+     "difference_classes": {
+      "catchword_omitted": 1,
+      "quote_style_normalized": 1,
+      "running_header_or_page_number_omitted": 23,
+      "spelling_variant": 12
+     },
+     "pby_letters": 19190,
+     "pby_letters_in_aligned_page_spans": 19184,
+     "pby_text_coverage": 0.9997,
+     "interior_text_pages_not_in_pby": [],
+     "plene_spelling_variants": 14,
+     "words_equal": 4357
+    },
+    "pages": [
+     [93, "aligned", 0.9961, "high", "cropped", 12, 687, []],
+     [94, "aligned", 0.9979, "high", "cropped", 688, 1817, ["running_header_or_page_number_omitted"]],
+     [95, "aligned", 0.9912, "high", "cropped", 1819, 2704, ["running_header_or_page_number_omitted"]],
+     [96, "aligned", 0.995, "high", "cropped", 2705, 3868, ["running_header_or_page_number_omitted"]],
+     [97, "aligned", 0.9966, "high", "cropped", 3869, 4935, ["running_header_or_page_number_omitted"]],
+     [98, "aligned", 0.9977, "high", "cropped", 4937, 5948, ["running_header_or_page_number_omitted"]],
+     [99, "aligned", 0.9896, "high", "cropped", 5952, 7057, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [100, "aligned", 0.9962, "high", "cropped", 7058, 8219, ["spelling_variant", "quote_style_normalized", "running_header_or_page_number_omitted"]],
+     [101, "aligned", 0.9926, "high", "cropped", 8221, 9287, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [102, "aligned", 0.9958, "high", "needs_review", 9289, 10505, ["running_header_or_page_number_omitted", "catchword_omitted"]],
+     [103, "aligned", 0.9977, "high", "cropped", 10507, 11656, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [104, "aligned", 0.9896, "high", "cropped", 11657, 12861, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [105, "aligned", 0.9976, "high", "cropped", 12862, 13931, ["running_header_or_page_number_omitted"]],
+     [106, "aligned", 0.9961, "high", "cropped", 13932, 14989, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [107, "aligned", 0.9947, "high", "cropped", 14990, 15932, ["running_header_or_page_number_omitted"]],
+     [108, "aligned", 0.9953, "high", "cropped", 15934, 17000, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [109, "aligned", 0.9962, "high", "cropped", 17001, 18112, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [110, "aligned", 1.0, "high", "cropped", 18114, 19107, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [111, "aligned", 0.9916, "high", "cropped", 19115, 20214, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [112, "aligned", 0.9993, "high", "cropped", 20215, 21421, ["running_header_or_page_number_omitted"]],
+     [113, "aligned", 0.9945, "high", "cropped", 21422, 22545, ["running_header_or_page_number_omitted"]],
+     [114, "aligned", 0.9976, "high", "cropped", 22548, 23719, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [115, "aligned", 0.9788, "high", "cropped", 23721, 24812, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [116, "aligned", 0.9936, "high", "cropped", 24815, 25199, ["running_header_or_page_number_omitted"]]
+    ],
+    "page_columns": ["canvas_index", "status", "alignment_score", "quality", "crop", "pby_start", "pby_end", "difference_classes"]
+   },
+   {
+    "pby_id": "19130",
+    "title": "בֵּין שְׁתֵּי אִמָּהוֹת",
+    "nli_record_id": "990020250940205171",
+    "summary": {
+     "pages": 180,
+     "page_status": {
+      "aligned": 8,
+      "outside_work": 172
+     },
+     "aligned_pages": 8,
+     "quality": {
+      "high": 8,
+      "medium": 0,
+      "low": 0
+     },
+     "alignment_score": {
+      "min": 0.9888,
+      "p10": 0.9897,
+      "median": 0.9957,
+      "max": 1.0
+     },
+     "crop": {
+      "cropped": 7,
+      "needs_review": 1
+     },
+     "difference_classes": {
+      "catchword_omitted": 1,
+      "pby_niqqud_present": 1,
+      "running_header_or_page_number_omitted": 6,
+      "spelling_variant": 4
+     },
+     "pby_letters": 5107,
+     "pby_letters_in_aligned_page_spans": 5101,
+     "pby_text_coverage": 0.9988,
+     "interior_text_pages_not_in_pby": [],
+     "plene_spelling_variants": 6,
+     "words_equal": 1209
+    },
+    "pages": [
+     [117, "aligned", 1.0, "high", "cropped", 0, 473, []],
+     [118, "aligned", 0.99, "high", "cropped", 474, 1356, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [119, "aligned", 0.9957, "high", "needs_review", 1357, 2303, ["pby_niqqud_present", "spelling_variant", "running_header_or_page_number_omitted", "catchword_omitted"]],
+     [120, "aligned", 0.9897, "high", "cropped", 2304, 3247, ["spelling_variant"]],
+     [121, "aligned", 0.9989, "high", "cropped", 3262, 4111, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [122, "aligned", 0.9888, "high", "cropped", 4113, 5114, ["running_header_or_page_number_omitted"]],
+     [123, "aligned", 0.9928, "high", "cropped", 5118, 6150, ["running_header_or_page_number_omitted"]],
+     [124, "aligned", 0.9978, "high", "cropped", 6152, 6925, ["running_header_or_page_number_omitted"]]
+    ],
+    "page_columns": ["canvas_index", "status", "alignment_score", "quality", "crop", "pby_start", "pby_end", "difference_classes"]
+   },
+   {
+    "pby_id": "19131",
+    "title": "\"וְהוּא רַחוּם\"...",
+    "nli_record_id": "990020250940205171",
+    "summary": {
+     "pages": 180,
+     "page_status": {
+      "aligned": 11,
+      "outside_work": 166,
+      "weak": 3
+     },
+     "aligned_pages": 11,
+     "quality": {
+      "high": 11,
+      "medium": 0,
+      "low": 0
+     },
+     "alignment_score": {
+      "min": 0.9906,
+      "p10": 0.9909,
+      "median": 0.9957,
+      "max": 1.0
+     },
+     "crop": {
+      "cropped": 10,
+      "needs_review": 1
+     },
+     "difference_classes": {
+      "catchword_omitted": 1,
+      "running_header_or_page_number_omitted": 10,
+      "span_overlaps_previous_page": 1,
+      "spelling_variant": 7
+     },
+     "pby_letters": 8139,
+     "pby_letters_in_aligned_page_spans": 8103,
+     "pby_text_coverage": 0.9956,
+     "interior_text_pages_not_in_pby": [],
+     "plene_spelling_variants": 12,
+     "words_equal": 1754
+    },
+    "pages": [
+     [108, "weak", 0.7143, "weak", "cropped", 0, 29, ["pby_niqqud_present", "running_header_or_page_number_omitted", "print_text_not_in_pby_span"]],
+     [109, "weak", 0.7, "weak", "cropped", 44, 67, ["running_header_or_page_number_omitted", "print_text_not_in_pby_span"]],
+     [115, "weak", 0.75, "weak", "cropped", 55, 73, ["running_header_or_page_number_omitted", "print_text_not_in_pby_span", "span_overlaps_previous_page"]],
+     [125, "aligned", 0.991, "high", "cropped", 64, 539, ["running_header_or_page_number_omitted", "span_overlaps_previous_page"]],
+     [126, "aligned", 0.9961, "high", "cropped", 540, 1642, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [127, "aligned", 0.9957, "high", "cropped", 1644, 2754, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [128, "aligned", 0.9909, "high", "cropped", 2755, 3883, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [129, "aligned", 0.9953, "high", "cropped", 3885, 4934, ["running_header_or_page_number_omitted"]],
+     [130, "aligned", 0.9946, "high", "cropped", 4936, 6006, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [131, "aligned", 0.997, "high", "cropped", 6007, 7161, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [132, "aligned", 0.9968, "high", "cropped", 7162, 8219, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [133, "aligned", 0.9978, "high", "needs_review", 8232, 9317, ["running_header_or_page_number_omitted", "catchword_omitted"]],
+     [134, "aligned", 0.9906, "high", "cropped", 9318, 10342, ["spelling_variant"]],
+     [135, "aligned", 1.0, "high", "cropped", 10343, 10631, ["running_header_or_page_number_omitted"]]
+    ],
+    "page_columns": ["canvas_index", "status", "alignment_score", "quality", "crop", "pby_start", "pby_end", "difference_classes"]
+   },
+   {
+    "pby_id": "19132",
+    "title": "צַיְלָנִים",
+    "nli_record_id": "990020250940205171",
+    "summary": {
+     "pages": 180,
+     "page_status": {
+      "aligned": 17,
+      "outside_work": 163
+     },
+     "aligned_pages": 17,
+     "quality": {
+      "high": 17,
+      "medium": 0,
+      "low": 0
+     },
+     "alignment_score": {
+      "min": 0.9772,
+      "p10": 0.9911,
+      "median": 0.9966,
+      "max": 0.9992
+     },
+     "crop": {
+      "cropped": 16,
+      "needs_review": 1
+     },
+     "difference_classes": {
+      "pby_niqqud_present": 1,
+      "print_text_not_in_pby_span": 1,
+      "running_header_or_page_number_omitted": 16,
+      "spelling_variant": 8
+     },
+     "pby_letters": 13780,
+     "pby_letters_in_aligned_page_spans": 13771,
+     "pby_text_coverage": 0.9993,
+     "interior_text_pages_not_in_pby": [],
+     "plene_spelling_variants": 13,
+     "words_equal": 3042
+    },
+    "pages": [
+     [136, "aligned", 0.9971, "high", "cropped", 19, 555, []],
+     [137, "aligned", 0.9956, "high", "cropped", 557, 1712, ["running_header_or_page_number_omitted"]],
+     [138, "aligned", 0.9992, "high", "needs_review", 1713, 2726, ["running_header_or_page_number_omitted", "print_text_not_in_pby_span"]],
+     [139, "aligned", 0.9911, "high", "cropped", 2727, 3741, ["running_header_or_page_number_omitted"]],
+     [140, "aligned", 0.9981, "high", "cropped", 3750, 4920, ["running_header_or_page_number_omitted"]],
+     [141, "aligned", 0.9966, "high", "cropped", 4921, 6020, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [142, "aligned", 0.9972, "high", "cropped", 6021, 7141, ["running_header_or_page_number_omitted"]],
+     [143, "aligned", 0.9949, "high", "cropped", 7143, 8215, ["running_header_or_page_number_omitted"]],
+     [144, "aligned", 0.9977, "high", "cropped", 8216, 9308, ["running_header_or_page_number_omitted"]],
+     [145, "aligned", 0.9987, "high", "cropped", 9309, 10460, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [146, "aligned", 0.9978, "high", "cropped", 10461, 11618, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [147, "aligned", 0.9904, "high", "cropped", 11622, 12717, ["running_header_or_page_number_omitted"]],
+     [148, "aligned", 0.9962, "high", "cropped", 12726, 13863, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [149, "aligned", 0.9938, "high", "cropped", 13864, 14997, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [150, "aligned", 0.9991, "high", "cropped", 15001, 15992, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [151, "aligned", 0.9772, "high", "cropped", 15993, 17052, ["pby_niqqud_present", "spelling_variant", "running_header_or_page_number_omitted"]],
+     [152, "aligned", 0.9965, "high", "cropped", 17063, 18014, ["spelling_variant", "running_header_or_page_number_omitted"]]
+    ],
+    "page_columns": ["canvas_index", "status", "alignment_score", "quality", "crop", "pby_start", "pby_end", "difference_classes"]
+   },
+   {
+    "pby_id": "19133",
+    "title": "RISA GRUND",
+    "nli_record_id": "990020250940205171",
+    "summary": {
+     "pages": 180,
+     "page_status": {
+      "aligned": 23,
+      "outside_work": 157
+     },
+     "aligned_pages": 23,
+     "quality": {
+      "high": 23,
+      "medium": 0,
+      "low": 0
+     },
+     "alignment_score": {
+      "min": 0.9869,
+      "p10": 0.9877,
+      "median": 0.9959,
+      "max": 1.0
+     },
+     "crop": {
+      "cropped": 23
+     },
+     "difference_classes": {
+      "running_header_or_page_number_omitted": 22,
+      "spelling_variant": 10
+     },
+     "pby_letters": 18762,
+     "pby_letters_in_aligned_page_spans": 18744,
+     "pby_text_coverage": 0.999,
+     "interior_text_pages_not_in_pby": [],
+     "plene_spelling_variants": 14,
+     "words_equal": 4174
+    },
+    "pages": [
+     [153, "aligned", 0.9959, "high", "cropped", 28, 642, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [154, "aligned", 0.9949, "high", "cropped", 643, 1838, ["spelling_variant"]],
+     [155, "aligned", 0.9987, "high", "cropped", 1839, 3038, ["running_header_or_page_number_omitted"]],
+     [156, "aligned", 0.9957, "high", "cropped", 3039, 4186, ["running_header_or_page_number_omitted"]],
+     [157, "aligned", 0.9991, "high", "cropped", 4187, 5225, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [158, "aligned", 0.9941, "high", "cropped", 5227, 6441, ["running_header_or_page_number_omitted"]],
+     [159, "aligned", 0.9966, "high", "cropped", 6442, 7641, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [160, "aligned", 0.998, "high", "cropped", 7642, 8873, ["running_header_or_page_number_omitted"]],
+     [161, "aligned", 1.0, "high", "cropped", 8874, 9920, ["running_header_or_page_number_omitted"]],
+     [162, "aligned", 0.9977, "high", "cropped", 9924, 10929, ["running_header_or_page_number_omitted"]],
+     [163, "aligned", 0.9992, "high", "cropped", 10933, 11901, ["running_header_or_page_number_omitted"]],
+     [164, "aligned", 0.9966, "high", "cropped", 11905, 13104, ["running_header_or_page_number_omitted"]],
+     [165, "aligned", 0.9961, "high", "cropped", 13105, 14299, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [166, "aligned", 0.9949, "high", "cropped", 14300, 15379, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [167, "aligned", 0.998, "high", "cropped", 15380, 16562, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [168, "aligned", 0.9946, "high", "cropped", 16563, 17589, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [169, "aligned", 0.9921, "high", "cropped", 17593, 18611, ["running_header_or_page_number_omitted"]],
+     [170, "aligned", 0.9944, "high", "cropped", 18615, 19637, ["running_header_or_page_number_omitted"]],
+     [171, "aligned", 0.9874, "high", "cropped", 19641, 20543, ["spelling_variant", "running_header_or_page_number_omitted"]],
+     [172, "aligned", 0.9869, "high", "cropped", 20544, 21591, ["running_header_or_page_number_omitted"]],
+     [173, "aligned", 0.9961, "high", "cropped", 21592, 22701, ["running_header_or_page_number_omitted"]],
+     [174, "aligned", 0.9924, "high", "cropped", 22702, 23857, ["running_header_or_page_number_omitted"]],
+     [175, "aligned", 0.9877, "high", "cropped", 23858, 24417, ["spelling_variant", "running_header_or_page_number_omitted"]]
+    ],
+    "page_columns": ["canvas_index", "status", "alignment_score", "quality", "crop", "pby_start", "pby_end", "difference_classes"]
+   }
+  ]
+ }
+}

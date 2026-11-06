@@ -1,0 +1,1308 @@
+{
+ "format": "hocrgen.benyehuda_nli_alignment.v1",
+ "tool_version": "1",
+ "generated_on": "2026-11-06",
+ "work": {
+  "pby_id": "3149",
+  "path": "/p12/m3149",
+  "title": "אברהם מאפו: חייו וספריו",
+  "authors": "ראובן בריינין",
+  "translators": null,
+  "original_language": null,
+  "source_edition": "אברהם מאפו - חייו וספריו / ראובן בריינין ; וילנא: תושיה, 1928",
+  "source_edition_year": 1928,
+  "source_edition_year_basis": "year",
+  "read_url": "https://benyehuda.org/read/3149",
+  "pby_release": "2026-03",
+  "pby_text_path": "txt/p12/m3149.txt",
+  "pby_text_url": "https://raw.githubusercontent.com/projectbenyehuda/public_domain_dump/2026-03/txt/p12/m3149.txt",
+  "pby_text_sha256": "e8e366d200f6bae34d398373746063686da860c2443266682ad9feff4a5ae442",
+  "pby_text_chars": 3700,
+  "pby_niqqud": {
+   "niqqud_marks": 90,
+   "words": 660,
+   "pointed_words": 39,
+   "pointed_word_share": 0.0591
+  }
+ },
+ "scan": {
+  "nli_record_id": "990018546440205171",
+  "manifest_url": "https://iiif.nli.org.il/IIIFv21/990018546440205171/manifest",
+  "manifest_upstream_sha256": "43153515d1b6d39165462691bf5f744971c07c41b264ac00b4317db29b5bf0de",
+  "canvas_count": 162,
+  "license_slug": "public-domain-free-use",
+  "rights_decision": {
+   "decision": "accepted",
+   "display_rights": null,
+   "license_slug": "public-domain-free-use",
+   "license_url": "https://www.nli.org.il/contenteditors/pages-for-terms-of-use/public-domain-free-use",
+   "reason": "nli_license_slug_free_use",
+   "rights_basis": "iiif_manifest_license_slug"
+  },
+  "label": "אברהם מאפו : חייו וספריו / מאת ראובן בריינין.",
+  "attribution": [
+   "מאוסף הספרייה הלאומית"
+  ]
+ },
+ "method": {
+  "ocr_engine": "tesseract 5.5.3 -l heb --psm 3",
+  "ocr_role": "localization_only",
+  "ocr_text_recorded": false,
+  "image_width": null,
+  "gram_size": 8,
+  "line_match_threshold": 0.7,
+  "min_page_matched_lines": 3,
+  "quality_bins": {
+   "high": 0.9,
+   "medium": 0.8,
+   "low": 0.0
+  },
+  "skeleton": "Hebrew and Latin letters only; final forms normalized; loose form drops matres lectionis (ו, י) and folds OCR-confusable letters",
+  "coordinates": "canvas pixels (x, y, w, h)"
+ },
+ "status_defaults": {
+  "text_provenance": "human_typed_edition_text_aligned",
+  "adjudication_status": "not_adjudicated",
+  "reference_eligible": false,
+  "verification_status": "needs_human_verification"
+ },
+ "pages": [
+  {
+   "canvas_index": 15,
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL40187825",
+   "canvas_label": "jpg_001854644_0009_1",
+   "image_service": "https://iiif.nli.org.il/IIIFv21/FL40187825",
+   "canvas_size": [
+    1623,
+    2382
+   ],
+   "status": "aligned",
+   "pby_span": {
+    "start": 303,
+    "end": 1889
+   },
+   "text": "שכלו של הילד היה בעיניהם כספוג הסופג את הכל. יקותיאל מאהבתו את בנו-תלמידו ומחמלתו עליו ועל כשרונותיו הטובים הלעיט אותו מן ים התלמוד הלעטה גסה. האב היה מלמד תורה את בנו זה לא לבד בחדרו יחד עם כל תלמידיו, כי אם גם בביתו בבקר ובלילה, בשבתות השנה ומועדיה. והילד מאפו היה מתמיד גדול בלמודיו ויעשה בהם חיל לשמחת לב הוריו. מוחו הרופף היה מתיגע ומאמץ בלי-חשך לבלוע ולבשל את כל החמר הרב והקשה, שלא היה נוח כל כך להתעכל, אשר העמיס עליו אביו ביד רחבה. אם נאמר כי גם מוחו של מסַפרנו היה משועבד לחקי-התפתחותם של כחות הגוף והנפש הגלויים לנו כיום, הנה יש לנו הצדקה להניח, כי כלי-מחשבתו נפגם באיזה מספירותיו על ידי העבודה הקשה אשר עֻבד בו באביבו. ובפגימת מוחו זו יש לבקש מקור לקויי-הרוח אשר נראו במקרים ידועים בימי בחרותו, עמידתו וגם בשנות חייו האחרונות.\n\nמשכֻּרתו של יקותיאל ל\"זמן\" היתה מעטה מאד, גם לפי מושגי שכר-המלמדות של הימים ההם. ומשכרו המעט שבמעט הזה, שגם אותו לא היה מקבל בשעתו ומועדו, היה מקמֵץ לקניַת ספרים ולצרכים רוחניים אחרים. מאכלו של הילד אברהם מדי יום ביומו היה לחם יבש ותפוחי-אדמה מבושלים במים. זנבו של דג-מלוח, פת משוח בשומן-אוז או בחמאה נחשבו בעיני הילד ל\"מעדני-מלכים\". והילד הרפה והרזה הזה, שמזונותיו היו דלים ומצומצמים מאד, היה מתגבר בכל כחותיו השכליים להעביר את חבריו הגדולים בתורה. ועמלו לא היה לשוא: אברהם הקטן היה המצוין בין כל תלמידי אביו; יתרונו היה בכֹל. אולם ההתחרוּת הרוחנית הכשילה עוד יותר את כחותיו הגופניים של הילד. ההורים לא שמו לב לילד-שעשועים זה ולא ראו כי הוא הולך ומצטמק מיום ליום ומראהו כגל של עצמות נִחרות, כי הם מצאו נחומים לנפשם בפתגם: \"התורה מתשת כחו של אדם\".\n\nילדותו של מספרנו עברה בחומות עיר-מולדתו הקטנה, אשר לא יצא מקירותיה החוצה. מיום הִכנסו אל החדר היה",
+   "text_sha256": "39a550dd4cfe9429f9ddd3cfba193ab711a587a7af892545dc14fd8c169a63c9",
+   "alignment_score": 0.9904,
+   "strict_char_similarity": 0.9803,
+   "line_coverage": 0.9928,
+   "quality": "high",
+   "difference_classes": [
+    "quote_style_normalized",
+    "running_header_or_page_number_omitted"
+   ],
+   "differences": {
+    "pby_niqqud": {
+     "niqqud_marks": 10,
+     "words": 287,
+     "pointed_words": 9,
+     "pointed_word_share": 0.0314
+    },
+    "print_niqqud": "not_measured_by_ocr",
+    "words_equal": 261,
+    "plene_spelling_variants": 0,
+    "pby_footnote_markers": 0,
+    "print_low_quotes": 1,
+    "pby_quote_marks": 6,
+    "running_header_lines": 1,
+    "page_number_lines": 0,
+    "relocated_lines": 0,
+    "catchword_lines": 0,
+    "unmatched_text_lines": 0,
+    "low_confidence_noise_lines": 0,
+    "pby_letters_in_span": 1236,
+    "pby_letters_not_located_in_span": 0,
+    "pby_letters_not_located_before_page": 0,
+    "pby_chars_overlapping_previous_page": 0
+   },
+   "crop": {
+    "status": "cropped",
+    "bbox": [
+     71,
+     386,
+     1068,
+     1692
+    ],
+    "method": "ocr_line_localization",
+    "reason": "page_carries_text_pby_lacks:running_header",
+    "noise_lines_inside": []
+   },
+   "lines": [
+    {
+     "line": 0,
+     "bbox": [
+      530,
+      308,
+      579,
+      39
+     ],
+     "letters": 9,
+     "class": "running_header"
+    },
+    {
+     "line": 1,
+     "bbox": [
+      97,
+      334,
+      1009,
+      58
+     ],
+     "letters": 2,
+     "class": "non_text"
+    },
+    {
+     "line": 2,
+     "bbox": [
+      90,
+      405,
+      1015,
+      61
+     ],
+     "letters": 42,
+     "class": "matched",
+     "pby_span": [
+      303,
+      355
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.9762
+    },
+    {
+     "line": 3,
+     "bbox": [
+      91,
+      461,
+      1015,
+      47
+     ],
+     "letters": 47,
+     "class": "matched",
+     "pby_span": [
+      356,
+      410
+     ],
+     "score": 0.9524,
+     "strict_char_similarity": 0.9462
+    },
+    {
+     "line": 4,
+     "bbox": [
+      91,
+      507,
+      1014,
+      53
+     ],
+     "letters": 37,
+     "class": "matched",
+     "pby_span": [
+      411,
+      458
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.973
+    },
+    {
+     "line": 5,
+     "bbox": [
+      92,
+      563,
+      1014,
+      52
+     ],
+     "letters": 37,
+     "class": "matched",
+     "pby_span": [
+      459,
+      508
+     ],
+     "score": 0.9825,
+     "strict_char_similarity": 0.973
+    },
+    {
+     "line": 6,
+     "bbox": [
+      92,
+      616,
+      1014,
+      49
+     ],
+     "letters": 41,
+     "class": "matched",
+     "pby_span": [
+      509,
+      560
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.9756
+    },
+    {
+     "line": 7,
+     "bbox": [
+      93,
+      666,
+      1014,
+      46
+     ],
+     "letters": 41,
+     "class": "matched",
+     "pby_span": [
+      561,
+      611
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 8,
+     "bbox": [
+      93,
+      724,
+      1014,
+      49
+     ],
+     "letters": 40,
+     "class": "matched",
+     "pby_span": [
+      612,
+      659
+     ],
+     "score": 0.9643,
+     "strict_char_similarity": 0.9744
+    },
+    {
+     "line": 9,
+     "bbox": [
+      93,
+      766,
+      1015,
+      59
+     ],
+     "letters": 34,
+     "class": "matched",
+     "pby_span": [
+      660,
+      705
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 10,
+     "bbox": [
+      93,
+      817,
+      1016,
+      50
+     ],
+     "letters": 39,
+     "class": "matched",
+     "pby_span": [
+      706,
+      757
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.9744
+    },
+    {
+     "line": 11,
+     "bbox": [
+      93,
+      866,
+      1016,
+      63
+     ],
+     "letters": 40,
+     "class": "matched",
+     "pby_span": [
+      758,
+      806
+     ],
+     "score": 0.9841,
+     "strict_char_similarity": 0.962
+    },
+    {
+     "line": 12,
+     "bbox": [
+      95,
+      922,
+      1015,
+      57
+     ],
+     "letters": 43,
+     "class": "matched",
+     "pby_span": [
+      807,
+      862
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 13,
+     "bbox": [
+      95,
+      972,
+      1016,
+      60
+     ],
+     "letters": 42,
+     "class": "matched",
+     "pby_span": [
+      863,
+      913
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.9286
+    },
+    {
+     "line": 14,
+     "bbox": [
+      96,
+      1034,
+      1014,
+      50
+     ],
+     "letters": 38,
+     "class": "matched",
+     "pby_span": [
+      914,
+      962
+     ],
+     "score": 0.9818,
+     "strict_char_similarity": 0.9867
+    },
+    {
+     "line": 15,
+     "bbox": [
+      98,
+      1073,
+      1014,
+      58
+     ],
+     "letters": 45,
+     "class": "matched",
+     "pby_span": [
+      958,
+      1016
+     ],
+     "score": 0.9667,
+     "strict_char_similarity": 0.9462
+    },
+    {
+     "line": 16,
+     "bbox": [
+      657,
+      1138,
+      452,
+      32
+     ],
+     "letters": 20,
+     "class": "matched",
+     "pby_span": [
+      1017,
+      1041
+     ],
+     "score": 0.9231,
+     "strict_char_similarity": 0.95
+    },
+    {
+     "line": 17,
+     "bbox": [
+      97,
+      1180,
+      914,
+      56
+     ],
+     "letters": 35,
+     "class": "matched",
+     "pby_span": [
+      1043,
+      1091
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 18,
+     "bbox": [
+      97,
+      1231,
+      1016,
+      54
+     ],
+     "letters": 40,
+     "class": "matched",
+     "pby_span": [
+      1092,
+      1141
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.975
+    },
+    {
+     "line": 19,
+     "bbox": [
+      99,
+      1285,
+      1014,
+      58
+     ],
+     "letters": 37,
+     "class": "matched",
+     "pby_span": [
+      1142,
+      1191
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 20,
+     "bbox": [
+      99,
+      1332,
+      1014,
+      52
+     ],
+     "letters": 45,
+     "class": "matched",
+     "pby_span": [
+      1192,
+      1247
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 21,
+     "bbox": [
+      99,
+      1388,
+      1016,
+      49
+     ],
+     "letters": 41,
+     "class": "matched",
+     "pby_span": [
+      1248,
+      1299
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 22,
+     "bbox": [
+      98,
+      1438,
+      1016,
+      54
+     ],
+     "letters": 38,
+     "class": "matched",
+     "pby_span": [
+      1300,
+      1349
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.9737
+    },
+    {
+     "line": 23,
+     "bbox": [
+      99,
+      1488,
+      1016,
+      60
+     ],
+     "letters": 47,
+     "class": "matched",
+     "pby_span": [
+      1350,
+      1408
+     ],
+     "score": 0.9855,
+     "strict_char_similarity": 0.9892
+    },
+    {
+     "line": 24,
+     "bbox": [
+      99,
+      1540,
+      1015,
+      50
+     ],
+     "letters": 43,
+     "class": "matched",
+     "pby_span": [
+      1409,
+      1461
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 25,
+     "bbox": [
+      101,
+      1590,
+      1014,
+      53
+     ],
+     "letters": 39,
+     "class": "matched",
+     "pby_span": [
+      1462,
+      1511
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 26,
+     "bbox": [
+      101,
+      1649,
+      1014,
+      49
+     ],
+     "letters": 42,
+     "class": "matched",
+     "pby_span": [
+      1512,
+      1564
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 27,
+     "bbox": [
+      100,
+      1694,
+      1016,
+      53
+     ],
+     "letters": 42,
+     "class": "matched",
+     "pby_span": [
+      1565,
+      1618
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 28,
+     "bbox": [
+      100,
+      1749,
+      1016,
+      53
+     ],
+     "letters": 40,
+     "class": "matched",
+     "pby_span": [
+      1619,
+      1669
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.95
+    },
+    {
+     "line": 29,
+     "bbox": [
+      100,
+      1796,
+      1017,
+      59
+     ],
+     "letters": 40,
+     "class": "matched",
+     "pby_span": [
+      1670,
+      1720
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.975
+    },
+    {
+     "line": 30,
+     "bbox": [
+      102,
+      1852,
+      1014,
+      60
+     ],
+     "letters": 39,
+     "class": "matched",
+     "pby_span": [
+      1721,
+      1772
+     ],
+     "score": 0.9688,
+     "strict_char_similarity": 0.9744
+    },
+    {
+     "line": 31,
+     "bbox": [
+      749,
+      1907,
+      370,
+      39
+     ],
+     "letters": 12,
+     "class": "matched",
+     "pby_span": [
+      1773,
+      1790
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 32,
+     "bbox": [
+      103,
+      1954,
+      911,
+      62
+     ],
+     "letters": 38,
+     "class": "matched",
+     "pby_span": [
+      1792,
+      1838
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 33,
+     "bbox": [
+      103,
+      2005,
+      1017,
+      54
+     ],
+     "letters": 39,
+     "class": "matched",
+     "pby_span": [
+      1839,
+      1889
+     ],
+     "score": 0.9667,
+     "strict_char_similarity": 0.9744
+    }
+   ],
+   "text_provenance": "human_typed_edition_text_aligned",
+   "adjudication_status": "not_adjudicated",
+   "reference_eligible": false,
+   "verification_status": "needs_human_verification"
+  },
+  {
+   "canvas_index": 16,
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL40187831",
+   "canvas_label": "jpg_001854644_0009_2",
+   "image_service": "https://iiif.nli.org.il/IIIFv21/FL40187831",
+   "canvas_size": [
+    1623,
+    2382
+   ],
+   "status": "aligned",
+   "pby_span": {
+    "start": 1890,
+    "end": 3408
+   },
+   "text": "יהודי-קטן נושא עול תורה ומצות כאביו ואחיו הזקנים. מעולם לא נהנה מעליצותה והוללותה של הילדוּת אף באצבע קטנה.\n\nדברי המשורר:\n\n\nגַּן-אֱלֹהִים עֵת הַיַּלְדוּת הִנֶּהָ,\n\n\n\nמוֹעֲדִים כֻּלָּהּ, אַךְ חַגִּים יָמֶיהָ;\n\n\n\nבַּגַּן הַזֶּה – אֶזְכֹּרָה אַף אֶהֱמָיָה –\n\n\n\nגִּילַת-עֲדָנִים שָׁאַפְתִּי לָרְוָיָה!\n\n\nהדברים האלה הם לעג מר על ילדותו של מאפוּ, אשר הזכירתהו כל ימי חייו עוני ומחסור, חיים בלי שביב אור ובלי נטף חפש, בלי מחמדי-טבע ובלי שחוק הילדים ושעשועיהם. אם נשים לבנו לילדותו הקרה והיבשה של סופרנו זה ואל דרך-למודו הרע והמקולקל, אשר מצץ לשד עצמותיו, או אז נבין את כל החרדה אשר חרד, בימי עמידתו, לחנוכם וללמודם של ילדי בני ישראל ואת עמלו אשר עמל לחבר למענם ספרי למוד וחנוך, להוליכם מן הקל אל הכבד ולבלי הכביד עליהם את עול \"החדר\" ועבודתו הקשה. אין אדם עומד על דברי תורת-החיים אלא אם כן נכשל בהם.\n\nבהיות הילד אברהם בן עשר שנים היתה נפשו הרכה קשורה בנפשו של אחיו הצעיר מתתיהוּ. הראשון היה \"מדריך ומנהל\" לאחיו הקטן, ויעזור לו בלמוּד המקרא. זה היה תלמידו הראשון של מאפו, וזאת היתה ראשית נסיונותיו בשדה-המלמדות. ובימים ההם גדל המחסור בבית יקותיאל המלמד, לרגלי מחלת אשתו, וילדיו היו רעבים גם ללחם יבש. הילד אברהם סבל את מצוקי הרעב בנפש נכנעה ושאננה, רק צר היה לו בצרת הוריו וביחוד צרת אמו אשר אהבה מאד. תנחומותיה של אמו החולָה ודבריה הנעימים אשר הטיפה בקול רועד על לבו הרַגש נתנו לו כח לסבול את יסורי התעֲנִיּוֹת התכופות, ולא הִתרפה בלמוד התורה. זאת היתה עניוּת צנועה ושתקנית, בלי טענות ותביעות; אף גם חוט של פיוּט היה מתוח עליה: העניות הקיצונית קרבה את נפשות ההורים אל ילדיהם ונפשות הילדים אל הוריהם. זכרון ימי ילדותו השפיע על",
+   "text_sha256": "25fe93cbdd00ceccd2d8347c8aa23839c89df05a7f266a9f2b155c54276d4b82",
+   "alignment_score": 0.9871,
+   "strict_char_similarity": 0.9567,
+   "line_coverage": 0.9899,
+   "quality": "high",
+   "difference_classes": [
+    "pby_niqqud_present",
+    "quote_style_normalized",
+    "running_header_or_page_number_omitted"
+   ],
+   "differences": {
+    "pby_niqqud": {
+     "niqqud_marks": 77,
+     "words": 265,
+     "pointed_words": 27,
+     "pointed_word_share": 0.1019
+    },
+    "print_niqqud": "not_measured_by_ocr",
+    "words_equal": 221,
+    "plene_spelling_variants": 0,
+    "pby_footnote_markers": 0,
+    "print_low_quotes": 2,
+    "pby_quote_marks": 4,
+    "running_header_lines": 1,
+    "page_number_lines": 0,
+    "relocated_lines": 0,
+    "catchword_lines": 0,
+    "unmatched_text_lines": 0,
+    "low_confidence_noise_lines": 0,
+    "pby_letters_in_span": 1115,
+    "pby_letters_not_located_in_span": 17,
+    "pby_letters_not_located_before_page": 0,
+    "pby_chars_overlapping_previous_page": 0
+   },
+   "crop": {
+    "status": "cropped",
+    "bbox": [
+     434,
+     365,
+     1063,
+     1690
+    ],
+    "method": "ocr_line_localization",
+    "reason": "page_carries_text_pby_lacks:running_header",
+    "noise_lines_inside": []
+   },
+   "lines": [
+    {
+     "line": 0,
+     "bbox": [
+      453,
+      292,
+      627,
+      45
+     ],
+     "letters": 11,
+     "class": "running_header"
+    },
+    {
+     "line": 1,
+     "bbox": [
+      458,
+      383,
+      1019,
+      53
+     ],
+     "letters": 45,
+     "class": "matched",
+     "pby_span": [
+      1890,
+      1945
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 2,
+     "bbox": [
+      460,
+      429,
+      1019,
+      60
+     ],
+     "letters": 41,
+     "class": "matched",
+     "pby_span": [
+      1946,
+      1997
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 3,
+     "bbox": [
+      1148,
+      495,
+      229,
+      29
+     ],
+     "letters": 10,
+     "class": "matched",
+     "pby_span": [
+      1999,
+      2011
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 4,
+     "bbox": [
+      877,
+      616,
+      389,
+      54
+     ],
+     "letters": 19,
+     "class": "matched",
+     "pby_span": [
+      2056,
+      2097
+     ],
+     "score": 0.8571,
+     "strict_char_similarity": 0.6842
+    },
+    {
+     "line": 5,
+     "bbox": [
+      848,
+      679,
+      419,
+      34
+     ],
+     "letters": 17,
+     "class": "matched",
+     "pby_span": [
+      2101,
+      2142
+     ],
+     "score": 0.9091,
+     "strict_char_similarity": 0.9143
+    },
+    {
+     "line": 6,
+     "bbox": [
+      456,
+      794,
+      921,
+      49
+     ],
+     "letters": 34,
+     "class": "matched",
+     "pby_span": [
+      2190,
+      2235
+     ],
+     "score": 0.9655,
+     "strict_char_similarity": 0.9412
+    },
+    {
+     "line": 7,
+     "bbox": [
+      457,
+      847,
+      1022,
+      45
+     ],
+     "letters": 45,
+     "class": "matched",
+     "pby_span": [
+      2236,
+      2292
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.9778
+    },
+    {
+     "line": 8,
+     "bbox": [
+      456,
+      896,
+      1022,
+      53
+     ],
+     "letters": 41,
+     "class": "matched",
+     "pby_span": [
+      2293,
+      2343
+     ],
+     "score": 0.9836,
+     "strict_char_similarity": 0.9383
+    },
+    {
+     "line": 9,
+     "bbox": [
+      456,
+      947,
+      1021,
+      52
+     ],
+     "letters": 40,
+     "class": "matched",
+     "pby_span": [
+      2344,
+      2393
+     ],
+     "score": 0.9492,
+     "strict_char_similarity": 0.95
+    },
+    {
+     "line": 10,
+     "bbox": [
+      456,
+      1000,
+      1021,
+      51
+     ],
+     "letters": 39,
+     "class": "matched",
+     "pby_span": [
+      2394,
+      2444
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.9487
+    },
+    {
+     "line": 11,
+     "bbox": [
+      455,
+      1052,
+      1022,
+      49
+     ],
+     "letters": 42,
+     "class": "matched",
+     "pby_span": [
+      2445,
+      2498
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.9524
+    },
+    {
+     "line": 12,
+     "bbox": [
+      455,
+      1104,
+      1022,
+      46
+     ],
+     "letters": 40,
+     "class": "matched",
+     "pby_span": [
+      2499,
+      2549
+     ],
+     "score": 0.9697,
+     "strict_char_similarity": 0.975
+    },
+    {
+     "line": 13,
+     "bbox": [
+      454,
+      1155,
+      1022,
+      50
+     ],
+     "letters": 42,
+     "class": "matched",
+     "pby_span": [
+      2550,
+      2602
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.9524
+    },
+    {
+     "line": 14,
+     "bbox": [
+      454,
+      1206,
+      1024,
+      52
+     ],
+     "letters": 37,
+     "class": "matched",
+     "pby_span": [
+      2603,
+      2662
+     ],
+     "score": 0.9667,
+     "strict_char_similarity": 0.8293
+    },
+    {
+     "line": 15,
+     "bbox": [
+      853,
+      1267,
+      623,
+      42
+     ],
+     "letters": 23,
+     "class": "matched",
+     "pby_span": [
+      2652,
+      2682
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 16,
+     "bbox": [
+      453,
+      1312,
+      920,
+      50
+     ],
+     "letters": 35,
+     "class": "matched",
+     "pby_span": [
+      2684,
+      2727
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.9714
+    },
+    {
+     "line": 17,
+     "bbox": [
+      453,
+      1358,
+      1024,
+      62
+     ],
+     "letters": 42,
+     "class": "matched",
+     "pby_span": [
+      2728,
+      2780
+     ],
+     "score": 0.9841,
+     "strict_char_similarity": 0.988
+    },
+    {
+     "line": 18,
+     "bbox": [
+      455,
+      1415,
+      1019,
+      51
+     ],
+     "letters": 43,
+     "class": "matched",
+     "pby_span": [
+      2781,
+      2837
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.9767
+    },
+    {
+     "line": 19,
+     "bbox": [
+      452,
+      1466,
+      1022,
+      51
+     ],
+     "letters": 38,
+     "class": "matched",
+     "pby_span": [
+      2838,
+      2893
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.8916
+    },
+    {
+     "line": 20,
+     "bbox": [
+      455,
+      1520,
+      1020,
+      51
+     ],
+     "letters": 41,
+     "class": "matched",
+     "pby_span": [
+      2880,
+      2935
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.907
+    },
+    {
+     "line": 21,
+     "bbox": [
+      452,
+      1570,
+      1022,
+      46
+     ],
+     "letters": 40,
+     "class": "matched",
+     "pby_span": [
+      2936,
+      2987
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.975
+    },
+    {
+     "line": 22,
+     "bbox": [
+      452,
+      1627,
+      1022,
+      48
+     ],
+     "letters": 38,
+     "class": "matched",
+     "pby_span": [
+      2988,
+      3036
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.9737
+    },
+    {
+     "line": 23,
+     "bbox": [
+      453,
+      1675,
+      1021,
+      44
+     ],
+     "letters": 37,
+     "class": "matched",
+     "pby_span": [
+      3037,
+      3083
+     ],
+     "score": 0.9818,
+     "strict_char_similarity": 0.9589
+    },
+    {
+     "line": 24,
+     "bbox": [
+      453,
+      1725,
+      1020,
+      53
+     ],
+     "letters": 44,
+     "class": "matched",
+     "pby_span": [
+      3084,
+      3137
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 0.9773
+    },
+    {
+     "line": 25,
+     "bbox": [
+      453,
+      1777,
+      1020,
+      50
+     ],
+     "letters": 40,
+     "class": "matched",
+     "pby_span": [
+      3138,
+      3193
+     ],
+     "score": 0.9667,
+     "strict_char_similarity": 0.975
+    },
+    {
+     "line": 26,
+     "bbox": [
+      453,
+      1830,
+      1020,
+      47
+     ],
+     "letters": 42,
+     "class": "matched",
+     "pby_span": [
+      3194,
+      3248
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 27,
+     "bbox": [
+      455,
+      1882,
+      1018,
+      51
+     ],
+     "letters": 42,
+     "class": "matched",
+     "pby_span": [
+      3249,
+      3304
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 28,
+     "bbox": [
+      454,
+      1934,
+      1019,
+      50
+     ],
+     "letters": 43,
+     "class": "matched",
+     "pby_span": [
+      3305,
+      3357
+     ],
+     "score": 1.0,
+     "strict_char_similarity": 1.0
+    },
+    {
+     "line": 29,
+     "bbox": [
+      454,
+      1986,
+      1018,
+      51
+     ],
+     "letters": 40,
+     "class": "matched",
+     "pby_span": [
+      3358,
+      3408
+     ],
+     "score": 0.9818,
+     "strict_char_similarity": 0.9383
+    }
+   ],
+   "text_provenance": "human_typed_edition_text_aligned",
+   "adjudication_status": "not_adjudicated",
+   "reference_eligible": false,
+   "verification_status": "needs_human_verification"
+  }
+ ],
+ "summary": {
+  "pages": 2,
+  "page_status": {
+   "aligned": 2
+  },
+  "aligned_pages": 2,
+  "quality": {
+   "high": 2,
+   "medium": 0,
+   "low": 0
+  },
+  "alignment_score": {
+   "min": 0.9871,
+   "p10": 0.9871,
+   "median": 0.9904,
+   "max": 0.9904
+  },
+  "crop": {
+   "cropped": 2
+  },
+  "difference_classes": {
+   "pby_niqqud_present": 1,
+   "quote_style_normalized": 2,
+   "running_header_or_page_number_omitted": 2
+  },
+  "pby_letters": 2809,
+  "pby_letters_in_aligned_page_spans": 2351,
+  "pby_text_coverage": 0.837,
+  "interior_text_pages_not_in_pby": [],
+  "plene_spelling_variants": 0,
+  "words_equal": 482
+ }
+}
