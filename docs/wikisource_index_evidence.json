@@ -1,0 +1,536 @@
+{
+  "schema_version": "wikisource_index_evidence.v1",
+  "description": "Recorded per-Index evidence the F8b inventory applies on top of what it gathers itself: cited creator death years for creators it found only as plain text, scan sources, and Index languages the wikis do not record. Each entry names who recorded it (agent or human), the source and the date checked. A recorded fact only fills evidence the tool did not find; it never replaces it. Facts not found reliably are left missing, so the gate keeps rejecting.",
+  "not_recorded": [
+    {
+      "index_title": "מפתח:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf",
+      "what": "death year for Yosef Nachmuli (translator and printer, Corfu 1885); scan source",
+      "why": "Wikidata Q112144527 'Yosef Nahamoli' died 1785, so is not the 1885 translator; Q134717556 has no dates. The Commons file page (uploaded 2017 by Aharonium with UploadWizard) records only the book's title and imprint, not who scanned it.",
+      "recorded_by": "agent",
+      "recorder": "Claude Code (claude-opus-5-5), F8b3",
+      "checked_at": "2026-11-06"
+    },
+    {
+      "index_title": "מפתח:ויכוח על חכמת הקבלה.pdf",
+      "what": "scan source",
+      "why": "The Commons file page and its upload history (Simon.montagu, 2015, UploadWizard) give only the title and year, not who scanned the copy.",
+      "recorded_by": "agent",
+      "recorder": "Claude Code (claude-opus-5-5), F8b3",
+      "checked_at": "2026-11-06"
+    },
+    {
+      "index_title": "מפתח:Sefer ha-Tapuah Lemberg 1873.pdf",
+      "what": "death years for Pseudo-Aristotle and the editor י. מוזען",
+      "why": "Pseudo-Aristotle (Q1783131) is a pseudepigraphic attribution with no death date; the editor could not be identified.",
+      "recorded_by": "agent",
+      "recorder": "Claude Code (claude-opus-5-5), F8b3",
+      "checked_at": "2026-11-06"
+    },
+    {
+      "index_title": "מפתח:Sefer Shimush Tehillim.pdf",
+      "what": "death year for Elias Klein (Békéscsaba)",
+      "why": "No reliable identification: the only Wikidata 'Elias Klein' (Q139160655, 1576–1629) cannot be the Békéscsaba publisher.",
+      "recorded_by": "agent",
+      "recorder": "Claude Code (claude-opus-5-5), F8b3",
+      "checked_at": "2026-11-06"
+    },
+    {
+      "index_title": "מפתח:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf",
+      "what": "language",
+      "why": "A Hebrew prayer book printed with a Greek translation; which text the Wikisource pages transcribe was not checked, so no language is recorded.",
+      "recorded_by": "agent",
+      "recorder": "Claude Code (claude-opus-5-5), F8b3",
+      "checked_at": "2026-11-06"
+    },
+    {
+      "index_title": "מפתח:Safa akhat lekhulanu Esperanto.pdf",
+      "what": "death year for the translator נפתלי הרץ ניימנוביץ'",
+      "why": "No Wikidata item or authority record found for the translator.",
+      "recorded_by": "agent",
+      "recorder": "Claude Code (claude-opus-5-5), F8b3",
+      "checked_at": "2026-11-06"
+    },
+    {
+      "index_title": "מפתח:פירוש מעין גנים על ספר איוב.pdf",
+      "what": "death year for Samuel ben Nissim Masnuth",
+      "why": "Wikidata Q94949710 (NLI authority 987007296736305171) has no death date; the 13th-century dating is not a recorded year.",
+      "recorded_by": "agent",
+      "recorder": "Claude Code (claude-opus-5-5), F8b3",
+      "checked_at": "2026-11-06"
+    }
+  ],
+  "records": [
+    {
+      "index_title": "מפתח:Biblia Hebraica.pdf",
+      "commons_file_sha1": "b0fa96ba044a4b2d70bfd8bc268161e57cdad096",
+      "creators": [
+        {
+          "names": [
+            "Everardus van der Hooght"
+          ],
+          "role": "author",
+          "death_year": 1716,
+          "wikidata": "Q93262400",
+          "evidence_url": "https://www.wikidata.org/wiki/Q93262400",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007262696405171",
+          "note": "Everardus van der Hooght, editor of the 1705 Hebrew Bible this edition follows; Wikidata P570 1716-07 (preferred).",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b3",
+          "checked_at": "2026-11-06"
+        }
+      ]
+    },
+    {
+      "index_title": "מפתח:Chotam Tocnit.pdf",
+      "commons_file_sha1": "dc265e19a8d4596dd1c4b83d5c821468e5c62a62",
+      "creators": [],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; Hebrew from the work itself: Isaac Jacob Reines' Hebrew work חותם תכנית (HebrewBooks 41471); Hebrew title and text.",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:Dorot Rishonim part 3, Hebrewbooks org 20125.pdf",
+      "commons_file_sha1": "9eb3505be983de79ec427542917490a04d6889f3",
+      "creators": [
+        {
+          "names": [
+            "יצחק אייזיק הלוי"
+          ],
+          "role": "author",
+          "death_year": 1914,
+          "wikidata": "Q8053923",
+          "evidence_url": "https://www.wikidata.org/wiki/Q8053923",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007262352605171",
+          "note": "Yitzhak Isaac Halevy Rabinowitz, author of דורות הראשונים; Wikidata P570 1914-05-15.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b3",
+          "checked_at": "2026-11-06"
+        }
+      ]
+    },
+    {
+      "index_title": "מפתח:Falaquera Sefer ha-Mevaqqesh Warsaw 1924.pdf",
+      "commons_file_sha1": "100008d8f76b490e4d6ae54a0733fabb5d9585cf",
+      "creators": [],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; Hebrew from the work itself: Falaquera's Hebrew work ספר המבקש (Warsaw 1924).",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:Hebrewbooks org 19784.pdf",
+      "commons_file_sha1": "1086b5a35986e7fe27c1281b4933b73302d59a43",
+      "creators": [],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; Hebrew from the work itself: Hebrew Hasidic work מגיד דבריו ליעקב (HebrewBooks 19784).",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:Hebrewbooks org 9418.pdf",
+      "commons_file_sha1": "59a484990cf5993f543e3af09beaf3df04f84fdc",
+      "creators": [],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; Hebrew from the work itself: Hebrew translation of Saadia's ספר האמונות והדעות (HebrewBooks 9418).",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:Hut ameshulash basheharim.pdf",
+      "commons_file_sha1": "584bc5171675ee70679f42aaa0ebe4688c26f039",
+      "creators": [],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; Hebrew from the work itself: Hebrew rabbinic work חוט המשולש (HebrewBooks 30619); Commons category Hebrew-language PDF files.",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:Luzzato-Ohev-Ger-HB23918.pdf",
+      "commons_file_sha1": "3fc9365be88f708ee71aa0dfea49ad7945867ccb",
+      "creators": [],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; Hebrew from the work itself: Luzzatto's Hebrew work אוהב גר on the Targum; Commons categories Hebrew-language books / PDF files.",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:Milhamot Hashem.pdf",
+      "commons_file_sha1": "3f22332c734784f898f1351d4f6ab75acd6c19b1",
+      "creators": [
+        {
+          "names": [
+            "לוי בן גרשום",
+            "Levi ben Gershom"
+          ],
+          "role": "author",
+          "death_year": 1344,
+          "wikidata": "Q353633",
+          "evidence_url": "https://www.wikidata.org/wiki/Q353633",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007264525505171",
+          "note": "Gersonides (רלב\"ג), author of מלחמות ה'; Wikidata P570 1344-04-20.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b3",
+          "checked_at": "2026-11-06"
+        }
+      ],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; Hebrew from the work itself: Gersonides' Hebrew philosophical work מלחמות ה'; Hebrew title; Commons categories Hebrew-language books / PDF files.",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:Or hashem vilna 1905.pdf",
+      "commons_file_sha1": "fd21ef439515b51f310bcba7a6c52f8d95762b85",
+      "creators": [],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; Hebrew from the work itself: Hasdai Crescas' Hebrew work אור השם (Vilna 1905).",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:SA-YD1a-1880-Vilna.pdf",
+      "commons_file_sha1": "e09b27f3c1ab7d7b9d290bb1fdc4194ed8f7bcc0",
+      "creators": [],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; Hebrew from the work itself: Shulchan Aruch Yoreh De'ah (Vilna 1880), a Hebrew text; Commons category Hebrew-language PDF files.",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:SD Luzzatto - Commentary on Bereshit.pdf",
+      "commons_file_sha1": "9a012cb43f163e217f90361e26c7ef77fed34722",
+      "creators": [],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; Hebrew from the work itself: Luzzatto's Hebrew commentary on Genesis, printed with an Italian translation; the Wikisource pages transcribe the Hebrew commentary (the Italian is not transcribed, so those pages are partial).",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:Safa akhat lekhulanu Esperanto.pdf",
+      "commons_file_sha1": "ff0ff5d7b63b197de6db7115c9273b9cc786bc45",
+      "creators": [
+        {
+          "names": [
+            "אליעזר לודוויג זמנהוף",
+            "L.L. Zamenhof"
+          ],
+          "role": "author",
+          "death_year": 1917,
+          "wikidata": "Q11758",
+          "evidence_url": "https://www.wikidata.org/wiki/Q11758",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007270242305171",
+          "note": "L. L. Zamenhof, creator of Esperanto; Wikidata P570 1917-04-14.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b3",
+          "checked_at": "2026-11-06"
+        }
+      ]
+    },
+    {
+      "index_title": "מפתח:Sefer Aarahim.pdf",
+      "commons_file_sha1": "96904e1554523bacf2fa4ff7f0f9e6e79728ebb0",
+      "creators": [],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; Hebrew from the work itself: Isaac Jacob Reines' Hebrew work ספר הערכים (HebrewBooks 34504); Hebrew title and text.",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:Sefer Shimush Tehillim.pdf",
+      "commons_file_sha1": "60492f062aad136d837c7c0635dbeae258ce8e2c",
+      "creators": [
+        {
+          "names": [
+            "Rav Hai Gaon"
+          ],
+          "role": "author",
+          "death_year": 1038,
+          "wikidata": "Q982194",
+          "evidence_url": "https://www.wikidata.org/wiki/Q982194",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007262248805171",
+          "note": "Hai Gaon, to whom the work is traditionally attributed; Wikidata P570 1038-03-28.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b3",
+          "checked_at": "2026-11-06"
+        }
+      ]
+    },
+    {
+      "index_title": "מפתח:Sefer ha-Tapuah Lemberg 1873.pdf",
+      "commons_file_sha1": "a423e384185047cf76b4881cb7f6336e358287a0",
+      "creators": [
+        {
+          "names": [
+            "Abraham ben Chasdai"
+          ],
+          "role": "author",
+          "death_year": 1240,
+          "wikidata": "Q330775",
+          "evidence_url": "https://www.wikidata.org/wiki/Q330775",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007262820005171",
+          "note": "Abraham ibn Hasdai ha-Levi, already linked from the Index as translator (אברהם אבן חסדאי); Wikidata P570 1240 (year precision).",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b3",
+          "checked_at": "2026-11-06"
+        }
+      ]
+    },
+    {
+      "index_title": "מפתח:Seligman Baer - Seder Avodat Yisroel (1901 ed.).pdf",
+      "commons_file_sha1": "dd89e0e83d2931d2335cea57c3591fa97ef111ac",
+      "creators": [],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; Hebrew from the work itself: Seligman Baer's Hebrew prayer book סדר עבודת ישראל.",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:Siddur Torah Ohr (Schulzinger Bros. 1940).pdf",
+      "commons_file_sha1": "9e08274fb7aa718f8ed7510c21f2833dd8a3cb13",
+      "creators": [],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; Hebrew from the work itself: Hebrew prayer book סידור תורה אור (Chabad).",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:Tosefta Moed edited by Zuckermandel.pdf",
+      "commons_file_sha1": "8c1368e810604747c99efaba87c37db13efb6753",
+      "creators": [],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; Hebrew from the work itself: Zuckermandel's edition of the Tosefta, a Hebrew text (HebrewBooks 20419).",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:Tosefta-1-Zeraim-Zuckermandel.djvu",
+      "commons_file_sha1": "e2a832e9273f4f2e7f77bd8e5286dc715f9a6cae",
+      "creators": [],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; Hebrew from the work itself: Zuckermandel's edition of the Tosefta, a Hebrew text (HebrewBooks 20419); Commons category DjVu files in Hebrew.",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:Tosefta-2-Moed-Zuckermandel.djvu",
+      "commons_file_sha1": "936592e4c219278b4359577ca0575ebb5c848154",
+      "creators": [],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; Hebrew from the work itself: Zuckermandel's edition of the Tosefta, a Hebrew text (HebrewBooks 20419); Commons category DjVu files in Hebrew.",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b3",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:בממלכת כוזר היהודית.pdf",
+      "commons_file_sha1": "6bb9bfef67ec211d3d161879cd4e54853df552a3",
+      "creators": [
+        {
+          "names": [
+            "זליג שכנוביץ'",
+            "Zelig Shechnovich"
+          ],
+          "role": "author",
+          "death_year": 1952,
+          "wikidata": "Q6775578",
+          "evidence_url": "https://www.wikidata.org/wiki/Q6775578",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007299726105171",
+          "note": "Selig Schachnowitz (זליג שכנוביץ), Jewish writer; Wikidata P570 1952-01-23.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b3",
+          "checked_at": "2026-11-06"
+        },
+        {
+          "names": [
+            "ש.ל. ציטרון"
+          ],
+          "role": "translator",
+          "death_year": 1930,
+          "wikidata": "Q944922",
+          "evidence_url": "https://www.wikidata.org/wiki/Q944922",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007310558505171",
+          "note": "Samuel Leib Zitron (שמואל ליב ציטרון), Hebrew writer and translator; Wikidata P570 1930-11-08.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b3",
+          "checked_at": "2026-11-06"
+        }
+      ]
+    },
+    {
+      "index_title": "מפתח:משפטי הטעמים רעדעלהיים תקס\"ח.pdf",
+      "commons_file_sha1": "ebe8a9db1913c3386c5d5b85653e1da10a2e3938",
+      "creators": [
+        {
+          "names": [
+            "וולף היידנהיים"
+          ],
+          "role": "author",
+          "death_year": 1832,
+          "wikidata": "Q96519",
+          "evidence_url": "https://www.wikidata.org/wiki/Q96519",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007262549605171",
+          "note": "Hebrew-script mention of Wolf Heidenheim, the same person the Commons record links to Q96519; Wikidata P570 1832-02-23 (preferred).",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b3",
+          "checked_at": "2026-11-06"
+        }
+      ]
+    },
+    {
+      "index_title": "מפתח:סיפורי המעשיות - נחמן בן שמחה - לעמבערג - תרסב.pdf",
+      "commons_file_sha1": "67fbf0b82929075111b76859c86708c65027aeac",
+      "creators": [
+        {
+          "names": [
+            "Nachman Goldstein the Tcheriner Rav"
+          ],
+          "role": "author",
+          "death_year": 1894,
+          "wikidata": "Q6957180",
+          "evidence_url": "https://www.wikidata.org/wiki/Q6957180",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007305529805171",
+          "note": "Nachman Goldstein of Tcherin (נחמן גולדשטיין), Breslov rabbi; Wikidata P570 1894 (year precision).",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b3",
+          "checked_at": "2026-11-06"
+        },
+        {
+          "names": [
+            "Nathan of Nemyrev"
+          ],
+          "role": "author",
+          "death_year": 1844,
+          "wikidata": "Q2777592",
+          "evidence_url": "https://www.wikidata.org/wiki/Q2777592",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007268688605171",
+          "note": "Nathan of Breslov (נתן מנמירוב), Nachman of Breslov's scribe; Wikidata P570 1844-12-20.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b3",
+          "checked_at": "2026-11-06"
+        }
+      ]
+    },
+    {
+      "index_title": "מפתח:ספר המספר.pdf",
+      "commons_file_sha1": "3e0d7e478dd4fa5df4968b88b3f70abd01d0728b",
+      "creators": [
+        {
+          "names": [
+            "משה זילברברג"
+          ],
+          "role": "editor",
+          "death_year": 1932,
+          "wikidata": "Q24237533",
+          "evidence_url": "https://www.wikidata.org/wiki/Q24237533",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007572390405171",
+          "note": "Moritz Silberberg (משה זילברברג), editor of the 1895 ספר המספר; Wikidata P570 1932 (year precision).",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b3",
+          "checked_at": "2026-11-06"
+        }
+      ]
+    },
+    {
+      "index_title": "מפתח:פרי מגדים אורח חיים .pdf",
+      "commons_file_sha1": "bee80a61985d8597995f46cd592149fa2cc86ab0",
+      "creators": [
+        {
+          "names": [
+            "יוסף בר מאיר תאומים"
+          ],
+          "role": "author",
+          "death_year": 1792,
+          "wikidata": "Q2909229",
+          "evidence_url": "https://www.wikidata.org/wiki/Q2909229",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007304634505171",
+          "note": "Joseph ben Meir Teomim, author of פרי מגדים; Wikidata P570 1792-04-26.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b3",
+          "checked_at": "2026-11-06"
+        }
+      ]
+    },
+    {
+      "index_title": "מפתח:שבט שמעון.pdf",
+      "commons_file_sha1": "c55f57ca6b9bfac930343a0bf73560fe5a0d7056",
+      "creators": [
+        {
+          "names": [
+            "שמעון סידאן"
+          ],
+          "role": "author",
+          "death_year": 1891,
+          "wikidata": "Q7496997",
+          "evidence_url": "https://www.wikidata.org/wiki/Q7496997",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007310544905171",
+          "note": "Hebrew-script mention of Shimon Sidon, whom the Commons record links to Q7496997; Wikidata P570 1891-12-18.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b3",
+          "checked_at": "2026-11-06"
+        }
+      ]
+    }
+  ]
+}

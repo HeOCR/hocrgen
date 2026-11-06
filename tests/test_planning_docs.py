@@ -890,7 +890,7 @@ def test_f8_real_source_map_is_planning_only_and_gate_preserving() -> None:
     roadmap_rows = _roadmap_table_rows(roadmap)
 
     assert roadmap_rows["F8"][1] == "Real-source map and paired-text source intake"
-    assert roadmap_rows["F8"][2].split(", ") == ["F8a", "F8b", "F8b2", "F8c", "F8d", "F8d2", "F8d3", "F8d3b", "F8e"]
+    assert roadmap_rows["F8"][2].split(", ") == ["F8a", "F8b", "F8b2", "F8b3", "F8c", "F8d", "F8d2", "F8d3", "F8d3b", "F8e"]
     assert roadmap_rows["F8"][4] == "partial"
     assert roadmap_rows["F8a"][4] == "completed"
     assert roadmap_rows["F8b"][1] == "F8"
@@ -898,6 +898,9 @@ def test_f8_real_source_map_is_planning_only_and_gate_preserving() -> None:
     # F8b2 is an operator-only inventory of every Wikisource Index through the unchanged F8b gates.
     assert roadmap_rows["F8b2"][1] == "F8"
     assert roadmap_rows["F8b2"][4] == "completed"
+    # F8b3 applies decisions 9-12 to the Wikisource gates, converter and coverage checks.
+    assert roadmap_rows["F8b3"][1] == "F8"
+    assert roadmap_rows["F8b3"][4] == "completed"
     for pr_id in ["F8c", "F8e"]:
         assert roadmap_rows[pr_id][1] == "F8"
     # F8e landed review-only Reshumot (born-digital) and pre-1976 Knesset committee (typewritten) sources.

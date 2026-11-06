@@ -1,0 +1,185 @@
+{
+ "description": "MediaWiki's own rendering (he.wikisource.org action=parse, contentmodel=wikitext, of the pinned page body: the wikitext without its ProofreadPage header and footer, plus <references/>) of pinned pages, captured 2026-11-06 by hocrgen.tools.wikisource_render_check. Tests compare wikisource_plain_text.v2 with each rendering offline. Page text: CC-BY-SA-4.0, Hebrew Wikisource contributors; the permalink is the page title at revision_id.",
+ "captured_at": "2026-11-06",
+ "pages": [
+  {
+   "slug": "ws_index_328113__p0006",
+   "page_title": "עמוד:Aaron Hyman. Toldoth Tannaim veAmoraim. I. 1910.pdf/6",
+   "revision_id": 760428,
+   "wikitext_sha256": "ecabac1734ee4a0d219ca3c9e2825be88ea3626ab584be60641f890db1318890",
+   "html_sha256": "8e27af36f31357e63d273809140a52c7a5c4cf36a76becf3b8c744ef4ba9598c",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_328113__p0007",
+   "page_title": "עמוד:Aaron Hyman. Toldoth Tannaim veAmoraim. I. 1910.pdf/7",
+   "revision_id": 760604,
+   "wikitext_sha256": "9e55054ef77c20c927964e4290b13d7b003b5bd58cbede6af1ef2bedacfc71f0",
+   "html_sha256": "452fe1da11a4439727ab34c3b518e6d5a7a12e78675ca1e32530188cdbdebe07",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_328113__p0008",
+   "page_title": "עמוד:Aaron Hyman. Toldoth Tannaim veAmoraim. I. 1910.pdf/8",
+   "revision_id": 760614,
+   "wikitext_sha256": "39b021dca3d7e742ac9ef5cda80fdaffbfea8c9327e0217a9349a6b107c6c89c",
+   "html_sha256": "46d0588dd40d4d00a9d87c3000e9e3045c281cddf8145d5e187eff112737326b",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_328113__p0056",
+   "page_title": "עמוד:Aaron Hyman. Toldoth Tannaim veAmoraim. I. 1910.pdf/56",
+   "revision_id": 2857386,
+   "wikitext_sha256": "eac0802d48be91f4a88f46e70952f687ba6b167dff72f40d979e66368ab71d5a",
+   "html_sha256": "0f45c1b1645d8607d274c1561669004186e2ca56a941ba738cf89a3646b5ab74",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_328113__p0298",
+   "page_title": "עמוד:Aaron Hyman. Toldoth Tannaim veAmoraim. I. 1910.pdf/298",
+   "revision_id": 980348,
+   "wikitext_sha256": "095024f70cc9a99c201170cbb5facc32e35a931a034669aba6d52a2283faa2f2",
+   "html_sha256": "6b906afb0aed8ee9a60df79e6ca41a9ad086d1dc530455140bc7ebfab284bb35",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_328113__p0378",
+   "page_title": "עמוד:Aaron Hyman. Toldoth Tannaim veAmoraim. I. 1910.pdf/378",
+   "revision_id": 2805528,
+   "wikitext_sha256": "a85c8e9c63f360949017494ad26bdf94287c232b2bcb16f68837e2a5175b290f",
+   "html_sha256": "1258d28dc465b4a81478fc539ee605ce2bdf2e642868800b7da390e78919bfbb",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_1745039__p0441",
+   "page_title": "עמוד:Biblia Hebraica.pdf/441",
+   "revision_id": 3024854,
+   "wikitext_sha256": "84827b3f6b8f1ef6421b22041b2bb376e15e4b8571742e8d6315179445dda385",
+   "html_sha256": "a1d2f739d8f815c2454bf41f213ad5270a0dd0414a0c01be1c38060cae048a5a",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_1745039__p0457",
+   "page_title": "עמוד:Biblia Hebraica.pdf/457",
+   "revision_id": 3037890,
+   "wikitext_sha256": "add42f8fb5424c578c79d4656ec5dc981625f7e1108b5c6db3874fb8ce0e79c1",
+   "html_sha256": "2affa98dd2c4916e10c73118e3ed5dd7456eb59d866a955403be3db9e1a80328",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_288183__p0003",
+   "page_title": "עמוד:Bostenay - Meir Leheman.pdf/3",
+   "revision_id": 822811,
+   "wikitext_sha256": "ae2b6344550075b743f1300f374f302a254a8f9a1faa7580b8e0aaaec91b19e6",
+   "html_sha256": "1e8a97f3a1605dbc179e8d281cb7fddd3d76b25bd12593f62e9d186047bd792d",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_376016__p0003",
+   "page_title": "עמוד:Chotam Tocnit.pdf/3",
+   "revision_id": 956186,
+   "wikitext_sha256": "01426970627033f116b7e396df989ea5497ee3da451d81ffdeededc62069a403",
+   "html_sha256": "d0e94a11c97d1680d665633deff8a1df66e4c33a047b8abaf8ef207323c3750e",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_376016__p0026",
+   "page_title": "עמוד:Chotam Tocnit.pdf/26",
+   "revision_id": 957652,
+   "wikitext_sha256": "bfb60b4e7e876355920ef711599f9aedb02c39a28c85262cfcf93af357af2cf4",
+   "html_sha256": "275154ee040db71498a6b6c9a7a76e1e5e8c39a5bc05b22d3d2c49b69eac60fc",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_220713__p0002",
+   "page_title": "עמוד:Hebrewbooks org 19784.pdf/2",
+   "revision_id": 856643,
+   "wikitext_sha256": "762ee358edf23e0c04a6ead63964f9753479410ae3e449cfa67f1e4859f15150",
+   "html_sha256": "812806c3287afe09f554881b80676a83358bfcd0c04cdde9dfdda3f9d475585e",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_220713__p0018",
+   "page_title": "עמוד:Hebrewbooks org 19784.pdf/18",
+   "revision_id": 856641,
+   "wikitext_sha256": "23d90baccf971c071f3c3e852ce699a4694b43451e6c91230cb03652aa9bce61",
+   "html_sha256": "e03e2026156196197160d509eed6876ae4d4f0a1fe4a7e0dc73b52e211ac6c9c",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_220713__p0024",
+   "page_title": "עמוד:Hebrewbooks org 19784.pdf/24",
+   "revision_id": 2968922,
+   "wikitext_sha256": "0104552401f0258aa6e15c8998046c49f19744a9f626daa2999ee6ff54856dea",
+   "html_sha256": "0fbb3f4e6e227952626d983b1e69e97dc7051947287be8cbe1f7c469572bbc99",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_214041__p0005",
+   "page_title": "עמוד:Hebrewbooks org 38168.djvu/5",
+   "revision_id": 856751,
+   "wikitext_sha256": "2b5ca5d804c0b551ab0c2541c38fb1e65b565e1cd7017677365d0d3ed1a632ab",
+   "html_sha256": "e8072f3e33db7fc6ae2d423121fe45dad97cedc324159eb1bbc366222147bd04",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_260883__p0095",
+   "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/95",
+   "revision_id": 857136,
+   "wikitext_sha256": "89dc6ba9f78766dfc8d83093f336715f4c9bf183bc5ce5253c75d8d0185c789d",
+   "html_sha256": "4e769d6d208a318f2d3517eea2e5fceaafd29dd04debfb13143e265eaa145672",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_256394__p0009",
+   "page_title": "עמוד:Seligman Baer - Seder Avodat Yisroel (1901 ed.).pdf/9",
+   "revision_id": 2848554,
+   "wikitext_sha256": "7f0455958446a6919635ed8b4639709e97ac0034518de0647132f8c8161f2e43",
+   "html_sha256": "ed7661abe7ac6c0c05530f7955f48966f478ac620c19ee53fa07cce2657b420d",
+   "lines_equal": true
+  },
+  {
+   "slug": "selihot_baer_1885__p0034",
+   "page_title": "עמוד:The Seliḥot for the Entire Year.pdf/34",
+   "revision_id": 2801799,
+   "wikitext_path": "package:data/wikisource/snapshot/wikitext/selihot_baer_1885__p0034.wikitext.txt",
+   "wikitext_sha256": "067848e32d4cf20190fbed0872593308fdfa7fcf94ebfccb2686099e17a5223d",
+   "html_sha256": "e820f59878298761696e58c2a78cc263ad517dad16d9619490552b43f9ff7dca",
+   "lines_equal": true
+  },
+  {
+   "slug": "bostenay_lehmann_1872__p0047",
+   "page_title": "עמוד:Bostenay - Meir Leheman.pdf/47",
+   "revision_id": 822635,
+   "wikitext_path": "package:data/wikisource/snapshot/wikitext/bostenay_lehmann_1872__p0047.wikitext.txt",
+   "wikitext_sha256": "f446efe9368ebc12414be9a6e7f51ff27139ebe895295eae7f215a069aaf2651",
+   "html_sha256": "7ab92217fa0e8cea3a714c6687ffaaca8dcd9a18107884ec18a5faf26afffbf5",
+   "lines_equal": true
+  },
+  {
+   "slug": "hyman_toldoth_1910_vol1__p0041",
+   "page_title": "עמוד:Aaron Hyman. Toldoth Tannaim veAmoraim. I. 1910.pdf/41",
+   "revision_id": 974192,
+   "wikitext_path": "package:data/wikisource/snapshot/wikitext/hyman_toldoth_1910_vol1__p0041.wikitext.txt",
+   "wikitext_sha256": "7f1186bcd7938da2294c5721340221b069e2acd8d1d74964cbfc7bf4c9746fd2",
+   "html_sha256": "898c0960de2131d2ad9623ee33421c73c7ffeda006761027aeec23bef7fab832",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_288182__p0020",
+   "page_title": "עמוד:משא בערב.pdf/20",
+   "revision_id": 857408,
+   "wikitext_sha256": "08270a9225c9e7c65cec839e856f7dd7e98fbc33ab149353e8d341c0a2775d73",
+   "html_sha256": "b9595648e6d7b9eafa2970471496d2fae927007ae997eb91dccccaa64a96bec6",
+   "lines_equal": true
+  },
+  {
+   "slug": "ws_index_328113__p0038",
+   "page_title": "עמוד:Aaron Hyman. Toldoth Tannaim veAmoraim. I. 1910.pdf/38",
+   "revision_id": 974189,
+   "wikitext_sha256": "7c217395ffef2948e527273bd35f1437c09d3d27048b29f28cdf639aa30296f8",
+   "html_sha256": "cc8681cf99cdaac522933e2c5148b0ee01fcfc44bbf093c8c01b47036f8a5982",
+   "lines_equal": true
+  }
+ ]
+}

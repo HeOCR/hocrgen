@@ -16,6 +16,7 @@ INDEX_WIKITEXT = """{{:MediaWiki:Proofreadpage_index_template
 |מתרגם=
 |עורך=יוסף פלוני
 |שנה=תרנ"ג
+|שפה=עברית
 |מקור=[[:קובץ:Horev.pdf]]
 }}"""
 
@@ -43,7 +44,7 @@ def _entity(death: str | None, precision: int = 11, labels: dict[str, str] | Non
     return {"labels": {lang: {"value": value} for lang, value in (labels or {}).items()}, "aliases": {}, "claims": claims}
 
 
-def _record(*, file_wikitext: str = FILE_WIKITEXT, index_wikitext: str = INDEX_WIKITEXT, metadata=None, entities=None, author_pages=None):
+def _record(*, file_wikitext: str = FILE_WIKITEXT, index_wikitext: str = INDEX_WIKITEXT, metadata=None, entities=None, author_pages=None, index_evidence=None):
     metadata = metadata if metadata is not None else [{"name": "text", "value": [{"name": 0, "value": "ספר " * 300}]}]
     file_page = {
         "file_title": "Horev.pdf",
@@ -71,6 +72,7 @@ def _record(*, file_wikitext: str = FILE_WIKITEXT, index_wikitext: str = INDEX_W
             "Q33127885": _entity("+1906-00-00T00:00:00Z", precision=9),
         },
         checked_at="2026-11-06",
+        index_evidence=index_evidence,
     )
 
 
@@ -123,7 +125,7 @@ def test_missing_evidence_is_recorded_as_missing_so_the_gate_rejects() -> None:
     assert editor["death_year"] is None and editor["death_year_evidence_url"] is None
     assert index_exclusion_reasons(record) == ["creator_death_year_missing"]
 
-    bare = _record(index_wikitext="{{:MediaWiki:Proofreadpage_index_template\n|מחבר=\n}}", file_wikitext=FILE_WIKITEXT.replace("{{Creator:Samson Raphael Hirsch}}", "").replace("{{Label|Q33127885|{{{1|{{int:lang}}}}}}} (1848-1906/8)", ""))
+    bare = _record(index_wikitext="{{:MediaWiki:Proofreadpage_index_template\n|מחבר=\n|שפה=he\n}}", file_wikitext=FILE_WIKITEXT.replace("{{Creator:Samson Raphael Hirsch}}", "").replace("{{Label|Q33127885|{{{1|{{int:lang}}}}}}} (1848-1906/8)", ""))
     assert bare["work"]["creators"] == []
     assert "creators_missing" in index_exclusion_reasons(bare)
 
@@ -131,29 +133,85 @@ def test_missing_evidence_is_recorded_as_missing_so_the_gate_rejects() -> None:
     assert index_exclusion_reasons(late) == ["creator_died_after_1955"]
 
 
-def test_scan_source_licence_and_google_evidence() -> None:
-    unsourced = _record(file_wikitext=FILE_WIKITEXT.replace("[http://www.hebrewbooks.org/41650 hebrewbooks.org (41650)]", "ספר חורב, וילנא").replace("[http://chabadlibrary.org/catalog Chabad-Lubavitch Library]", ""), index_wikitext=INDEX_WIKITEXT.replace("יוסף פלוני", ""))
+def test_scan_source_licence_and_google_evidence_are_provenance_only() -> None:
+    # Decisions 9 and 10: scan source, licence tag and Google digitization are recorded and decide nothing.
+    clean = INDEX_WIKITEXT.replace("יוסף פלוני", "")
+    unsourced = _record(file_wikitext=FILE_WIKITEXT.replace("[http://www.hebrewbooks.org/41650 hebrewbooks.org (41650)]", "ספר חורב, וילנא").replace("[http://chabadlibrary.org/catalog Chabad-Lubavitch Library]", ""), index_wikitext=clean)
     assert unsourced["scan_rights"]["scan_source"] is None
-    assert "scan_provenance_unrecorded" in index_exclusion_reasons(unsourced)
+    assert index_exclusion_reasons(unsourced) == []
 
-    pd_us = _record(file_wikitext=FILE_WIKITEXT.replace("{{PD-scan|PD-old-auto-1923|deathyear=1908}}", "{{PD-US-not renewed}}"), index_wikitext=INDEX_WIKITEXT.replace("יוסף פלוני", ""))
-    assert pd_us["scan_rights"]["basis"] is None
-    assert index_exclusion_reasons(pd_us)[:2] == ["pd_us_only_licence", "scan_rights_basis_unsupported"]
+    pd_us = _record(file_wikitext=FILE_WIKITEXT.replace("{{PD-scan|PD-old-auto-1923|deathyear=1908}}", "{{PD-US-not renewed}}"), index_wikitext=clean)
+    assert pd_us["scan_rights"]["basis"] == "faithful_reproduction_of_pd_work"
+    assert index_exclusion_reasons(pd_us) == []
 
-    cc0 = _record(file_wikitext=FILE_WIKITEXT.replace("{{PD-scan|PD-old-auto-1923|deathyear=1908}}", "{{cc-zero}}"), index_wikitext=INDEX_WIKITEXT.replace("יוסף פלוני", ""))
+    cc0 = _record(file_wikitext=FILE_WIKITEXT.replace("{{PD-scan|PD-old-auto-1923|deathyear=1908}}", "{{cc-zero}}"), index_wikitext=clean)
     assert (cc0["scan_rights"]["basis"], cc0["scan_rights"]["licence"]) == ("explicit_open_licence", "CC0-1.0")
 
-    google = _record(metadata=[{"name": "text", "value": [{"name": 0, "value": "Digitized by Google " * 40}]}], index_wikitext=INDEX_WIKITEXT.replace("יוסף פלוני", ""))
+    google = _record(metadata=[{"name": "text", "value": [{"name": 0, "value": "Digitized by Google " * 40}]}], index_wikitext=clean)
     assert google["scan_rights"]["digitized_by_google"] is True
-    assert index_exclusion_reasons(google) == ["google_digitized_scan_pending"]
+    assert index_exclusion_reasons(google) == []
 
-    no_layer = _record(metadata=[{"name": "Producer", "value": "ABBYY"}], index_wikitext=INDEX_WIKITEXT.replace("יוסף פלוני", ""))
+    no_layer = _record(metadata=[{"name": "Producer", "value": "ABBYY"}], index_wikitext=clean)
     assert no_layer["scan_rights"]["digitized_by_google"] is None
-    assert index_exclusion_reasons(no_layer) == ["google_digitization_unchecked"]
+    assert index_exclusion_reasons(no_layer) == []
+
+
+def test_publication_year_presumption_and_hebrew_years() -> None:
+    assert inv.hebrew_year_upper_bound('תרנ"ג') == 1893
+    assert inv.hebrew_year_upper_bound("ה'תקס\"ח") == 1808
+    assert inv.hebrew_year_upper_bound("1885") is None
+    old = INDEX_WIKITEXT.replace('|שנה=תרנ"ג', '|שנה=תקע"ו').replace("{{Label|Q33127885|{{{1|{{int:lang}}}}}}} (1848-1906/8)", "")
+    record = _record(index_wikitext=old, file_wikitext=FILE_WIKITEXT.replace("| Date         = 1893", "| Date         = 1816"))
+    assert record["work"]["published_year"] == 1816
+    assert record["work_rights"]["basis"] == "presumed_pd_by_publication_age"
+    assert "1816" in record["work"]["published_year_evidence"]
+    assert index_exclusion_reasons(record) == []
+    late = _record(index_wikitext=INDEX_WIKITEXT)  # 1893: the editor's missing death year still rejects
+    assert late["work_rights"]["basis"] == "author_died_by_1955"
+    assert index_exclusion_reasons(late) == ["creator_death_year_missing"]
+
+
+def test_recorded_evidence_fills_gaps_but_never_replaces_found_evidence() -> None:
+    evidence = {
+        "creators": [{"names": ["יוסף פלוני"], "role": "editor", "death_year": 1900, "wikidata": "Q1", "evidence_url": "https://www.wikidata.org/wiki/Q1",
+                      "evidence_kind": "wikidata_P570", "recorded_by": "agent", "recorder": "test", "checked_at": "2026-11-06"},
+                     {"names": ["משה זלמן אהרנסון"], "role": "author", "death_year": 1700, "evidence_url": "u", "evidence_kind": "x",
+                      "recorded_by": "agent", "recorder": "test", "checked_at": "2026-11-06"}],
+        "language": {"value": "yi", "evidence": "e", "recorded_by": "agent", "recorder": "test", "checked_at": "2026-11-06"},
+    }
+    assert inv.index_evidence_problems({"index_title": "t", "commons_file_sha1": "abc", **evidence}) == []
+    record = _record(index_evidence={"abc": evidence})
+    editor = next(c for c in record["work"]["creators"] if c["name"] == "יוסף פלוני")
+    assert (editor["death_year"], editor["death_year_recorded_by"]) == (1900, "agent")
+    translator = next(c for c in record["work"]["creators"] if c["wikidata"] == "Q33127885")
+    assert translator["death_year"] == 1906  # found on Wikidata; the recorded 1700 never replaces it
+    assert record["work"]["language"] == "he"  # the Index records Hebrew; the recorded language is not applied
+    assert index_exclusion_reasons(record) == []
+    assert inv.index_evidence_problems({"index_title": "t", "commons_file_sha1": "abc", "creators": [{"names": ["x"]}]})
+
+
+def test_page_checks_are_pinned_and_human_checks_override_agent_checks() -> None:
+    base = {"page_title": "עמוד:X.pdf/1", "revision_id": 5, "commons_file_sha1": "abc", "scan_page": 1, "checker": "c",
+            "checked_at": "2026-11-06", "method": "m"}
+    agent = {**base, "checked_by": "agent", "transcription_coverage": "partial_page", "missing": "the verse text"}
+    human = {**base, "checked_by": "human", "transcription_coverage": "full_page", "checked_at": "2026-11-01"}
+    selected = inv.select_page_checks({"schema_version": inv.PAGE_CHECKS_SCHEMA_VERSION, "checks": [agent, human]})
+    assert selected["עמוד:X.pdf/1"]["checked_by"] == "human"
+    shared = inv.select_page_checks({"schema_version": inv.PAGE_CHECKS_SCHEMA_VERSION, "methods": {"m1": "looked at it"}, "checks": [{**agent, "method": "m1"}]})
+    assert shared["עמוד:X.pdf/1"]["method"] == "looked at it"
+    committed = inv.load_page_checks(Path("docs/wikisource_page_checks.json"))
+    assert len(committed) >= 100 and all(check["checked_by"] in {"agent", "human"} for check in committed.values())
+    assert inv.page_check_problems({**agent, "missing": ""}) == ["a partial_page check must say what is missing"]
+    page = {"revision_id": 5}
+    provenance = inv.apply_page_check(page, {"commons_file": {"sha1": "abc"}}, agent)
+    assert page["transcription_coverage"] == "partial_page" and provenance["applied"] and provenance["checked_by"] == "agent"
+    stale = {"revision_id": 6}
+    assert inv.apply_page_check(stale, {"commons_file": {"sha1": "abc"}}, agent)["applied"] is False
+    assert "transcription_coverage" not in stale
 
 
 def test_anonymous_basis_only_from_explicit_markers() -> None:
-    record = _record(index_wikitext="{{:MediaWiki:Proofreadpage_index_template\n|מחבר=לא ידוע\n}}", file_wikitext=FILE_WIKITEXT.replace("{{Creator:Samson Raphael Hirsch}}", "{{anonymous}}").replace("{{Label|Q33127885|{{{1|{{int:lang}}}}}}} (1848-1906/8)", ""))
+    record = _record(index_wikitext="{{:MediaWiki:Proofreadpage_index_template\n|מחבר=לא ידוע\n|שפה=he\n}}", file_wikitext=FILE_WIKITEXT.replace("{{Creator:Samson Raphael Hirsch}}", "{{anonymous}}").replace("{{Label|Q33127885|{{{1|{{int:lang}}}}}}} (1848-1906/8)", ""))
     assert {c["role"] for c in record["work"]["creators"]} == {"anonymous"}
     assert record["work_rights"]["basis"] == "anonymous_published_by_1955"
     assert index_exclusion_reasons(record) == []
@@ -204,25 +262,42 @@ def test_compact_inventory_and_summary_are_deterministic_and_text_free() -> None
     rejected = _record()
     rejected["index_title"] = "מפתח:Other.pdf"
     rejected["index_key"] = "ws_index_2"
+    key = admitted["index_key"]
+    applied = {"applied": True, "checked_by": "agent"}
     pages = [
-        {"index_key": admitted["index_key"], "quality": 4, "reasons": ["transcription_coverage_unrecorded"], "adjudication_eligible": True},
-        {"index_key": admitted["index_key"], "quality": 3, "reasons": ["transcription_coverage_unrecorded"], "adjudication_eligible": False},
-        {"index_key": admitted["index_key"], "quality": 3, "reasons": ["quality_editor_not_named_human", "transcription_coverage_unrecorded"], "adjudication_eligible": False},
+        {"index_key": key, "quality": 4, "reasons": ["transcription_coverage_unrecorded"], "adjudication_eligible": True},
+        {"index_key": key, "quality": 4, "reasons": [], "adjudication_eligible": True, "transcription_coverage": "full_page", "render_check": applied},
+        {"index_key": key, "quality": 3, "reasons": [], "adjudication_eligible": False, "transcription_coverage": "partial_page", "needs_crop": True, "render_check": applied},
+        {"index_key": key, "quality": 3, "reasons": ["quality_editor_not_named_human", "transcription_coverage_unrecorded"], "adjudication_eligible": False},
+        {"index_key": key, "quality": 3, "reasons": ["transcription_coverage_unrecorded", "wikitext_unsupported_markup"], "adjudication_eligible": False, "unsupported_markup": "unsupported wikitext template: x"},
     ]
     compact = inv.compact_inventory(_inventory_with([admitted, rejected], pages))
     gate = compact["indexes"][0]["page_gate"]
-    assert gate == {"checked": 3, "pending_coverage_only": {"3": 1, "4": 1}, "reference_eligible_q4": 1, "rejected_by_first_reason": {"quality_editor_not_named_human": 1}, "unsupported_markup": {}}
+    assert gate == {
+        "checked": 5,
+        "converts": {"3": 2, "4": 2},
+        "eligible": {"3": 0, "4": 1},
+        "needs_crop": {"3": 1, "4": 0},
+        "pending_coverage_only": {"3": 0, "4": 1},
+        "reference_eligible_q4": 2,
+        "reference_eligible_now_q4": 1,
+        "render_checks": {"checked": 2, "full_page": 1, "partial_page": 1, "stale": 0},
+        "rejected_by_first_reason": {"quality_editor_not_named_human": 1, "wikitext_unsupported_markup": 1},
+        "unsupported_markup": {"unsupported wikitext template: x": 1},
+    }
     assert compact["indexes"][1]["page_gate"] is None
     summary = inv.render_summary(compact)
     assert summary == inv.render_summary(json.loads(json.dumps(compact)))
-    assert "| Indexes admitted by the Index gate | 1 |" in summary
+    assert "| Indexes admitted by the Index gate | 29 | 1 |" in summary
+    assert "| Coverage checked `partial_page`: `needs_crop` (F8b4) | 0 / 0 | 1 / 0 |" in summary
     assert "| `creator_death_year_missing` | 1 | 3 | 1 | 3 |" in summary
-    assert "death year for יוסף פלוני" in summary
+    assert "death year for יוסף פלוני (published 1893, after 1855)" in summary
 
 
-def test_committed_inventory_replays_through_the_unchanged_gate() -> None:
+def test_committed_inventory_replays_through_the_gate() -> None:
     compact = json.loads(SUMMARY_JSON.read_text(encoding="utf-8"))
     assert compact["schema_version"] == "wikisource_index_inventory_summary.v1"
+    assert compact["gate"].startswith("hocrgen.fetchers.wikisource.index_exclusion_reasons")
     assert len(compact["indexes"]) >= 100
     for record in compact["indexes"]:
         assert index_exclusion_reasons(record) == record["gate"]["reasons"], record["index_title"]
