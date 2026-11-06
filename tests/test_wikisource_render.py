@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 
 from hocrgen.config.loader import package_root
-from hocrgen.parsers.wikitext import convert_wikitext
+from hocrgen.parsers.wikitext import UnsupportedWikitextError, convert_wikitext
 from hocrgen.tools.wikisource_render_check import compare, drop_editor_notes, tolerate_editor_markup, visible_lines
 
 FIXTURES = Path("tests/fixtures/wikisource_render")
@@ -78,3 +78,15 @@ def test_editor_notes_and_markup_errors_are_tolerated_as_the_converter_renders_t
     assert drop_editor_notes(["א[1] ב[2]", "[1] ט\"ס - ויקיעורך", "[2] הערה"]) == ["א ב[1]", "[1] הערה"]
     assert tolerate_editor_markup("==כותרת==") == "כותרת"
     assert tolerate_editor_markup("[[קישור") == "קישור"
+
+
+def test_bidi_mark_template_renders_nothing_visible() -> None:
+    """F8b5: ``{{כ}}`` writes RLM (LRM with ``ימינה=``); MediaWiki renders ``א{{כ}}ב`` as ``א&#8207;ב``, and bidi marks
+    are removed from the plain text, so it shows nothing (Hanokh-B p. 1)."""
+
+    html = '<div class="mw-parser-output"><p>א&#8207;ב\n</p></div>'
+    assert visible_lines(html) == ["אב"] or visible_lines(html) == ["א‏ב"]
+    assert convert_wikitext("א{{כ}}ב").text == "אב"
+    assert convert_wikitext("{{כ|ימינה=כן}}(jaz) gledam").text == "(jaz) gledam"
+    with pytest.raises(UnsupportedWikitextError):
+        convert_wikitext("{{כ|צבע=אדום}}")

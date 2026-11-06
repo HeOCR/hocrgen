@@ -53,16 +53,20 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-TOOL_VERSION = "0.1.0"
+TOOL_VERSION = "0.2.0"
 METHOD_ID = "tool_ocr_alignment_v1"
 METHOD_TEXT = (
     "hocrgen.tools.wikisource_coverage: Tesseract (Hebrew model) on the Commons render of the pinned file's page, "
     "used only for line and word boxes; the page's wikisource_plain_text.v2 text aligned to the OCR lines by "
     "order-preserving character-trigram votes; full_page when the aligned lines cover every text-bearing OCR line "
     "within the tolerance, ignoring running heads, page numbers, catchwords and signature marks; for a partial page "
-    "the crop is the union of the aligned line boxes plus a margin. No OCR text is stored or used as text."
+    "the crop is the union of the aligned line boxes plus a margin, or, when untranscribed blocks are interleaved with the "
+    "transcription, one region per block of transcribed lines with the rest of the box masked. No OCR text is stored or used as text."
 )
 CROP_METHOD = "ocr_alignment_union_box.v1"
+# F8b5: when one rectangle cannot leave interleaved untranscribed blocks out, one region per block of transcribed
+# lines; the pair image is the regions' union box with everything outside the regions masked to the background.
+CROP_REGIONS_METHOD = "ocr_alignment_region_mask.v1"
 USER_AGENT = "hocrgen-wikisource-coverage/0.1 (https://github.com/HeOCR/hocrgen; operator capture)"
 RENDER_WIDTH = 960
 
@@ -107,6 +111,12 @@ THRESHOLDS: dict[str, float] = {
     "crop_untranscribed_inside_max": 0.15,
     # crop margin, in median line heights
     "crop_margin_line_heights": 0.6,
+    # multi-region crops (F8b5): two blocks of transcribed lines stay apart when joining them would take in an
+    # untranscribed region's centre or this share of its area; at most this many regions; blocks whose tops lie in
+    # the same band of this many render pixels are one row (read right to left)
+    "region_block_overlap_max": 0.25,
+    "region_max_count": 8,
+    "region_row_px": 40,
     # ink no readable OCR line covers: cells of this many render pixels, darker than the page by this much
     "ink_cell_px": 4,
     "ink_contrast": 60,
@@ -722,8 +732,114 @@ def crop_from_alignment(
     if bracketed < thresholds["crop_bracketed_min"] or located < thresholds["decide_aligned_located_min"]:
         return {**crop, "status": "unresolved", "reason": "transcription_not_located"}
     if inside_share > thresholds["crop_untranscribed_inside_max"]:
+        # One rectangle cannot leave the untranscribed text out (blocks interleaved with the transcription): try
+        # several regions, one per run of transcribed lines, with everything else in the box masked (F8b5).
+        regions = region_crop(transcribed, untranscribed, width, height, thresholds, margin)
+        if regions is not None:
+            # Region crops are proposals: in the F8b5 review none of the 46 the tool placed was right as it stood (a verse
+            # line aligned through a quoted lemma, a stray region on a catchword), so each one is flagged for review.
+            return {**crop, **regions, "review_recommended": True}
         return {**crop, "status": "unresolved", "reason": "untranscribed_text_inside_crop"}
     return {**crop, "status": "resolved", "reason": None}
+
+
+def _intersection(a: tuple[float, float, float, float], b: tuple[float, float, float, float]) -> float:
+    return max(0.0, min(a[2], b[2]) - max(a[0], b[0])) * max(0.0, min(a[3], b[3]) - max(a[1], b[1]))
+
+
+def _blocks_merge(box: tuple[int, int, int, int], untranscribed: list[_Region], thresholds: dict[str, float]) -> bool:
+    """An untranscribed region stops two runs of transcribed lines from joining when the joined box would take in
+    its centre or a large part of it."""
+
+    for r in untranscribed:
+        if _centre_inside(r.box, box) or _intersection(r.box, box) > thresholds["region_block_overlap_max"] * max(1, r.area):
+            return True
+    return False
+
+
+def transcribed_blocks(lines: list[tuple[int, int, int, int]], untranscribed: list[_Region], thresholds: dict[str, float] | None = None) -> list[tuple[int, int, int, int]]:
+    """Group transcribed line boxes into blocks no untranscribed region lies inside (render pixels, reading order).
+
+    Blocks are joined nearest first (by vertical gap, then horizontal), and two blocks join only when the joined box
+    keeps every untranscribed region out. Interleaved untranscribed text (a verse or a translation between two
+    passages of commentary) therefore splits the transcription into separate blocks.
+    """
+
+    thresholds = {**THRESHOLDS, **(thresholds or {})}
+    blocks = [tuple(box) for box in lines]
+    while len(blocks) > 1:
+        candidates = []
+        for i in range(len(blocks)):
+            for j in range(i + 1, len(blocks)):
+                a, b = blocks[i], blocks[j]
+                gap_y = max(0, max(a[1], b[1]) - min(a[3], b[3]))
+                gap_x = max(0, max(a[0], b[0]) - min(a[2], b[2]))
+                candidates.append((gap_y, gap_x, i, j))
+        candidates.sort()
+        merged = False
+        for _, _, i, j in candidates:
+            union = _union([blocks[i], blocks[j]])
+            if not _blocks_merge(union, untranscribed, thresholds):
+                blocks = [box for k, box in enumerate(blocks) if k not in {i, j}] + [union]
+                merged = True
+                break
+        if not merged:
+            break
+    # reading order: top to bottom; blocks side by side (columns) right to left
+    return sorted(blocks, key=lambda box: (box[1] // max(1, thresholds["region_row_px"]), -box[2]))
+
+
+def region_crop(
+    transcribed: list[LineAlignment],
+    untranscribed: list[_Region],
+    width: int,
+    height: int,
+    thresholds: dict[str, float],
+    margin: float,
+) -> dict[str, Any] | None:
+    """A multi-region crop (``ocr_alignment_region_mask.v1``): one box per block of transcribed lines, each with the
+    crop margin stopped halfway to any untranscribed region outside it. The pair image is the union box with every
+    pixel outside the regions masked to the page background, so the regions' own pixels are unchanged. Returns
+    ``None`` when the blocks still take in too much untranscribed text, or there are too many of them."""
+
+    blocks = transcribed_blocks([a.line.box for a in transcribed], untranscribed, thresholds)
+    if len(blocks) < 2 or len(blocks) > thresholds["region_max_count"]:
+        return None
+    regions: list[tuple[int, int, int, int]] = []
+    for tight in blocks:
+        x0, y0, x1, y1 = tight[0] - margin, tight[1] - margin, tight[2] + margin, tight[3] + margin
+        for r in untranscribed:
+            box = r.box
+            if _centre_inside(box, tight):
+                continue
+            if box[3] <= tight[1] + 1 and box[2] > x0 and box[0] < x1:
+                y0 = max(y0, (box[3] + tight[1]) / 2)
+            if box[1] >= tight[3] - 1 and box[2] > x0 and box[0] < x1:
+                y1 = min(y1, (box[1] + tight[3]) / 2)
+            if box[2] <= tight[0] + 1 and box[3] > y0 and box[1] < y1:
+                x0 = max(x0, (box[2] + tight[0]) / 2)
+            if box[0] >= tight[2] - 1 and box[3] > y0 and box[1] < y1:
+                x1 = min(x1, (box[0] + tight[2]) / 2)
+        regions.append((max(0, int(x0)), max(0, int(y0)), min(width, int(round(x1))), min(height, int(round(y1)))))
+    inside = [r for r in untranscribed if any(_centre_inside(r.box, block) for block in blocks)]
+    text_area = sum(a.line.area for a in transcribed) + sum(r.area for r in inside)
+    inside_share = sum(r.area for r in inside) / (text_area or 1)
+    if inside_share > thresholds["crop_untranscribed_inside_max"]:
+        return None
+    union = _union(regions)
+    masked = [r for r in untranscribed if r not in inside and _intersection(r.box, union) > 0]
+    return {
+        "method": CROP_REGIONS_METHOD,
+        "status": "resolved",
+        "reason": None,
+        "box_normalized": _normalised(union, width, height),
+        "box_render_px": list(union),
+        "regions_normalized": [_normalised(box, width, height) for box in regions],
+        "regions_render_px": [list(box) for box in regions],
+        "untranscribed_inside": [_normalised(r.box, width, height) for r in inside],
+        "untranscribed_inside_area_share": round(inside_share, 4),
+        "masked_untranscribed": len(masked),
+    }
 
 
 # --- Tool checks ----------------------------------------------------------------------------------------------
@@ -803,8 +919,10 @@ def compact_tool_checks(payload: dict[str, Any]) -> dict[str, Any]:
             "alignment": {key: round(check["alignment"][key], 3) for key in COMPACT_ALIGNMENT_KEYS if key in check["alignment"]},
             "crop": {
                 key: _round_boxes(crop.get(key))
-                for key in ("status", "reason", "box_normalized", "untranscribed_inside", "untranscribed_inside_area_share", "review_recommended")
-                if crop.get(key) not in (None, [], False) and (keep_inside or key not in {"untranscribed_inside", "untranscribed_inside_area_share"})
+                for key in ("status", "reason", "method", "box_normalized", "regions_normalized", "untranscribed_inside", "untranscribed_inside_area_share", "review_recommended")
+                if crop.get(key) not in (None, [], False)
+                and (keep_inside or key not in {"untranscribed_inside", "untranscribed_inside_area_share", "regions_normalized"})
+                and not (key == "method" and crop.get(key) == CROP_METHOD)
             },
         }
         if check.get("missing"):
@@ -815,7 +933,7 @@ def compact_tool_checks(payload: dict[str, Any]) -> dict[str, Any]:
     checks = [{key: value for key, value in row.items() if key not in defaults} for row in rows]
     return {
         "schema_version": payload["schema_version"],
-        "description": payload["description"] + f" Compact form: render URLs dropped (renders are pinned by SHA-256), boxes to three decimals, values every check shares in check_defaults; crop method {CROP_METHOD}.",
+        "description": payload["description"] + f" Compact form: render URLs dropped (renders are pinned by SHA-256), boxes to three decimals, values every check shares in check_defaults; crop method {CROP_METHOD} unless a crop names {CROP_REGIONS_METHOD}.",
         "tool_version": payload["tool_version"],
         "thresholds": payload["thresholds"],
         "methods": payload["methods"],

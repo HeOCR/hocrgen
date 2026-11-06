@@ -729,6 +729,8 @@ TEMPLATE_RENDERERS: dict[str, Renderer] = {
     "פפ": lambda args, ctx: (args.check(), "<br /> <br />")[1],
     "ש-רווח": lambda args, ctx: (args.check("1"), " ")[1],
     "עוגן בשורה": _drop("1"),
+    # F8b5: {{כ}} writes a bidi mark (RLM, or LRM with ימינה=), which step 8 removes: nothing visible.
+    "כ": lambda args, ctx: (args.check("ימינה"), "")[1],
     "סעיף": lambda args, ctx: f"({ctx.expand(args.check('1').need('1'))})",
     # cantillation marks drawn by templates
     "מ:לגרמיה": _legarmeih(True),

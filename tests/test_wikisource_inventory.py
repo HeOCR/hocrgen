@@ -277,33 +277,42 @@ def test_compact_inventory_and_summary_are_deterministic_and_text_free() -> None
          "render_check": {"applied": False, "reason": "tool_alignment_too_poor", "checked_by": "tool"}},
         {"index_key": key, "quality": 3, "reasons": ["quality_editor_not_named_human", "transcription_coverage_unrecorded"], "adjudication_eligible": False},
         {"index_key": key, "quality": 3, "reasons": ["transcription_coverage_unrecorded", "wikitext_unsupported_markup"], "adjudication_eligible": False, "unsupported_markup": "unsupported wikitext template: x"},
+        # F8b5: a multi-region crop an agent placed
+        {"index_key": key, "quality": 3, "reasons": [], "adjudication_eligible": False, "transcription_coverage": "partial_page", "needs_crop": True,
+         "render_check": applied, "crop": {"status": "resolved", "box_normalized": [0.1, 0.1, 0.9, 0.9], "regions_normalized": [[0.1, 0.1, 0.9, 0.4], [0.1, 0.6, 0.9, 0.9]],
+                                          "review_recommended": False, "located_by": {"checked_by": "agent"}}},
     ]
     compact = inv.compact_inventory(_inventory_with([admitted, rejected], pages))
     gate = compact["indexes"][0]["page_gate"]
     assert gate == {
-        "checked": 7,
-        "converts": {"3": 4, "4": 2},
+        "checked": 8,
+        "converts": {"3": 5, "4": 2},
         "eligible": {"3": 0, "4": 1},
-        "cropped": {"3": 1, "4": 0},
+        "cropped": {"3": 2, "4": 0},
         "cropped_review_recommended": {"3": 1, "4": 0},
+        "cropped_regions": {"3": 1, "4": 0},
+        "cropped_reviewed": {"3": 1, "4": 0},
         "crop_unresolved": {"3": 1, "4": 0},
-        "needs_crop": {"3": 2, "4": 0},
+        "needs_crop": {"3": 3, "4": 0},
         "pending_coverage_only": {"3": 1, "4": 1},
         "coverage_unresolved": {"3": 1, "4": 0},
         "footnote_marks_bracketed": {"3": 1, "4": 0},
         "transcluding_pages": 0,
         "reference_eligible_q4": 2,
         "reference_eligible_now_q4": 1,
-        "render_checks": {"by_agent": 1, "by_tool": 2, "checked": 3, "full_page": 1, "partial_page": 2, "stale": 0, "tool_undecided": 1},
+        "render_checks": {"by_agent": 2, "by_tool": 2, "checked": 4, "full_page": 1, "partial_page": 3, "stale": 0, "tool_undecided": 1},
         "crop_unresolved_pages": [{"page_title": "עמוד:X.pdf/9", "quality": 3, "reason": "crop_unresolved", "detail": "untranscribed_text_inside_crop", "checked_by": "tool"}],
+        "pending_coverage_pages": [{"page_title": None, "quality": 4, "checked_by": None}, {"page_title": None, "quality": 3, "checked_by": "tool"}],
         "rejected_by_first_reason": {"quality_editor_not_named_human": 1, "wikitext_unsupported_markup": 1},
         "unsupported_markup": {"unsupported wikitext template: x": 1},
     }
     assert compact["indexes"][1]["page_gate"] is None
     summary = inv.render_summary(compact)
     assert summary == inv.render_summary(json.loads(json.dumps(compact)))
-    assert "| Indexes admitted by the Index gate | 29 | 68 | 1 |" in summary
-    assert "| **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | 0 / 0 | 1 / 0 |" in summary
+    assert "| Indexes admitted by the Index gate | 29 | 68 | 68 | 1 |" in summary
+    assert "| **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | 0 / 0 | 196 / 4 | 2 / 0 |" in summary
+    assert "| Of those, multi-region crop (rest of the box masked) | — | — | 0 / 0 | 1 / 0 |" in summary
+    assert "| Of those, crop placed or confirmed by an agent or human | — | — | 25 / 4 | 1 / 0 |" in summary
     assert "| עמוד:X.pdf/9 | 3 | `crop_unresolved` | untranscribed_text_inside_crop | tool |" in summary
     assert "| `creator_death_year_missing` | 1 | 3 | 1 | 3 |" in summary
     assert "death year for יוסף פלוני (published 1893, after 1855)" in summary

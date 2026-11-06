@@ -4,10 +4,10 @@
   "not_recorded": [
     {
       "index_title": "מפתח:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf",
-      "what": "death year for Yosef Nachmuli (translator and printer, Corfu 1885); scan source",
-      "why": "Wikidata Q112144527 'Yosef Nahamoli' died 1785, so is not the 1885 translator; Q134717556 has no dates. The Commons file page (uploaded 2017 by Aharonium with UploadWizard) records only the book's title and imprint, not who scanned it.",
+      "what": "death year for Yosef Nachmuli (translator and printer, Corfu 1885); the Index language; scan source",
+      "why": "Not recorded pending the maintainer (F8b5). Facts found: the book (Corfu 5645/1885) is the traditional Hebrew Sephardic liturgy with a facing Greek translation, printed 'at the translator's expense' with Abraham m' Yitzhaki at the translator's press; rare-book catalogues call it the only edition. Columbia University Libraries' exhibition 'The Jews of Corfu' (https://online-exhibitions.library.columbia.edu/exhibits/show/jews_corfu/print) dates Giuseppe Nacamulli, Corfu printer and founder of Cronaca Israelitica, 1821-1886; Encyclopaedia Judaica ('Corfu') names Joseph Nahamuli as the printer and Greek translator who published that paper, so the two are very likely the same man. That is a secondary source, not Wikidata or NLI (Q134717556 is him, with no dates; Q112144527, died 1785, is another man). All 214 quality-3/4 pages are the even PDF pages: the Hebrew title page and 213 pages of Hebrew liturgy, with no Greek; the Greek translation is on the odd pages, empty {{iwpage|el}} stubs here. The partner Abraham Yitzhaki cannot be identified. The scan's origin is not recorded on Commons.",
       "recorded_by": "agent",
-      "recorder": "Claude Code (claude-opus-5-5), F8b3",
+      "recorder": "Claude Code (claude-opus-5-5), F8b5",
       "checked_at": "2026-11-06"
     },
     {
@@ -30,22 +30,6 @@
       "index_title": "מפתח:Sefer Shimush Tehillim.pdf",
       "what": "death year for Elias Klein (Békéscsaba)",
       "why": "No reliable identification: the only Wikidata 'Elias Klein' (Q139160655, 1576–1629) cannot be the Békéscsaba publisher.",
-      "recorded_by": "agent",
-      "recorder": "Claude Code (claude-opus-5-5), F8b3",
-      "checked_at": "2026-11-06"
-    },
-    {
-      "index_title": "מפתח:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf",
-      "what": "language",
-      "why": "A Hebrew prayer book printed with a Greek translation; which text the Wikisource pages transcribe was not checked, so no language is recorded.",
-      "recorded_by": "agent",
-      "recorder": "Claude Code (claude-opus-5-5), F8b3",
-      "checked_at": "2026-11-06"
-    },
-    {
-      "index_title": "מפתח:Safa akhat lekhulanu Esperanto.pdf",
-      "what": "death year for the translator נפתלי הרץ ניימנוביץ'",
-      "why": "No Wikidata item or authority record found for the translator.",
       "recorded_by": "agent",
       "recorder": "Claude Code (claude-opus-5-5), F8b3",
       "checked_at": "2026-11-06"
@@ -206,7 +190,24 @@
     {
       "index_title": "מפתח:Or hashem vilna 1905.pdf",
       "commons_file_sha1": "fd21ef439515b51f310bcba7a6c52f8d95762b85",
-      "creators": [],
+      "creators": [
+        {
+          "names": [
+            "haim yirmiyaho",
+            "חיים ירמיהו פלנסברג"
+          ],
+          "role": "commentator",
+          "death_year": 1914,
+          "wikidata": "Q117353685",
+          "evidence_url": "https://www.wikidata.org/wiki/Q117353685",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007309683005171",
+          "note": "Hayim Yirmeyahu ben Avraham Flensberg, author of the commentary printed with Crescas' Or Hashem in the Vilna 1905 edition (the Index's 'haim yirmiyaho'); Wikidata P570 1914.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b5",
+          "checked_at": "2026-11-06"
+        }
+      ],
       "language": {
         "value": "he",
         "evidence": "Neither wiki records a language; Hebrew from the work itself: Hasdai Crescas' Hebrew work אור השם (Vilna 1905).",
@@ -257,6 +258,23 @@
           "note": "L. L. Zamenhof, creator of Esperanto; Wikidata P570 1917-04-14.",
           "recorded_by": "agent",
           "recorder": "Claude Code (claude-opus-5-5), F8b3",
+          "checked_at": "2026-11-06"
+        },
+        {
+          "names": [
+            "נפתלי הרץ ניימנוביץ'",
+            "הנץ",
+            "Naftali Hertz Neimanovitch"
+          ],
+          "role": "translator",
+          "death_year": 1898,
+          "wikidata": "Q25491331",
+          "evidence_url": "https://www.wikidata.org/wiki/Q25491331",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007305494805171",
+          "note": "Naftali Herz (Yehuda) Neimanovitch, who signed the 1888 Hebrew translation of Zamenhof's first Esperanto book 'הנץ'; Wikidata P570 1898-03-10.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b5",
           "checked_at": "2026-11-06"
         }
       ]
@@ -531,6 +549,62 @@
           "checked_at": "2026-11-06"
         }
       ]
+    },
+    {
+      "index_title": "מפתח:Hanokh-B.pdf",
+      "commons_file_sha1": "30147d233097d4f46d46487d36b6e57c84729edf",
+      "creators": [
+        {
+          "names": [
+            "אברהם כהנא",
+            "Abraham Kahana"
+          ],
+          "role": "translator",
+          "death_year": 1946,
+          "wikidata": "Q12403383",
+          "evidence_url": "https://www.wikidata.org/wiki/Q12403383",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007300159905171",
+          "note": "Abraham Kahana, editor and translator of Ha-Sefarim ha-Hitzonim (1937), whose Book of Enoch this is; Wikidata P570 1946-02-20. A namesake (Q118913124) died in 1954, also before 1956.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b5",
+          "checked_at": "2026-11-06"
+        }
+      ],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; the work is Kahana's Hebrew translation of the Book of Enoch (Ha-Sefarim ha-Hitzonim, 1937), and the transcribed page is Hebrew.",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b5",
+        "checked_at": "2026-11-06"
+      }
+    },
+    {
+      "index_title": "מפתח:Siddur Farḥi (1917) by Hillel Farḥi, Nusaḥ Sefaradi, Minhag Egypt.pdf",
+      "commons_file_sha1": "2303a4ab14d47c8d1364cb90967a87adeb890fe8",
+      "creators": [
+        {
+          "names": [
+            "Hillel Farḥi",
+            "הלל פרחי"
+          ],
+          "role": "author",
+          "death_year": 1940,
+          "evidence_url": "https://www.jewishvirtuallibrary.org/jsource/judaica/ejud_0002_0006_0_06283.html",
+          "evidence_kind": "encyclopedia",
+          "note": "Hillel ben Jacob Farhi (1868-1940), Cairo teacher, translator and compiler of the 1917 siddur; Encyclopaedia Judaica (2nd ed.), 'Farhi, Hillel'. The Commons date 2012 is the upload of the 1917 print.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b5",
+          "checked_at": "2026-11-06"
+        }
+      ],
+      "language": {
+        "value": "he",
+        "evidence": "Neither wiki records a language; a Hebrew prayer book (Cairo 1917), and the transcribed page is a Hebrew list of Farhi's works.",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b5",
+        "checked_at": "2026-11-06"
+      }
     }
   ]
 }
