@@ -1,6 +1,6 @@
 # F8 — Real-source map and paired-text source intake
 
-Status: `F8a` (this map and the F8 notation) is planning only. `F8b`–`F8e` are planned. The maintainer answered the decisions list on 2026-11-06; see [`planning/decisions/2026-11-06-f8-real-source-decisions.md`](../decisions/2026-11-06-f8-real-source-decisions.md). Parent milestone: F8. Source proposals: `HeOCR/hocrgen#103` (`F8b`), `#104` (`F8c`) and `#105` (`F8d`). Evidence was checked on 2026-11-06 against each source's own pages and APIs; the per-source notes are in [`docs/2026_11_06_israeli_public_domain_documents_research/verification/`](../../docs/2026_11_06_israeli_public_domain_documents_research/verification/).
+Status: `F8a` (this map and the F8 notation) is planning only. `F8d` is partly implemented (YidTakNL only; see [F8d findings](#f8d-findings-2026-11-06)). `F8b`, `F8c` and `F8e` are planned. The maintainer answered the decisions list on 2026-11-06; see [`planning/decisions/2026-11-06-f8-real-source-decisions.md`](../decisions/2026-11-06-f8-real-source-decisions.md). Parent milestone: F8. Source proposals: `HeOCR/hocrgen#103` (`F8b`), `#104` (`F8c`) and `#105` (`F8d`). Evidence was checked on 2026-11-06 against each source's own pages and APIs; the per-source notes are in [`docs/2026_11_06_israeli_public_domain_documents_research/verification/`](../../docs/2026_11_06_israeli_public_domain_documents_research/verification/).
 
 F8 maps real (non-synthetic) Hebrew document sources beyond HASH. It ranks them by what HeOCR lacks most: **real page images paired with human-made text**, for both printed and handwritten Hebrew. It supplies the printed real-reference source that [E2d](./e2d-real-scan-evaluation.md) says is "not yet selected". It changes no source, profile, licence, gate or score.
 
@@ -29,8 +29,8 @@ The text tier is recorded separately from the content type. A page's `content_ty
 | --- | --- | --- | --- | --- | --- | --- |
 | 1 | Hebrew Wikisource proofread pages (ProofreadPage `עמוד:` / `מפתח:` namespaces) with their Commons scans | `printed_historical` books, mostly rabbinic, some vocalized | 1: page-level, human-proofread; no line geometry | Text: site licence CC BY-SA 4.0. Scans: per Commons file (`PD-old`, `PD-scan` seen) | text `CC-BY-SA-4.0` / `sharealike`; scan per file; `review_only` first | `F8b` |
 | 2 | NLI IIIF items whose manifest `license` is `public-domain-free-use` | `printed_historical` books; the current `nli` seeds are all manuscripts | 4 | NLI rights page for the slug: may be used "for any purpose, including commercial use" | `PD-IL` / `open`, as `nli_any_use_permitted` today | `F8c` |
-| 3 | BGU Pinkas Dataset (Zenodo 3569694) | `handwritten_historical`, c. 1500–1800 cursive, 30 pages | 1: PAGE XML at word, line and page level | Zenodo licence field `cc-by-4.0` | `CC-BY-4.0` / `open_with_attribution` | `F8d` |
-| 4 | YidTakNL Vaybertaytsh ground truth (figshare 10.6084/m9.figshare.25422844) | `printed_historical` Yiddish in Hebrew script, 1709–1781 | 1: Transkribus GT (human-corrected HTR) with images | figshare licence CC BY 4.0 | `CC-BY-4.0` / `open_with_attribution` | `F8d` |
+| 3 | BGU Pinkas Dataset (Zenodo 3569694) | `handwritten_historical`, c. 1500–1800 cursive, 30 pages | 1: PAGE XML at word, line and page level | Zenodo licence field `cc-by-4.0`. Scan provenance unverified: no holding library or photographer named | `CC-BY-4.0` / `open_with_attribution`; held | `F8d` |
+| 4 | YidTakNL Vaybertaytsh ground truth (figshare 10.6084/m9.figshare.25422844) | `printed_historical` Yiddish in Hebrew script, 1709–1781 | 1: Transkribus GT (human-corrected HTR), page-level plain text with JPEGs, no geometry | figshare licence CC BY 4.0 for the dataset. Scans per item: NLI `public-domain-free-use`, or HUC with no open licence | `CC-BY-4.0` / `open_with_attribution`; NLI-scanned pages only | `F8d` |
 | 5 | Reshumot (ספר החוקים, קובץ התקנות), about 2006 on | `printed_modern` gazette | 2: born-digital PDF | §6: no copyright in laws and regulations | `PD-IL` / `open` | `F8e` |
 | 6 | Knesset committee protocols, 1949–1975 | typewritten scans | 4 | §42: state works created on or before 1975 are PD | `PD-IL` / `open` | `F8e` |
 
@@ -39,7 +39,7 @@ Scale, measured on 2026-11-06:
 - **Wikisource:** 141 Index and 6,839 Page pages. Of these, 1,824 are at quality 3 (proofread) and 268 at quality 4 (validated by a second editor). Excluding the Birnbaum works (see below) leaves about 1,600 pages.
 - **NLI:** the free-use pool is large but unmeasured. Example: *Romemut El*, Zolkiew 1764, 208 pages.
 - **BGU Pinkas:** 30 pages.
-- **YidTakNL:** about 26k training words. The bundle is a link-only SURFdrive share, so its format still needs checking.
+- **YidTakNL:** about 26k training words. The SURFdrive bundle holds 7 works: 320 page JPEGs and 320 page-level text files (some empty). 2 works (41 pages) are HUC scans and are excluded; the other 5 link to NLI records.
 
 ### Review-only or deferred
 
@@ -105,8 +105,34 @@ These are rights or ground-truth calls, so they are the maintainer's. **Answered
 - `F8a`: this real-source map, the decisions above and the F8 notation (planning only).
 - `F8b`: a fixture-backed `review_only` Wikisource source. It pins page revision ids and Commons file SHA-1s, and emits page-level text with its quality level and editor provenance. It is gated per Index on evidence that the work and the scan are public domain. HebrewBooks-sourced Index files are admitted under the same per-file check (decision 3).
 - `F8c`: key the `nli` rights strategy on the IIIF `license` slug, and admit `public-domain-free-use` printed books as `printed_historical`. Images only.
-- `F8d`: fixture-backed `review_only` imports of the CC-BY-4.0 ground-truth datasets: `pinkas_dataset_bgu` (PAGE XML), and YidTakNL once its bundle is checked. YidTakNL is limited to training and character-level evaluation (decision 6). Scan provenance is verified first.
+- `F8d`: fixture-backed `review_only` imports of the CC-BY-4.0 ground-truth datasets: `pinkas_dataset_bgu` (PAGE XML), and YidTakNL once its bundle is checked. YidTakNL is limited to training and character-level evaluation (decision 6). Scan provenance is verified first. **Partly implemented:** YidTakNL landed as `yidtaknl_vaybertaytsh_gt`; `pinkas_dataset_bgu` is held (see below).
 - `F8e`: born-digital and typewritten government print (Reshumot from about 2006, Knesset committee scans up to 1975), with automated access allowed (decision 4) and hard throttling. Committee protocols from 1976 on wait for the legal opinion (decision 5).
+
+## F8d findings (2026-11-06)
+
+**YidTakNL (`yidtaknl_vaybertaytsh_gt`, implemented).**
+
+- **Format.** The SURFdrive share (public WebDAV) holds one folder per work, with page JPEGs and a `txt/` folder of page-level Transkribus plain-text exports. It has no PAGE XML, no line or word geometry, and no checksums. The sampled 1781 images are scans placed on an A4 300 dpi page (2479 × 3508 px).
+- **Text.** The JOHD paper (10:35, 2024) says the first pass came from the Dybbuk HTR model, then both annotators "corrected and double-checked" it. So the text is human-corrected HTR. It is not attested or adjudicated under F2, and the adapter marks it `not_adjudicated`.
+- **Scans, per item.**
+  - The 1781 *Ampliatsye un' alteratsye* folder matches NLI 990021163940205171: 24 canvases and 24 JPEGs. The manifest licence is `public-domain-free-use`. Pages 7 and 8 were compared visually with the IIIF canvases and are the same scan.
+  - The 1747 item (NLI 001294844) is also `public-domain-free-use`, with 16 canvases for 16 JPEGs. It was not compared visually.
+  - The 1737, 1772 and JB 899 folders point to a 15-volume NLI record (990012586850205171, `public-domain-free-use`) whose top-level manifest has no canvases. They need per-volume matching before admission.
+  - The two HUC Klau Library works (RBR O 128, RBR D 129) show "© 2021 HUC - Photography and Website by Ardon Bar-Hama" and no open licence. They are excluded. The figshare CC BY 4.0 grant covers the creators' work, not HUC's photographs.
+- **Scope marker.** Every entry carries language `yi` and `usage_scope.evaluation_scope: character_level_only`, with allowed uses `training` and `character_level_evaluation`, and `word_level` and `language_level_hebrew` excluded (decision 6). The adapter refuses entries without that marker.
+- **Fixture.** Two pages of the 1781 work: 640 px thumbnails, and the upstream text bytes unchanged, pinned by sha256. Page-level text has no coordinates to rescale. A metadata-only HUC entry proves the rejection.
+
+**BGU Pinkas (`pinkas_dataset_bgu`, held).**
+
+- The two txt files in the zip are only the official split: 24 pages in `train_set.txt` and 6 in `test_set.txt`.
+- The ICDAR 2019 paper says only that the pages are "manuscripts from the records of Frankfurt community", digitized as full-colour JPGs. Its acknowledgment credits a proof-reader and a segmenter.
+- No source names the holding library, a shelfmark, the photographer, or permission to relicense the photographs. The JPEGs carry no EXIF.
+- One lead, unverified: a secondary snippet places the Frankfurt community pinkas at NLI as Ms. Heb. 4°662, with a digital copy online. The page margins carry dates such as 1656–1657. The NLI catalogue is behind Cloudflare, so the record and its licence slug could not be checked.
+- Rights are unclear, so no source, fetcher or fixture was added. To unblock it:
+  - identify the manuscript and the scan source, for example the NLI record and its IIIF licence slug, plus a visual match;
+  - or get a statement from the dataset authors.
+
+  Whether the dataset's CC BY 4.0 can cover third-party photographs of a PD manuscript is a maintainer call.
 
 ## Sequencing and non-goals
 

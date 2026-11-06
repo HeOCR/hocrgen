@@ -23,6 +23,7 @@ from hocrgen.fetchers.modern_handwriting import ModernHandwritingIntakeFetcher
 from hocrgen.fetchers.nli import NliFetcher
 from hocrgen.fetchers.hash import HashImporter
 from hocrgen.fetchers.pinkas import PinkasImporter
+from hocrgen.fetchers.yidtaknl import YidTakNLImporter
 from hocrgen.fetchers.synthetic import SyntheticFetcher
 from hocrgen.manifests.io import write_json
 from hocrgen.manifests.models import (
@@ -90,6 +91,7 @@ FETCHERS = {
     "pinkas": PinkasImporter(),
     "biblia": BibliaImporter(),
     "hash": HashImporter(),
+    "yidtaknl": YidTakNLImporter(),
     "hocrsyngen_manifest": HocrsyngenManifestFetcher(),
     "modern_handwriting_intake": ModernHandwritingIntakeFetcher(),
     "synthetic": SyntheticFetcher(),

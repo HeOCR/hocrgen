@@ -1,0 +1,26 @@
+version: 1
+dataset: YidTakNL Vaybertaytsh ground truth
+dataset_title: Dataset for Transkribus Vaybertaytsh HTR model
+dataset_creators:
+  - Ronny Reshef
+  - Mirjam Gutschow
+dataset_doi: 10.6084/m9.figshare.25422844.v1
+dataset_landing_url: https://doi.org/10.6084/m9.figshare.25422844.v1
+dataset_license: CC-BY-4.0
+dataset_license_evidence: figshare API license field "CC BY 4.0" (https://creativecommons.org/licenses/by/4.0/), checked 2026-11-06
+bundle_url: https://surfdrive.surf.nl/files/index.php/s/mov7H4wDaog4zkF
+bundle_format: >-
+  Link-only SURFdrive share with one folder per printed work. Each folder holds page JPEGs
+  (NNNN_pNNN.jpg) and a txt/ folder of page-level Transkribus plain-text exports with the same stem.
+  No PAGE XML, no line or word geometry, and no upstream checksums.
+captured_at: 2026-11-06
+entries_path: entries.jsonl
+scope: fixture
+notes: >-
+  Three-entry F8d fixture. Two eligible pages from the NLI copy of the 1781 Amsterdam Ashkenazi
+  regulations amendment (NLI 990021163940205171, manifest licence slug public-domain-free-use). Their
+  upstream JPEG and text bytes are pinned by the sha256 recorded at capture, because the share
+  publishes none. The committed JPEGs are downscaled thumbnails; the text files are the upstream bytes
+  unchanged. Page-level text carries no geometry, so downscaling changes no coordinates. The third
+  entry is metadata only: a page from the HUC Klau Library copy (RBR O 128), whose scan carries no
+  open licence. It is present only to prove that the adapter rejects it.

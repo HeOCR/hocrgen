@@ -115,6 +115,28 @@ sources:
     settings:
       extra:
         hash_snapshot_root: package://data/hash/snapshot
+  - id: yidtaknl_vaybertaytsh_gt
+    name: YidTakNL Vaybertaytsh printed-Yiddish ground truth (figshare 25422844), NLI-scanned pages
+    fetcher: yidtaknl
+    status: review_only
+    default_public_release: false
+    allowed_content_types:
+      - printed_historical
+    rights_strategy:
+      type: exact_match
+      values:
+        - CC-BY-4.0
+    normalized_license: CC-BY-4.0
+    rights_classification: open_with_attribution
+    requires_manual_review: false
+    source_operations:
+      operational_status: active
+      health_expectations:
+        min_candidates: 1
+        min_assets: 1
+    settings:
+      extra:
+        yidtaknl_snapshot_root: package://data/yidtaknl/snapshot
   - id: project_synthetic
     name: hocrsyngen manifest-backed synthetic source
     fetcher: hocrsyngen_manifest
