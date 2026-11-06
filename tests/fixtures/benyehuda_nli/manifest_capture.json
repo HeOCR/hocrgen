@@ -1,0 +1,177 @@
+{
+ "capture_format": "hocrgen.nli_iiif_manifest_capture.v1",
+ "captured_on": "2026-11-06",
+ "canvas_count": 162,
+ "http_status": 200,
+ "manifest": {
+  "@context": "http://iiif.io/api/presentation/2/context.json",
+  "@id": "https://iiif.nli.org.il/IIIFv21/DOCID/NNL_ALEPH21180293670005171/manifest",
+  "@type": "sc:Manifest",
+  "label": "אברהם מאפו : חייו וספריו / מאת ראובן בריינין.",
+  "license": [
+   "https://www.nli.org.il/contenteditors/pages-for-terms-of-use/public-domain-free-use"
+  ],
+  "attribution": [
+   "מאוסף הספרייה הלאומית"
+  ],
+  "logo": [
+   "http://iiif.nli.org.il/IIIFv21/images/nli_logo.jpg"
+  ],
+  "related": "http://merhav.nli.org.il/primo_library/libweb/action/display.do?tabs=detailsTab&ct=display&fn=search&displayMode=full&doc=NNL_ALEPH21180293670005171",
+  "metadata": [
+   {
+    "label": "Title",
+    "value": "אברהם מאפו : חייו וספריו / מאת ראובן בריינין."
+   },
+   {
+    "label": "Publisher",
+    "value": "ווילנא ; ורשה : תושיה"
+   },
+   {
+    "label": "Base",
+    "value": [
+     "$$V972NNL_INST$$ONNL_ALEPH21180293670005171",
+     "$$V972NNL_INST$$ONNL_ALEPH11363384230005171",
+     "$$V972NNL_INST$$ONNL_ALEPH51379409090005171"
+    ]
+   },
+   {
+    "label": "Subject",
+    "value": "מאפו, אברהם, 1808-1867; Hebrew fiction -- History and criticism"
+   },
+   {
+    "label": "Source",
+    "value": [
+     "$$VThe National Library of Israel$$ONNL_ALEPH21180293670005171",
+     "$$VThe National Library of Israel$$ONNL_ALEPH11363384230005171",
+     "$$VThe National Library of Israel$$ONNL_ALEPH51379409090005171"
+    ]
+   },
+   {
+    "label": "The Creator",
+    "value": "ברינין, ראובן, 1862-1939$$Qברינין, ראובן, 1862-1939"
+   },
+   {
+    "label": "Doc Id",
+    "value": "dedupmrg1270498076"
+   },
+   {
+    "label": "Creation Date",
+    "value": "תרפ\"ח"
+   },
+   {
+    "label": "Type",
+    "value": "book"
+   },
+   {
+    "label": "Format",
+    "value": "[2], VII, [3]-150 עמודים ; 8."
+   },
+   {
+    "label": "Language",
+    "value": "heb"
+   },
+   {
+    "label": "Alternative Title",
+    "value": [
+     "אברהם מפו",
+     "חיי אנשי השם",
+     "ביבליותיקה עברית ; פא-פב"
+    ]
+   },
+   {
+    "label": "SysNum",
+    "value": [
+     "$$V21180293670005171$$ONNL_ALEPH21180293670005171",
+     "$$V11363384230005171$$ONNL_ALEPH11363384230005171",
+     "$$V51379409090005171$$ONNL_ALEPH51379409090005171"
+    ]
+   }
+  ],
+  "viewingHint": "paged",
+  "sequences": [
+   {
+    "@id": "https://iiif.nli.org.il/IIIFv21/NNL_ALEPH21180293670005171/sequence/IE40185727",
+    "@type": "sc:Sequence",
+    "canvases": [
+     {
+      "@id": "https://iiif.nli.org.il/IIIFv21/FL40187825",
+      "@type": "sc:Canvas",
+      "label": "jpg_001854644_0009_1",
+      "width": 1623,
+      "height": 2382,
+      "images": [
+       {
+        "@id": "FL40187825",
+        "@type": "oa:Annotation",
+        "motivation": "sc:painting",
+        "on": "https://iiif.nli.org.il/IIIFv21/FL40187825",
+        "resource": {
+         "@id": "https://iiif.nli.org.il/IIIFv21/FL40187825/full/max/0/default.jpg",
+         "@type": "dctypes:Image",
+         "label": "jpg_001854644_0009_1",
+         "format": "image/jpeg;",
+         "service": {
+          "@context": "http://iiif.io/api/image/2/context.json",
+          "@id": "https://iiif.nli.org.il/IIIFv21/FL40187825",
+          "label": "jpg_001854644_0009_1",
+          "profile": "http://iiif.io/api/image/2/level1.json"
+         },
+         "height": 2382,
+         "width": 1623
+        }
+       }
+      ]
+     },
+     {
+      "@id": "https://iiif.nli.org.il/IIIFv21/FL40187831",
+      "@type": "sc:Canvas",
+      "label": "jpg_001854644_0009_2",
+      "width": 1623,
+      "height": 2382,
+      "images": [
+       {
+        "@id": "FL40187831",
+        "@type": "oa:Annotation",
+        "motivation": "sc:painting",
+        "on": "https://iiif.nli.org.il/IIIFv21/FL40187831",
+        "resource": {
+         "@id": "https://iiif.nli.org.il/IIIFv21/FL40187831/full/max/0/default.jpg",
+         "@type": "dctypes:Image",
+         "label": "jpg_001854644_0009_2",
+         "format": "image/jpeg;",
+         "service": {
+          "@context": "http://iiif.io/api/image/2/context.json",
+          "@id": "https://iiif.nli.org.il/IIIFv21/FL40187831",
+          "label": "jpg_001854644_0009_2",
+          "profile": "http://iiif.io/api/image/2/level1.json"
+         },
+         "height": 2382,
+         "width": 1623
+        }
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ },
+ "manifest_url": "https://iiif.nli.org.il/IIIFv21/990018546440205171/manifest",
+ "selected_canvases": [
+  {
+   "asset": "images/c0015.jpg",
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL40187825",
+   "index": 15,
+   "label": "jpg_001854644_0009_1",
+   "sha256": "48c2dbde91e769f3f0515f6052e0787e9b9bbfc6632e91731ee4696b42ab1e09"
+  },
+  {
+   "asset": "images/c0016.jpg",
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL40187831",
+   "index": 16,
+   "label": "jpg_001854644_0009_2",
+   "sha256": "50c16b8e45bbc8b720a4d3647857531a1cdf3258fd23c8dd3f3d6fb27083e60e"
+  }
+ ],
+ "upstream_sha256": "43153515d1b6d39165462691bf5f744971c07c41b264ac00b4317db29b5bf0de"
+}

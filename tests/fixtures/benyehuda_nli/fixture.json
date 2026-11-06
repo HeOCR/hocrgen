@@ -1,0 +1,69 @@
+{
+ "format": "hocrgen.benyehuda_nli_fixture.v1",
+ "notes": "Silver PBY-to-NLI page pairs (F8f). The localization_ocr TSV files are Tesseract output used only to locate PBY text on the page; they are never reference text. Images are grayscale, 800 px wide; boxes are in canvas pixels.",
+ "generated_on": "2026-11-06",
+ "ocr_engine": "tesseract 5.5.3 -l heb --psm 3",
+ "work": {
+  "pby_id": "3149",
+  "path": "/p12/m3149",
+  "title": "אברהם מאפו: חייו וספריו",
+  "authors": "ראובן בריינין",
+  "translators": null,
+  "original_language": null,
+  "source_edition": "אברהם מאפו - חייו וספריו / ראובן בריינין ; וילנא: תושיה, 1928",
+  "source_edition_year": 1928,
+  "source_edition_year_basis": "year",
+  "read_url": "https://benyehuda.org/read/3149",
+  "pby_release": "2026-03",
+  "pby_text_path": "txt/p12/m3149.txt",
+  "pby_text_url": "https://raw.githubusercontent.com/projectbenyehuda/public_domain_dump/2026-03/txt/p12/m3149.txt"
+ },
+ "scan": {
+  "nli_record_id": "990018546440205171",
+  "manifest_url": "https://iiif.nli.org.il/IIIFv21/990018546440205171/manifest",
+  "manifest_upstream_sha256": "43153515d1b6d39165462691bf5f744971c07c41b264ac00b4317db29b5bf0de",
+  "canvas_count": 162,
+  "license_slug": "public-domain-free-use",
+  "rights_decision": {
+   "decision": "accepted",
+   "display_rights": null,
+   "license_slug": "public-domain-free-use",
+   "license_url": "https://www.nli.org.il/contenteditors/pages-for-terms-of-use/public-domain-free-use",
+   "reason": "nli_license_slug_free_use",
+   "rights_basis": "iiif_manifest_license_slug"
+  },
+  "label": "אברהם מאפו : חייו וספריו / מאת ראובן בריינין.",
+  "attribution": [
+   "מאוסף הספרייה הלאומית"
+  ]
+ },
+ "pby_excerpt": {
+  "path": "pby_excerpt.txt",
+  "sha256": "e8e366d200f6bae34d398373746063686da860c2443266682ad9feff4a5ae442",
+  "start_in_work_text": 4227,
+  "end_in_work_text": 7927,
+  "work_text_sha256": "2d98046c23c003f0a6c38572d85f583fea8eed04ebe67a615b89c5b03201b43d"
+ },
+ "manifest_capture": "manifest_capture.json",
+ "manifest_capture_sha256": "cbd51049aca30f8d7ed449688db01a6ed3ce363bd31ea441e68fe84b4883579d",
+ "pages": [
+  {
+   "canvas_index": 15,
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL40187825",
+   "image": "images/c0015.jpg",
+   "image_sha256": "48c2dbde91e769f3f0515f6052e0787e9b9bbfc6632e91731ee4696b42ab1e09",
+   "localization_ocr": "localization_ocr/c0015.tsv",
+   "localization_ocr_sha256": "adcc394e186ae7eb179b42f8f7458de2a5829aad1cf62affebfcce0a93194736",
+   "ocr_image_width": 1600
+  },
+  {
+   "canvas_index": 16,
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL40187831",
+   "image": "images/c0016.jpg",
+   "image_sha256": "50c16b8e45bbc8b720a4d3647857531a1cdf3258fd23c8dd3f3d6fb27083e60e",
+   "localization_ocr": "localization_ocr/c0016.tsv",
+   "localization_ocr_sha256": "c05bd14073e2b1bd19758e2c2dd88f3894a805923a393e1bd854b5a82a0db4c7",
+   "ocr_image_width": 1600
+  }
+ ]
+}
