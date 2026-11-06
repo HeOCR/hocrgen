@@ -64,6 +64,7 @@ from hocrgen.fetchers.wikisource import (
     TRANSCRIPTION_COVERAGE_PARTIAL,
     TRANSCRIPTION_COVERAGE_VALUES,
     crop_box_valid,
+    crop_geometry_valid,
     index_exclusion_reasons,
     licence_tokens,
     load_wikisource_snapshot,
@@ -86,6 +87,11 @@ from hocrgen.parsers.wikitext import (
 
 INVENTORY_SCHEMA_VERSION = "wikisource_index_inventory.v1"
 PAGE_CHECKS_SCHEMA_VERSION = "wikisource_page_render_checks.v1"
+# Crops an agent or human places or confirms by looking at the page render (F8b5): a geometry fact, not an
+# attestation of the text. ``tool_crop_confirmed``: the tool's box or regions kept as they are;
+# ``tool_crop_corrected``: the tool's crop moved or split; ``placed``: drawn where the tool placed none.
+REVIEWED_CROP_METHODS = frozenset({"agent_visual_crop.v1", "human_visual_crop.v1"})
+REVIEWED_CROP_BASES = frozenset({"tool_crop_confirmed", "tool_crop_corrected", "placed"})
 # The crop method of hocrgen.tools.wikisource_coverage (named once in the compact tool-checks file).
 CROP_METHOD = "ocr_alignment_union_box.v1"
 PAGE_CHECKERS = ("tool", "agent", "human")
@@ -96,6 +102,7 @@ USER_AGENT = "hocrgen-wikisource-inventory/0.1 (https://github.com/HeOCR/hocrgen
 WS_API = "https://he.wikisource.org/w/api.php"
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
 WIKIDATA_API = "https://www.wikidata.org/w/api.php"
+META_API = "https://meta.wikimedia.org/w/api.php"
 WS_SITE = "https://he.wikisource.org"
 INDEX_NAMESPACE = 112
 PAGE_NAMESPACE = 104
@@ -1139,11 +1146,14 @@ def page_check_problems(check: dict[str, Any]) -> list[str]:
         problems.append("checked_at must be an ISO date")
     if check.get("checked_by") == "tool":
         problems.extend(crop_problems(check.get("crop")))
+    elif check.get("crop") is not None:
+        problems.extend(reviewed_crop_problems(check))
     return problems
 
 
 def crop_problems(crop: Any) -> list[str]:
-    """Schema problems of a tool check's crop: a resolved crop needs a box inside the page, an unresolved one a reason."""
+    """Schema problems of a tool check's crop: a resolved crop needs a box inside the page (and, with regions, regions
+    whose union is the box), an unresolved one a reason."""
 
     if not isinstance(crop, dict):
         return ["a tool check must record its crop"]
@@ -1151,7 +1161,31 @@ def crop_problems(crop: Any) -> list[str]:
         return [] if crop.get("reason") else ["an unresolved crop must give its reason"]
     if crop.get("status") != "resolved":
         return ["crop status must be resolved or unresolved"]
-    return [] if crop_box_valid(crop.get("box_normalized")) else ["a resolved crop needs a box inside the page"]
+    if not crop_box_valid(crop.get("box_normalized")):
+        return ["a resolved crop needs a box inside the page"]
+    return [] if crop_geometry_valid(crop) else ["crop regions must be two or more boxes inside the page whose union is the box"]
+
+
+def reviewed_crop_problems(check: dict[str, Any]) -> list[str]:
+    """Schema problems of a crop an agent or human placed or confirmed by looking at the page (F8b5).
+
+    It is a geometry fact, not an attestation of the text: a resolved box (or regions) on a ``partial_page`` check,
+    with its method and basis (``tool_crop_confirmed``, ``tool_crop_corrected`` or ``placed``).
+    """
+
+    crop = check["crop"]
+    if not isinstance(crop, dict) or crop.get("status") != "resolved":
+        return ["an agent or human crop must be a resolved crop"]
+    problems = [] if check.get("transcription_coverage") == TRANSCRIPTION_COVERAGE_PARTIAL else ["only a partial_page check records a crop"]
+    if crop.get("method") not in REVIEWED_CROP_METHODS:
+        problems.append(f"an agent or human crop's method must be one of {', '.join(sorted(REVIEWED_CROP_METHODS))}")
+    if crop.get("basis") not in REVIEWED_CROP_BASES:
+        problems.append(f"an agent or human crop's basis must be one of {', '.join(sorted(REVIEWED_CROP_BASES))}")
+    if not crop_box_valid(crop.get("box_normalized")):
+        problems.append("a resolved crop needs a box inside the page")
+    elif not crop_geometry_valid(crop):
+        problems.append("crop regions must be two or more boxes inside the page whose union is the box")
+    return problems
 
 
 def select_page_checks(payload: dict[str, Any] | list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
@@ -1243,34 +1277,51 @@ def apply_page_check(page: dict[str, Any], index: dict[str, Any], check: dict[st
         return provenance
     page["transcription_coverage"] = check["transcription_coverage"]
     page["transcription_coverage_check"] = {key: value for key, value in provenance.items() if key != "applied"}
-    if check["transcription_coverage"] == TRANSCRIPTION_COVERAGE_PARTIAL and tool is not None:
-        page["crop"] = crop_record(tool)
+    if check["transcription_coverage"] == TRANSCRIPTION_COVERAGE_PARTIAL:
+        # An agent's or human's own crop (F8b5) wins; otherwise the tool's crop serves the deciding check.
+        if check["checked_by"] != "tool" and check.get("crop"):
+            page["crop"] = crop_record(check)
+            provenance["crop_by"] = check["checked_by"]
+        elif tool is not None:
+            page["crop"] = crop_record(tool)
+            provenance["crop_by"] = "tool"
+        if "crop_by" in provenance:
+            page["transcription_coverage_check"]["crop_by"] = provenance["crop_by"]
     return provenance
 
 
-def crop_record(tool: dict[str, Any]) -> dict[str, Any]:
-    """The page record's ``crop`` (F8b4): the tool's crop geometry and how it was located. No OCR text."""
+def crop_record(check: dict[str, Any]) -> dict[str, Any]:
+    """The page record's ``crop`` (F8b4): the crop geometry and how it was located. No OCR or page text.
 
-    crop = tool.get("crop") or {}
-    return {
+    A tool crop records the OCR engine and the alignment scores; an agent's or human's crop (F8b5) records who
+    placed or confirmed it, on which render, and on what basis, and is no longer ``review_recommended``.
+    """
+
+    crop = check.get("crop") or {}
+    record = {
         "status": crop.get("status"),
         "reason": crop.get("reason"),
         "method": crop.get("method") or CROP_METHOD,
         "box_normalized": crop.get("box_normalized"),
+        **({"regions_normalized": crop["regions_normalized"]} if crop.get("regions_normalized") else {}),
         "untranscribed_inside": crop.get("untranscribed_inside") or [],
         "untranscribed_inside_area_share": crop.get("untranscribed_inside_area_share"),
-        "review_recommended": bool(crop.get("review_recommended")),
+        "review_recommended": bool(crop.get("review_recommended")) and check["checked_by"] == "tool",
         "located_by": {
-            "checker": tool["checker"],
-            "checked_at": tool["checked_at"],
-            "method": tool["method"],
-            "render_url": tool.get("render_url"),
-            "render_sha256": tool.get("render_sha256"),
-            "render_size": tool.get("render_size"),
-            "ocr_engine": tool.get("ocr_engine"),
-            "alignment": tool.get("alignment"),
+            "checked_by": check["checked_by"],
+            "checker": check["checker"],
+            "checked_at": check["checked_at"],
+            "method": check["method"],
+            "render_url": check.get("render_url"),
+            "render_sha256": check.get("render_sha256"),
+            "render_size": check.get("render_size"),
         },
     }
+    if check["checked_by"] == "tool":
+        record["located_by"].update({"ocr_engine": check.get("ocr_engine"), "alignment": check.get("alignment")})
+    else:
+        record["located_by"]["basis"] = crop.get("basis")
+    return record
 
 
 def unsupported_markup(page: dict[str, Any], root: Path) -> str | None:
@@ -1536,6 +1587,10 @@ def capture_page_record(fetch: FetchJson, title: str, index: dict[str, Any], roo
                 "pagequality_user_attribute": attribute.group(1) if attribute else None,
             })
             previous = level
+    for entry in history:
+        # The attribute keeps the name at the time of the edit; the history shows the current name (F8b5).
+        if entry["pagequality_user_attribute"] and entry["pagequality_user_attribute"] != entry["user"]:
+            entry["user_renames"] = user_renames(fetch, entry["user"], entry["pagequality_user_attribute"])
     quality_set = history[-1] if history else {"revision_id": pinned["revid"]}
     texts: dict[int, str | None] = {}
     for revision in revisions:
@@ -1586,6 +1641,27 @@ def capture_page_record(fetch: FetchJson, title: str, index: dict[str, Any], roo
         "text_sha256": hashlib.sha256(text.encode()).hexdigest() if text is not None else None,
         **({"transclusions": transclusions} if transclusions else {}),
     }
+
+
+def renames_from_log(payload: dict[str, Any], wiki: str) -> list[dict[str, Any]]:
+    """User renames from a ``list=logevents`` reply (global ``gblrename`` on Meta, or local ``renameuser``)."""
+
+    renames = []
+    for event in (payload.get("query") or {}).get("logevents") or []:
+        params = event.get("params") or {}
+        if event.get("type") in {"gblrename", "renameuser"} and params.get("olduser") and params.get("newuser"):
+            renames.append({"old": params["olduser"], "new": params["newuser"], "log_id": event.get("logid"), "timestamp": event.get("timestamp"),
+                            "log_type": event["type"], "wiki": wiki})
+    return renames
+
+
+def user_renames(fetch: FetchJson, user: str, former: str) -> list[dict[str, Any]]:  # pragma: no cover - network
+    """Renames of the account now called ``user`` (global log, by its current name) and of ``former`` (local log, by
+    the old name's user page), so a ``<pagequality user=...>`` attribute written before a rename can be matched."""
+
+    meta = fetch(META_API, {"action": "query", "list": "logevents", "letype": "gblrename", "letitle": f"Special:CentralAuth/{user}", "lelimit": "20"})
+    local = fetch(WS_API, {"action": "query", "list": "logevents", "letype": "renameuser", "letitle": f"User:{former}", "lelimit": "20"})
+    return renames_from_log(meta, "https://meta.wikimedia.org") + renames_from_log(local, WS_SITE)
 
 
 def pin_transclusions(fetch: FetchJson, wikitext: str, root: Path) -> tuple[list[dict[str, Any]], dict[str, str]]:  # pragma: no cover - network
@@ -1693,6 +1769,9 @@ def _page_gate_counts(pages: list[dict[str, Any]]) -> dict[str, Any]:
     eligible = {"3": 0, "4": 0}
     cropped = {"3": 0, "4": 0}
     cropped_review = {"3": 0, "4": 0}
+    cropped_regions = {"3": 0, "4": 0}
+    cropped_reviewed = {"3": 0, "4": 0}
+    pending_pages: list[dict[str, Any]] = []
     unresolved_crop = {"3": 0, "4": 0}
     unresolved_coverage = {"3": 0, "4": 0}
     needs_crop = {"3": 0, "4": 0}
@@ -1732,6 +1811,7 @@ def _page_gate_counts(pages: list[dict[str, Any]]) -> dict[str, Any]:
             pending[level] += 1
             if check and check.get("reason") == "tool_alignment_too_poor":
                 unresolved_coverage[level] += 1
+            pending_pages.append({"page_title": page.get("page_title"), "quality": page["quality"], "checked_by": (check or {}).get("checked_by")})
             continue
         if crop_reason:
             unresolved_crop[level] += 1
@@ -1743,6 +1823,10 @@ def _page_gate_counts(pages: list[dict[str, Any]]) -> dict[str, Any]:
         (cropped if page.get("needs_crop") else eligible)[level] += 1
         if page.get("needs_crop") and (page.get("crop") or {}).get("review_recommended"):
             cropped_review[level] += 1
+        if page.get("needs_crop") and (page.get("crop") or {}).get("regions_normalized"):
+            cropped_regions[level] += 1
+        if page.get("needs_crop") and ((page.get("crop") or {}).get("located_by") or {}).get("checked_by") in {"agent", "human"}:
+            cropped_reviewed[level] += 1
         if page["quality"] == 4 and page["adjudication_eligible"]:
             reference_now += 1
     for page in pages:
@@ -1755,6 +1839,8 @@ def _page_gate_counts(pages: list[dict[str, Any]]) -> dict[str, Any]:
         "eligible": eligible,
         "cropped": cropped,
         "cropped_review_recommended": cropped_review,
+        "cropped_regions": cropped_regions,
+        "cropped_reviewed": cropped_reviewed,
         "crop_unresolved": unresolved_crop,
         "needs_crop": needs_crop,
         "pending_coverage_only": pending,
@@ -1765,6 +1851,7 @@ def _page_gate_counts(pages: list[dict[str, Any]]) -> dict[str, Any]:
         "reference_eligible_now_q4": reference_now,
         "render_checks": dict(sorted(checks.items())),
         "crop_unresolved_pages": sorted(crop_unresolved_pages, key=lambda entry: entry["page_title"]),
+        "pending_coverage_pages": sorted(pending_pages, key=lambda entry: str(entry["page_title"])),
         "rejected_by_first_reason": dict(sorted(reasons.items())),
         "unsupported_markup": dict(sorted(markup.items())),
     }
@@ -1819,6 +1906,23 @@ F8B3_BASELINE = {
     "reference_eligible_q4": 29,
     "reference_eligible_now_q4": 25,
 }
+# The F8b4 run (committed before F8b5), for the funnel's before column.
+F8B4_BASELINE = {
+    "indexes_admitted": 68,
+    "pages_admitted": {"3": 1184, "4": 48},
+    "pages_converting": {"3": 1184, "4": 48},
+    "pages_passing_but_coverage": {"3": 1167, "4": 48},
+    "pages_full_page": {"3": 837, "4": 43},
+    "pages_cropped": {"3": 196, "4": 4},
+    "pages_cropped_review_recommended": {"3": 52, "4": 1},
+    "pages_cropped_regions": {"3": 0, "4": 0},
+    "pages_cropped_reviewed": {"3": 25, "4": 4},
+    "pages_crop_unresolved": {"3": 60, "4": 1},
+    "pages_pending": {"3": 74, "4": 0},
+    "pages_tool_undecided": {"3": 74, "4": 0},
+    "reference_eligible_q4": 29,
+    "reference_eligible_now_q4": 28,
+}
 
 
 def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int = 15) -> str:
@@ -1846,7 +1950,7 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
         gate = record.get("page_gate") or {}
         totals["checked"] += int(gate.get("checked", 0))
         for level in ("3", "4"):
-            for key in ("converts", "pending_coverage_only", "eligible", "needs_crop", "cropped", "cropped_review_recommended", "crop_unresolved", "coverage_unresolved", "footnote_marks_bracketed"):
+            for key in ("converts", "pending_coverage_only", "eligible", "needs_crop", "cropped", "cropped_review_recommended", "cropped_regions", "cropped_reviewed", "crop_unresolved", "coverage_unresolved", "footnote_marks_bracketed"):
                 totals[f"{key}{level}"] += int((gate.get(key) or {}).get(level, 0))
         totals["reference"] += int(gate.get("reference_eligible_q4", 0))
         totals["reference_now"] += int(gate.get("reference_eligible_now_q4", 0))
@@ -1859,7 +1963,9 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
     passing4 = totals["pending_coverage_only4"] + totals["eligible4"] + totals["cropped4"] + totals["crop_unresolved4"]
     base = F8B2_BASELINE
     before = F8B3_BASELINE
+    last = F8B4_BASELINE
     crop_unresolved_pages = [entry for r in admitted for entry in ((r.get("page_gate") or {}).get("crop_unresolved_pages") or [])]
+    pending_pages = [entry for r in admitted for entry in ((r.get("page_gate") or {}).get("pending_coverage_pages") or [])]
 
     def _pair(values: dict[str, int]) -> str:
         return f"{values['3']} / {values['4']}"
@@ -1869,7 +1975,7 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
         return f"{values.get('3', 0)} / {values.get('4', 0)}"
 
     lines = [
-        "# Hebrew Wikisource Index inventory (F8b2, F8b3, F8b4)",
+        "# Hebrew Wikisource Index inventory (F8b2, F8b3, F8b4, F8b5)",
         "",
         f"Generated by `hocrgen.tools.wikisource_inventory` from evidence checked on {compact['checked_at']}; do not edit by hand.",
         "The per-Index data is in [`wikisource_index_inventory.json`](./wikisource_index_inventory.json). The evidence the run adds to",
@@ -1881,26 +1987,29 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
         "",
         "## Funnel",
         "",
-        "Quality-3 / quality-4 pages at each stage. F8b2 is the run before F8b3, and F8b3 the run before F8b4 (same evidence date).",
+        "Quality-3 / quality-4 pages at each stage. Each column is the run before the next PR (same evidence date).",
         "",
-        "| Stage | F8b2 | F8b3 | F8b4 |",
-        "| --- | ---: | ---: | ---: |",
-        f"| Indexes; their quality-3 / quality-4 pages | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} |",
-        f"| Indexes admitted by the Index gate | {base['indexes_admitted']} | {before['indexes_admitted']} | {len(admitted)} |",
-        f"| Pages in admitted Indexes | {_pair(base['pages_admitted'])} | {_pair(before['pages_admitted'])} | {sum(_q(r, '3') for r in admitted)} / {sum(_q(r, '4') for r in admitted)} |",
-        f"| Pages the converter renders (`wikisource_plain_text`) | {_pair(base['pages_converting'])} | {_pair(before['pages_converting'])} | {totals['converts3']} / {totals['converts4']} |",
-        f"| Pages passing every other gate (attestation, checksums) | {_pair(base['pages_passing_but_coverage'])} | {_pair(before['pages_passing_but_coverage'])} | {passing3} / {passing4} |",
-        f"| **Eligible as full pages** (`full_page`) | {_pair(base['pages_full_page'])} | {_pair(before['pages_full_page'])} | {totals['eligible3']} / {totals['eligible4']} |",
-        f"| **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | {_pair(before['pages_cropped'])} | {totals['cropped3']} / {totals['cropped4']} |",
-        f"| Of those, crop on a poorly read page (`review_recommended`) | — | — | {totals['cropped_review_recommended3']} / {totals['cropped_review_recommended4']} |",
-        f"| `partial_page` without a resolved crop (`crop_unresolved`, listed below) | 0 / 0 | {_pair(before['pages_crop_unresolved'])} | {totals['crop_unresolved3']} / {totals['crop_unresolved4']} |",
+        "| Stage | F8b2 | F8b3 | F8b4 | F8b5 |",
+        "| --- | ---: | ---: | ---: | ---: |",
+        f"| Indexes; their quality-3 / quality-4 pages | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} |",
+        f"| Indexes admitted by the Index gate | {base['indexes_admitted']} | {before['indexes_admitted']} | {last['indexes_admitted']} | {len(admitted)} |",
+        f"| Pages in admitted Indexes | {_pair(base['pages_admitted'])} | {_pair(before['pages_admitted'])} | {_pair(last['pages_admitted'])} | {sum(_q(r, '3') for r in admitted)} / {sum(_q(r, '4') for r in admitted)} |",
+        f"| Pages the converter renders (`wikisource_plain_text`) | {_pair(base['pages_converting'])} | {_pair(before['pages_converting'])} | {_pair(last['pages_converting'])} | {totals['converts3']} / {totals['converts4']} |",
+        f"| Pages passing every other gate (attestation, checksums) | {_pair(base['pages_passing_but_coverage'])} | {_pair(before['pages_passing_but_coverage'])} | {_pair(last['pages_passing_but_coverage'])} | {passing3} / {passing4} |",
+        f"| **Eligible as full pages** (`full_page`) | {_pair(base['pages_full_page'])} | {_pair(before['pages_full_page'])} | {_pair(last['pages_full_page'])} | {totals['eligible3']} / {totals['eligible4']} |",
+        f"| **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | {_pair(before['pages_cropped'])} | {_pair(last['pages_cropped'])} | {totals['cropped3']} / {totals['cropped4']} |",
+        f"| Of those, crop placed or confirmed by an agent or human | — | — | {_pair(last['pages_cropped_reviewed'])} | {totals['cropped_reviewed3']} / {totals['cropped_reviewed4']} |",
+        f"| Of those, multi-region crop (rest of the box masked) | — | — | {_pair(last['pages_cropped_regions'])} | {totals['cropped_regions3']} / {totals['cropped_regions4']} |",
+        f"| Of those, tool crop on a poorly read page, not reviewed (`review_recommended`) | — | — | {_pair(last['pages_cropped_review_recommended'])} | {totals['cropped_review_recommended3']} / {totals['cropped_review_recommended4']} |",
+        f"| `partial_page` without a resolved crop (`crop_unresolved`, listed below) | 0 / 0 | {_pair(before['pages_crop_unresolved'])} | {_pair(last['pages_crop_unresolved'])} | {totals['crop_unresolved3']} / {totals['crop_unresolved4']} |",
         f"| Coverage not decided (no check; of them, tool alignment too poor) | {_pair(base['pages_passing_but_coverage'])}; — | {_pair(before['pages_pending'])}; — "
-        f"| {totals['pending_coverage_only3']} / {totals['pending_coverage_only4']}; {totals['coverage_unresolved3']} / {totals['coverage_unresolved4']} |",
-        f"| Reference-eligible quality-4 pages (adjudication-eligible), every gate but coverage | {base['reference_eligible_q4']} | {before['reference_eligible_q4']} | {totals['reference']} |",
-        f"| Of those, eligible now (full page or cropped) | 0 | {before['reference_eligible_now_q4']} | {totals['reference_now']} |",
+        f"| {_pair(last['pages_pending'])}; {_pair(last['pages_tool_undecided'])} | {totals['pending_coverage_only3']} / {totals['pending_coverage_only4']}; {totals['coverage_unresolved3']} / {totals['coverage_unresolved4']} |",
+        f"| Reference-eligible quality-4 pages (adjudication-eligible), every gate but coverage | {base['reference_eligible_q4']} | {before['reference_eligible_q4']} | {last['reference_eligible_q4']} | {totals['reference']} |",
+        f"| Of those, eligible now (full page or cropped) | 0 | {before['reference_eligible_now_q4']} | {last['reference_eligible_now_q4']} | {totals['reference_now']} |",
         "",
         "In F8b2 the converter column counts pages that also passed the other page gates; the F8b2 run did not count them apart.",
-        "In F8b3 every `partial_page` page was `needs_crop`: no crop existed yet.",
+        "In F8b3 every `partial_page` page was `needs_crop`: no crop existed yet. In F8b4 the reviewed crops are the tool's crops",
+        "serving an agent's `partial_page` verdict; from F8b5 an agent or human can place or correct the crop itself.",
         "",
         "Transcription coverage comes from page checks pinned to the page revision and Commons file. A human check overrides an",
         "agent check, and either overrides a tool check. The tool (`hocrgen.tools.wikisource_coverage`, F8b4) runs Tesseract on the",
@@ -1981,6 +2090,19 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
         )
     if not crop_unresolved_pages:
         lines.append("| (none) | | | | |")
+    lines += [
+        "",
+        "## Pages whose coverage is not decided",
+        "",
+        "Pages that pass every other gate but that no check decides, with who last checked them.",
+        "",
+        "| Page | Quality | Last check |",
+        "| --- | ---: | --- |",
+    ]
+    for entry in sorted(pending_pages, key=lambda entry: str(entry["page_title"])):
+        lines.append(f"| {_cell(entry['page_title'])} | {entry['quality']} | {entry.get('checked_by') or '—'} |")
+    if not pending_pages:
+        lines.append("| (none) | | |")
     if totals["render_stale"]:
         lines += ["", f"{totals['render_stale']} recorded checks are stale (another page revision or Commons file) and were not applied."]
     lines += [

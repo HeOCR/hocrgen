@@ -92,6 +92,8 @@ TRANSCRIPTION_COVERAGE_FULL = "full_page"
 TRANSCRIPTION_COVERAGE_PARTIAL = "partial_page"
 TRANSCRIPTION_COVERAGE_VALUES = {TRANSCRIPTION_COVERAGE_FULL, TRANSCRIPTION_COVERAGE_PARTIAL}
 CROP_RESOLVED = "resolved"
+# A multi-region crop's box is the union of its regions, to the rounding of the recorded boxes (F8b5).
+CROP_REGION_UNION_TOLERANCE = 0.002
 # Footnote marks: the printed mark (``*)``, ``1)``, ``(א``) is not typed by editors, so the converter writes the
 # MediaWiki number as ``[n]``. Recorded per page so evaluation can mask the marks (F8b4).
 FOOTNOTE_MARKER_STYLE = "bracketed_index"
@@ -310,6 +312,35 @@ def _is_named_human(entry: dict[str, Any]) -> bool:
     return bool(name) and int(entry.get("user_id") or 0) > 0 and "bot" not in (entry.get("user_groups") or []) and not _BOT_NAME.search(name)
 
 
+def pagequality_attribute_names_editor(entry: dict[str, Any]) -> bool:
+    """Whether the ``<pagequality user=...>`` attribute names the editor who set that quality (F8b5).
+
+    The attribute keeps the username at the time of the edit, while the page history shows the account's current
+    name. It names the editor when it equals that name, or when the account was renamed from it after the edit: a
+    recorded rename (``user_renames``, from the global or local rename log, with its log id and timestamp) made after
+    the quality edit, whose chain of renames ends at the current name. Nothing else matches.
+    """
+
+    attribute, user = entry.get("pagequality_user_attribute"), entry.get("user")
+    if attribute == user:
+        return True
+    names = {user}
+    edited = str(entry.get("timestamp") or "")
+    renames = [
+        rename
+        for rename in entry.get("user_renames") or []
+        if rename.get("log_id") and rename.get("old") and rename.get("new") and edited and str(rename.get("timestamp") or "") > edited
+    ]
+    changed = True
+    while changed:
+        changed = False
+        for rename in renames:
+            if rename["new"] in names and rename["old"] not in names:
+                names.add(rename["old"])
+                changed = True
+    return attribute in names
+
+
 def page_exclusion_reasons(page: dict[str, Any], indexes: dict[str, dict[str, Any]], root: Path) -> list[str]:
     reasons: list[str] = []
     index = indexes.get(str(page.get("index_key")))
@@ -333,7 +364,7 @@ def page_exclusion_reasons(page: dict[str, Any], indexes: dict[str, dict[str, An
     present = [entry for entry in editors if entry is not None]
     if any(not _is_named_human(entry) for entry in present):
         reasons.append("quality_editor_not_named_human")
-    if any(entry.get("pagequality_user_attribute") != entry.get("user") for entry in present):
+    if any(not pagequality_attribute_names_editor(entry) for entry in present):
         reasons.append("quality_attribute_mismatch")
     if proofreader and validator and (
         proofreader.get("user") == validator.get("user") or proofreader.get("user_id") == validator.get("user_id")
@@ -371,9 +402,24 @@ def page_crop_reasons(page: dict[str, Any]) -> list[str]:
         return ["crop_unrecorded"]
     if crop.get("status") != CROP_RESOLVED:
         return ["crop_unresolved"]
-    if not crop_box_valid(crop.get("box_normalized")):
+    if not crop_geometry_valid(crop):
         return ["crop_geometry_invalid"]
     return []
+
+
+def crop_geometry_valid(crop: dict[str, Any]) -> bool:
+    """A resolved crop's geometry: its box inside the page and, for a multi-region crop (F8b5), at least two regions,
+    each inside the page, whose union is the box (to the rounding of the recorded boxes)."""
+
+    if not crop_box_valid(crop.get("box_normalized")):
+        return False
+    regions = crop.get("regions_normalized")
+    if regions is None:
+        return True
+    if not isinstance(regions, list) or len(regions) < 2 or not all(crop_box_valid(region) for region in regions):
+        return False
+    union = [min(r[0] for r in regions), min(r[1] for r in regions), max(r[2] for r in regions), max(r[3] for r in regions)]
+    return all(abs(a - b) <= CROP_REGION_UNION_TOLERANCE for a, b in zip(union, crop["box_normalized"]))
 
 
 def crop_box_valid(box: Any) -> bool:
@@ -395,6 +441,47 @@ def crop_pixel_box(box_normalized: list[float], width: int, height: int) -> tupl
         min(width, math.ceil(x1 * width)),
         min(height, math.ceil(y1 * height)),
     )
+
+
+def crop_region_boxes(crop: dict[str, Any], width: int, height: int) -> list[tuple[int, int, int, int]]:
+    """The regions of a multi-region crop in an image of this size (each rounded outward); empty for a one-box crop."""
+
+    return [crop_pixel_box(region, width, height) for region in crop.get("regions_normalized") or []]
+
+
+def crop_mask_fill(page_image: Image.Image, box: tuple[int, int, int, int]) -> list[int]:
+    """The page background under a crop box: the upper-quartile value of each RGB channel (print is darker)."""
+
+    histograms = page_image.convert("RGB").crop(box).histogram()
+    fill = []
+    for channel in range(3):
+        counts = histograms[channel * 256 : (channel + 1) * 256]
+        target, seen = 0.75 * sum(counts), 0
+        for value, count in enumerate(counts):
+            seen += count
+            if seen >= target:
+                fill.append(value)
+                break
+    return fill
+
+
+def crop_image(page_image: Image.Image, crop: dict[str, Any]) -> Image.Image:
+    """The image a partial page pairs with: the page cut at the crop box (F8b4).
+
+    For a multi-region crop (F8b5) every pixel of the box outside the regions is set to the recorded ``mask_fill``
+    (the page background), and each region is pasted from the page unchanged, so the transcribed pixels are the
+    page's own. Masking keeps the regions where they stand on the page.
+    """
+
+    rgb = page_image.convert("RGB")
+    box = crop_pixel_box(crop["box_normalized"], *rgb.size)
+    regions = crop_region_boxes(crop, *rgb.size)
+    if not regions:
+        return rgb.crop(box)
+    canvas = Image.new("RGB", (box[2] - box[0], box[3] - box[1]), tuple(int(value) for value in crop["mask_fill"]))
+    for region in regions:
+        canvas.paste(rgb.crop(region), (region[0] - box[0], region[1] - box[1]))
+    return canvas
 
 
 def crop_asset_problems(page: dict[str, Any], root: Path) -> list[str]:
@@ -422,7 +509,14 @@ def crop_asset_problems(page: dict[str, Any], root: Path) -> list[str]:
         box = crop_pixel_box(crop["box_normalized"], *page_image.size)
         if list(box) != list(crop.get("box_px") or []):
             return ["crop_geometry_mismatch"]
-        expected = page_image.convert("RGB").crop(box)
+        if crop.get("regions_normalized") is not None:
+            regions = crop_region_boxes(crop, *page_image.size)
+            fill = crop.get("mask_fill")
+            if [list(region) for region in regions] != [list(region) for region in crop.get("regions_px") or []]:
+                return ["crop_geometry_mismatch"]
+            if not (isinstance(fill, list) and len(fill) == 3 and all(isinstance(v, int) and 0 <= v <= 255 for v in fill)):
+                return ["crop_mask_fill_invalid"]
+        expected = crop_image(page_image, crop)
     with Image.open(path) as cropped:
         cropped = cropped.convert("RGB")
         if cropped.size != expected.size:
@@ -547,6 +641,10 @@ def crop_provenance(page: dict[str, Any]) -> dict[str, Any]:
         "source_page_image": {"path": image["path"], "sha256": image["sha256"], "width": image["width"], "height": image["height"]},
         "box_px": crop["box_px"],
         "box_normalized": crop["box_normalized"],
+        # F8b5: a multi-region crop keeps only these regions of the box; the rest is masked to ``mask_fill``.
+        "regions_px": crop.get("regions_px"),
+        "regions_normalized": crop.get("regions_normalized"),
+        "mask_fill": crop.get("mask_fill"),
         "method": crop["method"],
         "untranscribed_inside": crop.get("untranscribed_inside") or [],
         "untranscribed_inside_area_share": crop.get("untranscribed_inside_area_share"),
@@ -799,7 +897,11 @@ def write_wikisource_reference_pool(source: SourceConfig, bundle: ConfigBundle, 
                 "wikisource_revision_id": page["revision_id"],
                 "adjudication_status": "needs_adjudication",
                 "reference_normalization": reference_normalization(page_conversion(page, root)),
-                "image": {"crop_of_page": page["image"]["sha256"], "box_normalized": page["crop"]["box_normalized"]}
+                "image": {
+                    "crop_of_page": page["image"]["sha256"],
+                    "box_normalized": page["crop"]["box_normalized"],
+                    **({"regions_normalized": page["crop"]["regions_normalized"]} if page["crop"].get("regions_normalized") else {}),
+                }
                 if page_needs_crop(page)
                 else {"page": page["image"]["sha256"]},
             }

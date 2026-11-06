@@ -17,14 +17,20 @@ from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.wikisource import (
     WikisourceProofreadImporter,
     crop_asset_problems,
+    crop_geometry_valid,
+    crop_image,
+    crop_mask_fill,
+    crop_pixel_box,
     index_exclusion_reason,
     index_exclusion_reasons,
     load_wikisource_snapshot,
     page_attestation,
     digitized_by_google,
     page_exclusion_reason,
+    page_exclusion_reasons,
     page_needs_crop,
     page_plain_text,
+    pagequality_attribute_names_editor,
     scan_source_origin,
     write_wikisource_reference_pool,
 )
@@ -243,6 +249,18 @@ def test_page_gate_skips_low_quality_and_unattributed_quality() -> None:
     mismatch = copy.deepcopy(pages[SELIHOT])
     mismatch["quality_history"][-1]["pagequality_user_attribute"] = "Someone"
     assert page_exclusion_reason(mismatch, indexes, SNAPSHOT_ROOT) == "quality_attribute_mismatch"
+    # F8b5: the attribute keeps the name at the time of the edit; a recorded rename of the account after the edit matches it.
+    renamed = copy.deepcopy(mismatch)
+    entry = renamed["quality_history"][-1]
+    rename = {"old": "Someone", "new": entry["user"], "log_id": 59156686, "timestamp": "2099-01-01T00:00:00Z", "log_type": "gblrename", "wiki": "https://meta.wikimedia.org"}
+    entry["user_renames"] = [rename]
+    assert "quality_attribute_mismatch" not in page_exclusion_reasons(renamed, indexes, SNAPSHOT_ROOT)
+    entry["user_renames"] = [{**rename, "timestamp": "2000-01-01T00:00:00Z"}]  # renamed before the edit: someone else's name
+    assert page_exclusion_reason(renamed, indexes, SNAPSHOT_ROOT) == "quality_attribute_mismatch"
+    entry["user_renames"] = [{**rename, "new": "Another"}]  # another account's rename
+    assert page_exclusion_reason(renamed, indexes, SNAPSHOT_ROOT) == "quality_attribute_mismatch"
+    entry["user_renames"] = [{**rename, "log_id": None}]  # no log entry recorded
+    assert page_exclusion_reason(renamed, indexes, SNAPSHOT_ROOT) == "quality_attribute_mismatch"
     self_validated = copy.deepcopy(pages[SELIHOT])
     proofreader = next(entry for entry in self_validated["quality_history"] if entry["level"] == 3)
     proofreader.update({"user": "Nahum", "user_id": 68, "pagequality_user_attribute": "Nahum"})
@@ -701,3 +719,76 @@ def test_reference_pool_converts_only_adjudication_eligible_validated_pages(tmp_
     _, pages = _snapshot()
     assert record.pages[0].text == page_plain_text(pages[SELIHOT], SNAPSHOT_ROOT)
     assert "\n".join(line.text for line in record.lines) == record.pages[0].text.replace("\n\n", "\n")
+
+
+def test_rename_chains_match_the_attribute_only_through_the_editors_own_account() -> None:
+    """F8b5: Eitan96 was איתן96 until 2014-07-30 (Meta log 9259138); J. Nord was Elendil 03 until 2025-03-21."""
+
+    entry = {"user": "J. Nord", "pagequality_user_attribute": "Elendil 03", "timestamp": "2024-04-05T16:01:05Z"}
+    assert not pagequality_attribute_names_editor(entry)
+    renames = [
+        {"old": "Elendil 03", "new": "J. Nord", "log_id": 59156686, "timestamp": "2025-03-21T15:38:05Z"},
+        {"old": "Elendil 03", "new": "J. Nord", "log_id": 1749979, "timestamp": "2025-03-21T15:38:36Z"},
+    ]
+    assert pagequality_attribute_names_editor({**entry, "user_renames": renames})
+    chain = [{"old": "A", "new": "B", "log_id": 1, "timestamp": "2025-01-01"}, {"old": "B", "new": "J. Nord", "log_id": 2, "timestamp": "2025-06-01"}]
+    assert pagequality_attribute_names_editor({**entry, "pagequality_user_attribute": "A", "user_renames": chain})
+    assert not pagequality_attribute_names_editor({**entry, "pagequality_user_attribute": "C", "user_renames": chain})
+    assert pagequality_attribute_names_editor({"user": "X", "pagequality_user_attribute": "X"})
+
+
+def test_a_multi_region_crop_masks_the_rest_of_its_box_and_keeps_the_regions_pixels(tmp_path: Path) -> None:
+    """F8b5: interleaved untranscribed blocks are masked to the page background; the transcribed pixels are the page's."""
+
+    from PIL import Image
+
+    config_root = _copy_snapshot_config(tmp_path)
+    snapshot = config_root / "wikisource_snapshot"
+    pages_path = snapshot / "pages.jsonl"
+    pages = [json.loads(line) for line in pages_path.read_text(encoding="utf-8").splitlines()]
+    page = next(page for page in pages if page["source_item_id"] == BUBER)
+    crop = page["crop"]
+    x0, y0, x1, y1 = crop["box_normalized"]
+    middle = round((y0 + y1) / 2, 3)
+    crop["regions_normalized"] = [[x0, y0, x1, middle - 0.02], [round((x0 + x1) / 2, 3), middle + 0.02, x1, y1]]
+    crop["method"] = "agent_visual_crop.v1"
+    assert crop_geometry_valid(crop)
+    with Image.open(snapshot / page["image"]["path"]) as opened:
+        page_image = opened.convert("RGB")
+    box = crop_pixel_box(crop["box_normalized"], *page_image.size)
+    crop["mask_fill"] = crop_mask_fill(page_image, box)
+    crop["regions_px"] = [list(crop_pixel_box(region, *page_image.size)) for region in crop["regions_normalized"]]
+    masked = crop_image(page_image, crop)
+    assert masked.size == (box[2] - box[0], box[3] - box[1])
+    # every pixel of each region is the page's own; every pixel outside the regions is the fill
+    for region in crop["regions_px"]:
+        local = (region[0] - box[0], region[1] - box[1], region[2] - box[0], region[3] - box[1])
+        assert masked.crop(local).tobytes() == page_image.crop(tuple(region)).tobytes()
+    upper, lower = crop["regions_px"]
+    gap_y = (upper[3] + lower[1]) // 2 - box[1]
+    assert masked.getpixel((1, gap_y)) == tuple(crop["mask_fill"])
+    assert masked.getpixel((1, lower[1] - box[1] + 2)) == tuple(crop["mask_fill"])  # beside the second region
+    assert all(value > 150 for value in crop["mask_fill"])  # the paper, not the print
+    asset = snapshot / crop["asset"]["path"]
+    masked.save(asset)
+    crop["asset"]["sha256"] = hashlib.sha256(asset.read_bytes()).hexdigest()
+    assert crop_asset_problems(page, snapshot) == []
+    # the verification compares against the page: a wrong region, a missing fill or altered pixels are found
+    assert crop_asset_problems({**page, "crop": {**crop, "regions_px": [upper, [lower[0] + 1, *lower[1:]]]}}, snapshot) == ["crop_geometry_mismatch"]
+    assert crop_asset_problems({**page, "crop": {**crop, "mask_fill": None}}, snapshot) == ["crop_mask_fill_invalid"]
+    assert crop_asset_problems({**page, "crop": {**crop, "mask_fill": [255, 255, 255]}}, snapshot) == ["crop_pixels_mismatch"]
+    assert not crop_geometry_valid({**crop, "box_normalized": [x0, y0, x1, y1 - 0.01]})  # the box must be the regions' union
+    assert not crop_geometry_valid({**crop, "regions_normalized": crop["regions_normalized"][:1]})
+    pages_path.write_text("".join(json.dumps(one, ensure_ascii=False) + "\n" for one in pages), encoding="utf-8")
+    bundle = load_and_validate_bundle(config_root)
+    source = next(source for source in bundle.source_registry.sources if source.id == SOURCE_ID)
+    checks, _, _ = _inspect_source(source, bundle)
+    health = next(check for check in checks if check["name"] == "wikisource_page_crop" and check["record_id"] == BUBER)
+    assert health["status"] == "ok", health
+    importer = WikisourceProofreadImporter()
+    candidates = [c for c in importer.discover_candidates(source, bundle, StageOptions()) if c.source_item_id == BUBER]
+    record = importer.fetch_candidate_metadata(source, bundle, candidates, StageOptions())[0]
+    assert record.metadata["crop"]["regions_px"] == crop["regions_px"] and record.metadata["crop"]["mask_fill"] == crop["mask_fill"]
+    assert record.metadata["expected_asset_sha256"] == crop["asset"]["sha256"]
+    manifest = write_wikisource_reference_pool(source, bundle, tmp_path / "pool")
+    assert manifest["skipped"]  # quality 3: not adjudication-eligible, so no reference; the pool still builds

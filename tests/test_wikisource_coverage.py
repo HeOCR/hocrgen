@@ -115,12 +115,44 @@ def test_untranscribed_text_inside_the_crop_is_listed_or_unresolves_the_crop() -
     crop = assessment["crop"]
     assert assessment["transcription_coverage"] == "partial_page"
     assert len(crop["untranscribed_inside"]) == 1 and crop["status"] == "resolved"  # one line in seven, masked
+    # with a tighter tolerance one rectangle is not enough: two regions, the interleaved line masked out (F8b5)
     tight = {**wc.THRESHOLDS, "crop_untranscribed_inside_max": 0.05}
-    assert wc.assess_page(alignments, len(normalised), 960, 1400, tight)["crop"] == {
+    regions = wc.assess_page(alignments, len(normalised), 960, 1400, tight)["crop"]
+    assert regions["status"] == "resolved" and regions["method"] == wc.CROP_REGIONS_METHOD
+    assert len(regions["regions_render_px"]) == 2 and regions["untranscribed_inside"] == [] and regions["masked_untranscribed"] == 1
+    upper, lower = regions["regions_render_px"]
+    note = ocr[3].box
+    assert upper[3] <= note[1] and lower[1] >= note[3]  # neither region reaches into the untranscribed line
+    assert regions["box_render_px"] == [min(upper[0], lower[0]), upper[1], max(upper[2], lower[2]), lower[3]]
+    # when regions are not allowed either, the crop stays unresolved, with its reason
+    single = {**tight, "region_max_count": 1}
+    assert wc.assess_page(alignments, len(normalised), 960, 1400, single)["crop"] == {
         **{k: v for k, v in crop.items() if k not in {"status", "reason"}},
         "status": "unresolved",
         "reason": "untranscribed_text_inside_crop",
     }
+
+
+def test_interleaved_untranscribed_blocks_split_the_crop_into_regions() -> None:
+    """Luzzatto's layout: commentary, then an untranscribed Italian block, then more commentary, then verse."""
+
+    italian = ["Dio creo il cielo e la terra nel principio", "e la terra era deserta e vuota e tenebre", "sopra la faccia dell abisso e lo spirito"]
+    ocr = _page(LINES[:3])
+    ocr += [_line(text, 3 + row) for row, text in enumerate(italian)]
+    ocr += [_line(_misread(text, 0.08, 20 + row), 6 + row) for row, text in enumerate(LINES[3:])]
+    ocr += [_line(_misread(text, 0.05, 40 + row), 10 + row) for row, text in enumerate(NOTES[:2])]
+    alignments, normalised = wc.align_page(ocr, "\n".join(LINES))
+    assessment = wc.assess_page(alignments, len(normalised), 960, 1400)
+    crop = assessment["crop"]
+    assert assessment["transcription_coverage"] == "partial_page"
+    assert crop["status"] == "resolved" and crop["method"] == wc.CROP_REGIONS_METHOD
+    first, second = crop["regions_render_px"]
+    assert first[1] <= ocr[0].box[1] and first[3] <= ocr[3].box[1]  # the first passage, stopped before the Italian
+    assert second[1] >= ocr[5].box[3] and second[3] <= ocr[10].box[1]  # the second passage, stopped before the notes
+    assert crop["masked_untranscribed"] == 3 and crop["untranscribed_inside"] == []
+    assert crop["box_normalized"] == wc._normalised(tuple(crop["box_render_px"]), 960, 1400)
+    blocks = wc.transcribed_blocks([line.box for line in ocr[:3] + ocr[6:10]], [wc._Region(line.box, "line") for line in ocr[3:6]])
+    assert len(blocks) == 2 and blocks[0][1] < blocks[1][1]  # reading order
 
 
 def test_unrelated_text_is_not_located_and_decides_nothing() -> None:
@@ -222,3 +254,70 @@ def test_committed_tool_checks_load_and_hold_only_geometry_and_scores() -> None:
             assert inv.crop_box_valid(check["crop"]["box_normalized"])
     text = path.read_text(encoding="utf-8")
     assert "/Users/" not in text and "/home/" not in text and "render_url" not in text
+
+
+def test_an_agent_crop_is_validated_and_wins_over_the_tool_crop() -> None:
+    """F8b5: an agent or human may confirm, correct or place the crop itself (a geometry fact, not an attestation)."""
+
+    base = {"page_title": "עמוד:X.pdf/1", "revision_id": 5, "commons_file_sha1": "abc", "scan_page": 1, "checker": "c", "method": "m"}
+    tool_crop = {"status": "unresolved", "reason": "untranscribed_text_inside_crop", "method": wc.CROP_METHOD, "box_normalized": [0.1, 0.1, 0.9, 0.9]}
+    tool = {**base, "checked_by": "tool", "checked_at": "2026-11-06", "transcription_coverage": "partial_page", "missing": "m", "outcome": "decided",
+            "crop": tool_crop, "render_sha256": "r"}
+    regions = [[0.1, 0.1, 0.9, 0.4], [0.1, 0.6, 0.9, 0.9]]
+    agent_crop = {"status": "resolved", "method": "agent_visual_crop.v1", "basis": "tool_crop_corrected", "box_normalized": [0.1, 0.1, 0.9, 0.9], "regions_normalized": regions}
+    agent = {**base, "checked_by": "agent", "checked_at": "2026-11-06", "transcription_coverage": "partial_page", "missing": "the Italian block",
+             "crop": agent_crop, "render_sha256": "r"}
+    assert inv.page_check_problems(agent) == []
+    payload = {"schema_version": inv.PAGE_CHECKS_SCHEMA_VERSION}
+    selected = inv.select_page_checks([{**payload, "checks": [tool]}, {**payload, "checks": [agent]}])["עמוד:X.pdf/1"]
+    page = {"revision_id": 5}
+    provenance = inv.apply_page_check(page, {"commons_file": {"sha1": "abc"}}, selected)
+    assert provenance["crop_by"] == "agent" and page["transcription_coverage_check"]["crop_by"] == "agent"
+    assert page["crop"]["status"] == "resolved" and page["crop"]["regions_normalized"] == regions
+    assert page["crop"]["located_by"] == {"checked_by": "agent", "checker": "c", "checked_at": "2026-11-06", "method": "m", "render_url": None,
+                                          "render_sha256": "r", "render_size": None, "basis": "tool_crop_corrected"}
+    assert page["crop"]["review_recommended"] is False
+    # an agent check without its own crop still takes the tool's
+    plain = {key: value for key, value in agent.items() if key != "crop"}
+    page = {"revision_id": 5}
+    inv.apply_page_check(page, {"commons_file": {"sha1": "abc"}}, inv.select_page_checks([{**payload, "checks": [tool, plain]}])["עמוד:X.pdf/1"])
+    assert page["crop"]["status"] == "unresolved" and page["crop"]["located_by"]["checked_by"] == "tool"
+    # schema: a resolved crop, on a partial page, with a known method and basis, and regions whose union is the box
+    assert inv.page_check_problems({**agent, "crop": {**agent_crop, "status": "unresolved"}}) == ["an agent or human crop must be a resolved crop"]
+    assert inv.page_check_problems({**agent, "transcription_coverage": "full_page", "missing": None}) == ["only a partial_page check records a crop"]
+    assert "basis" in inv.page_check_problems({**agent, "crop": {**agent_crop, "basis": "guessed"}})[0]
+    assert "method" in inv.page_check_problems({**agent, "crop": {**agent_crop, "method": wc.CROP_METHOD}})[0]
+    assert inv.page_check_problems({**agent, "crop": {**agent_crop, "box_normalized": [0.1, 0.1, 0.9, 0.95]}}) == [
+        "crop regions must be two or more boxes inside the page whose union is the box"
+    ]
+    # a tool region crop is checked the same way
+    tool_regions = {**tool_crop, "status": "resolved", "reason": None, "method": wc.CROP_REGIONS_METHOD, "regions_normalized": regions}
+    assert inv.page_check_problems({**tool, "crop": tool_regions}) == []
+    assert inv.page_check_problems({**tool, "crop": {**tool_regions, "regions_normalized": [[0.1, 0.1, 0.9, 1.2], regions[1]]}}) == [
+        "crop regions must be two or more boxes inside the page whose union is the box"
+    ]
+
+
+def test_rename_log_replies_become_recorded_renames() -> None:
+    meta = {"query": {"logevents": [{"logid": 9259138, "type": "gblrename", "timestamp": "2014-07-30T08:23:07Z", "params": {"olduser": "איתן96", "newuser": "Eitan96"}}]}}
+    local = {"query": {"logevents": [{"logid": 7, "type": "block", "params": {}}]}}
+    assert inv.renames_from_log(meta, "https://meta.wikimedia.org") == [
+        {"old": "איתן96", "new": "Eitan96", "log_id": 9259138, "timestamp": "2014-07-30T08:23:07Z", "log_type": "gblrename", "wiki": "https://meta.wikimedia.org"}
+    ]
+    assert inv.renames_from_log(local, inv.WS_SITE) == [] and inv.renames_from_log({}, inv.WS_SITE) == []
+
+
+def test_compact_tool_checks_keep_region_crops() -> None:
+    reference = "\n".join(LINES)
+    ocr = _page(LINES[:3]) + [_line(_misread(NOTES[0], 0.05, 1), 3)] + [_line(_misread(t, 0.08, 9 + i), 4 + i) for i, t in enumerate(LINES[3:])]
+    alignments, normalised = wc.align_page(ocr, reference)
+    assessment = wc.assess_page(alignments, len(normalised), 960, 1400, {**wc.THRESHOLDS, "crop_untranscribed_inside_max": 0.05})
+    page = {"page_title": "עמוד:X.pdf/7", "page_id": 1, "revision_id": 5, "index_key": "ws_index_1", "quality": 3, "page_number": 7}
+    check = wc.tool_check(page, "abc", assessment, render={"render_url": "u", "sha256": "s"}, engine={"name": "tesseract"}, checked_at="2026-11-06")
+    payload = {"schema_version": inv.PAGE_CHECKS_SCHEMA_VERSION, "description": "d", "tool_version": wc.TOOL_VERSION, "thresholds": wc.THRESHOLDS,
+               "methods": {wc.METHOD_ID: wc.METHOD_TEXT}, "checks": [check]}
+    compact = wc.compact_tool_checks(payload)
+    crop = compact["checks"][0]["crop"]
+    assert crop["method"] == wc.CROP_REGIONS_METHOD and len(crop["regions_normalized"]) == 2
+    loaded = inv.select_page_checks(json.loads(wc.dump_checks(compact)))["עמוד:X.pdf/7"]
+    assert loaded["crop"]["regions_normalized"] == crop["regions_normalized"]
