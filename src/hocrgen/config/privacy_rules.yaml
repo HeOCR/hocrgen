@@ -8,6 +8,7 @@ source_defaults:
   hash_public_domain: clear
   yidtaknl_vaybertaytsh_gt: clear
   wikisource_he_proofread: clear
+  pinkas_dataset_bgu: clear
 rules:
   - id: modern_letter_review
     flag: possible_personal_data

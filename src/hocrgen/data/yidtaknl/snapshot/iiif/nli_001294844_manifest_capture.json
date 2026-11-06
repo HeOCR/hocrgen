@@ -1,0 +1,224 @@
+{
+ "canvas_count": 16,
+ "capture_format": "hocrgen.nli_iiif_manifest_capture.v1",
+ "captured_on": "2026-11-06",
+ "http_status": 200,
+ "manifest": {
+  "@context": "http://iiif.io/api/presentation/2/context.json",
+  "@id": "https://iiif.nli.org.il/IIIFv21/DOCID/NNL_ALEPH21274893450005171/manifest",
+  "@type": "sc:Manifest",
+  "attribution": [
+   "מאוסף הספרייה הלאומית"
+  ],
+  "label": "בורגרמיינשטרן : ... פרזוק ... אפראבירן תקנות ... נעשה ה' מאיי 1747 ...",
+  "license": [
+   "https://www.nli.org.il/contenteditors/pages-for-terms-of-use/public-domain-free-use"
+  ],
+  "logo": [
+   "http://iiif.nli.org.il/IIIFv21/images/nli_logo.jpg"
+  ],
+  "metadata": [
+   {
+    "label": "Title",
+    "value": "בורגרמיינשטרן : ... פרזוק ... אפראבירן תקנות ... נעשה ה' מאיי 1747 ..."
+   },
+   {
+    "label": "Contributor",
+    "value": "האחים בני שלמה פרופס (מדפיסים) מדפיס"
+   },
+   {
+    "label": "Publisher",
+    "value": "אמשטרדם : יתמי שלמה פרופס"
+   },
+   {
+    "label": "Base",
+    "value": [
+     "$$V972NNL_INST$$ONNL_ALEPH21274893450005171",
+     "$$V972NNL_INST$$ONNL_ALEPH11349433290005171"
+    ]
+   },
+   {
+    "label": "Subject",
+    "value": "Jews -- Netherlands -- Amsterdam -- History"
+   },
+   {
+    "label": "Source",
+    "value": [
+     "$$VThe National Library of Israel$$ONNL_ALEPH21274893450005171",
+     "$$VThe National Library of Israel$$ONNL_ALEPH11349433290005171"
+    ]
+   },
+   {
+    "label": "The Creator",
+    "value": "אמסטרדם (הולנד). הקהילה האשכנזית$$Qאמסטרדם (הולנד). הקהילה האשכנזית"
+   },
+   {
+    "label": "Doc Id",
+    "value": "dedupmrg1219264189"
+   },
+   {
+    "label": "Creation Date",
+    "value": "1747"
+   },
+   {
+    "label": "Type",
+    "value": "book"
+   },
+   {
+    "label": "Format",
+    "value": "[4] דפים ; 18 ס\"מ."
+   },
+   {
+    "label": "Language",
+    "value": "yid;und"
+   },
+   {
+    "label": "SysNum",
+    "value": [
+     "$$V21274893450005171$$ONNL_ALEPH21274893450005171",
+     "$$V11349433290005171$$ONNL_ALEPH11349433290005171"
+    ]
+   }
+  ],
+  "related": "http://merhav.nli.org.il/primo_library/libweb/action/display.do?tabs=detailsTab&ct=display&fn=search&displayMode=full&doc=NNL_ALEPH21274893450005171",
+  "sequences": [
+   {
+    "@id": "https://iiif.nli.org.il/IIIFv21/NNL_ALEPH21274893450005171/sequence/IE42163718",
+    "@type": "sc:Sequence",
+    "canvases": [
+     {
+      "@id": "https://iiif.nli.org.il/IIIFv21/FL42163794",
+      "@type": "sc:Canvas",
+      "height": 3261,
+      "images": [
+       {
+        "@id": "FL42163794",
+        "@type": "oa:Annotation",
+        "motivation": "sc:painting",
+        "on": "https://iiif.nli.org.il/IIIFv21/FL42163794",
+        "resource": {
+         "@id": "https://iiif.nli.org.il/IIIFv21/FL42163794/full/max/0/default.jpg",
+         "@type": "dctypes:Image",
+         "format": "image/jpeg;",
+         "height": 3261,
+         "label": "jpg_2152179-20_0004_2",
+         "service": {
+          "@context": "http://iiif.io/api/image/2/context.json",
+          "@id": "https://iiif.nli.org.il/IIIFv21/FL42163794",
+          "label": "jpg_2152179-20_0004_2",
+          "profile": "http://iiif.io/api/image/2/level1.json"
+         },
+         "width": 2033
+        }
+       }
+      ],
+      "label": "jpg_2152179-20_0004_2",
+      "width": 2033
+     }
+    ]
+   }
+  ],
+  "viewingHint": "paged"
+ },
+ "manifest_url": "https://iiif.nli.org.il/IIIFv21/001294844/manifest",
+ "selected_canvases": [
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42163781",
+   "dataset_page": "p0001",
+   "index": 0,
+   "label": "jpg_2152179-20_0001"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42163783",
+   "dataset_page": "p0002",
+   "index": 1,
+   "label": "jpg_2152179-20_0002_1"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42163785",
+   "dataset_page": "p0003",
+   "index": 2,
+   "label": "jpg_2152179-20_0002_2"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42163787",
+   "dataset_page": "p0004",
+   "index": 3,
+   "label": "jpg_2152179-20_0003_1"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42163790",
+   "dataset_page": "p0005",
+   "index": 4,
+   "label": "jpg_2152179-20_0003_2"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42163792",
+   "dataset_page": "p0006",
+   "index": 5,
+   "label": "jpg_2152179-20_0004_1"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42163794",
+   "dataset_page": "p0007",
+   "index": 6,
+   "label": "jpg_2152179-20_0004_2"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42163798",
+   "dataset_page": "p0008",
+   "index": 7,
+   "label": "jpg_2152179-20_0005_1"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42163800",
+   "dataset_page": "p0009",
+   "index": 8,
+   "label": "jpg_2152179-20_0005_2"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42163802",
+   "dataset_page": "p0010",
+   "index": 9,
+   "label": "jpg_2152179-20_0006_1"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42163804",
+   "dataset_page": "p0011",
+   "index": 10,
+   "label": "jpg_2152179-20_0006_2"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42163806",
+   "dataset_page": "p0012",
+   "index": 11,
+   "label": "jpg_2152179-20_0007_1"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42163808",
+   "dataset_page": "p0013",
+   "index": 12,
+   "label": "jpg_2152179-20_0007_2"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42163810",
+   "dataset_page": "p0014",
+   "index": 13,
+   "label": "jpg_2152179-20_0008_1"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42163813",
+   "dataset_page": "p0015",
+   "index": 14,
+   "label": "jpg_2152179-20_0008_2"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42163815",
+   "dataset_page": "p0016",
+   "index": 15,
+   "label": "jpg_2152179-20_0009"
+  }
+ ],
+ "upstream_bytes": 14492,
+ "upstream_sha256": "0fc21cfdfd1478b15bc1e82be1c45265b6a65a2584599568730c737e9534bad6"
+}

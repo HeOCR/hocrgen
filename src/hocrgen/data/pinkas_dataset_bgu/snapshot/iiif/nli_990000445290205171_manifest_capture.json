@@ -1,0 +1,164 @@
+{
+ "canvas_count": 330,
+ "capture_format": "hocrgen.nli_iiif_manifest_capture.v1",
+ "captured_on": "2026-11-06",
+ "http_status": 200,
+ "manifest": {
+  "@context": "http://iiif.io/api/presentation/2/context.json",
+  "@id": "https://iiif.nli.org.il/IIIFv21/DOCID/NNL_ALEPH21180148300005171/manifest",
+  "@type": "sc:Manifest",
+  "attribution": [
+   "The National Library of Israel. \"Ktiv\" Project מאוסף הספרייה הלאומית. פרוייקט \"כתיב\""
+  ],
+  "label": "פנקס קהילת פראנקפורט דמיין.",
+  "license": [
+   "https://www.nli.org.il/contenteditors/pages-for-terms-of-use/public-domain-free-use"
+  ],
+  "logo": [
+   "http://iiif.nli.org.il/IIIFv21/images/nli_logo.jpg"
+  ],
+  "metadata": [
+   {
+    "label": "Title",
+    "value": "פנקס קהילת פראנקפורט דמיין."
+   },
+   {
+    "label": "Base",
+    "value": [
+     "$$V972NNL_INST$$ONNL_ALEPH21180148300005171",
+     "$$V972NNL_INST$$ONNL_ALEPH11355663550005171"
+    ]
+   },
+   {
+    "label": "Subject",
+    "value": "Jews -- Germany -- Frankfurt am Main -- History -- Sources"
+   },
+   {
+    "label": "Source",
+    "value": [
+     "$$VThe National Library of Israel$$ONNL_ALEPH21180148300005171",
+     "$$VThe National Library of Israel$$ONNL_ALEPH11355663550005171"
+    ]
+   },
+   {
+    "label": "Doc Id",
+    "value": "dedupmrg1219149191"
+   },
+   {
+    "label": "Creation Date",
+    "value": "שי\"ב-תקס\"ב (1552-1802)"
+   },
+   {
+    "label": "Type",
+    "value": "manuscript"
+   },
+   {
+    "label": "Format",
+    "value": "324 דף.; דפים קה-קיא חסרים.; ספירת הדפים משובשת."
+   },
+   {
+    "label": "Language",
+    "value": "heb"
+   },
+   {
+    "label": "SysNum",
+    "value": [
+     "$$V21180148300005171$$ONNL_ALEPH21180148300005171",
+     "$$V11355663550005171$$ONNL_ALEPH11355663550005171"
+    ]
+   }
+  ],
+  "related": "http://merhav.nli.org.il/primo_library/libweb/action/display.do?tabs=detailsTab&ct=display&fn=search&displayMode=full&doc=NNL_ALEPH21180148300005171",
+  "sequences": [
+   {
+    "@id": "https://iiif.nli.org.il/IIIFv21/NNL_ALEPH21180148300005171/sequence/IE15021468",
+    "@type": "sc:Sequence",
+    "canvases": [
+     {
+      "@id": "https://iiif.nli.org.il/IIIFv21/FL15733564",
+      "@type": "sc:Canvas",
+      "height": 7003,
+      "images": [
+       {
+        "@id": "FL15733564",
+        "@type": "oa:Annotation",
+        "motivation": "sc:painting",
+        "on": "https://iiif.nli.org.il/IIIFv21/FL15733564",
+        "resource": {
+         "@id": "https://iiif.nli.org.il/IIIFv21/FL15733564/full/max/0/default.jpg",
+         "@type": "dctypes:Image",
+         "format": "image/jpeg;",
+         "height": 7003,
+         "label": "Page 105",
+         "service": {
+          "@context": "http://iiif.io/api/image/2/context.json",
+          "@id": "https://iiif.nli.org.il/IIIFv21/FL15733564",
+          "label": "Page 105",
+          "profile": "http://iiif.io/api/image/2/level1.json"
+         },
+         "width": 10147
+        }
+       }
+      ],
+      "label": "Page 105",
+      "width": 10147
+     },
+     {
+      "@id": "https://iiif.nli.org.il/IIIFv21/FL15733640",
+      "@type": "sc:Canvas",
+      "height": 7003,
+      "images": [
+       {
+        "@id": "FL15733640",
+        "@type": "oa:Annotation",
+        "motivation": "sc:painting",
+        "on": "https://iiif.nli.org.il/IIIFv21/FL15733640",
+        "resource": {
+         "@id": "https://iiif.nli.org.il/IIIFv21/FL15733640/full/max/0/default.jpg",
+         "@type": "dctypes:Image",
+         "format": "image/jpeg;",
+         "height": 7003,
+         "label": "Page 112",
+         "service": {
+          "@context": "http://iiif.io/api/image/2/context.json",
+          "@id": "https://iiif.nli.org.il/IIIFv21/FL15733640",
+          "label": "Page 112",
+          "profile": "http://iiif.io/api/image/2/level1.json"
+         },
+         "width": 10147
+        }
+       }
+      ],
+      "label": "Page 112",
+      "width": 10147
+     }
+    ]
+   },
+   {
+    "@id": "https://iiif.nli.org.il/IIIFv21/NNL_ALEPH21180148300005171/sequence/IE78639744",
+    "@type": "sc:Sequence",
+    "canvases": []
+   }
+  ],
+  "viewingHint": "paged"
+ },
+ "manifest_url": "https://iiif.nli.org.il/IIIFv21/990000445290205171/manifest",
+ "selected_canvases": [
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL15733564",
+   "dataset_page": "Page 105_1",
+   "index": 104,
+   "label": "Page 105",
+   "region": "right_half"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL15733640",
+   "dataset_page": "Page 112_1",
+   "index": 111,
+   "label": "Page 112",
+   "region": "right_half"
+  }
+ ],
+ "upstream_bytes": 236548,
+ "upstream_sha256": "a25ce383746dbd9780e22ffad8b0a01c14a017b2c6a29ead119c6e5b91958f46"
+}

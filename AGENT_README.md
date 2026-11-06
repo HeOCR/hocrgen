@@ -149,6 +149,10 @@ public-domain-hand-written-hebrew-scans   → real-handwriting page-level scan c
   - page text `CC-BY-SA-4.0` / `sharealike`; scan rights per Commons file; admitted per Index only on evidence that the work is PD in Israel and the scan's rights are clear; Birnbaum works and `PD-US-*`-only files rejected
   - records revision ids, Commons file SHA-1s, the named proofreader and validator, and adjudication eligibility; derives plain text with `wikisource_plain_text.v1` (see `docs/wikisource_proofread_source.md`)
   - included only in `profile_review_v1`; never edits Wikisource
+- `pinkas_dataset_bgu` (F8d2, review-only)
+  - packaged-static-records importer over a pinned excerpt of the BGU Pinkas Dataset (`src/hocrgen/data/pinkas_dataset_bgu/snapshot/`): handwritten pages of NLI Ms. Heb. 4°662 (Frankfurt am Main community pinkas) with their upstream PAGE XML (gzipped)
+  - `review_only`, `CC-BY-4.0` / `open_with_attribution` for the annotations; scans admitted only with the NLI `public-domain-free-use` slug and a recorded canvas match; privacy default `clear`; included only in `profile_review_v1`
+  - `parse_page_xml_lines` yields typed line records with polygons scaled to the thumbnail; entries are marked languages `he`/`yi`, scope `character_level_only` and `not_adjudicated`
 - `project_synthetic`
   - hocrsyngen `generation_manifest.v1` fixture-backed synthetic candidate input source
   - consumes a configured manifest batch and keeps legacy in-repo generator fixtures out of the active source path

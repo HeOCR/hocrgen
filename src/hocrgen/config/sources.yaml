@@ -163,6 +163,28 @@ sources:
     settings:
       extra:
         wikisource_snapshot_root: package://data/wikisource/snapshot
+  - id: pinkas_dataset_bgu
+    name: BGU Pinkas Dataset (Zenodo 3569694) PAGE XML ground truth on NLI Ms. Heb. 4°662 scans
+    fetcher: pinkas_dataset
+    status: review_only
+    default_public_release: false
+    allowed_content_types:
+      - handwritten_historical
+    rights_strategy:
+      type: exact_match
+      values:
+        - CC-BY-4.0
+    normalized_license: CC-BY-4.0
+    rights_classification: open_with_attribution
+    requires_manual_review: false
+    source_operations:
+      operational_status: active
+      health_expectations:
+        min_candidates: 1
+        min_assets: 1
+    settings:
+      extra:
+        pinkas_dataset_snapshot_root: package://data/pinkas_dataset_bgu/snapshot
   - id: project_synthetic
     name: hocrsyngen manifest-backed synthetic source
     fetcher: hocrsyngen_manifest

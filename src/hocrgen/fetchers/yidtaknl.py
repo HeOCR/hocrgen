@@ -1,13 +1,14 @@
 from __future__ import annotations
 
-import json
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from hocrgen.config.loader import ConfigBundle, load_yaml_file
+from hocrgen.config.loader import ConfigBundle
 from hocrgen.config.models import SourceConfig
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.base import StageOptions
+from hocrgen.fetchers.nli_scan_evidence import nli_scan_evidence
+from hocrgen.fetchers.snapshot_records import load_jsonl, load_snapshot, snapshot_root_setting
 from hocrgen.manifests.models import AcquiredAsset, AcquiredItemRecord, AssetReference, CandidateRecord, EnrichedCandidateRecord
 from hocrgen.utils.hashing import sha256_file
 from hocrgen.utils.io import copy_file
@@ -23,29 +24,42 @@ YIDTAKNL_ALLOWED_USES = frozenset({"training", "character_level_evaluation"})
 YIDTAKNL_REQUIRED_EXCLUDED_EVALUATIONS = frozenset({"word_level", "language_level_hebrew"})
 
 # Scan rights are checked separately from the dataset licence: the CC BY 4.0 grant covers the creators'
-# transcriptions, not a third party's photographs. Only scans whose holding library states an open licence
-# are admitted. NLI's `public-domain-free-use` slug is the only accepted value today.
-YIDTAKNL_OPEN_SCAN_LICENSE_SLUGS = frozenset({"public-domain-free-use"})
+# transcriptions, not a third party's photographs. Only NLI scans that pass the F8c licence-slug gate over a
+# pinned manifest capture, and whose canvas that capture lists, are admitted.
 
 
 def yidtaknl_snapshot_root(source: SourceConfig, bundle: ConfigBundle) -> Path:
-    reference = source.settings.extra.get(YIDTAKNL_SNAPSHOT_SETTING)
-    if not isinstance(reference, str) or not reference:
-        raise StageExecutionError(f"{source.id} requires settings.extra.{YIDTAKNL_SNAPSHOT_SETTING}")
-    return bundle.resolve_path(reference)
+    return snapshot_root_setting(source, bundle, YIDTAKNL_SNAPSHOT_SETTING)
 
 
 def load_yidtaknl_snapshot(root: Path) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     """Load the pinned YidTakNL snapshot descriptor and its entries.jsonl records."""
 
-    snapshot = load_yaml_file(root / "snapshot.yaml")
-    entries_path = root / str(snapshot.get("entries_path", "entries.jsonl"))
-    entries = [
-        json.loads(line)
-        for line in entries_path.read_text(encoding="utf-8").splitlines()
-        if line.strip()
-    ]
-    return snapshot, entries
+    return load_snapshot(root)
+
+
+def load_yidtaknl_matched_pages(root: Path, snapshot: dict[str, Any]) -> list[dict[str, Any]]:
+    """Load the metadata-only page matches (no vendored asset) listed by the snapshot, if any."""
+
+    reference = snapshot.get("matched_pages_path")
+    return load_jsonl(root / str(reference)) if reference else []
+
+
+def yidtaknl_matched_page_problem(page: dict[str, Any], works: dict[str, dict[str, Any]], root: Path) -> str | None:
+    """Return why a metadata-only matched page is malformed, or None.
+
+    Matched pages are never candidates: their assets are not vendored. They record that a page's upstream image
+    was matched to an open-licence NLI canvas, with pinned upstream checksums, for a later tranche.
+    """
+
+    work = works.get(str(page.get("work_id")))
+    if work is None:
+        return "unknown_work"
+    if not page.get("image_sha1") or not page.get("image_bytes") or not page.get("text_sha1"):
+        return "missing_upstream_checksum"
+    if not page.get("iiif_canvas"):
+        return "missing_canvas_match"
+    return nli_scan_evidence(root, {"manifest_capture": work.get("manifest_capture")}, canvas_id=page["iiif_canvas"]).problem
 
 
 def yidtaknl_usage_scope_is_valid(usage_scope: Any) -> bool:
@@ -81,7 +95,7 @@ def yidtaknl_entry_source_url(entry: dict[str, Any]) -> str | None:
     return None
 
 
-def yidtaknl_entry_exclusion_reason(entry: dict[str, Any], source: SourceConfig) -> str | None:
+def yidtaknl_entry_exclusion_reason(entry: dict[str, Any], source: SourceConfig, root: Path) -> str | None:
     """Return why a YidTakNL entry cannot become a candidate for this source, or None when eligible."""
 
     rights = entry.get("rights") or {}
@@ -90,8 +104,11 @@ def yidtaknl_entry_exclusion_reason(entry: dict[str, Any], source: SourceConfig)
     if rights.get("verification_status") != "primary_page_checked":
         return "rights_not_primary_page_checked"
     scan = entry.get("scan") or {}
-    if scan.get("license_slug") not in YIDTAKNL_OPEN_SCAN_LICENSE_SLUGS or scan.get("scan_redistribution_allowed") is not True:
+    if scan.get("scan_redistribution_allowed") is not True:
         return "scan_rights_not_open"
+    scan_problem = nli_scan_evidence(root, scan).problem
+    if scan_problem is not None:
+        return scan_problem
     if entry.get("languages") != YIDTAKNL_LANGUAGES:
         return "out_of_scope_language"
     if not yidtaknl_usage_scope_is_valid(entry.get("usage_scope")):
@@ -123,7 +140,7 @@ class YidTakNLImporter:
         snapshot, entries = load_yidtaknl_snapshot(root)
         candidates: list[CandidateRecord] = []
         for entry in sorted(entries, key=lambda record: record["entry_id"]):
-            if yidtaknl_entry_exclusion_reason(entry, source) is not None:
+            if yidtaknl_entry_exclusion_reason(entry, source, root) is not None:
                 continue
             if options.max_items is not None and len(candidates) >= options.max_items:
                 break
@@ -196,6 +213,7 @@ class YidTakNLImporter:
                         "scan_license_url": scan.get("license_url"),
                         "scan_iiif_canvas": scan.get("iiif_canvas"),
                         "scan_verified_at": scan.get("verified_at"),
+                        "scan_rights": nli_scan_evidence(root, scan).metadata(),
                         "expected_asset_sha256": asset.get("sha256"),
                     },
                 )
