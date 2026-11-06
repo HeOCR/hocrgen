@@ -84,7 +84,7 @@ Scale, measured on 2026-11-06:
 
 ## Maintainer decisions needed
 
-These are rights or ground-truth calls, so they are the maintainer's. **Answered 2026-11-06:** 1, 2, 3, 4 and 7 were accepted. For 5, a legal opinion will be requested. For 6, printed Yiddish is in scope for training and character-level evaluation only. See the [decision record](../decisions/2026-11-06-f8-real-source-decisions.md).
+These are rights or ground-truth calls, so they are the maintainer's. **Answered 2026-11-06:** 1, 2, 3, 4 and 7 were accepted. For 5, a legal opinion will be requested. For 6, printed Yiddish is in scope for training and character-level evaluation only. A later decision, 8, allows Pinkas' Hebrew lines for word-level Hebrew evaluation, once each line carries an explicit language tag. See the [decision record](../decisions/2026-11-06-f8-real-source-decisions.md).
 
 1. **Wikisource text licence.** Accept CC BY-SA 4.0 page text as references? Share-alike would then apply to the reference files we release. (`F8b`)
 2. **Wikisource proofreading as human attestation.** Each quality change is a named human edit in the page history. The proposal: quality 4 (validated by a second editor) counts as human-attested and adjudication-eligible; quality 3 counts as single-reviewer human proofreading. An agent never edits or attests these pages. (`F8b`, E2d)
