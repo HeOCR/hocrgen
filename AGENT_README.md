@@ -137,7 +137,7 @@ public-domain-hand-written-hebrew-scans   → real-handwriting page-level scan c
   - current committed sample asset is a packaged real historical page normalized as `PD-IL`
 - `hash_nli_any_use` and `hash_public_domain` (F7b, review-only)
   - packaged-static-records importer over a pinned `HeOCR/hash` snapshot (`src/hocrgen/data/hash/snapshot/`)
-  - `review_only`, `requires_manual_review`, privacy default `needs_review`; included only in `profile_review_v1`, never in `profile_open_v1`
+  - `review_only`, privacy default `clear`, `requires_manual_review: false` (maintainer decision 2026-11-06: HASH needs no human privacy review); included only in `profile_review_v1` and kept out of `profile_open_v1` until F7d changes the composition contract, governs writer-group leakage, and vendors tranche assets
   - rights lanes: NLI "Any Use Permitted" (`LicenseRef-Public-Domain-Israel`) normalized as `PD-IL`; `PDM-1.0` / `LicenseRef-Public-Domain-Ukraine` normalized as `PDM-1.0`; `CC-BY-SA-3.0`, non-Hebrew, and partial-Hebrew entries are never emitted
   - emits `source_group_id` and `writer_group_id` metadata, verifies asset checksums, and never reads HASH transcripts or HTR candidates
 - `project_synthetic`
@@ -689,7 +689,7 @@ hocrgen evaluate-references \
   --output reports/reference_evaluation.json --write-mapping reports/page_mapping.json
 ```
 
-The scored set contains synthetic gold and reviewed+adjudicated references (`--reference-manifest`) only. HASH, tender and other candidate texts go in `--unreviewed-texts` and appear only under `unreviewed_diagnostics`. The report carries a `hocrgen_reference_evaluation_run.v1` run record: prediction file hashes, the mapping hash, the reference identity, the profiles and the hocrgen version. See [`docs/reference_evaluation.md`](./docs/reference_evaluation.md).
+The scored set contains synthetic gold and reviewed+adjudicated references (`--reference-manifest`) only. HASH and other candidate texts go in `--unreviewed-texts` (the issue #86 tender-page source was closed on 2026-11-06 as unusable) and appear only under `unreviewed_diagnostics`. The report carries a `hocrgen_reference_evaluation_run.v1` run record: prediction file hashes, the mapping hash, the reference identity, the profiles and the hocrgen version. See [`docs/reference_evaluation.md`](./docs/reference_evaluation.md).
 
 ## Annotation readiness
 

@@ -17,13 +17,13 @@ The CC-BY-SA-3.0 lane is rejected rather than routed to review for three reasons
 
 The v1 scope filter also excludes the Aramaic entry (1) and the Hebrew/Hungarian `hebrew_extent: partial` pages (11). That leaves an eligible pool of 176 entries in 39 source groups.
 
-Both source ids start as `status: review_only`, with `default_public_release: false` and `requires_manual_review: true`. Their privacy source default is `review`. Neither appears in `profile_open_v1` until `F7d`.
+Both source ids are `status: review_only`, with `default_public_release: false` and `requires_manual_review: false`. Their privacy source default is `clear` (see Privacy). Neither appears in `profile_open_v1` until `F7d`. That hold is not about privacy. `F7d` must first change the per-source real target contract, govern writer-group overlap with synthetic training data (see Leakage), and vendor the promoted tranche's assets; the packaged snapshot holds only fixture thumbnails.
 
 ## Privacy
 
-- **Hannah Senesh diaries** (126 eligible pages, 5 records): the author died in 1944 and NLI released the material. Parts were written as a minor and name family and classmates, so each page needs its own review, and any public tranche caps how much comes from a single writer.
-- **Commons letters, 1859–1931**: these name long-deceased recipients. Approve each after review.
-- **LoC manuscripts, 1700s–1890s**: minimal risk.
+**Maintainer decision, 2026-11-06: HASH needs no human privacy review.** In the maintainer's words: "no need for human to go over privacy; if that is a guideline or rule written somewhere, it is in error and you must remove it; these are all public domain, and everything there is about people who've been dead for decades."
+
+This removes the earlier rules: the per-page privacy review, the per-writer cap on a public tranche, the separate review of the Hannah Senesh diaries for passages written as a minor, and "review, then approve" for the Commons letters. Both HASH privacy source defaults are `clear`, and `requires_manual_review` is `false`. HASH adds no `privacy_review` decisions. The general `identity_document_block` pattern rule still applies to every source; it blocks automatically and asks for no human review.
 
 ## Fixtures and adapter type
 
@@ -33,7 +33,7 @@ The adapter uses packaged static records, following the Pinkas/BiblIA pattern. `
 
 **Deferred on 2026-11-01.** `F7c` has no valid inputs:
 
-- The issue #86 maintainer decisions (2026-11-01) rule out any new human transcription campaign or labeling target.
+- The issue #86 maintainer decisions (2026-11-01) rule out any new human transcription campaign or labeling target. Issue #86 (tender pages) has since been closed on 2026-11-06 as unusable; whether this no-campaign rule still stands is an open question for the maintainer.
 - None of the 10 HASH `status: reviewed` transcripts meets the human-reviewed bar (see below).
 
 Until human-attested inputs exist without a new campaign, HASH text may be scored only as explicitly `unreviewed` diagnostics through E2c evaluation, never as references. Source proposal #89 stays open. The design below is kept for when inputs exist.
@@ -58,7 +58,6 @@ Output goes to an operator-only `hash_reference_pool_v1` manifest. It never edit
 | --- | --- | --- |
 | `source_depth_composition` | 2 / 80 (NLI 1/27, Pinkas 1/27, BiblIA 0/26) | 0 until `F7d` changes the per-source contract. With floors of 10 per source and 80 in total, HASH can supply up to 50. |
 | `benchmark_references` | 1 / 3 | 0 for frozen `benchmark_v1`; `F7e` proposes `benchmark_v2`. |
-| `privacy_review` | 4 unresolved | Adds one decision per promoted HASH item; 0 while review-only. |
 
 ## Leakage
 
