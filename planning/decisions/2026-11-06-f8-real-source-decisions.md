@@ -36,6 +36,12 @@ These answer the "Maintainer decisions needed" list in [`planning/tasks/f8-real-
 11. **The text converter must handle every page.** No page is dropped for unsupported markup. The converter is extended until every construct used in admitted Indexes has a defined, tested rendering. Closed-world remains the safety rule during development: an unknown construct fails loudly so it gets implemented, never silently dropped. The open question is only the output form of each construct.
 12. **Partial transcriptions are cropped, not dropped.** When a page's transcription covers only part of the page (for example commentary without the verse), the image is cropped to the transcribed region. The resulting sub-image and text form the pair. The crop is located by tooling (OCR may be used for localization only, never as text), recorded with its geometry and method, and reviewable.
 
+13. **NLI: the per-item licence governs.** An NLI item's IIIF manifest `license` slug decides its rights. The image service's `info.json` `rights` value is ignored for rights, and is kept as recorded evidence only.
+    - That value points to `nli-copying-prohibited` on the legacy `web.nli.org.il` domain.
+    - It is identical on every image checked, including items NLI states are `public-domain-free-use`. It appears to be a server-wide default.
+    - NLI's terms apply "unless explicitly stated otherwise", and the item statement is that explicit statement.
+    - This applies to the existing `nli_any_use_permitted` seeds and to every F8 source that takes scan rights from NLI (`F8c`, `F8d`, `F8d2`).
+
 ## Consequences
 
 - `F8b` is unblocked. HebrewBooks-sourced and Google-digitized Index files are admitted through the per-file rights check (decisions 3 and 9).
