@@ -173,6 +173,9 @@ def build_parser() -> argparse.ArgumentParser:
                                                  "to comparison deltas (0, the default, adds none)")
     evaluate_references_parser.add_argument("--bootstrap-seed", type=int, default=0,
                                             help="Seed for --bootstrap-resamples (default 0)")
+    evaluate_references_parser.add_argument("--bootstrap-clusters", type=Path, default=None,
+                                            help="hocrgen_bootstrap_clusters.v1 JSON (item id -> cluster id, e.g. a "
+                                                 "book): also add paired cluster-bootstrap intervals")
     evaluate_references_parser.add_argument("--write-mapping", type=Path, default=None,
                                             help="Write the mapping used to this path")
     evaluate_references_parser.add_argument("--output", type=Path, default=None, help="Optional path for the JSON report")
@@ -611,6 +614,7 @@ def handle_evaluate_references(args: argparse.Namespace) -> int:
             modality=args.modality,
             bootstrap_resamples=args.bootstrap_resamples,
             bootstrap_seed=args.bootstrap_seed,
+            bootstrap_clusters=args.bootstrap_clusters,
         )
         for path, payload in ((args.write_mapping, report["mapping"]), (args.output, report)):
             if path is None:

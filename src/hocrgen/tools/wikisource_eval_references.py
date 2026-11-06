@@ -27,6 +27,9 @@ With a release ``split_manifest.json`` (F8g: whole source and work groups are as
 the release split its page belongs to (``train``, ``validation``, ``test`` or ``not_in_release``) and its split group;
 adjudicated manifest items carry it as ``benchmark_split``. A page in the release ``train`` split ships as training
 data, so it must never be presented as held-out evaluation.
+
+``bootstrap_clusters.json`` (``hocrgen_bootstrap_clusters.v1``, E2d3) maps every written item to its Wikisource Index,
+the book-level unit (and the release split group), for ``evaluate-references --bootstrap-clusters``.
 Everything this writes holds CC BY-SA 4.0 Wikisource text and stays operator-only. ``benchmark_v1`` is untouched.
 """
 from __future__ import annotations
@@ -52,6 +55,7 @@ from hocrgen.fetchers.wikisource import (
 )
 from hocrgen.manifests.models import BenchmarkReferenceManifestRecord, BenchmarkTranscriptionReferenceRecord
 from hocrgen.parsers.wikitext import WIKITEXT_NORMALIZATION_VERSION
+from hocrgen.reference_runs import BOOTSTRAP_CLUSTERS_SCHEMA
 
 SOURCE_ID = "wikisource_he_proofread"
 ADJUDICATION_RECORD_SCHEMA = "wikisource_adjudication_record.v1"
@@ -60,6 +64,7 @@ SINGLE_REVIEWER_ORIGIN = "wikisource_single_reviewer"
 MODALITY = "printed"
 DOCUMENT_TYPE = "printed_book_page"
 RELEASE_SPLITS = ("train", "validation", "test")
+CLUSTER_KEY = "wikisource_index"
 NOT_IN_RELEASE = "not_in_release"
 ADJUDICATION_RULE = (
     "maintainer decision 2 (2026-11-06): a Wikisource quality-4 page, validated by a second named human editor "
@@ -260,6 +265,9 @@ def write_eval_reference_set(
         for line in single_reviewer:
             handle.write(json.dumps(line, ensure_ascii=False, sort_keys=True) + "\n")
     (output_dir / "asset_index.json").write_text(_dump({"items": asset_index}), encoding="utf-8")
+    (output_dir / "bootstrap_clusters.json").write_text(_dump({
+        "schema_version": BOOTSTRAP_CLUSTERS_SCHEMA, "cluster_key": CLUSTER_KEY,
+        "clusters": {entry["item_id"]: entry["index_key"] for entry in items}}), encoding="utf-8")
     split_counts = None
     if release_splits is not None:
         split_counts = {}

@@ -3,7 +3,7 @@
 - **Date:** 2026-11-06
 - **Decided by:** the maintainer
 - **Status:** accepted as a direction. It is not implemented, and current scoring is unchanged.
-- **Implementation note (2026-11-06):** `E2d1` and `E2d2` add a printed modality track beside the unchanged synthetic headline; see the plan. The cutover itself (`E2d3`) is not implemented.
+- **Implementation note (2026-11-06):** `E2d1` and `E2d2` add a printed modality track beside the unchanged synthetic headline; see the plan. The cutover itself (now `E2d4`, after `E2d3` refreshed the printed set on the F8g2 splits) is not implemented.
 - **Plan:** [`planning/tasks/e2d-real-scan-evaluation.md`](../tasks/e2d-real-scan-evaluation.md)
 
 ## Decision

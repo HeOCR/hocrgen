@@ -14,6 +14,10 @@ items of that modality. It is distinct from the open/proprietary prediction ``tr
 references only and never changes the synthetic-gold block. Adjudicated items that declare
 ``reference_normalization.footnote_marker_style`` get the ``footnote_masked.v1`` reference view (issue #124), and an
 optional paired bootstrap adds percentile intervals to comparison deltas.
+
+E2d3: with a cluster map (``hocrgen_bootstrap_clusters.v1``, for example item -> Wikisource Index), comparison deltas
+also get a paired *cluster* bootstrap that resamples whole clusters (books), beside the item bootstrap. When one book
+dominates the characters, items are not independent and the item interval is too narrow.
 """
 from __future__ import annotations
 
@@ -53,6 +57,7 @@ LOGICAL_JOINS = {"space": " ", "cell": " | "}  # hocrsyngen LOGICAL_JOIN_SEPARAT
 PER_CELL_VIEW_ID = "per_cell.v1"
 MODALITY_TRACKS = frozenset({"printed", "handwritten"})
 BOOTSTRAP_CONFIDENCE = 0.95
+BOOTSTRAP_CLUSTERS_SCHEMA = "hocrgen_bootstrap_clusters.v1"
 _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 
 
@@ -536,22 +541,33 @@ def _footnote_view_reports(predictions: Mapping[str, str], *, track: str, adjudi
 
 def paired_bootstrap_interval(
     baseline: list[tuple[int, int]], candidate: list[tuple[int, int]], *, resamples: int, seed: int,
-    confidence: float = BOOTSTRAP_CONFIDENCE,
+    confidence: float = BOOTSTRAP_CONFIDENCE, clusters: list[str] | None = None,
 ) -> list[float] | None:
     """Percentile interval of the candidate-minus-baseline error rate over items resampled with replacement.
 
     Each list holds ``(edits, reference_units)`` per common item, in the same item order; the two sets share
     reference units, so each resample re-aggregates both sets over the same items. Deterministic for a seed.
+
+    With ``clusters`` (one cluster id per item, in the same order), whole clusters are resampled with replacement
+    instead, and every item of a drawn cluster enters the resample (a cluster bootstrap).
+    Passing ``(0, units)`` as the baseline gives an interval of the candidate's own rate.
     """
-    if len(baseline) != len(candidate):
+    if len(baseline) != len(candidate) or (clusters is not None and len(clusters) != len(baseline)):
         raise ValueError("paired bootstrap needs the same items in both sets")
     if not baseline or resamples <= 0:
         return None
     rng = random.Random(seed)
-    n = len(baseline)
+    if clusters is None:
+        groups = [[index] for index in range(len(baseline))]
+    else:
+        members: dict[str, list[int]] = {}
+        for index, cluster in enumerate(clusters):
+            members.setdefault(cluster, []).append(index)
+        groups = [members[cluster] for cluster in sorted(members)]
+    n = len(groups)
     deltas = []
     for _ in range(resamples):
-        picks = [rng.randrange(n) for _ in range(n)]
+        picks = [index for _ in range(n) for index in groups[rng.randrange(n)]]
         units = sum(baseline[i][1] for i in picks)
         if not units:
             continue
@@ -563,6 +579,19 @@ def paired_bootstrap_interval(
     low = deltas[min(len(deltas) - 1, max(0, int(tail * len(deltas))))]
     high = deltas[min(len(deltas) - 1, max(0, int((1 - tail) * len(deltas)) - 1))]
     return [low, high]
+
+
+def load_bootstrap_clusters(path: Path) -> dict[str, Any]:
+    """Read a ``hocrgen_bootstrap_clusters.v1`` file: ``{schema_version, cluster_key, clusters: {item_id: id}}``."""
+    payload, file_sha256 = _read_json(path, "bootstrap clusters")
+    clusters = payload.get("clusters") if isinstance(payload, dict) else None
+    if (not isinstance(payload, dict) or payload.get("schema_version") != BOOTSTRAP_CLUSTERS_SCHEMA
+            or not isinstance(payload.get("cluster_key"), str) or not payload["cluster_key"]
+            or not isinstance(clusters, dict) or not clusters
+            or not all(isinstance(k, str) and isinstance(v, str) and k and v for k, v in clusters.items())):
+        raise StageExecutionError(f"{path.name} must be a {BOOTSTRAP_CLUSTERS_SCHEMA} file with a cluster_key and a "
+                                  "non-empty clusters object of item id -> cluster id strings")
+    return {"cluster_key": payload["cluster_key"], "clusters": dict(clusters), "sha256": file_sha256}
 
 
 def _single_stage_change(base_set: dict, cand_set: dict) -> dict[str, Any] | None:
@@ -622,16 +651,36 @@ def _report_deltas(base_report: dict[str, Any], cand_report: dict[str, Any],
         if bootstrap:
             def pairs(items: dict[str, Any], edit_key: str, unit_key: str) -> list[tuple[int, int]]:
                 return [(items[i]["profiles"][profile_id][edit_key], items[i]["profiles"][profile_id][unit_key]) for i in common]
+            resampling = {"resamples": bootstrap["resamples"], "seed": bootstrap["seed"]}
+
+            def intervals(clusters: list[str] | None) -> dict[str, Any]:
+                return {
+                    "delta_cer_interval": paired_bootstrap_interval(
+                        pairs(base_items, "character_edits", "reference_characters"),
+                        pairs(cand_items, "character_edits", "reference_characters"), **resampling, clusters=clusters),
+                    "delta_wer_interval": paired_bootstrap_interval(
+                        pairs(base_items, "word_edits", "reference_words"),
+                        pairs(cand_items, "word_edits", "reference_words"), **resampling, clusters=clusters),
+                }
             profiles[profile_id]["paired_bootstrap"] = {
-                "resamples": bootstrap["resamples"], "seed": bootstrap["seed"], "confidence": BOOTSTRAP_CONFIDENCE,
+                **resampling, "confidence": BOOTSTRAP_CONFIDENCE,
                 "unit": "item", "method": "percentile interval of the re-aggregated delta over items resampled with replacement",
-                "delta_cer_interval": paired_bootstrap_interval(
-                    pairs(base_items, "character_edits", "reference_characters"),
-                    pairs(cand_items, "character_edits", "reference_characters"), **bootstrap),
-                "delta_wer_interval": paired_bootstrap_interval(
-                    pairs(base_items, "word_edits", "reference_words"),
-                    pairs(cand_items, "word_edits", "reference_words"), **bootstrap),
+                **intervals(None),
             }
+            cluster_map = bootstrap.get("clusters")
+            if cluster_map is not None:
+                missing = [i for i in common if i not in cluster_map["clusters"]]
+                if missing:
+                    raise StageExecutionError(f"--bootstrap-clusters has no cluster for {len(missing)} compared "
+                                              f"item(s), for example {missing[0]}")
+                clusters = [cluster_map["clusters"][i] for i in common]
+                profiles[profile_id]["paired_cluster_bootstrap"] = {
+                    **resampling, "confidence": BOOTSTRAP_CONFIDENCE, "unit": "cluster",
+                    "cluster_key": cluster_map["cluster_key"], "cluster_count": len(set(clusters)),
+                    "method": "percentile interval of the re-aggregated delta over whole clusters resampled with "
+                              "replacement (every item of a drawn cluster enters the resample)",
+                    **intervals(clusters),
+                }
     return {
         "common_item_count": len(common),
         "baseline_only_items": sorted(base_items.keys() - cand_items.keys()),
@@ -687,7 +736,7 @@ def run_reference_evaluation(
     unreviewed_texts: Path | None = None, mapping_path: Path | None = None, asset_index_path: Path | None = None,
     baseline_predictions_dir: Path | None = None, profiles: Iterable[str] = DEFAULT_PROFILE_IDS,
     alignment_masked: bool = False, diagnostic_only: bool = False, modality: str | None = None,
-    bootstrap_resamples: int = 0, bootstrap_seed: int = 0,
+    bootstrap_resamples: int = 0, bootstrap_seed: int = 0, bootstrap_clusters: Path | None = None,
 ) -> dict[str, Any]:
     if diagnostic_only:
         if synthetic_batch is not None or reference_manifest is not None:
@@ -708,7 +757,12 @@ def run_reference_evaluation(
                                   "--reference-manifest (not --diagnostic-only)")
     if bootstrap_resamples < 0 or (bootstrap_resamples and baseline_predictions_dir is None):
         raise StageExecutionError("--bootstrap-resamples must be a non-negative count and needs --baseline-predictions")
-    bootstrap = {"resamples": bootstrap_resamples, "seed": bootstrap_seed} if bootstrap_resamples else None
+    if bootstrap_clusters is not None and not bootstrap_resamples:
+        raise StageExecutionError("--bootstrap-clusters needs --bootstrap-resamples")
+    bootstrap: dict[str, Any] | None = (
+        {"resamples": bootstrap_resamples, "seed": bootstrap_seed} if bootstrap_resamples else None)
+    if bootstrap is not None and bootstrap_clusters is not None:
+        bootstrap["clusters"] = load_bootstrap_clusters(bootstrap_clusters)
     profile_ids = list(profiles)
     if PRIMARY_PROFILE_ID not in profile_ids or set(profile_ids) - NORMALIZATION_PROFILES.keys():
         raise StageExecutionError(f"profiles must be known and include {PRIMARY_PROFILE_ID}")
@@ -788,7 +842,15 @@ def run_reference_evaluation(
         run_record["modality"] = modality
         run_record["modality_scope"] = "adjudicated_reference items declaring this modality; distinct from track"
     if bootstrap is not None:
-        run_record["paired_bootstrap"] = {**bootstrap, "confidence": BOOTSTRAP_CONFIDENCE, "unit": "item"}
+        run_record["paired_bootstrap"] = {"resamples": bootstrap["resamples"], "seed": bootstrap["seed"],
+                                          "confidence": BOOTSTRAP_CONFIDENCE, "unit": "item"}
+        if "clusters" in bootstrap:
+            cluster_map = bootstrap["clusters"]
+            run_record["paired_cluster_bootstrap"] = {
+                "resamples": bootstrap["resamples"], "seed": bootstrap["seed"], "confidence": BOOTSTRAP_CONFIDENCE,
+                "unit": "cluster", "cluster_key": cluster_map["cluster_key"], "clusters_sha256": cluster_map["sha256"],
+                "mapped_items": len(cluster_map["clusters"]),
+            }
     if diagnostic_only:
         run_record["benchmark_ready"] = False
         run_record["scored_set_policy"] = "diagnostic only: no scored set; unreviewed text under unreviewed_diagnostics"
@@ -801,6 +863,6 @@ def run_reference_evaluation(
 __all__ = [
     "build_mapping_from_asset_sha256", "load_adjudicated_references",
     "load_engine_prediction", "load_per_cell_view", "load_prediction_set", "load_synthetic_gold",
-    "load_unreviewed_texts", "paired_bootstrap_interval",
+    "load_bootstrap_clusters", "load_unreviewed_texts", "paired_bootstrap_interval",
     "run_reference_evaluation", "validate_mapping",
 ]

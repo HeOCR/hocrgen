@@ -18,8 +18,8 @@ Quality-3 / quality-4 pages at each stage. Each column is the run before the nex
 | Indexes admitted by the Index gate | 29 | 68 | 68 | 72 | 77 | 77 |
 | Pages in admitted Indexes | 624 / 27 | 1184 / 48 | 1184 / 48 | 1190 / 48 | 1411 / 62 | 1411 / 62 |
 | Pages the converter renders (`wikisource_plain_text`) | 231 / 12 | 1171 / 48 | 1184 / 48 | 1190 / 48 | 1411 / 62 | 1411 / 62 |
-| Pages passing every other gate (attestation, checksums) | 231 / 12 | 1154 / 48 | 1167 / 48 | 1188 / 48 | 1397 / 61 | 1396 / 61 |
-| **Eligible as full pages** (`full_page`) | 0 / 0 | 82 / 43 | 837 / 43 | 946 / 43 | 1161 / 56 | 1159 / 56 |
+| Pages passing every other gate (attestation, checksums) | 231 / 12 | 1154 / 48 | 1167 / 48 | 1188 / 48 | 1397 / 61 | 1395 / 61 |
+| **Eligible as full pages** (`full_page`) | 0 / 0 | 82 / 43 | 837 / 43 | 946 / 43 | 1161 / 56 | 1158 / 56 |
 | **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | 0 / 0 | 196 / 4 | 241 / 5 | 235 / 5 | 236 / 5 |
 | Of those, crop placed or confirmed by an agent or human | — | — | 25 / 4 | 96 / 2 | 90 / 2 | 92 / 2 |
 | Of those, multi-region crop (rest of the box masked) | — | — | 0 / 0 | 29 / 0 | 26 / 0 | 26 / 0 |
@@ -29,7 +29,7 @@ Quality-3 / quality-4 pages at each stage. Each column is the run before the nex
 | Pairs with text excluded from scoring as not visible on the scan (`illegible_on_scan`, F8b7) | — | — | — | — | — | 2 / 0 |
 | `partial_page` without a resolved crop (`crop_unresolved`, listed below) | 0 / 0 | 25 / 5 | 60 / 1 | 0 / 0 | 0 / 0 | 0 / 0 |
 | Coverage not decided (no check; of them, tool alignment too poor) | 231 / 12; — | 1047 / 0; — | 74 / 0; 74 / 0 | 1 / 0; 1 / 0 | 1 / 0; 1 / 0 | 1 / 0; 1 / 0 |
-| Not a pair: words in the text the page does not show (`text_not_on_page`, listed below) | — | — | — | — | 12 / 1 | 13 / 1 |
+| Not a pair: words in the text the page does not show (`text_not_on_page`, listed below) | — | — | — | — | 12 / 1 | 14 / 1 |
 | Not a pair yet: a footnote the tool did not find on the page, not reviewed (`footnote_not_located`, F8b7) | — | — | — | — | — | 0 |
 | Reference-eligible quality-4 pages (adjudication-eligible), every gate but coverage | 4 | 29 | 29 | 29 | 35 | 35 |
 | Of those, eligible now (full page or cropped) | 0 | 25 | 28 | 29 | 35 | 35 |
@@ -75,11 +75,11 @@ Pages are quality-3 plus quality-4 pages.
 
 | Result | Quality 3 / quality 4 |
 | --- | ---: |
-| eligible as full pages (`full_page`) | 1159 / 56 |
+| eligible as full pages (`full_page`) | 1158 / 56 |
 | eligible as cropped pages (`partial_page`, resolved crop) | 236 / 5 |
 | `crop_unresolved` (`partial_page`, no crop placed) | 0 / 0 |
 | passes every gate but its coverage is not decided | 1 / 0 |
-| rejected: `text_not_on_page` | 14 |
+| rejected: `text_not_on_page` | 15 |
 | rejected: `page_text_empty` | 2 |
 
 ## Page render checks
@@ -144,7 +144,7 @@ Pages are quality-3 plus quality-4 pages.
 | מפתח:ספר דורות הראשונים א'.pdf | 10 | 10 | 0 | 2 / 8 | 0 / 0 |
 | מפתח:ספר המספר.pdf | 15 | 1 | 14 | 1 / 0 | 13 / 1 |
 | מפתח:פירוש אבן יחיא על ספרי הכתובים.pdf | 2 | 2 | 0 | 2 / 0 | 0 / 0 |
-| מפתח:פרי מגדים אורח חיים .pdf | 6 | 5 | 1 | 5 / 0 | 1 / 0 |
+| מפתח:פרי מגדים אורח חיים .pdf | 6 | 5 | 1 | 4 / 0 | 1 / 0 |
 | מפתח:שבט שמעון.pdf | 1 | 1 | 0 | 1 / 0 | 0 / 0 |
 
 ## Pages without a resolved crop (`crop_unresolved`)
@@ -184,6 +184,7 @@ so they are not pairs. They stay listed.
 | עמוד:Tosefta Moed edited by Zuckermandel.pdf/116 | 3 | an editors' heading and explanatory sentence introducing the parallels they compiled |
 | עמוד:Tosefta Moed edited by Zuckermandel.pdf/117 | 3 | an editors' heading and explanatory sentence introducing the parallels they compiled |
 | עמוד:משפטי הטעמים רעדעלהיים תקס"ח.pdf/14 | 3 | the continuation of the foot note, merged in from the following pages; only its first line is printed here |
+| עמוד:פרי מגדים אורח חיים .pdf/244 | 3 | the editor's expansion "הלכות פסח" followed by a stray "\|" (a broken abbreviation, MediaWiki shows it literally), where the page prints the abbreviation ה"פ in the left commentary ("וממילא ה"פ היינו טעם הנס"); found by the F8g2 agent check (Claude Code (claude-opus-5-5), 2026-11-07) of the 960 px render line holding the fragment |
 
 ## Pairs whose text was adjusted or masked (F8b7)
 

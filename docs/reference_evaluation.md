@@ -2,7 +2,7 @@
 
 `hocrgen.reference_evaluation` scores explicit predictions against reviewed or adjudicated `benchmark_transcription_reference.v1` records. It does not acquire references or run an OCR engine. Existing `hocrgen.evaluation` and `evaluate-benchmark` retain their raw E2a behavior.
 
-**Direction (2026-11-06).** Synthetic gold is the headline scored set for now. Evaluation is to move, over time, to real scans only, with separate printed and handwritten tracks. `E2d1`/`E2d2` add a printed modality track beside it ([modality tracks](#modality-tracks-and-real-printed-references-e2d1-e2d2)); the cutover is `E2d3`. See [`planning/tasks/e2d-real-scan-evaluation.md`](../planning/tasks/e2d-real-scan-evaluation.md).
+**Direction (2026-11-06).** Synthetic gold is the headline scored set for now. Evaluation is to move, over time, to real scans only, with separate printed and handwritten tracks. `E2d1`/`E2d2` add a printed modality track beside it ([modality tracks](#modality-tracks-and-real-printed-references-e2d1-e2d2)); the cutover is `E2d4`. See [`planning/tasks/e2d-real-scan-evaluation.md`](../planning/tasks/e2d-real-scan-evaluation.md).
 
 ```python
 from hocrgen.manifests.models import BenchmarkTranscriptionReferenceRecord
@@ -169,12 +169,20 @@ The view is heuristic near the marks, appears only when a scored item declares t
 
 **Intervals.** `--bootstrap-resamples N` (with `--baseline-predictions`; `--bootstrap-seed`, default 0) adds `paired_bootstrap` to every comparison delta: the 95% percentile interval of ΔCER and ΔWER over common items resampled with replacement, re-aggregated as sums. The run record lists the settings. The default, 0, adds nothing.
 
+**Book-level intervals (`E2d3`).** `--bootstrap-clusters FILE` (with `--bootstrap-resamples`) also adds `paired_cluster_bootstrap` to every comparison delta.
+- The method resamples whole clusters with replacement, and every item of a drawn cluster enters the resample.
+- `FILE` is `{"schema_version": "hocrgen_bootstrap_clusters.v1", "cluster_key": ..., "clusters": {item_id: cluster_id}}`.
+- Each delta records `cluster_key` and `cluster_count`; the run record lists the settings and the file's sha256.
+- A compared item without a cluster fails the run.
+- Use it when items are not independent, for example several pages of one book. With few clusters the interval is coarse.
+
 **Real printed references.** `python -m hocrgen.tools.wikisource_eval_references SNAPSHOT OUT` (operator-only) writes, from a pinned Wikisource snapshot:
 
 - adjudicated `benchmark_transcription_reference.v1` records for quality-4 pages, each with a `wikisource_adjudication_record.v1` that names the two Wikisource editors as the attesting humans (maintainer decision 2; no agent attests);
 - a manifest with `modality: printed`;
 - quality-3 pages as `--unreviewed-texts` (`reference_origin: wikisource_single_reviewer`);
-- an `--asset-index` that maps each item to its page image, or to its decision-12 crop.
+- an `--asset-index` that maps each item to its page image, or to its decision-12 crop;
+- `bootstrap_clusters.json`, which maps each item to its Wikisource Index (`cluster_key: wikisource_index`), for `--bootstrap-clusters`.
 
 The text is the post-F8b7 pair text. F8b7 `illegible_on_scan` spans are honoured: an adjudicated reference carries them as `illegible` / `exclude_primary` spans, which `reference_text` excludes, and a single-reviewer text has them removed. `--items` limits the conversion to listed pages, and `--split-manifest` records each page's release split (`benchmark_split` on adjudicated items).
 

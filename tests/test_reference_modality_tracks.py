@@ -1,4 +1,4 @@
-"""E2d1/E2d2: modality tracks, the footnote-masked reference view (issue #124) and paired bootstrap intervals."""
+"""E2d1/E2d2/E2d3: modality tracks, the footnote-masked reference view (issue #124), paired item and cluster bootstraps."""
 from __future__ import annotations
 
 import json
@@ -234,6 +234,70 @@ def test_cli_passes_modality_and_bootstrap(tmp_path: Path, capsys: pytest.Captur
     assert main(["evaluate-references", "--predictions", str(cand), "--synthetic-batch", str(BATCH),
                  "--modality", "handwritten"]) == 1
     assert "needs --reference-manifest" in capsys.readouterr().out
+
+
+def test_cluster_bootstrap_resamples_whole_clusters() -> None:
+    baseline = [(10, 100), (0, 50), (5, 80), (20, 100), (8, 60)]
+    candidate = [(5, 100), (0, 50), (5, 80), (10, 100), (9, 60)]
+    singletons = [str(index) for index in range(5)]
+    item = paired_bootstrap_interval(baseline, candidate, resamples=400, seed=7)
+    # One cluster per item draws exactly the item bootstrap (same RNG calls in the same order).
+    assert paired_bootstrap_interval(baseline, candidate, resamples=400, seed=7, clusters=singletons) == item
+    books = ["b", "a", "a", "b", "c"]
+    clustered = paired_bootstrap_interval(baseline, candidate, resamples=400, seed=7, clusters=books)
+    assert clustered == paired_bootstrap_interval(baseline, candidate, resamples=400, seed=7, clusters=books)
+    delta = (29 - 43) / 390
+    assert clustered[0] <= delta <= clustered[1]
+    # A single cluster always redraws the whole set, so the interval collapses onto the point estimate.
+    whole = paired_bootstrap_interval(baseline, candidate, resamples=50, seed=1, clusters=["x"] * 5)
+    assert whole[0] == pytest.approx(delta) and whole[1] == pytest.approx(delta)
+    # A zero baseline gives an interval of the candidate's own rate.
+    rate = paired_bootstrap_interval([(0, u) for _, u in candidate], candidate, resamples=400, seed=7, clusters=books)
+    assert rate[0] <= 29 / 390 <= rate[1]
+    with pytest.raises(ValueError):
+        paired_bootstrap_interval(baseline, candidate, resamples=10, seed=0, clusters=books[:2])
+
+
+def _clusters(path: Path, clusters: dict[str, str], **extra: object) -> Path:
+    path.write_text(json.dumps({"schema_version": "hocrgen_bootstrap_clusters.v1", "cluster_key": "book",
+                                "clusters": clusters, **extra}), encoding="utf-8")
+    return path
+
+
+def test_runs_add_a_paired_cluster_bootstrap_beside_the_item_bootstrap(tmp_path: Path,
+                                                                       capsys: pytest.CaptureFixture[str]) -> None:
+    manifest = _manifest(tmp_path / "refs", ENTRIES[:2])
+    index = tmp_path / "refs" / "asset_index.json"
+    base = _predictions(tmp_path / "base", {"a1" * 32: "שלום", "a2" * 32: "ספר"})
+    cand = _predictions(tmp_path / "cand", {"a1" * 32: PRINTED_PRINT, "a2" * 32: "ספר הזכרונות"})
+    clusters = _clusters(tmp_path / "clusters.json", {"ws:printed-1": "book-1", "ws:printed-2": "book-1"})
+    common = {"predictions_dir": cand, "baseline_predictions_dir": base, "reference_manifest": manifest,
+              "asset_index_path": index, "modality": "printed", "bootstrap_resamples": 100, "bootstrap_seed": 2}
+    plain = run_reference_evaluation(**common)
+    report = run_reference_evaluation(**common, bootstrap_clusters=clusters)
+    primary = report["comparison"]["deltas"]["adjudicated_reference"]["profiles"]["primary.v1"]
+    same = plain["comparison"]["deltas"]["adjudicated_reference"]["profiles"]["primary.v1"]
+    assert primary["paired_bootstrap"] == same["paired_bootstrap"] and "paired_cluster_bootstrap" not in same
+    cluster = primary["paired_cluster_bootstrap"]
+    assert cluster["unit"] == "cluster" and cluster["cluster_key"] == "book" and cluster["cluster_count"] == 1
+    assert cluster["delta_cer_interval"][0] == pytest.approx(primary["delta_cer"])  # one book: no spread
+    view = report["comparison"]["reference_view_deltas"]["adjudicated_reference"][FOOTNOTE_MASKED_VIEW_ID]
+    assert "paired_cluster_bootstrap" in view[FOOTNOTE_MASKED_VIEW_ID]["profiles"]["primary.v1"]
+    record = report["run_record"]["paired_cluster_bootstrap"]
+    assert record["unit"] == "cluster" and record["mapped_items"] == 2 and len(record["clusters_sha256"]) == 64
+    assert "paired_cluster_bootstrap" not in plain["run_record"]
+    with pytest.raises(StageExecutionError, match="no cluster for 1 compared"):
+        run_reference_evaluation(**common, bootstrap_clusters=_clusters(tmp_path / "part.json", {"ws:printed-1": "b"}))
+    with pytest.raises(StageExecutionError, match="hocrgen_bootstrap_clusters.v1"):
+        run_reference_evaluation(**common, bootstrap_clusters=_clusters(tmp_path / "bad.json", {"ws:printed-1": 3}))
+    with pytest.raises(StageExecutionError, match="needs --bootstrap-resamples"):
+        run_reference_evaluation(**{**common, "bootstrap_resamples": 0}, bootstrap_clusters=clusters)
+    out = tmp_path / "cli.json"
+    assert main(["evaluate-references", "--predictions", str(cand), "--baseline-predictions", str(base),
+                 "--reference-manifest", str(manifest), "--asset-index", str(index), "--modality", "printed",
+                 "--bootstrap-resamples", "20", "--bootstrap-clusters", str(clusters), "--output", str(out)]) == 0
+    assert json.loads(out.read_text(encoding="utf-8"))["run_record"]["paired_cluster_bootstrap"]["resamples"] == 20
+    capsys.readouterr()
 
 
 def test_bit_parallel_levenshtein_equals_the_dynamic_program() -> None:

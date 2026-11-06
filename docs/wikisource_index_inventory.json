@@ -16121,7 +16121,7 @@
           "4": 0
         },
         "eligible": {
-          "3": 5,
+          "3": 4,
           "4": 0
         },
         "cropped": {
@@ -16174,10 +16174,16 @@
         "crop_unresolved_pages": [],
         "pending_coverage_pages": [],
         "text_not_on_page": {
-          "3": 0,
+          "3": 1,
           "4": 0
         },
-        "text_not_on_page_pages": [],
+        "text_not_on_page_pages": [
+          {
+            "page_title": "עמוד:פרי מגדים אורח חיים .pdf/244",
+            "quality": 3,
+            "detail": "the editor's expansion \"הלכות פסח\" followed by a stray \"|\" (a broken abbreviation, MediaWiki shows it literally), where the page prints the abbreviation ה\"פ in the left commentary (\"וממילא ה\"פ היינו טעם הנס\"); found by the F8g2 agent check (Claude Code (claude-opus-5-5), 2026-11-07) of the 960 px render line holding the fragment"
+          }
+        ],
         "footnote_checks": {},
         "footnote_flagged_reviewed": 0,
         "footnote_unchecked_reviewed": 0,
@@ -16196,7 +16202,9 @@
           "4": 0
         },
         "adjusted_pages": [],
-        "rejected_by_first_reason": {},
+        "rejected_by_first_reason": {
+          "text_not_on_page": 1
+        },
         "unsupported_markup": {}
       }
     },
