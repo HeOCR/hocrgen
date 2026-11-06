@@ -890,7 +890,7 @@ def test_f8_real_source_map_is_planning_only_and_gate_preserving() -> None:
     roadmap_rows = _roadmap_table_rows(roadmap)
 
     assert roadmap_rows["F8"][1] == "Real-source map and paired-text source intake"
-    assert roadmap_rows["F8"][2].split(", ") == ["F8a", "F8b", "F8b2", "F8b3", "F8c", "F8d", "F8d2", "F8d3", "F8d3b", "F8e"]
+    assert roadmap_rows["F8"][2].split(", ") == ["F8a", "F8b", "F8b2", "F8b3", "F8c", "F8c2", "F8d", "F8d2", "F8d3", "F8d3b", "F8e"]
     assert roadmap_rows["F8"][4] == "partial"
     assert roadmap_rows["F8a"][4] == "completed"
     assert roadmap_rows["F8b"][1] == "F8"
@@ -907,6 +907,9 @@ def test_f8_real_source_map_is_planning_only_and_gate_preserving() -> None:
     assert roadmap_rows["F8e"][4] == "completed"
     # F8c landed slug-keyed NLI rights with exploratory printed-book seeds.
     assert roadmap_rows["F8c"][4] == "completed"
+    # F8c2 measured the NLI free-use printed-book pool (operator-only inventory, no seed or composition change).
+    assert roadmap_rows["F8c2"][1] == "F8"
+    assert roadmap_rows["F8c2"][4] == "completed"
     # F8d landed YidTakNL; F8d2 admitted pinkas_dataset_bgu once its scans matched NLI Ms. Heb. 4°662.
     # F8d3 added per-line language tags; agent proposals stay advisory (decision 8).
     for pr_id in ["F8d", "F8d2", "F8d3", "F8d3b"]:
