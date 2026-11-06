@@ -189,6 +189,7 @@ def test_manifest_classes_and_multi_volume_resolution() -> None:
     capped = inv.inspect_manifest("multi", fetch, max_volumes=1)
     assert len(capped["volumes"]) == 1 and capped["volumes_unresolved"] == 2
     assert inv.licence_class("nli-non-commercial", "x") == "non_commercial_other"
+    assert inv.licence_class("non-commercial-use-license", "x") == "non_commercial_other"
 
 
 def test_image_rights_are_recorded_not_decided() -> None:

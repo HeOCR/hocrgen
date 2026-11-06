@@ -37,6 +37,8 @@ NLI_NON_COMMERCIAL_SLUGS = frozenset(
         "nli-non-commercial",
         "nli-non-commercial-research-teaching",
         "hebrew-manuscripts-public-domain-non-commercial-copying",
+        # Seen on 3 printed books in the F8c2 inventory (2026-11-06); recorded as RESTRICTED-NONOPEN, not UNKNOWN.
+        "non-commercial-use-license",
     }
 )
 

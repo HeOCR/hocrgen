@@ -86,6 +86,15 @@ PARAMETER_ORDERS: tuple[tuple[str, ...], ...] = (
 FetchResult = tuple[int, bytes]
 Fetch = Callable[[str], FetchResult]
 
+CAVEATS = (
+    "`non-commercial-use-license` was first seen in this inventory (3 books). It is now in `NLI_NON_COMMERCIAL_SLUGS`, so the "
+    "gate rejects it as `nli_license_non_commercial:non-commercial-use-license` with hint `RESTRICTED-NONOPEN`, not `UNKNOWN`. "
+    "Classes are recomputed from each recorded slug, so this summary follows the current slug sets.",
+    "An image service answering `info.json` with HTTP 415 (\"Identifier ... not supported\") suggests that item may not serve "
+    "images; promotion should probe images first.",
+    "Periods come from the catalog date string. Hebrew years map to AM - 3760, exact to within a year.",
+)
+
 LICENCE_CLASS_ORDER = (
     "free_use",
     "non_commercial_google",
@@ -391,7 +400,8 @@ def outcome_class(check: dict[str, Any] | None) -> str:
 
     if check is None:
         return "no_manifest_link"
-    cls = check["licence_class"]
+    # Recomputed from the recorded slug, so a summary follows the current gate's slug sets, not the run-time ones.
+    cls = licence_class(check.get("license_slug"), str(check.get("reason") or ""))
     if cls != "free_use":
         return cls
     if check["decision"] == "accepted":
@@ -841,6 +851,10 @@ def render_markdown(summary: dict[str, Any]) -> str:
         "| `info.json` rights | Items |",
         "| --- | ---: |",
         *([f"| `{value}` | {count} |" for value, count in summary["image_rights_sample"].items()] or ["| (none sampled) | 0 |"]),
+        "",
+        "## Caveats",
+        "",
+        *[f"- {line}" for line in CAVEATS],
         "",
     ]
     return "\n".join(lines)

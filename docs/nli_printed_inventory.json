@@ -405,22 +405,39 @@
      ],
      "window_estimate": 11790
     },
-    "other_slug": {
-     "extrapolated_estimate": 170,
-     "per_book": 0.0045,
+    "non_commercial_other": {
+     "extrapolated_estimate": 60,
+     "per_book": 0.0017,
      "per_book_ci95": [
       0.0,
-      0.0091
+      0.0035
      ],
      "whole_set_bounds": [
       0,
-      18936
+      18826
      ],
      "window_ci95": [
       0,
-      180
+      70
      ],
-     "window_estimate": 90
+     "window_estimate": 30
+    },
+    "other_slug": {
+     "extrapolated_estimate": 110,
+     "per_book": 0.0028,
+     "per_book_ci95": [
+      0.0,
+      0.0072
+     ],
+     "whole_set_bounds": [
+      0,
+      18896
+     ],
+     "window_ci95": [
+      0,
+      140
+     ],
+     "window_estimate": 60
     }
    },
    "free_use_pages": {
@@ -502,7 +519,8 @@
     "free_use_multi_volume": 13,
     "free_use_zero_canvases": 179,
     "non_commercial_google": 1061,
-    "other_slug": 8
+    "non_commercial_other": 3,
+    "other_slug": 5
    },
    "records_seen": 1800,
    "records_with_sequence_refs": 731,

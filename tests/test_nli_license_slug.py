@@ -106,6 +106,7 @@ def test_free_use_slug_is_accepted_and_canonicalised() -> None:
     [
         ("public-domain-non-commercial-use", "nli_license_non_commercial:public-domain-non-commercial-use", "RESTRICTED-NONOPEN"),
         ("nli-non-commercial", "nli_license_non_commercial:nli-non-commercial", "RESTRICTED-NONOPEN"),
+        ("non-commercial-use-license", "nli_license_non_commercial:non-commercial-use-license", "RESTRICTED-NONOPEN"),
         ("fair-use", "nli_license_not_free_use:fair-use", "UNKNOWN"),
         ("no-license-subject-to-copyright", "nli_license_not_free_use:no-license-subject-to-copyright", "UNKNOWN"),
         ("nli-copying-prohibited", "nli_license_not_free_use:nli-copying-prohibited", "UNKNOWN"),
