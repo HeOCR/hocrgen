@@ -37,7 +37,7 @@ where = ["src"]
 
 [tool.setuptools.package-data]
 "hocrgen.config" = ["*.yaml", "profiles/*.yaml"]
-"hocrgen" = ["data/**/*.json", "data/**/*.jsonl", "data/**/*.svg", "data/**/*.png", "data/**/*.jpg", "data/**/*.jpeg", "data/**/*.yaml", "data/**/*.html", "data/**/*.txt", "data/**/*.ttf"]
+"hocrgen" = ["data/**/*.json", "data/**/*.jsonl", "data/**/*.svg", "data/**/*.png", "data/**/*.jpg", "data/**/*.jpeg", "data/**/*.yaml", "data/**/*.html", "data/**/*.txt", "data/**/*.ttf", "data/**/*.xml.gz"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

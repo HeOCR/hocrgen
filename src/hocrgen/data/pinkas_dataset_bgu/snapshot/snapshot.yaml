@@ -1,0 +1,29 @@
+version: 1
+dataset: The Pinkas Dataset (BGU)
+dataset_creators:
+  - Berat Kurar Barakat
+  - Irina Rabaev
+  - Jihad El-Sana
+dataset_landing_url: https://zenodo.org/records/3569694
+dataset_doi: 10.1109/ICDAR.2019.00122_dataset
+dataset_license: CC-BY-4.0
+dataset_license_evidence: Zenodo API record 3569694, license id cc-by-4.0, checked 2026-11-06
+dataset_paper: B. Kurar Barakat, I. Rabaev and J. El-Sana, The Pinkas Dataset, ICDAR 2019, pp. 732-737, doi:10.1109/ICDAR.2019.00122
+bundle_format: >-
+  One zip (47.7 MB, md5 802f14fbdb400efab9cb0808c3620be8) holding 30 page JPEGs ("Page N_1.jpg" and
+  "Page N_2.jpg") with one PAGE 2018-07-15 XML each (regions, lines and words, polygon coordinates, line and
+  word text), plus train_set.txt (24 pages) and test_set.txt (6 pages).
+scan_provenance: >-
+  NLI record 990000445290205171, "פנקס קהילת פראנקפורט דמיין", 1552-1802, Ms. Heb. 4°662 (NLI call number
+  Ms. Heb. 662=24), digitized by the NLI Ktiv project. The IIIF manifest licence is public-domain-free-use. The
+  manifest has 330 two-page canvases labelled "Page N"; dataset "Page N_1" is the right half of canvas "Page N"
+  and "Page N_2" the left half. The pinned capture is iiif/nli_990000445290205171_manifest_capture.json
+  (hocrgen.nli_iiif_manifest_capture.v1); the F8c licence-slug gate decides scan rights from it.
+captured_at: 2026-11-06
+entries_path: entries.jsonl
+scope: fixture
+notes: >-
+  Two-entry F8d2 fixture: the right-hand pages of NLI images 105 and 112, both in the official train split.
+  Committed JPEGs are 640 px thumbnails. The PAGE XML files are the upstream bytes, gzip-compressed (mtime 0);
+  their decompressed sha256 equals the upstream file's. Geometry stays in upstream pixel coordinates in the XML
+  and is scaled to the thumbnail when parsed.

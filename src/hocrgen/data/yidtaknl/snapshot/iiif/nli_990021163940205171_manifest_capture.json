@@ -1,0 +1,173 @@
+{
+ "canvas_count": 24,
+ "capture_format": "hocrgen.nli_iiif_manifest_capture.v1",
+ "captured_on": "2026-11-06",
+ "http_status": 200,
+ "manifest": {
+  "@context": "http://iiif.io/api/presentation/2/context.json",
+  "@id": "https://iiif.nli.org.il/IIIFv21/DOCID/NNL_ALEPH21213807760005171/manifest",
+  "@type": "sc:Manifest",
+  "attribution": [
+   "מאוסף הספרייה הלאומית"
+  ],
+  "label": "אמפילאציע אונ' אלטעראציע על תקנות דקהלתינו / ועל ידי דיא עדלי ... הערן בורגרמיינשטרן אונ' רעגיררש דיזר שטאט ... אפראבירט דען 5 יוני 1781.",
+  "license": [
+   "https://www.nli.org.il/contenteditors/pages-for-terms-of-use/public-domain-free-use"
+  ],
+  "logo": [
+   "http://iiif.nli.org.il/IIIFv21/images/nli_logo.jpg"
+  ],
+  "metadata": [
+   {
+    "label": "Title",
+    "value": "אמפילאציע אונ' אלטעראציע על תקנות דקהלתינו / ועל ידי דיא עדלי ... הערן בורגרמיינשטרן אונ' רעגיררש דיזר שטאט ... אפראבירט דען 5 יוני 1781."
+   },
+   {
+    "label": "Contributor",
+    "value": "אלמנה ויתמי יעקב פרופס מדפיס"
+   },
+   {
+    "label": "Publisher",
+    "value": "אמשטרדם : דפוס אלמנה עם יתמי יעקב פרופס כ\"ץ"
+   },
+   {
+    "label": "Base",
+    "value": [
+     "$$V972NNL_INST$$ONNL_ALEPH21213807760005171",
+     "$$V972NNL_INST$$ONNL_ALEPH11361673880005171"
+    ]
+   },
+   {
+    "label": "Subject",
+    "value": "Jews -- Netherlands -- Amsterdam -- History -- Sources"
+   },
+   {
+    "label": "Source",
+    "value": [
+     "$$VThe National Library of Israel$$ONNL_ALEPH21213807760005171",
+     "$$VThe National Library of Israel$$ONNL_ALEPH11361673880005171"
+    ]
+   },
+   {
+    "label": "The Creator",
+    "value": "אמסטרדם (הולנד). הקהילה האשכנזית$$Qאמסטרדם (הולנד). הקהילה האשכנזית"
+   },
+   {
+    "label": "Doc Id",
+    "value": "dedupmrg1219161565"
+   },
+   {
+    "label": "Creation Date",
+    "value": "תקמ\"א 1781"
+   },
+   {
+    "label": "Type",
+    "value": "book"
+   },
+   {
+    "label": "Format",
+    "value": "[8] דפים ; 17 ס\"מ."
+   },
+   {
+    "label": "Language",
+    "value": "yid"
+   },
+   {
+    "label": "Alternative Title",
+    "value": "אמפילאציע און אלטעראציע על תקנות דקהלתינו"
+   },
+   {
+    "label": "SysNum",
+    "value": [
+     "$$V21213807760005171$$ONNL_ALEPH21213807760005171",
+     "$$V11361673880005171$$ONNL_ALEPH11361673880005171"
+    ]
+   }
+  ],
+  "related": "http://merhav.nli.org.il/primo_library/libweb/action/display.do?tabs=detailsTab&ct=display&fn=search&displayMode=full&doc=NNL_ALEPH21213807760005171",
+  "sequences": [
+   {
+    "@id": "https://iiif.nli.org.il/IIIFv21/NNL_ALEPH21213807760005171/sequence/IE42164140",
+    "@type": "sc:Sequence",
+    "canvases": [
+     {
+      "@id": "https://iiif.nli.org.il/IIIFv21/FL42164354",
+      "@type": "sc:Canvas",
+      "height": 1986,
+      "images": [
+       {
+        "@id": "FL42164354",
+        "@type": "oa:Annotation",
+        "motivation": "sc:painting",
+        "on": "https://iiif.nli.org.il/IIIFv21/FL42164354",
+        "resource": {
+         "@id": "https://iiif.nli.org.il/IIIFv21/FL42164354/full/max/0/default.jpg",
+         "@type": "dctypes:Image",
+         "format": "image/jpeg;",
+         "height": 1986,
+         "label": "jpg_2116394-10_0004_2",
+         "service": {
+          "@context": "http://iiif.io/api/image/2/context.json",
+          "@id": "https://iiif.nli.org.il/IIIFv21/FL42164354",
+          "label": "jpg_2116394-10_0004_2",
+          "profile": "http://iiif.io/api/image/2/level1.json"
+         },
+         "width": 1151
+        }
+       }
+      ],
+      "label": "jpg_2116394-10_0004_2",
+      "width": 1151
+     },
+     {
+      "@id": "https://iiif.nli.org.il/IIIFv21/FL42164359",
+      "@type": "sc:Canvas",
+      "height": 1986,
+      "images": [
+       {
+        "@id": "FL42164359",
+        "@type": "oa:Annotation",
+        "motivation": "sc:painting",
+        "on": "https://iiif.nli.org.il/IIIFv21/FL42164359",
+        "resource": {
+         "@id": "https://iiif.nli.org.il/IIIFv21/FL42164359/full/max/0/default.jpg",
+         "@type": "dctypes:Image",
+         "format": "image/jpeg;",
+         "height": 1986,
+         "label": "jpg_2116394-10_0005_1",
+         "service": {
+          "@context": "http://iiif.io/api/image/2/context.json",
+          "@id": "https://iiif.nli.org.il/IIIFv21/FL42164359",
+          "label": "jpg_2116394-10_0005_1",
+          "profile": "http://iiif.io/api/image/2/level1.json"
+         },
+         "width": 1151
+        }
+       }
+      ],
+      "label": "jpg_2116394-10_0005_1",
+      "width": 1151
+     }
+    ]
+   }
+  ],
+  "viewingHint": "paged"
+ },
+ "manifest_url": "https://iiif.nli.org.il/IIIFv21/990021163940205171/manifest",
+ "selected_canvases": [
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42164354",
+   "dataset_page": "p0007",
+   "index": 6,
+   "label": "jpg_2116394-10_0004_2"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL42164359",
+   "dataset_page": "p0008",
+   "index": 7,
+   "label": "jpg_2116394-10_0005_1"
+  }
+ ],
+ "upstream_bytes": 21047,
+ "upstream_sha256": "d08e9389b3e292ce3cb0c393b38e4a0b4d877d47ae3fa92640f1b54134d7568c"
+}

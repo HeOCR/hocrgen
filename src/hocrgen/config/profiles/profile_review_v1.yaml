@@ -9,6 +9,7 @@ include_sources:
   - hash_public_domain
   - yidtaknl_vaybertaytsh_gt
   - wikisource_he_proofread
+  - pinkas_dataset_bgu
 exclude_sources: []
 allowed_rights_classifications:
   - open

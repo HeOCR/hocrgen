@@ -1,0 +1,960 @@
+{
+ "canvas_count": 0,
+ "capture_format": "hocrgen.nli_iiif_manifest_capture.v1",
+ "captured_on": "2026-11-06",
+ "http_status": 200,
+ "manifest": {
+  "@context": "http://iiif.io/api/presentation/2/context.json",
+  "@id": "https://iiif.nli.org.il/IIIFv21/DOCID/NNL_ALEPH21250024160005171/manifest",
+  "@type": "sc:Manifest",
+  "attribution": [
+   "מאוסף הספרייה הלאומית"
+  ],
+  "label": "תקנות הקהילה דקהל קודש אשכנזים ...",
+  "license": [
+   "https://www.nli.org.il/contenteditors/pages-for-terms-of-use/public-domain-free-use"
+  ],
+  "logo": [
+   "http://iiif.nli.org.il/IIIFv21/images/nli_logo.jpg"
+  ],
+  "metadata": [
+   {
+    "label": "Title",
+    "value": "תקנות הקהילה דקהל קודש אשכנזים ..."
+   },
+   {
+    "label": "Contributor",
+    "value": "Valmadonna Trust former owner"
+   },
+   {
+    "label": "Publisher",
+    "value": "אמשטרדם : דפוסים שונים"
+   },
+   {
+    "label": "Base",
+    "value": [
+     "$$V972NNL_INST$$ONNL_ALEPH21250024160005171",
+     "$$V972NNL_INST$$ONNL_ALEPH51301621450005171",
+     "$$V972NNL_INST$$ONNL_ALEPH11329619580005171"
+    ]
+   },
+   {
+    "label": "Subject",
+    "value": "Jews -- Netherlands -- Amsterdam; Synagogues -- Netherlands -- Amsterdam"
+   },
+   {
+    "label": "Source",
+    "value": [
+     "$$VThe National Library of Israel$$ONNL_ALEPH21250024160005171",
+     "$$VThe National Library of Israel$$ONNL_ALEPH51301621450005171",
+     "$$VThe National Library of Israel$$ONNL_ALEPH11329619580005171"
+    ]
+   },
+   {
+    "label": "The Creator",
+    "value": "אמסטרדם (הולנד). הקהילה האשכנזית$$Qאמסטרדם (הולנד). הקהילה האשכנזית"
+   },
+   {
+    "label": "Doc Id",
+    "value": "dedupmrg1219234724"
+   },
+   {
+    "label": "Creation Date",
+    "value": "תצ\"ז-תקמ\"א"
+   },
+   {
+    "label": "Type",
+    "value": "book"
+   },
+   {
+    "label": "Format",
+    "value": "15 כרכים ; 18 ס\"מ."
+   },
+   {
+    "label": "Language",
+    "value": "heb"
+   },
+   {
+    "label": "Alternative Title",
+    "value": "תקנות הקהלה דקהל קדש אשכנזים אשר באמשטרדם"
+   },
+   {
+    "label": "SysNum",
+    "value": [
+     "$$V21250024160005171$$ONNL_ALEPH21250024160005171",
+     "$$V51301621450005171$$ONNL_ALEPH51301621450005171",
+     "$$V11329619580005171$$ONNL_ALEPH11329619580005171"
+    ]
+   }
+  ],
+  "related": "http://merhav.nli.org.il/primo_library/libweb/action/display.do?tabs=detailsTab&ct=display&fn=search&displayMode=full&doc=NNL_ALEPH21250024160005171",
+  "sequences": [
+   {
+    "@id": "https://iiif.nli.org.il/IIIFv21/NNL_ALEPH21250024160005171/sequence/IE205260980",
+    "@type": "sc:Sequence",
+    "canvases": []
+   },
+   {
+    "@id": "https://iiif.nli.org.il/IIIFv21/NNL_ALEPH21250024160005171/sequence/IE91723877",
+    "@type": "sc:Sequence",
+    "canvases": []
+   },
+   {
+    "@id": "https://iiif.nli.org.il/IIIFv21/NNL_ALEPH21250024160005171/sequence/IE205263142",
+    "@type": "sc:Sequence",
+    "canvases": []
+   },
+   {
+    "@id": "https://iiif.nli.org.il/IIIFv21/NNL_ALEPH21250024160005171/sequence/IE143609452",
+    "@type": "sc:Sequence",
+    "canvases": []
+   },
+   {
+    "@id": "https://iiif.nli.org.il/IIIFv21/NNL_ALEPH21250024160005171/sequence/IE139570091",
+    "@type": "sc:Sequence",
+    "canvases": []
+   }
+  ],
+  "viewingHint": "paged"
+ },
+ "manifest_url": "https://iiif.nli.org.il/IIIFv21/990012586850205171/manifest",
+ "selected_canvases": [
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609669",
+   "dataset_page": "p0001",
+   "index": 0,
+   "label": "jpg_JB898_0004"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609670",
+   "dataset_page": "p0002",
+   "index": 1,
+   "label": "jpg_JB898_0008_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609671",
+   "dataset_page": "p0003",
+   "index": 2,
+   "label": "jpg_JB898_0008_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609672",
+   "dataset_page": "p0004",
+   "index": 3,
+   "label": "jpg_JB898_0009_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609673",
+   "dataset_page": "p0005",
+   "index": 4,
+   "label": "jpg_JB898_0009_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609674",
+   "dataset_page": "p0006",
+   "index": 5,
+   "label": "jpg_JB898_0010_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609675",
+   "dataset_page": "p0007",
+   "index": 6,
+   "label": "jpg_JB898_0010_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609676",
+   "dataset_page": "p0008",
+   "index": 7,
+   "label": "jpg_JB898_0011_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609677",
+   "dataset_page": "p0009",
+   "index": 8,
+   "label": "jpg_JB898_0011_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609678",
+   "dataset_page": "p0010",
+   "index": 9,
+   "label": "jpg_JB898_0012_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609679",
+   "dataset_page": "p0011",
+   "index": 10,
+   "label": "jpg_JB898_0012_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609680",
+   "dataset_page": "p0012",
+   "index": 11,
+   "label": "jpg_JB898_0013_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609681",
+   "dataset_page": "p0013",
+   "index": 12,
+   "label": "jpg_JB898_0013_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609682",
+   "dataset_page": "p0014",
+   "index": 13,
+   "label": "jpg_JB898_0014_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609683",
+   "dataset_page": "p0015",
+   "index": 14,
+   "label": "jpg_JB898_0014_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609684",
+   "dataset_page": "p0016",
+   "index": 15,
+   "label": "jpg_JB898_0015_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609685",
+   "dataset_page": "p0017",
+   "index": 16,
+   "label": "jpg_JB898_0015_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609686",
+   "dataset_page": "p0018",
+   "index": 17,
+   "label": "jpg_JB898_0016_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609687",
+   "dataset_page": "p0019",
+   "index": 18,
+   "label": "jpg_JB898_0016_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609688",
+   "dataset_page": "p0020",
+   "index": 19,
+   "label": "jpg_JB898_0017_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609689",
+   "dataset_page": "p0021",
+   "index": 20,
+   "label": "jpg_JB898_0017_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609690",
+   "dataset_page": "p0022",
+   "index": 21,
+   "label": "jpg_JB898_0018_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609691",
+   "dataset_page": "p0023",
+   "index": 22,
+   "label": "jpg_JB898_0018_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609692",
+   "dataset_page": "p0024",
+   "index": 23,
+   "label": "jpg_JB898_0019_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609693",
+   "dataset_page": "p0025",
+   "index": 24,
+   "label": "jpg_JB898_0019_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609694",
+   "dataset_page": "p0026",
+   "index": 25,
+   "label": "jpg_JB898_0020_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609695",
+   "dataset_page": "p0027",
+   "index": 26,
+   "label": "jpg_JB898_0020_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609696",
+   "dataset_page": "p0028",
+   "index": 27,
+   "label": "jpg_JB898_0021_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609697",
+   "dataset_page": "p0029",
+   "index": 28,
+   "label": "jpg_JB898_0021_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609698",
+   "dataset_page": "p0030",
+   "index": 29,
+   "label": "jpg_JB898_0022_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609699",
+   "dataset_page": "p0031",
+   "index": 30,
+   "label": "jpg_JB898_0022_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609700",
+   "dataset_page": "p0032",
+   "index": 31,
+   "label": "jpg_JB898_0023_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609701",
+   "dataset_page": "p0033",
+   "index": 32,
+   "label": "jpg_JB898_0023_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609702",
+   "dataset_page": "p0034",
+   "index": 33,
+   "label": "jpg_JB898_0024_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609703",
+   "dataset_page": "p0035",
+   "index": 34,
+   "label": "jpg_JB898_0024_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609704",
+   "dataset_page": "p0036",
+   "index": 35,
+   "label": "jpg_JB898_0025_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609705",
+   "dataset_page": "p0037",
+   "index": 36,
+   "label": "jpg_JB898_0025_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609706",
+   "dataset_page": "p0038",
+   "index": 37,
+   "label": "jpg_JB898_0026_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609707",
+   "dataset_page": "p0039",
+   "index": 38,
+   "label": "jpg_JB898_0026_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609708",
+   "dataset_page": "p0040",
+   "index": 39,
+   "label": "jpg_JB898_0027_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609709",
+   "dataset_page": "p0041",
+   "index": 40,
+   "label": "jpg_JB898_0027_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609710",
+   "dataset_page": "p0042",
+   "index": 41,
+   "label": "jpg_JB898_0028_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609711",
+   "dataset_page": "p0043",
+   "index": 42,
+   "label": "jpg_JB898_0028_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609712",
+   "dataset_page": "p0044",
+   "index": 43,
+   "label": "jpg_JB898_0029_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609713",
+   "dataset_page": "p0045",
+   "index": 44,
+   "label": "jpg_JB898_0029_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609714",
+   "dataset_page": "p0046",
+   "index": 45,
+   "label": "jpg_JB898_0030_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609715",
+   "dataset_page": "p0047",
+   "index": 46,
+   "label": "jpg_JB898_0030_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609716",
+   "dataset_page": "p0048",
+   "index": 47,
+   "label": "jpg_JB898_0031_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609717",
+   "dataset_page": "p0049",
+   "index": 48,
+   "label": "jpg_JB898_0031_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609718",
+   "dataset_page": "p0050",
+   "index": 49,
+   "label": "jpg_JB898_0032_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609719",
+   "dataset_page": "p0051",
+   "index": 50,
+   "label": "jpg_JB898_0032_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609720",
+   "dataset_page": "p0052",
+   "index": 51,
+   "label": "jpg_JB898_0033_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609721",
+   "dataset_page": "p0053",
+   "index": 52,
+   "label": "jpg_JB898_0033_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609722",
+   "dataset_page": "p0054",
+   "index": 53,
+   "label": "jpg_JB898_0034_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609723",
+   "dataset_page": "p0055",
+   "index": 54,
+   "label": "jpg_JB898_0034_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609724",
+   "dataset_page": "p0056",
+   "index": 55,
+   "label": "jpg_JB898_0035_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609725",
+   "dataset_page": "p0057",
+   "index": 56,
+   "label": "jpg_JB898_0035_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609726",
+   "dataset_page": "p0058",
+   "index": 57,
+   "label": "jpg_JB898_0036_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609727",
+   "dataset_page": "p0059",
+   "index": 58,
+   "label": "jpg_JB898_0036_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609728",
+   "dataset_page": "p0060",
+   "index": 59,
+   "label": "jpg_JB898_0037_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609729",
+   "dataset_page": "p0061",
+   "index": 60,
+   "label": "jpg_JB898_0037_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609730",
+   "dataset_page": "p0062",
+   "index": 61,
+   "label": "jpg_JB898_0038_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609731",
+   "dataset_page": "p0063",
+   "index": 62,
+   "label": "jpg_JB898_0038_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609732",
+   "dataset_page": "p0064",
+   "index": 63,
+   "label": "jpg_JB898_0039_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609733",
+   "dataset_page": "p0065",
+   "index": 64,
+   "label": "jpg_JB898_0039_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609734",
+   "dataset_page": "p0066",
+   "index": 65,
+   "label": "jpg_JB898_0040_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609735",
+   "dataset_page": "p0067",
+   "index": 66,
+   "label": "jpg_JB898_0040_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609736",
+   "dataset_page": "p0068",
+   "index": 67,
+   "label": "jpg_JB898_0041_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609737",
+   "dataset_page": "p0069",
+   "index": 68,
+   "label": "jpg_JB898_0041_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609738",
+   "dataset_page": "p0070",
+   "index": 69,
+   "label": "jpg_JB898_0042_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609739",
+   "dataset_page": "p0071",
+   "index": 70,
+   "label": "jpg_JB898_0042_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609740",
+   "dataset_page": "p0072",
+   "index": 71,
+   "label": "jpg_JB898_0043_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609741",
+   "dataset_page": "p0073",
+   "index": 72,
+   "label": "jpg_JB898_0043_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609742",
+   "dataset_page": "p0074",
+   "index": 73,
+   "label": "jpg_JB898_0044_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609743",
+   "dataset_page": "p0075",
+   "index": 74,
+   "label": "jpg_JB898_0044_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609744",
+   "dataset_page": "p0076",
+   "index": 75,
+   "label": "jpg_JB898_0045_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609745",
+   "dataset_page": "p0077",
+   "index": 76,
+   "label": "jpg_JB898_0045_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609746",
+   "dataset_page": "p0078",
+   "index": 77,
+   "label": "jpg_JB898_0046_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609747",
+   "dataset_page": "p0079",
+   "index": 78,
+   "label": "jpg_JB898_0046_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609748",
+   "dataset_page": "p0080",
+   "index": 79,
+   "label": "jpg_JB898_0047_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609749",
+   "dataset_page": "p0081",
+   "index": 80,
+   "label": "jpg_JB898_0047_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609750",
+   "dataset_page": "p0082",
+   "index": 81,
+   "label": "jpg_JB898_0048_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609751",
+   "dataset_page": "p0083",
+   "index": 82,
+   "label": "jpg_JB898_0048_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609752",
+   "dataset_page": "p0084",
+   "index": 83,
+   "label": "jpg_JB898_0049_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609753",
+   "dataset_page": "p0085",
+   "index": 84,
+   "label": "jpg_JB898_0049_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609754",
+   "dataset_page": "p0086",
+   "index": 85,
+   "label": "jpg_JB898_0050_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609755",
+   "dataset_page": "p0087",
+   "index": 86,
+   "label": "jpg_JB898_0050_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609756",
+   "dataset_page": "p0088",
+   "index": 87,
+   "label": "jpg_JB898_0051_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609757",
+   "dataset_page": "p0089",
+   "index": 88,
+   "label": "jpg_JB898_0051_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609758",
+   "dataset_page": "p0090",
+   "index": 89,
+   "label": "jpg_JB898_0052_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609759",
+   "dataset_page": "p0091",
+   "index": 90,
+   "label": "jpg_JB898_0052_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609760",
+   "dataset_page": "p0092",
+   "index": 91,
+   "label": "jpg_JB898_0053_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609761",
+   "dataset_page": "p0093",
+   "index": 92,
+   "label": "jpg_JB898_0053_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609762",
+   "dataset_page": "p0094",
+   "index": 93,
+   "label": "jpg_JB898_0054_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609763",
+   "dataset_page": "p0095",
+   "index": 94,
+   "label": "jpg_JB898_0054_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609764",
+   "dataset_page": "p0096",
+   "index": 95,
+   "label": "jpg_JB898_0055_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609765",
+   "dataset_page": "p0097",
+   "index": 96,
+   "label": "jpg_JB898_0055_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609766",
+   "dataset_page": "p0098",
+   "index": 97,
+   "label": "jpg_JB898_0056_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609767",
+   "dataset_page": "p0099",
+   "index": 98,
+   "label": "jpg_JB898_0056_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609768",
+   "dataset_page": "p0100",
+   "index": 99,
+   "label": "jpg_JB898_0057"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609769",
+   "dataset_page": "p0101",
+   "index": 100,
+   "label": "jpg_JB898_0058"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609770",
+   "dataset_page": "p0102",
+   "index": 101,
+   "label": "jpg_JB898_0059_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609771",
+   "dataset_page": "p0103",
+   "index": 102,
+   "label": "jpg_JB898_0059_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609772",
+   "dataset_page": "p0104",
+   "index": 103,
+   "label": "jpg_JB898_0060_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609773",
+   "dataset_page": "p0105",
+   "index": 104,
+   "label": "jpg_JB898_0060_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609774",
+   "dataset_page": "p0106",
+   "index": 105,
+   "label": "jpg_JB898_0061_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609775",
+   "dataset_page": "p0107",
+   "index": 106,
+   "label": "jpg_JB898_0061_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609776",
+   "dataset_page": "p0108",
+   "index": 107,
+   "label": "jpg_JB898_0062"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609777",
+   "dataset_page": "p0109",
+   "index": 108,
+   "label": "jpg_JB898_0063"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609778",
+   "dataset_page": "p0110",
+   "index": 109,
+   "label": "jpg_JB898_0064"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609779",
+   "dataset_page": "p0111",
+   "index": 110,
+   "label": "jpg_JB898_0065"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609780",
+   "dataset_page": "p0112",
+   "index": 111,
+   "label": "jpg_JB898_0066"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609781",
+   "dataset_page": "p0113",
+   "index": 112,
+   "label": "jpg_JB898_0067"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609782",
+   "dataset_page": "p0114",
+   "index": 113,
+   "label": "jpg_JB898_0068_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609783",
+   "dataset_page": "p0115",
+   "index": 114,
+   "label": "jpg_JB898_0068_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609784",
+   "dataset_page": "p0116",
+   "index": 115,
+   "label": "jpg_JB898_0069_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609785",
+   "dataset_page": "p0117",
+   "index": 116,
+   "label": "jpg_JB898_0069_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609786",
+   "dataset_page": "p0118",
+   "index": 117,
+   "label": "jpg_JB898_0070_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609787",
+   "dataset_page": "p0119",
+   "index": 118,
+   "label": "jpg_JB898_0070_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609788",
+   "dataset_page": "p0120",
+   "index": 119,
+   "label": "jpg_JB898_0071_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609789",
+   "dataset_page": "p0121",
+   "index": 120,
+   "label": "jpg_JB898_0071_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609790",
+   "dataset_page": "p0122",
+   "index": 121,
+   "label": "jpg_JB898_0072_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609791",
+   "dataset_page": "p0123",
+   "index": 122,
+   "label": "jpg_JB898_0072_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609792",
+   "dataset_page": "p0124",
+   "index": 123,
+   "label": "jpg_JB898_0073_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609793",
+   "dataset_page": "p0125",
+   "index": 124,
+   "label": "jpg_JB898_0073_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609794",
+   "dataset_page": "p0126",
+   "index": 125,
+   "label": "jpg_JB898_0074"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609795",
+   "dataset_page": "p0127",
+   "index": 126,
+   "label": "jpg_JB898_0075"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609796",
+   "dataset_page": "p0128",
+   "index": 127,
+   "label": "jpg_JB898_0076_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609797",
+   "dataset_page": "p0129",
+   "index": 128,
+   "label": "jpg_JB898_0076_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609798",
+   "dataset_page": "p0130",
+   "index": 129,
+   "label": "jpg_JB898_0077_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609799",
+   "dataset_page": "p0131",
+   "index": 130,
+   "label": "jpg_JB898_0077_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609800",
+   "dataset_page": "p0132",
+   "index": 131,
+   "label": "jpg_JB898_0078_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609801",
+   "dataset_page": "p0133",
+   "index": 132,
+   "label": "jpg_JB898_0078_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609802",
+   "dataset_page": "p0134",
+   "index": 133,
+   "label": "jpg_JB898_0079_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609803",
+   "dataset_page": "p0135",
+   "index": 134,
+   "label": "jpg_JB898_0079_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609804",
+   "dataset_page": "p0136",
+   "index": 135,
+   "label": "jpg_JB898_0080_A"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609805",
+   "dataset_page": "p0137",
+   "index": 136,
+   "label": "jpg_JB898_0080_B"
+  },
+  {
+   "canvas_id": "https://iiif.nli.org.il/IIIFv21/FL143609806",
+   "dataset_page": "p0138",
+   "index": 137,
+   "label": "jpg_JB898_0081"
+  }
+ ],
+ "upstream_bytes": 3735,
+ "upstream_sha256": "43bc9dceb1e732fdc34cf465bfd8fc29f38ca54450596669f7796a77930b5dd6",
+ "volume_sequence": {
+  "canvas_count": 138,
+  "label": "תקנות הקהילה דקהל קודש אשכנזים JB 899",
+  "sequence_url": "https://iiif.nli.org.il/IIIFv21/NNL_ALEPH21250024160005171/sequence/IE143609452",
+  "upstream_bytes": 88092,
+  "upstream_sha256": "af872c12b076e9bf7a7953f110a7a78e77296a4277c94c9849f87ac377503a46"
+ }
+}

@@ -14,10 +14,19 @@ from hocrgen.fetchers.hocrsyngen_manifest import validate_hocrsyngen_batch
 from hocrgen.fetchers.modern_handwriting import validate_modern_intake_manifest
 from hocrgen.fetchers.nli import SEED_CAPTURE_FIELD, SEED_CAPTURE_SHA256_FIELD, parse_nli_fixture_html
 from hocrgen.fetchers.nli_iiif import capture_asset_problems, decide_nli_rights, load_nli_manifest_capture
+from hocrgen.fetchers.pinkas_dataset import (
+    load_entry_page_lines,
+    load_pinkas_dataset_snapshot,
+    pinkas_dataset_entry_asset,
+    pinkas_dataset_entry_exclusion_reason,
+    pinkas_dataset_snapshot_root,
+)
 from hocrgen.fetchers.yidtaknl import (
+    load_yidtaknl_matched_pages,
     load_yidtaknl_snapshot,
     yidtaknl_entry_asset,
     yidtaknl_entry_exclusion_reason,
+    yidtaknl_matched_page_problem,
     yidtaknl_snapshot_root,
 )
 from hocrgen.fetchers.wikisource import (
@@ -606,6 +615,8 @@ def _inspect_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[di
         return _inspect_yidtaknl_source(source, bundle)
     if source.fetcher == "wikisource_proofread":
         return _inspect_wikisource_source(source, bundle)
+    if source.fetcher == "pinkas_dataset":
+        return _inspect_pinkas_dataset_source(source, bundle)
     if source.fetcher == "hocrsyngen_manifest":
         return _inspect_hocrsyngen_manifest_source(source, bundle)
     if source.fetcher == "modern_handwriting_intake":
@@ -912,7 +923,7 @@ def _inspect_yidtaknl_source(source: SourceConfig, bundle: ConfigBundle) -> tupl
     asset_count = 0
     exclusions: dict[str, int] = {}
     for entry in entries:
-        reason = yidtaknl_entry_exclusion_reason(entry, source)
+        reason = yidtaknl_entry_exclusion_reason(entry, source, root)
         if reason is not None:
             exclusions[reason] = exclusions.get(reason, 0) + 1
             continue
@@ -933,6 +944,7 @@ def _inspect_yidtaknl_source(source: SourceConfig, bundle: ConfigBundle) -> tupl
             asset_count += 1
         checks.extend([asset_check, text_check])
     checks.append({"name": "yidtaknl_entry_exclusions", "actual": dict(sorted(exclusions.items())), "status": "ok"})
+    checks.append(_yidtaknl_matched_pages_check(root, snapshot))
     return checks, candidate_count, asset_count
 
 
@@ -986,6 +998,81 @@ def _inspect_wikisource_source(source: SourceConfig, bundle: ConfigBundle) -> tu
         checks.append(check)
     checks.append({"name": "wikisource_page_exclusions", "actual": dict(sorted(page_exclusions.items())), "status": "ok"})
     return checks, candidate_count, asset_count
+
+
+def _inspect_pinkas_dataset_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int]:
+    checks: list[dict[str, Any]] = []
+    try:
+        root = pinkas_dataset_snapshot_root(source, bundle)
+    except StageExecutionError as exc:
+        return [{"name": "pinkas_dataset_snapshot_root", "status": "error", "message": str(exc)}], 0, 0
+    snapshot_path = root / "snapshot.yaml"
+    checks.append(_path_check("pinkas_dataset_snapshot", snapshot_path, bundle))
+    if not snapshot_path.exists():
+        return checks, 0, 0
+    try:
+        _, entries = load_pinkas_dataset_snapshot(root)
+    except (OSError, ValueError) as exc:
+        checks.append({"name": "pinkas_dataset_entries", "path": _format_health_path(root, bundle), "status": "error", "message": str(exc)})
+        return checks, 0, 0
+    candidate_count = 0
+    asset_count = 0
+    exclusions: dict[str, int] = {}
+    for entry in entries:
+        reason = pinkas_dataset_entry_exclusion_reason(entry, source, root)
+        if reason is not None:
+            exclusions[reason] = exclusions.get(reason, 0) + 1
+            continue
+        candidate_count += 1
+        asset = pinkas_dataset_entry_asset(entry) or {}
+        asset_path = (root / str(asset.get("local_path", ""))).resolve()
+        asset_check = _path_check("pinkas_dataset_entry_asset", asset_path, bundle)
+        if asset_path.exists() and asset.get("sha256") and sha256_file(asset_path) != asset["sha256"]:
+            asset_check["status"] = "error"
+            asset_check["message"] = f"checksum mismatch for {entry['entry_id']}"
+        annotation_path = (root / str(entry["annotation"]["local_path"])).resolve()
+        annotation_check = _path_check("pinkas_dataset_entry_page_xml", annotation_path, bundle)
+        if annotation_path.exists():
+            try:
+                page = load_entry_page_lines(root, entry)
+                annotation_check["actual"] = {"line_count": len(page.lines)}
+                if len(page.lines) != entry["annotation"].get("line_count"):
+                    annotation_check["status"] = "error"
+                    annotation_check["message"] = f"line count mismatch for {entry['entry_id']}"
+            except (OSError, ValueError, StageExecutionError) as exc:
+                annotation_check["status"] = "error"
+                annotation_check["message"] = str(exc)
+        if asset_check["status"] == "ok" and annotation_check["status"] == "ok":
+            asset_count += 1
+        checks.extend([asset_check, annotation_check])
+    checks.append({"name": "pinkas_dataset_entry_exclusions", "actual": dict(sorted(exclusions.items())), "status": "ok"})
+    return checks, candidate_count, asset_count
+
+
+def _yidtaknl_matched_pages_check(root: Path, snapshot: dict[str, Any]) -> dict[str, Any]:
+    """Summarize metadata-only matched pages: never candidates, but their rights and pins must stay well formed."""
+
+    try:
+        pages = load_yidtaknl_matched_pages(root, snapshot)
+    except (OSError, ValueError) as exc:
+        return {"name": "yidtaknl_matched_pages", "status": "error", "message": str(exc)}
+    works = {str(work.get("work_id")): work for work in snapshot.get("works") or [] if isinstance(work, dict)}
+    by_work: dict[str, int] = {}
+    problems: dict[str, int] = {}
+    for page in pages:
+        problem = yidtaknl_matched_page_problem(page, works, root)
+        if problem is not None:
+            problems[problem] = problems.get(problem, 0) + 1
+            continue
+        by_work[str(page["work_id"])] = by_work.get(str(page["work_id"]), 0) + 1
+    check: dict[str, Any] = {
+        "name": "yidtaknl_matched_pages",
+        "actual": {"by_work": dict(sorted(by_work.items())), "problems": dict(sorted(problems.items()))},
+        "status": "error" if problems else "ok",
+    }
+    if problems:
+        check["message"] = "malformed metadata-only matched pages"
+    return check
 
 
 def _source_depth_expansion_path(source: SourceConfig, bundle: ConfigBundle) -> tuple[str, list[dict[str, Any]]]:
