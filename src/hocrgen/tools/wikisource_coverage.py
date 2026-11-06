@@ -736,7 +736,9 @@ def crop_from_alignment(
         # several regions, one per run of transcribed lines, with everything else in the box masked (F8b5).
         regions = region_crop(transcribed, untranscribed, width, height, thresholds, margin)
         if regions is not None:
-            return {**crop, **regions, "review_recommended": crop["review_recommended"]}
+            # Region crops are proposals: in the F8b5 review none of the 46 the tool placed was right as it stood (a verse
+            # line aligned through a quoted lemma, a stray region on a catchword), so each one is flagged for review.
+            return {**crop, **regions, "review_recommended": True}
         return {**crop, "status": "unresolved", "reason": "untranscribed_text_inside_crop"}
     return {**crop, "status": "resolved", "reason": None}
 

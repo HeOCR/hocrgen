@@ -1,4 +1,4 @@
-# Hebrew Wikisource proofread-page source (F8b, F8b3, F8b4)
+# Hebrew Wikisource proofread-page source (F8b, F8b3, F8b4, F8b5)
 
 Source id `wikisource_he_proofread`, fetcher `wikisource_proofread`. Source proposal: `HeOCR/hocrgen#103`. Plan: [`planning/tasks/f8-real-source-map.md`](../planning/tasks/f8-real-source-map.md).
 
@@ -44,7 +44,7 @@ Real protection still excludes:
 - The page history is read at capture time. Each quality change is recorded with its revision id, editor, user id and user groups. The editor who set quality 3 is the **proofreader**; for quality 4, the editor who set 4 is the **validator**.
 - A page is rejected when:
   - an editor who set quality is not a named human (an empty name, an IP edit, the `bot` group, or a name ending in "bot");
-  - the `<pagequality user=...>` attribute disagrees with the editor who made that revision;
+  - the `<pagequality user=...>` attribute disagrees with the editor who made that revision. The attribute keeps the name the editor had at the time, and the history shows the account's current name, so a rename is followed (F8b5): the inventory records the global (Meta `gblrename`) and local (`renameuser`) rename log entries of an editor whose attribute differs (`user_renames`, with the log id and time), and the attribute matches when a recorded rename of the same account, made after the edit, leads from it to the current name;
   - the validator is also the proofreader, by username or by user id;
   - its transcription coverage was never recorded (`transcription_coverage_unrecorded`), or is not `full_page` / `partial_page` (`transcription_coverage_unknown`);
   - the pinned wikitext does not carry the recorded quality, or uses markup the converter does not support (`wikitext_unsupported_markup`).
@@ -79,7 +79,11 @@ The crop is the union of the aligned and interpolated line boxes plus a margin (
 
 A page record's `crop` holds `status`, `reason`, `method` (`ocr_alignment_union_box.v1`), `box_normalized` (`[x0, y0, x1, y1]` as fractions of the page), `untranscribed_inside` and `located_by` (the tool, its version, the render URL and SHA-256 it ran on, the OCR engine and the alignment scores). In the packaged snapshot a resolved crop also carries `box_px` (the box in the pinned page image, rounded outward) and `asset`: the cropped sub-image, pinned by SHA-256. The candidate for a partial page is that crop plus the page's unchanged human text; its metadata `crop` names the source page image (path, SHA-256, size), the box, the method and how it was located.
 
-Source health checks every cropped page: the crop asset exists with its SHA-256, the box is inside the page image, and the asset is exactly the page image cut at the box (same size, same pixels). Acquisition runs the same check. A failure gives `crop_asset_missing`, `crop_asset_checksum_mismatch`, `crop_geometry_mismatch` or `crop_pixels_mismatch`.
+**Multi-region crops** (F8b5). When untranscribed blocks are interleaved with the transcription (Luzzatto's verse and Italian translation between passages of commentary, a Yiddish half of a bilingual instruction line), one rectangle cannot leave them out. The crop then has `regions_normalized`: two to eight boxes, in reading order, whose union is `box_normalized`. The pair image is the union box with every pixel outside the regions set to `mask_fill` (the page background: the upper-quartile value of each RGB channel under the box) and each region pasted from the page unchanged, so the transcribed pixels are the page's own and stay where they are on the page. The packaged record adds `regions_px` and `mask_fill`. When its single box takes in too much untranscribed text, the tool proposes regions (`ocr_alignment_region_mask.v1`): one per block of transcribed lines that no untranscribed region lies inside, each with the crop margin stopped halfway to the untranscribed text. Tool region crops are always `review_recommended`: none of the 46 the tool placed in the F8b5 run was right as it stood.
+
+**Agent and human crops** (F8b5). An agent or human check of a `partial_page` page may carry its own `crop`: `status: resolved`, method `agent_visual_crop.v1` (or `human_visual_crop.v1`), a `basis` (`tool_crop_confirmed`, `tool_crop_corrected` or `placed`), a box or regions, and optional `untranscribed_inside`. It wins over the tool's crop, is recorded as `located_by.checked_by: agent` with the render it was placed on, and is no longer `review_recommended`. Like the coverage verdict, it is a geometry fact, not an attestation of the text. F8b5's agent checks (`agent_crop_review_960px`) cover all 188 pages `F8b4` left `review_recommended`, `crop_unresolved` or undecided.
+
+Source health checks every cropped page: the crop asset exists with its SHA-256, the box is inside the page image, and the asset is exactly the page image cut at the box (same size, same pixels; for a multi-region crop, the regions' pixels the page's and the rest `mask_fill`). Acquisition runs the same check. A failure gives `crop_asset_missing`, `crop_asset_checksum_mismatch`, `crop_geometry_mismatch`, `crop_mask_fill_invalid` or `crop_pixels_mismatch`.
 
 ### Reference normalisation facts (F8b4)
 
@@ -95,6 +99,7 @@ Each item's metadata, and each F2 reference-pool entry, records `reference_norma
    - tooltips keep the visible word only (`קיצור`, `ב`, `מונחון`, `אח"כ`); links keep their label (`דף ויקיפדיה`, `וק`, `מח`);
    - editors' citations and quotations render as MediaWiki shows them: `ממ` / `מ"מ`, `ממ זהר`, `ממ משנה`, `מקור`, `מצ`, `במצ`, `שם`, `צ`, `ציטוטון`, `צפ`, `צא`, `צמל`, `פסוק`, `הפניה לפסוקים` (with Module:גרשיים and the `מ"מ/ספר` book names, `src/hocrgen/data/wikisource/book_names.json`) and `הפניה-גמ1`. The Lua parts of these templates show nothing on the page;
    - Bible markup: `מ:פסוק` (the verse and chapter numbers as shown), `מ:פסק`, `מ:לגרמיה`, `מ:ירושלם`, `מ:ירושלמה`, `מ:קמץ`, `HIRIK WITHOUT LETTER`, `מ:טעמי המקרא`;
+   - a bidi mark (`כ`, F8b5): it writes RLM or LRM, which step 8 removes, so it shows nothing;
    - title pages and running heads in the body (`דף שער` / `כו`, `כותרת רצה` / `rh`), Luzzatto's lemmas (`שדל:דה`), poems (`רן`), lists (`מיספור עברי`, `מ`), spacing (`רווח קשיח`, `ססס`, `סס`, `פפ`, `ש-רווח`, `ררר`) and anchors (`עוגן בשורה`, `סעיף`).
    - A positional parameter a template does not use is hidden, as MediaWiki hides it (counted as `hidden_arguments`); an unknown named parameter is rejected.
 3. **Footnotes** (`{{הערה}}`, `<ref>`, `{{הערות שוליים}}`, `<references/>`): the mark becomes `[n]` in the body, numbered in order of first use, a named note reusing its number; each note becomes a line `[n] text` where the list stands, else after the body. That is the print's layout (mark in the body, note at the foot of the page). The printed mark itself (`*)`, `1)`, `(א`) is not typed by editors, so the MediaWiki number stands in for it. A `<ref follow=...>` continuation from the previous page is an unnumbered line before the notes. A note signed by a Wikisource editor ("ויקיעורך", "ויקי עורך") and `{{ביאור}}` explanations are not printed: they and their marks are dropped (`editor_notes_dropped`). Unsigned editors' notes cannot be told from printed footnotes and stay.
@@ -150,7 +155,7 @@ PYTHONPATH=src python -c 'from pathlib import Path; from hocrgen.config.loader i
 
 On the fixture, one page converts (Seliḥot p. 34). Bostenay p. 47 is skipped because its validator added a missing space 14 seconds after validating; Hyman p. 41 and the two cropped pages (Buber's *Tanhuma* p. 233, *Sippurei Ma'asiyot* p. 11, F8b4) are skipped as quality 3.
 
-## Operator-only full inventory (F8b2, F8b3, F8b4)
+## Operator-only full inventory (F8b2, F8b3, F8b4, F8b5)
 
 `hocrgen.tools.wikisource_inventory` runs every `מפתח:` Index on he.wikisource.org through the gates above. It is an operator tool: it calls the Wikisource, Commons, Wikipedia and Wikidata APIs, with a contact User-Agent, `maxlag` and a 0.5 s delay between uncached requests. CI never runs it, and it never edits any wiki.
 

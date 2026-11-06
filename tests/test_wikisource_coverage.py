@@ -150,6 +150,7 @@ def test_interleaved_untranscribed_blocks_split_the_crop_into_regions() -> None:
     assert first[1] <= ocr[0].box[1] and first[3] <= ocr[3].box[1]  # the first passage, stopped before the Italian
     assert second[1] >= ocr[5].box[3] and second[3] <= ocr[10].box[1]  # the second passage, stopped before the notes
     assert crop["masked_untranscribed"] == 3 and crop["untranscribed_inside"] == []
+    assert crop["review_recommended"] is True  # a tool region crop is a proposal for review
     assert crop["box_normalized"] == wc._normalised(tuple(crop["box_render_px"]), 960, 1400)
     blocks = wc.transcribed_blocks([line.box for line in ocr[:3] + ocr[6:10]], [wc._Region(line.box, "line") for line in ocr[3:6]])
     assert len(blocks) == 2 and blocks[0][1] < blocks[1][1]  # reading order

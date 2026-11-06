@@ -23,7 +23,7 @@ Quality-3 / quality-4 pages at each stage. Each column is the run before the nex
 | **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | 0 / 0 | 196 / 4 | 241 / 5 |
 | Of those, crop placed or confirmed by an agent or human | — | — | 25 / 4 | 96 / 2 |
 | Of those, multi-region crop (rest of the box masked) | — | — | 0 / 0 | 29 / 0 |
-| Of those, tool crop on a poorly read page, not reviewed (`review_recommended`) | — | — | 52 / 1 | 0 / 0 |
+| Of those, tool crop flagged and not reviewed (`review_recommended`: a poorly read page, or tool regions) | — | — | 52 / 1 | 0 / 0 |
 | `partial_page` without a resolved crop (`crop_unresolved`, listed below) | 0 / 0 | 25 / 5 | 60 / 1 | 0 / 0 |
 | Coverage not decided (no check; of them, tool alignment too poor) | 231 / 12; — | 1047 / 0; — | 74 / 0; 74 / 0 | 1 / 0; 1 / 0 |
 | Reference-eligible quality-4 pages (adjudication-eligible), every gate but coverage | 4 | 29 | 29 | 29 |
