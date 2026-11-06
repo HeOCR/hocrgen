@@ -492,7 +492,7 @@ def test_committed_tranche_manifest_is_coherent_and_holds_no_page_text() -> None
         assert set(item["text"]) <= {"path", "sha256", "sha256_without_final_newline"}
     assert {source_id: source["item_count"] for source_id, source in manifest["sources"].items()} == {
         "pinkas_dataset_bgu": 30,
-        "wikisource_he_proofread": 1457,
+        "wikisource_he_proofread": 1456,
         "yidtaknl_vaybertaytsh_gt": 123,
     }
     assert "not published" in manifest["hosting"]
