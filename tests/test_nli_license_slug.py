@@ -36,8 +36,10 @@ from hocrgen.tools.nli_seed_promotion import (
     build_cached_promotion,
     build_promotion,
     capture_seed_via_iiif,
+    capture_conflicts,
+    live_manifest_capture_payload,
     main,
-    rebase_seed_reference,
+    select_page_rights,
     write_promotion_outputs,
 )
 
@@ -365,12 +367,16 @@ def test_source_health_surfaces_broken_and_non_free_manifests_without_failing(tm
     health = next(result for result in evaluate_source_health(bundle, "profile_open_v1", StageOptions()) if result.source_id == "nli_any_use_permitted")
     assert health.health_status == "ok"
     assert health.extra["iiif_manifest_capture_count"] == 8
+    assert health.extra["iiif_recorded_failure_count"] == 4
     issues = {issue["seed_id"]: issue for issue in health.extra["iiif_manifest_issues"]}
     assert set(issues) == {"nli-nc-001", "nli-nolicense-001", "nli-zero-001", "nli-403-001", "nli-mismatch-001"}
     assert issues["nli-403-001"]["http_status"] == 403
     assert issues["nli-zero-001"]["canvas_count"] == 0
     assert issues["nli-zero-001"]["reason"] == "nli_iiif_manifest_zero_canvases"
-    assert {check["name"] for check in health.checks} >= {"iiif_manifest_capture", "iiif_manifest_capture_sha256", "iiif_capture_asset_sha256"}
+    names = [check["name"] for check in health.checks]
+    assert {"iiif_manifest_capture", "iiif_manifest_capture_sha256"} <= set(names)
+    # Binding is checked for the three admitted printed books only; rejected items are never acquired.
+    assert names.count("iiif_capture_asset_binding") == 3
     summary = source_health_summary([health])
     assert summary["nli_iiif_manifest_issues"][0]["source_id"] == "nli_any_use_permitted"
     assert len(summary["nli_iiif_manifest_issues"][0]["issues"]) == 5
@@ -438,11 +444,82 @@ def test_cached_promotion_of_a_printed_seed_carries_f8c_fields(tmp_path: Path) -
     )
     entry = promotion.promoted_seed_entry
     assert promotion.rights == NLI_FREE_USE_LICENSE_URL
+    # Same names in the same directory: the re-emitted capture is byte-identical to the pinned one.
     assert entry["iiif_manifest_capture"] == seed["iiif_manifest_capture"]
     assert entry["iiif_manifest_capture_sha256"] == seed["iiif_manifest_capture_sha256"]
     assert entry["content_type"] == "printed_historical"
     assert entry["iiif_canvas_indices"] == seed["iiif_canvas_indices"]
-    assert promotion.capture_json is None
+    assert not capture_conflicts(promotion, output_dir=PACKAGE_NLI, overwrite=False)
+
+
+def test_cached_promotion_rewrites_the_capture_for_renamed_images(tmp_path: Path) -> None:
+    seed = dict(next(item for item in _catalog_items() if item["id"] == "nli-pb-003"))
+    seed["id"] = "nli-renamed-003"
+    out = tmp_path / "out"
+    promotion = build_cached_promotion(
+        seed=seed,
+        fixture_path=PACKAGE_NLI / "item_nli_pb_003.html",
+        require_rights="Any Use Permitted",
+        output_dir=out,
+        runnable_seeds_path=tmp_path / "seeds.yaml",
+        seed_manifest_path=PACKAGE_NLI / "seed_catalog.yaml",
+    )
+    entry = promotion.promoted_seed_entry
+    assert entry["iiif_manifest_capture"] == "out/iiif/nli_renamed_003_manifest_capture.json"
+    write_promotion_outputs(
+        promotions=[promotion],
+        output_dir=out,
+        runnable_seeds_path=tmp_path / "seeds.yaml",
+        seed_catalog_path=tmp_path / "catalog.yaml",
+        runnable_manifest={"items": [entry]},
+        catalog_manifest={"items": []},
+        report_path=tmp_path / "report.json",
+        report={},
+        overwrite=False,
+    )
+    rewritten = read_seed_capture(out / "iiif" / "nli_renamed_003_manifest_capture.json", entry["iiif_manifest_capture_sha256"])
+    assert [item["asset"] for item in rewritten.capture.selected_canvases] == [
+        "assets/nli_renamed_003_page1.jpg",
+        "assets/nli_renamed_003_page2.jpg",
+    ]
+    from hocrgen.fetchers.nli_iiif import capture_asset_problems
+
+    assert capture_asset_problems(rewritten.capture, out, ["assets/nli_renamed_003_page1.jpg", "assets/nli_renamed_003_page2.jpg"]) == []
+    # A retry that would produce a different capture is refused before anything is written.
+    (out / "iiif" / "nli_renamed_003_manifest_capture.json").write_text("{}\n", encoding="utf-8")
+    assert capture_conflicts(promotion, output_dir=out, overwrite=False)
+    assert not capture_conflicts(promotion, output_dir=out, overwrite=True)
+    with pytest.raises(StageExecutionError, match="nli_iiif_capture_conflict"):
+        write_promotion_outputs(
+            promotions=[promotion],
+            output_dir=out,
+            runnable_seeds_path=tmp_path / "seeds.yaml",
+            seed_catalog_path=tmp_path / "catalog.yaml",
+            runnable_manifest={"items": [entry]},
+            catalog_manifest={"items": []},
+            report_path=tmp_path / "report.json",
+            report={},
+            overwrite=False,
+        )
+
+
+def test_cached_promotion_rejects_images_not_bound_to_the_capture(tmp_path: Path) -> None:
+    seed = next(item for item in _catalog_items() if item["id"] == "nli-pb-003")
+    fixture = tmp_path / "item.html"
+    fixture.write_text(
+        (PACKAGE_NLI / "item_nli_pb_003.html").read_text(encoding="utf-8").replace("assets/nli_pb_003_page2.jpg", "assets/nli_pb_002_page1.jpg"),
+        encoding="utf-8",
+    )
+    shutil.copytree(PACKAGE_NLI / "assets", tmp_path / "assets", ignore=shutil.ignore_patterns("nli_ms_*", "nli_item_*", "nli_pb_001*"))
+    with pytest.raises(StageExecutionError, match="nli_iiif_capture_asset_mismatch.*unbound:assets/nli_pb_002_page1.jpg"):
+        build_cached_promotion(
+            seed=seed,
+            fixture_path=fixture,
+            require_rights="Any Use Permitted",
+            output_dir=tmp_path / "out",
+            runnable_seeds_path=tmp_path / "seeds.yaml",
+            seed_manifest_path=PACKAGE_NLI / "seed_catalog.yaml",
+        )
 
 
 def test_cached_promotion_rejects_bad_pins_and_non_free_slugs(tmp_path: Path) -> None:
@@ -471,9 +548,89 @@ def test_cached_promotion_rejects_bad_pins_and_non_free_slugs(tmp_path: Path) ->
         )
 
 
-def test_rebase_seed_reference(tmp_path: Path) -> None:
-    assert rebase_seed_reference("package://data/nli/iiif/x.json", from_manifest=tmp_path / "a.yaml", to_manifest=tmp_path / "b" / "c.yaml") == "package://data/nli/iiif/x.json"
-    assert rebase_seed_reference("iiif/x.json", from_manifest=tmp_path / "a.yaml", to_manifest=tmp_path / "b" / "c.yaml") == "../iiif/x.json"
+def test_fetcher_rejects_a_fixture_image_swapped_away_from_the_capture(tmp_path: Path) -> None:
+    seed = dict(next(item for item in _catalog_items() if item["id"] == "nli-pb-003"))
+    data_dir = tmp_path / "nli"
+    (data_dir / "assets").mkdir(parents=True)
+    for name in ("nli_pb_003_page1.jpg", "nli_pb_002_page1.jpg"):
+        shutil.copy(PACKAGE_NLI / "assets" / name, data_dir / "assets" / name)
+    (data_dir / "item.html").write_text(
+        (PACKAGE_NLI / "item_nli_pb_003.html").read_text(encoding="utf-8").replace("assets/nli_pb_003_page2.jpg", "assets/nli_pb_002_page1.jpg"),
+        encoding="utf-8",
+    )
+    seed["fixture_html"] = "item.html"
+    seed_path = data_dir / "seeds.yaml"
+    seed_path.write_text(yaml.safe_dump({"items": [seed]}, allow_unicode=True), encoding="utf-8")
+    bundle = _bundle_with_seed_manifest(tmp_path, seed_path)
+    source = next(source for source in bundle.source_registry.sources if source.id == "nli_any_use_permitted")
+    fetcher = NliFetcher()
+    enriched = fetcher.fetch_candidate_metadata(source, bundle, fetcher.discover_candidates(source, bundle, StageOptions()), StageOptions())
+    item = _item_from_enriched(enriched[0], source, bundle, "profile_open_v1")
+    assert (item.eligibility, item.eligibility_reason) == ("rejected", "nli_iiif_capture_asset_mismatch")
+    health = next(result for result in evaluate_source_health(bundle, "profile_open_v1", StageOptions()) if result.source_id == "nli_any_use_permitted")
+    assert health.health_status == "error"
+
+
+def test_failure_only_manifest_still_reaches_discovery(tmp_path: Path) -> None:
+    seed_dir = _write_f8c_seed_manifest(tmp_path).parent
+    items = [
+        {"id": "nli-403-only", "url": "u", "iiif_manifest_capture": "http_403_capture.json", "iiif_manifest_capture_sha256": _sha(seed_dir / "http_403_capture.json")},
+        {"id": "nli-zero-only", "url": "u", "iiif_manifest_capture": "zero_canvas_capture.json", "iiif_manifest_capture_sha256": _sha(seed_dir / "zero_canvas_capture.json")},
+    ]
+    seed_path = seed_dir / "failures_only.yaml"
+    seed_path.write_text(yaml.safe_dump({"items": items}), encoding="utf-8")
+    bundle = _bundle_with_seed_manifest(tmp_path, seed_path)
+    health = next(result for result in evaluate_source_health(bundle, "profile_open_v1", StageOptions()) if result.source_id == "nli_any_use_permitted")
+    assert health.health_status == "ok"
+    assert health.asset_count == 0
+    min_assets = next(check for check in health.checks if check["name"] == "min_assets")
+    assert min_assets["recorded_upstream_failures"] == 2
+    assert health.selected
+
+
+def test_browser_rights_prefer_item_page_display_over_manifest_licence() -> None:
+    assert select_page_rights(label=None, access_rights="Copyright", manifest_license=NLI_FREE_USE_LICENSE_URL, page_fallback=None) == "Copyright"
+    assert select_page_rights(label=None, access_rights=None, manifest_license=NLI_FREE_USE_LICENSE_URL, page_fallback="Copyright") == NLI_FREE_USE_LICENSE_URL
+    assert select_page_rights(label="Any Use Permitted", access_rights="x", manifest_license=None, page_fallback=None) == "Any Use Permitted"
+    extracted = ExtractedSeedPage(
+        title="t",
+        description="",
+        rights="Copyright",
+        asset_urls=["https://example.com/a.jpg"],
+        license_url=NLI_FREE_USE_LICENSE_URL,
+        manifest=_manifest([NLI_FREE_USE_LICENSE_URL]),
+    )
+    with pytest.raises(StageExecutionError) as excinfo:
+        build_promotion(seed={"id": "s", "url": "u"}, extracted=extracted, downloaded_assets=[], require_rights="Any Use Permitted")
+    assert _extract_failure_reason(str(excinfo.value)) == "nli_license_display_mismatch"
+
+
+def test_browser_promotion_persists_a_pinned_capture(tmp_path: Path) -> None:
+    manifest = _manifest([NLI_FREE_USE_LICENSE_URL], canvases=2)
+    extracted = ExtractedSeedPage(
+        title="t",
+        description="",
+        rights=NLI_FREE_USE_LICENSE_URL,
+        asset_urls=["https://example.com/a.jpg"],
+        license_url=NLI_FREE_USE_LICENSE_URL,
+        manifest=manifest,
+    )
+    promotion = build_promotion(
+        seed={"id": "nli-browser-1", "url": "https://www.nli.org.il/x"},
+        extracted=extracted,
+        downloaded_assets=[("https://example.com/a.jpg", "image/jpeg", b"\xff\xd8x")],
+        require_rights="Any Use Permitted",
+        output_dir=tmp_path / "out",
+        runnable_seeds_path=tmp_path / "seeds.yaml",
+    )
+    entry = promotion.promoted_seed_entry
+    assert entry["iiif_manifest_capture"] == "out/iiif/nli_browser_1_manifest_capture.json"
+    payload = json.loads(promotion.capture_json)
+    assert payload["capture_source"] == "browser_viewer_manifest"
+    assert payload["manifest_url"] == manifest["@id"]
+    assert payload["selected_canvases"][0]["asset"] == "assets/nli_browser_1_page1.jpg"
+    assert decide_nli_rights(display_rights=None, capture=capture_from_payload(payload)).accepted
+    assert live_manifest_capture_payload({}, manifest_url="", asset_urls=[])["manifest_url"] == "unknown"
 
 
 def test_browser_manifest_is_slug_checked(tmp_path: Path) -> None:
@@ -792,3 +949,46 @@ def test_manifest_helpers_tolerate_malformed_upstream_shapes(tmp_path: Path) -> 
     absolute = tmp_path / "capture.json"
     bundle = load_and_validate_bundle()
     assert resolve_seed_local_reference(str(absolute), seed_manifest=tmp_path / "seeds.yaml", bundle=bundle) == absolute
+
+
+def test_capture_asset_problems_reports_unpinned_and_changed_images(tmp_path: Path) -> None:
+    from hocrgen.fetchers.nli_iiif import capture_asset_problems
+
+    (tmp_path / "a.jpg").write_bytes(b"a")
+    (tmp_path / "b.jpg").write_bytes(b"b")
+    capture = NliManifestCapture(
+        manifest_url="u",
+        http_status=200,
+        canvas_count=2,
+        manifest={},
+        selected_canvases=[{"asset": "a.jpg"}, {"asset": "b.jpg", "sha256": "0" * 64}, {"asset": "c.jpg", "sha256": "1"}],
+    )
+    assert capture_asset_problems(capture, tmp_path, ["a.jpg", "b.jpg", "c.jpg", "d.jpg"]) == [
+        "unpinned:a.jpg",
+        "checksum:b.jpg",
+        "checksum:c.jpg",
+        "unbound:d.jpg",
+    ]
+
+
+def test_main_reports_capture_conflicts_as_failures(monkeypatch: pytest.MonkeyPatch, tmp_path: Path, capsys) -> None:
+    catalog = tmp_path / "catalog.yaml"
+    runnable = tmp_path / "seeds.yaml"
+    catalog.write_text(yaml.safe_dump({"items": [SEED]}), encoding="utf-8")
+    runnable.write_text("items: []\n", encoding="utf-8")
+    fake = _FakeIiif(_manifest([NLI_FREE_USE_LICENSE_URL], canvases=3))
+    monkeypatch.setattr(
+        "hocrgen.tools.nli_seed_promotion.capture_seed_via_iiif",
+        lambda **kwargs: capture_seed_via_iiif(seed=kwargs["seed"], fetch=fake, sleep=lambda _s: None),
+    )
+    existing = tmp_path / "out" / "iiif" / "nli_pb_test_manifest_capture.json"
+    existing.parent.mkdir(parents=True)
+    existing.write_text("{}\n", encoding="utf-8")
+    args = ["--seed-catalog", str(catalog), "--runnable-seeds", str(runnable), "--output-dir", str(tmp_path / "out"),
+            "--report-path", str(tmp_path / "report.json"), "--capture-mode", "iiif"]
+    assert main(args) == 1
+    report = json.loads(capsys.readouterr().out)
+    assert [failure["reason"] for failure in report["failed_seeds"]] == ["nli_iiif_capture_conflict"]
+    assert report["promoted_seeds"] == []
+    assert existing.read_text(encoding="utf-8") == "{}\n"
+    assert yaml.safe_load(runnable.read_text(encoding="utf-8"))["items"] == []

@@ -18,6 +18,8 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse
 
+from hocrgen.utils.hashing import sha256_file
+
 NLI_CAPTURE_FORMAT = "hocrgen.nli_iiif_manifest_capture.v1"
 NLI_FREE_USE_DISPLAY = "Any Use Permitted"
 NLI_FREE_USE_SLUG = "public-domain-free-use"
@@ -53,6 +55,7 @@ REASON_NON_COMMERCIAL = "nli_license_non_commercial"
 REASON_NOT_FREE_USE = "nli_license_not_free_use"
 REASON_CAPTURE_INVALID = "nli_iiif_capture_invalid"
 REASON_CAPTURE_CHECKSUM_MISMATCH = "nli_iiif_capture_checksum_mismatch"
+REASON_CAPTURE_ASSET_MISMATCH = "nli_iiif_capture_asset_mismatch"
 
 RESTRICTED_LICENSE_ID = "RESTRICTED-NONOPEN"
 UNKNOWN_LICENSE_ID = "UNKNOWN"
@@ -288,6 +291,32 @@ def capture_from_payload(payload: Any) -> NliManifestCapture:
 
 def load_nli_manifest_capture(path: Path) -> NliManifestCapture:
     return capture_from_payload(json.loads(path.read_text(encoding="utf-8")))
+
+
+def capture_asset_problems(capture: NliManifestCapture, fixture_dir: Path, fixture_assets: list[str]) -> list[str]:
+    """Return why the fixture's page images are not the pinned capture's images (empty when they are).
+
+    Every image the fixture HTML references, which is what acquisition copies, must be bound to a
+    selected canvas of the capture by its relative path and match that canvas's recorded sha256.
+    """
+
+    selected = {
+        entry["asset"]: entry for entry in capture.selected_canvases if isinstance(entry.get("asset"), str)
+    }
+    problems: list[str] = []
+    for reference in fixture_assets:
+        entry = selected.get(reference)
+        if entry is None:
+            problems.append(f"unbound:{reference}")
+            continue
+        pinned = entry.get("sha256")
+        if not isinstance(pinned, str) or not pinned:
+            problems.append(f"unpinned:{reference}")
+            continue
+        asset_path = (fixture_dir / reference).resolve()
+        if not asset_path.exists() or sha256_file(asset_path) != pinned:
+            problems.append(f"checksum:{reference}")
+    return problems
 
 
 def trim_manifest(manifest: dict[str, Any], keep_canvas_ids: list[str]) -> dict[str, Any]:

@@ -25,6 +25,7 @@ from hocrgen.fetchers.nli_iiif import (
     NLI_CAPTURE_FORMAT,
     NliManifestCapture,
     canvas_image_service,
+    capture_asset_problems,
     capture_from_payload,
     decide_nli_rights,
     load_nli_manifest_capture,
@@ -46,6 +47,8 @@ FAILURE_SEED_OUTSIDE_BATCH_LIMIT = "seed_outside_batch_limit"
 FAILURE_CHALLENGE_NOT_RESOLVED = "challenge_not_resolved"
 FAILURE_CANVAS_INDEX = "nli_iiif_canvas_index_out_of_range"
 FAILURE_MANIFEST_URL_MISSING = "nli_iiif_manifest_url_missing"
+FAILURE_CAPTURE_CONFLICT = "nli_iiif_capture_conflict"
+FAILURE_CAPTURE_ASSET_MISMATCH = "nli_iiif_capture_asset_mismatch"
 NLI_RIGHTS_FAILURE_PREFIXES = ("nli_license_", "nli_iiif_")
 # F8c seed fields carried from the catalog entry into the runnable seed entry on promotion.
 F8C_SEED_FIELDS = ("content_type", "period", "iiif_manifest_url", "iiif_canvas_indices")
@@ -256,13 +259,17 @@ def build_promotion(
     runnable_seeds_path: Path | None = None,
     capture: NliManifestCapture | None = None,
     capture_payload: dict[str, Any] | None = None,
-    capture_reference: str | None = None,
-    capture_sha256: str | None = None,
 ) -> PromotionSuccess:
+    if capture is None and capture_payload is None and extracted.manifest is not None:
+        # Persist the viewer manifest the rights check used, so later cached promotions re-check
+        # the same pinned evidence instead of falling back to the display-string path.
+        capture_payload = live_manifest_capture_payload(
+            extracted.manifest,
+            manifest_url=str(seed.get("iiif_manifest_url") or extracted.manifest.get("@id") or seed.get("url") or ""),
+            asset_urls=[url for url, _type, _data in downloaded_assets],
+        )
     if capture is None and capture_payload is not None:
         capture = capture_from_payload(capture_payload)
-    if capture is None and extracted.manifest is not None:
-        capture = capture_from_live_manifest(extracted.manifest, manifest_url=str(seed.get("iiif_manifest_url") or ""))
     rights_value = extracted.rights
     if capture is not None:
         display = extracted.rights if extracted.rights and extracted.rights != extracted.license_url else None
@@ -329,6 +336,8 @@ def build_promotion(
             promoted_seed_entry[key] = seed[key]
     capture_file_name: str | None = None
     capture_json: str | None = None
+    capture_reference: str | None = None
+    capture_sha256: str | None = None
     if capture_payload is not None:
         payload = json.loads(json.dumps(capture_payload))
         for selected, record in zip(payload.get("selected_canvases", []), asset_download_records):
@@ -362,22 +371,38 @@ def build_promotion(
     )
 
 
-def capture_from_live_manifest(manifest: dict[str, Any], *, manifest_url: str) -> NliManifestCapture:
-    return NliManifestCapture(
-        manifest_url=manifest_url or str(manifest.get("@id") or ""),
-        http_status=200,
-        canvas_count=len(manifest_canvases(manifest)),
-        manifest=manifest,
-    )
+def live_manifest_capture_payload(
+    manifest: dict[str, Any],
+    *,
+    manifest_url: str,
+    asset_urls: list[str],
+    today: Callable[[], date] = date.today,
+) -> dict[str, Any]:
+    """A pinned capture for a manifest read through the browser viewer API (no upstream bytes)."""
+
+    return {
+        "canvas_count": len(manifest_canvases(manifest)),
+        "capture_format": NLI_CAPTURE_FORMAT,
+        "capture_source": "browser_viewer_manifest",
+        "captured_on": today().isoformat(),
+        "http_status": 200,
+        "manifest": trim_manifest(manifest, []),
+        "manifest_url": manifest_url or "unknown",
+        "selected_canvases": [
+            {"canvas_id": None, "image_url": url, "index": None, "label": None} for url in asset_urls
+        ],
+        "upstream_bytes": None,
+        "upstream_sha256": None,
+    }
 
 
-def rebase_seed_reference(reference: str, *, from_manifest: Path, to_manifest: Path) -> str:
-    """Re-express a seed-local reference so it resolves from a different seed manifest."""
+def capture_conflicts(promotion: PromotionSuccess, *, output_dir: Path, overwrite: bool) -> bool:
+    """True when an existing capture file differs from the one whose checksum the seed entry pins."""
 
-    if reference.startswith("package://") or Path(reference).is_absolute():
-        return reference
-    target = (from_manifest.parent / reference).resolve()
-    return Path(os.path.relpath(target, to_manifest.resolve().parent)).as_posix()
+    if overwrite or not promotion.capture_file_name or promotion.capture_json is None:
+        return False
+    capture_path = output_dir / "iiif" / promotion.capture_file_name
+    return capture_path.exists() and capture_path.read_text(encoding="utf-8") != promotion.capture_json
 
 
 def load_yaml_manifest(path: Path) -> dict[str, Any]:
@@ -428,9 +453,7 @@ def build_cached_promotion(
                 asset_path.read_bytes(),
             )
         )
-    capture: NliManifestCapture | None = None
-    capture_reference: str | None = None
-    capture_sha256: str | None = None
+    capture_payload: dict[str, Any] | None = None
     if seed.get("iiif_manifest_capture"):
         manifest_path = seed_manifest_path or runnable_seeds_path
         capture_path = resolve_fixture_path(str(seed["iiif_manifest_capture"]), manifest_path=manifest_path)
@@ -443,11 +466,15 @@ def build_cached_promotion(
             capture = load_nli_manifest_capture(capture_path)
         except ValueError as exc:
             raise StageExecutionError(f"nli_iiif_capture_invalid: {seed['id']}: {exc}") from exc
-        capture_reference = rebase_seed_reference(
-            str(seed["iiif_manifest_capture"]),
-            from_manifest=manifest_path,
-            to_manifest=runnable_seeds_path,
-        )
+        rights_accepted = decide_nli_rights(display_rights=parsed_fixture.rights or None, capture=capture).accepted
+        problems = capture_asset_problems(capture, fixture_path.parent, parsed_fixture.assets) if rights_accepted else []
+        if problems:
+            raise StageExecutionError(f"{FAILURE_CAPTURE_ASSET_MISMATCH}: {seed['id']}: {', '.join(problems)}")
+        # Re-emit the capture with its canvases in fixture-image order, so build_promotion can bind
+        # each canvas to the renamed image it writes and pin the rewritten capture.
+        capture_payload = json.loads(capture_path.read_text(encoding="utf-8"))
+        by_asset = {entry["asset"]: entry for entry in capture.selected_canvases if isinstance(entry.get("asset"), str)}
+        capture_payload["selected_canvases"] = [by_asset[reference] for reference in parsed_fixture.assets if reference in by_asset]
     return build_promotion(
         seed=seed,
         extracted=ExtractedSeedPage(
@@ -460,9 +487,7 @@ def build_cached_promotion(
         require_rights=require_rights,
         output_dir=output_dir,
         runnable_seeds_path=runnable_seeds_path,
-        capture=capture,
-        capture_reference=capture_reference,
-        capture_sha256=capture_sha256,
+        capture_payload=capture_payload,
     )
 
 
@@ -654,6 +679,9 @@ def write_promotion_outputs(
     report: dict[str, Any],
     overwrite: bool,
 ) -> None:
+    conflicting = [promotion.seed_id for promotion in promotions if capture_conflicts(promotion, output_dir=output_dir, overwrite=overwrite)]
+    if conflicting:
+        raise StageExecutionError(f"{FAILURE_CAPTURE_CONFLICT}: existing capture differs for {', '.join(conflicting)}; rerun with --overwrite")
     output_dir.mkdir(parents=True, exist_ok=True)
     assets_dir = output_dir / "assets"
     for promotion in promotions:
@@ -807,6 +835,18 @@ def main(argv: list[str] | None = None) -> int:
                     rights=_extract_rights_hint(str(exc)),
                 )
             )
+    conflict_ids = {
+        promotion.seed_id for promotion in promotions if capture_conflicts(promotion, output_dir=args.output_dir, overwrite=args.overwrite)
+    }
+    for seed_id in sorted(conflict_ids):
+        failures.append(
+            PromotionFailure(
+                seed_id=seed_id,
+                reason=FAILURE_CAPTURE_CONFLICT,
+                message=f"{FAILURE_CAPTURE_CONFLICT}: existing capture for {seed_id} differs from the new one; rerun with --overwrite.",
+            )
+        )
+    promotions = [promotion for promotion in promotions if promotion.seed_id not in conflict_ids]
     updated_runnable, updated_catalog, manifest_failures = apply_promotions(
         runnable_manifest=runnable_manifest,
         catalog_manifest=catalog_manifest,
@@ -1058,11 +1098,11 @@ def extract_page_data(page) -> ExtractedSeedPage:  # pragma: no cover - exercise
         _manifest_value(manifest, "description"),
         "",
     )
-    rights = _first_non_empty(
-        _text_or_none(page.locator(".rights-label").first),
-        _normalize_nli_rights(_manifest_first(manifest, "license")),
-        _normalize_nli_rights(_text_or_none(page.locator("#accessRights-collapse").first)),
-        _fallback_find_rights(page.content()),
+    rights = select_page_rights(
+        label=_text_or_none(page.locator(".rights-label").first),
+        access_rights=_text_or_none(page.locator("#accessRights-collapse").first),
+        manifest_license=_manifest_first(manifest, "license"),
+        page_fallback=_fallback_find_rights(page.content()),
     )
     asset_urls = [
         urljoin(page.url, value)
@@ -1082,6 +1122,27 @@ def extract_page_data(page) -> ExtractedSeedPage:  # pragma: no cover - exercise
         asset_urls=asset_urls,
         license_url=_manifest_first(manifest, "license"),
         manifest=manifest,
+    )
+
+
+def select_page_rights(
+    *,
+    label: str | None,
+    access_rights: str | None,
+    manifest_license: str | None,
+    page_fallback: str | None,
+) -> str | None:
+    """Item-page display text first, then the manifest licence URL, then a page-wide text match.
+
+    The display text must win over the manifest licence, so a conflicting display (for example
+    "Copyright") reaches the slug check as a display mismatch instead of being hidden.
+    """
+
+    return _first_non_empty(
+        label,
+        _normalize_nli_rights(access_rights),
+        _normalize_nli_rights(manifest_license),
+        page_fallback,
     )
 
 

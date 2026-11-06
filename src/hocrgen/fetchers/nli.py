@@ -9,12 +9,14 @@ from hocrgen.config.models import SourceConfig
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.nli_iiif import (
+    REASON_CAPTURE_ASSET_MISMATCH,
     REASON_CAPTURE_CHECKSUM_MISMATCH,
     REASON_CAPTURE_INVALID,
     RIGHTS_BASIS_LICENSE_SLUG,
     UNKNOWN_LICENSE_ID,
     NliManifestCapture,
     NliRightsDecision,
+    capture_asset_problems,
     decide_nli_rights,
     load_nli_manifest_capture,
     nli_rights_metadata,
@@ -208,6 +210,20 @@ class NliFetcher:
                 seed_manifest = Path(str(metadata.get("seed_manifest") or ""))
                 capture_path = resolve_seed_local_reference(str(capture_reference), seed_manifest=seed_manifest, bundle=bundle)
                 capture_result = read_seed_capture(capture_path, str(capture_sha256) if capture_sha256 else None)
+                if (
+                    capture_result.capture is not None
+                    and candidate.fixture_path
+                    and decide_nli_rights(display_rights=parsed_fixture.rights, capture=capture_result.capture).accepted
+                ):
+                    # Rights rejections report their own reason; image binding matters for admitted items.
+                    asset_problems = capture_asset_problems(
+                        capture_result.capture, Path(candidate.fixture_path).parent, parsed_fixture.assets
+                    )
+                    if asset_problems:
+                        capture_result = SeedCaptureResult(
+                            capture=capture_result.capture,
+                            failure_reason=f"{REASON_CAPTURE_ASSET_MISMATCH}:{', '.join(asset_problems)}",
+                        )
                 if capture_result.failure_reason is not None:
                     decision = NliRightsDecision(
                         accepted=False,

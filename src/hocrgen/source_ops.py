@@ -13,7 +13,7 @@ from hocrgen.fetchers.hash import hash_entry_asset, hash_entry_exclusion_reason,
 from hocrgen.fetchers.hocrsyngen_manifest import validate_hocrsyngen_batch
 from hocrgen.fetchers.modern_handwriting import validate_modern_intake_manifest
 from hocrgen.fetchers.nli import SEED_CAPTURE_FIELD, SEED_CAPTURE_SHA256_FIELD, parse_nli_fixture_html
-from hocrgen.fetchers.nli_iiif import decide_nli_rights, load_nli_manifest_capture
+from hocrgen.fetchers.nli_iiif import capture_asset_problems, decide_nli_rights, load_nli_manifest_capture
 from hocrgen.fetchers.yidtaknl import (
     load_yidtaknl_snapshot,
     yidtaknl_entry_asset,
@@ -164,7 +164,12 @@ def evaluate_source_health(bundle: ConfigBundle, profile_id: str, options: Stage
         else:
             checks, candidate_count, asset_count = source_inspection
             extra = {}
-        expectation_checks = _check_expectations(source, candidate_count, asset_count)
+        recorded_failures = int(extra.get("iiif_recorded_failure_count", 0) or 0)
+        expectation_checks = _check_expectations(source, candidate_count, asset_count + recorded_failures)
+        if recorded_failures:
+            for check in expectation_checks:
+                if check["name"] == "min_assets":
+                    check["recorded_upstream_failures"] = recorded_failures
         all_checks = [*checks, *expectation_checks]
         health_status = "ok" if all(check["status"] == "ok" for check in all_checks) else "error"
         skip_reason = _skip_reason(source, selection_requested, health_status)
@@ -630,6 +635,7 @@ def _inspect_nli_source_with_extra(source: SourceConfig, bundle: ConfigBundle) -
     source_depth_asset_count = 0
     capture_count = 0
     manifest_issues: list[dict[str, Any]] = []
+    manifest_issue_items: list[tuple[dict[str, Any], dict[str, Any]]] = []
     if not isinstance(items, list):
         checks.append(
             {
@@ -683,6 +689,7 @@ def _inspect_nli_source_with_extra(source: SourceConfig, bundle: ConfigBundle) -
             )
             if issue is not None:
                 manifest_issues.append(issue)
+                manifest_issue_items.append((issue, item))
     extra: dict[str, Any] = {
         "source_depth_asset_count": source_depth_asset_count,
         "source_depth_candidate_count": source_depth_candidate_count,
@@ -690,6 +697,14 @@ def _inspect_nli_source_with_extra(source: SourceConfig, bundle: ConfigBundle) -
     if capture_count:
         extra["iiif_manifest_capture_count"] = capture_count
         extra["iiif_manifest_issues"] = manifest_issues
+        # Seeds whose pinned capture records an upstream failure (HTTP error, zero canvases, a non-free
+        # slug) and that have no cached images still reach discovery, so they become rejected
+        # candidates instead of failing min_assets and skipping the whole source.
+        extra["iiif_recorded_failure_count"] = sum(
+            1
+            for issue, item in manifest_issue_items
+            if not issue["has_fixture"] and item.get("f1_source_depth_only") is not True
+        )
     return checks, candidate_count, asset_count, extra
 
 
@@ -748,19 +763,23 @@ def _inspect_nli_manifest_capture(
             }
         )
         return None
-    for selected in capture.selected_canvases:
-        asset_reference = selected.get("asset")
-        if not isinstance(asset_reference, str) or fixture_path is None:
-            continue
-        asset_path = (fixture_path.parent / asset_reference).resolve()
-        pinned = selected.get("sha256")
-        status = "ok" if asset_path.exists() and (pinned is None or sha256_file(asset_path) == pinned) else "error"
-        checks.append({"name": "iiif_capture_asset_sha256", "path": _format_health_path(asset_path, bundle), "status": status})
     decision = decide_nli_rights(display_rights=display_rights, capture=capture)
+    # Admitted items are acquired from the fixture HTML, so their images must be the pinned capture's.
+    if decision.accepted and fixture_path is not None and fixture_path.exists():
+        problems = capture_asset_problems(capture, fixture_path.parent, parse_nli_fixture_html(fixture_path).assets)
+        binding_check: dict[str, Any] = {
+            "name": "iiif_capture_asset_binding",
+            "path": _format_health_path(fixture_path, bundle),
+            "status": "error" if problems else "ok",
+        }
+        if problems:
+            binding_check["message"] = f"fixture images not bound to pinned capture canvases: {', '.join(problems)}"
+        checks.append(binding_check)
     if decision.accepted:
         return None
     return {
         "canvas_count": capture.canvas_count,
+        "has_fixture": fixture_path is not None,
         "http_status": capture.http_status,
         "license_slug": decision.license_slug,
         "manifest_url": capture.manifest_url,
