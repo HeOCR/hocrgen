@@ -2,7 +2,7 @@
 
 - **Date:** 2026-11-06
 - **Decided by:** the maintainer
-- **Status:** accepted, except item 3, which is open
+- **Status:** accepted
 
 These answer the "Maintainer decisions needed" list in [`planning/tasks/f8-real-source-map.md`](../tasks/f8-real-source-map.md).
 
@@ -13,7 +13,9 @@ These answer the "Maintainer decisions needed" list in [`planning/tasks/f8-real-
    - **Quality 4** (validated by a second editor) counts as human-attested and adjudication-eligible.
    - **Quality 3** (proofread) counts as single-reviewer human proofreading.
    - Each counts only with the named human editor recorded from the page history. An agent never edits or attests these pages.
-3. **Commons scans that came from HebrewBooks.** *Open.* The maintainer asked what HebrewBooks' terms say. Until this is decided, `F8b` excludes Index files whose Commons source is HebrewBooks.
+3. **Commons scans that came from HebrewBooks are accepted**, subject to the same per-file rights check as every other file. That means evidence that the underlying work is PD in Israel and that the scan's rights are clear; `PD-US-*`-only files are still rejected.
+   - First the maintainer asked what HebrewBooks' terms say. They are a personal-use, non-commercial licence that bans automated access, covering a mix of PD and permissioned books. Those terms bind whoever downloads from HebrewBooks, and HeOCR does not access HebrewBooks.
+   - The maintainer then accepted the recommendation, the same day.
 4. **Automated access to government sites is allowed.** This covers the Reshumot search API on gov.il, the Supreme Court decisions site, the Knesset site and the Israel State Archives. `F8e` is no longer deferred; it is planned.
    - Two things this decision does not cover. Court rulings still need publication-ban screening; that is a legal requirement, not a privacy review of public-domain material. The State Archives' no-derivative-works clause is a separate term, so ISA stays `review_only`.
    - Fetchers throttle hard; the Knesset firewall blocked an agent after about 100 queries.
@@ -23,7 +25,7 @@ These answer the "Maintainer decisions needed" list in [`planning/tasks/f8-real-
 
 ## Consequences
 
-- `F8b` is unblocked, except that HebrewBooks-sourced Index files stay excluded until item 3 is decided.
+- `F8b` is unblocked. HebrewBooks-sourced Index files are admitted only through the per-file rights check.
 - `F8d` admits YidTakNL with a scope marker limiting it to training and character-level evaluation.
 - `F8e` is planned rather than deferred. It covers Reshumot from about 2006 (born-digital) and Knesset committee scans up to 1975. Committee protocols from 1976 on wait for the legal opinion.
 - The other rules are unchanged:

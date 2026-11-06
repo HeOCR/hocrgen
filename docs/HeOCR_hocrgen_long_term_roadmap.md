@@ -219,7 +219,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | F7d | F7 | Promote a first HASH tranche and reconcile the real-source composition contract | no | planned | requires an explicit composition contract change, writer-group leakage governance, and vendored tranche assets; no per-item privacy review (maintainer decision 2026-11-06) |
 | F7e | F7 | Propose benchmark_v2 with adjudicated HASH references | no | planned | benchmark_v1 membership stays frozen under its stability policy |
 | F8a | F8 | Map real Hebrew document sources and define the F8 notation | no | completed | current ref planning-only source map in planning/tasks/f8-real-source-map.md; no source, profile, licence, or gate change |
-| F8b | F8 | Add a fixture-backed review-only Wikisource proofread-page source | no | planned | page-level human-proofread printed text paired with Commons scans; CC BY-SA text and quality-4 attestation accepted 2026-11-06; HebrewBooks-sourced scans excluded pending a maintainer decision |
+| F8b | F8 | Add a fixture-backed review-only Wikisource proofread-page source | no | planned | page-level human-proofread printed text paired with Commons scans; CC BY-SA text, quality-4 attestation and HebrewBooks-sourced scans (under the per-file rights check) accepted 2026-11-06 |
 | F8c | F8 | Key NLI rights on the IIIF licence slug and admit free-use printed books | no | planned | only public-domain-free-use maps to open; images only |
 | F8d | F8 | Import CC-BY-4.0 human ground-truth datasets as review-only sources | no | planned | pinkas_dataset_bgu PAGE XML first; YidTakNL for training and character-level evaluation only; scan provenance verified first |
 | F8e | F8 | Add born-digital and typewritten government print sources | no | planned | public domain under Copyright Act sections 6 and 42; automated access allowed by the maintainer 2026-11-06; Knesset committee protocols from 1976 wait for a legal opinion |
@@ -1439,7 +1439,7 @@ Map real (non-synthetic) Hebrew document sources beyond HASH, ranked by what HeO
 ### Required sequencing
 1. Every new F8 source id (`F8b`, `F8d`, `F8e`) starts `review_only` and outside `profile_open_v1`; promotion is a later explicit PR. `F8c` instead extends the existing `allowed` `nli_any_use_permitted` source, so its new printed items reach `profile_open_v1` only through that source's seed vetting and normal gates, with only `public-domain-free-use` mapped to `open`.
 2. Text becomes a reference only through F2 reference manifests after human attestation and adjudication. OCR and HTR output is never ground truth, and `benchmark_v1` membership stays frozen.
-3. Maintainer decisions of 2026-11-06 ([decision record](../planning/decisions/2026-11-06-f8-real-source-decisions.md)) accept CC BY-SA Wikisource text and quality-4 proofreading as human attestation, allow automated access to government sites, and limit printed Yiddish to training and character-level evaluation. `F8b` excludes HebrewBooks-sourced scans until that decision is made.
+3. Maintainer decisions of 2026-11-06 ([decision record](../planning/decisions/2026-11-06-f8-real-source-decisions.md)) accept CC BY-SA Wikisource text and quality-4 proofreading as human attestation, allow automated access to government sites, and limit printed Yiddish to training and character-level evaluation. HebrewBooks-sourced Commons scans are accepted under the same per-file rights check.
 4. `F8e` throttles hard. Knesset committee protocols from 1976 on stay excluded until a legal opinion arrives.
 
 ### Non-goals

@@ -897,7 +897,7 @@ def test_f8_real_source_map_is_planning_only_and_gate_preserving() -> None:
         assert roadmap_rows[pr_id][1] == "F8"
         assert roadmap_rows[pr_id][4] == "planned"
     decision = Path("planning/decisions/2026-11-06-f8-real-source-decisions.md").read_text(encoding="utf-8")
-    for token in ["**Quality 4**", "character-level evaluation", "*Open.*", "legal opinion"]:
+    for token in ["**Quality 4**", "character-level evaluation", "HebrewBooks are accepted", "legal opinion"]:
         assert token in decision
     assert "## Milestone F8 — Real-source map and paired-text source intake" in roadmap
     assert "`F8a` now defines milestone F8" in agent_plan
