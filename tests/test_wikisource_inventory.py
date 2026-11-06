@@ -303,16 +303,19 @@ def test_compact_inventory_and_summary_are_deterministic_and_text_free() -> None
         "render_checks": {"by_agent": 2, "by_tool": 2, "checked": 4, "full_page": 1, "partial_page": 3, "stale": 0, "tool_undecided": 1},
         "crop_unresolved_pages": [{"page_title": "עמוד:X.pdf/9", "quality": 3, "reason": "crop_unresolved", "detail": "untranscribed_text_inside_crop", "checked_by": "tool"}],
         "pending_coverage_pages": [{"page_title": None, "quality": 4, "checked_by": None}, {"page_title": None, "quality": 3, "checked_by": "tool"}],
+        "text_not_on_page": {"3": 0, "4": 0},
+        "text_not_on_page_pages": [],
         "rejected_by_first_reason": {"quality_editor_not_named_human": 1, "wikitext_unsupported_markup": 1},
         "unsupported_markup": {"unsupported wikitext template: x": 1},
     }
     assert compact["indexes"][1]["page_gate"] is None
     summary = inv.render_summary(compact)
     assert summary == inv.render_summary(json.loads(json.dumps(compact)))
-    assert "| Indexes admitted by the Index gate | 29 | 68 | 68 | 1 |" in summary
-    assert "| **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | 0 / 0 | 196 / 4 | 2 / 0 |" in summary
-    assert "| Of those, multi-region crop (rest of the box masked) | — | — | 0 / 0 | 1 / 0 |" in summary
-    assert "| Of those, crop placed or confirmed by an agent or human | — | — | 25 / 4 | 1 / 0 |" in summary
+    assert "| Indexes admitted by the Index gate | 29 | 68 | 68 | 72 | 1 |" in summary
+    assert "| **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | 0 / 0 | 196 / 4 | 241 / 5 | 2 / 0 |" in summary
+    assert "| Of those, multi-region crop (rest of the box masked) | — | — | 0 / 0 | 29 / 0 | 1 / 0 |" in summary
+    assert "| Of those, crop placed or confirmed by an agent or human | — | — | 25 / 4 | 96 / 2 | 1 / 0 |" in summary
+    assert "| Not a pair: words in the text the page does not show (`text_not_on_page`, listed below) | — | — | — | — | 0 / 0 |" in summary
     assert "| עמוד:X.pdf/9 | 3 | `crop_unresolved` | untranscribed_text_inside_crop | tool |" in summary
     assert "| `creator_death_year_missing` | 1 | 3 | 1 | 3 |" in summary
     assert "death year for יוסף פלוני (published 1893, after 1855)" in summary
@@ -333,3 +336,69 @@ def test_committed_inventory_replays_through_the_gate() -> None:
     for forbidden in ("/Users/", "/home/", "wikitext_path", "text_path", "\"text\":"):
         assert forbidden not in text
     assert SUMMARY_MD.read_text(encoding="utf-8") == inv.render_summary(compact)
+
+
+WHO = {"recorded_by": "agent", "recorder": "test", "checked_at": "2026-11-06"}
+
+
+def test_recorded_creators_corrections_and_publication_years_fill_gaps_for_the_unchanged_gate() -> None:
+    """F8b6: the evidence file may add a creator the wikis do not name, correct parse noise, and record a publication year.
+
+    Each fills a gap only: an added creator is skipped when a parsed one has its name, a correction never touches a
+    creator with a death year, and a recorded publication year never replaces one the wikis record.
+    """
+
+    no_creators = "{{:MediaWiki:Proofreadpage_index_template\n|שפה=he\n}}"
+    bare_file = FILE_WIKITEXT.replace("{{Creator:Samson Raphael Hirsch}}", "").replace("{{Label|Q33127885|{{{1|{{int:lang}}}}}}} (1848-1906/8)", "").replace("| Date         = 1893\n", "")
+    assert index_exclusion_reasons(_record(index_wikitext=no_creators, file_wikitext=bare_file, author_pages={}, entities={})) == ["creators_missing"]
+    added = {"creators": [{"names": ["יצחק אייזיק הלוי"], "role": "author", "death_year": 1914, "add": True, "evidence_url": "https://www.wikidata.org/wiki/Q8053923",
+                           "evidence_kind": "wikidata_P570", **WHO}],
+             "additional_grounds": [{"ground": "an older text", **WHO}]}
+    assert inv.index_evidence_problems({"index_title": "t", "commons_file_sha1": "abc", **added}) == []
+    record = _record(index_wikitext=no_creators, file_wikitext=bare_file, author_pages={}, entities={}, index_evidence={"abc": added})
+    assert [(c["name"], c["death_year"]) for c in record["work"]["creators"]] == [("יצחק אייזיק הלוי", 1914)]
+    assert index_exclusion_reasons(record) == [] and record["work"]["additional_grounds"] == ["an older text (recorded by agent, 2026-11-06)"]
+    # an added creator whose name the tool parsed fills that creator instead of adding a second one
+    duplicate = {"creators": [{**added["creators"][0], "names": ["יוסף פלוני"]}]}
+    record = _record(index_evidence={"abc": duplicate})
+    assert sum(c["name"] == "יוסף פלוני" for c in record["work"]["creators"]) == 1
+    # parse noise: dropped, or an editorial board marked anonymous; then the anonymous basis applies
+    noisy = "{{:MediaWiki:Proofreadpage_index_template\n|מחבר=מערכת העלון, 15 November 1883\n|שפה=he\n}}"
+    before = _record(index_wikitext=noisy, file_wikitext=FILE_WIKITEXT.replace("{{Creator:Samson Raphael Hirsch}}", "").replace("{{Label|Q33127885|{{{1|{{int:lang}}}}}}} (1848-1906/8)", ""), author_pages={}, entities={})
+    names = [c["name"] for c in before["work"]["creators"]]
+    assert index_exclusion_reasons(before) == ["creator_death_year_missing"] and len(names) == 2
+    corrections = {"creator_corrections": [{"names": [names[0]], "correction": "anonymous", "evidence": "unsigned editorial", **WHO},
+                                           {"names": [names[1]], "correction": "not_a_creator", "evidence": "a date", **WHO}]}
+    assert inv.index_evidence_problems({"index_title": "t", "commons_file_sha1": "abc", **corrections}) == []
+    after = _record(index_wikitext=noisy, file_wikitext=FILE_WIKITEXT.replace("{{Creator:Samson Raphael Hirsch}}", "").replace("{{Label|Q33127885|{{{1|{{int:lang}}}}}}} (1848-1906/8)", ""),
+                    author_pages={}, entities={}, index_evidence={"abc": corrections})
+    assert [c["role"] for c in after["work"]["creators"]] == ["anonymous"] and after["work_rights"]["basis"] == "anonymous_published_by_1955"
+    assert index_exclusion_reasons(after) == []
+    # a correction never removes a creator with a death year
+    kept = _record(index_evidence={"abc": {"creator_corrections": [{"names": ["משה זלמן אהרנסון"], "correction": "not_a_creator", "evidence": "x", **WHO}]}})
+    assert any(c["wikidata"] == "Q33127885" for c in kept["work"]["creators"])
+    # a recorded publication year fills a missing one (decision 10's presumption can then apply), never replaces one
+    year = {"published_year": {"value": 1562, "evidence": "the 1562 title page", "evidence_url": "https://example.org/p2", **WHO}}
+    undated = _record(index_wikitext="{{:MediaWiki:Proofreadpage_index_template\n|מחבר=רבנו\n|שפה=he\n}}", file_wikitext=bare_file, author_pages={}, entities={}, index_evidence={"abc": year})
+    assert undated["work"]["published_year"] == 1562 and undated["work_rights"]["basis"] == "presumed_pd_by_publication_age"
+    assert index_exclusion_reasons(undated) == []
+    assert _record(index_evidence={"abc": year})["work"]["published_year"] == 1893
+    # schema
+    assert inv.index_evidence_problems({"index_title": "t", "commons_file_sha1": "abc", "creator_corrections": [{"names": ["x"], "correction": "removed", "evidence": "e", **WHO}]})
+    assert inv.index_evidence_problems({"index_title": "t", "commons_file_sha1": "abc", "published_year": {"value": "1562", "evidence": "e", "evidence_url": "u", **WHO}})
+    assert inv.index_evidence_problems({"index_title": "t", "commons_file_sha1": "abc", "additional_grounds": [{"ground": ""}]})
+
+
+def test_text_not_on_page_is_a_page_reason_from_agent_or_human_checks() -> None:
+    """F8b6: a page whose text holds words the scan page does not show is not a pair (text and image do not match)."""
+
+    base = {"page_title": "עמוד:X.pdf/1", "revision_id": 5, "commons_file_sha1": "abc", "scan_page": 1, "checker": "c", "checked_at": "2026-11-06", "method": "m"}
+    agent = {**base, "checked_by": "agent", "transcription_coverage": "full_page", "text_not_on_page": "an editor's paraphrase of the rubric"}
+    assert inv.page_check_problems(agent) == []
+    assert inv.page_check_problems({**agent, "text_not_on_page": " "}) == ["text_not_on_page must say, in words, what text is not on the page"]
+    tool = {**base, "checked_by": "tool", "transcription_coverage": "full_page", "outcome": "decided", "crop": {"status": "unresolved", "reason": "r"}, "text_not_on_page": "x"}
+    assert inv.page_check_problems(tool) == ["only an agent or human check records text_not_on_page"]
+    page = {"revision_id": 5}
+    inv.apply_page_check(page, {"commons_file": {"sha1": "abc"}}, agent)
+    assert page["text_not_on_page"] == "an editor's paraphrase of the rubric"
+    assert page["transcription_coverage_check"]["text_not_on_page"] == page["text_not_on_page"]

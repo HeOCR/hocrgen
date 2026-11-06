@@ -729,6 +729,12 @@ TEMPLATE_RENDERERS: dict[str, Renderer] = {
     "פפ": lambda args, ctx: (args.check(), "<br /> <br />")[1],
     "ש-רווח": lambda args, ctx: (args.check("1"), " ")[1],
     "עוגן בשורה": _drop("1"),
+    # F8b6: {{שיר מנוקד|...}} is {{עם-ניקוד|<poem>...</poem>|גודל=120}}: a poem block, one rendered line per source line.
+    "שיר מנוקד": _poem,
+    # F8b6: {{חיריק ללא אות}} writes ZWJ + hiriq (Module-free, as the template's source has it).
+    "חיריק ללא אות": lambda args, ctx: (args.check(), "\u200d\u05b4")[1],
+    # F8b6: {{רווח בין אותיות|text}} or {{רווח בין אותיות|spacing|text}}: letter-spaced type; the text, unspaced.
+    "רווח בין אותיות": lambda args, ctx: _v(args.check("1", "2"), ctx, "2") if args.filled("2") else ctx.expand(args.check("1", "2").need("1")),
     # F8b5: {{כ}} writes a bidi mark (RLM, or LRM with ימינה=), which step 8 removes: nothing visible.
     "כ": lambda args, ctx: (args.check("ימינה"), "")[1],
     "סעיף": lambda args, ctx: f"({ctx.expand(args.check('1').need('1'))})",

@@ -375,6 +375,9 @@ def page_exclusion_reasons(page: dict[str, Any], indexes: dict[str, dict[str, An
         reasons.append("transcription_coverage_unrecorded")
     elif coverage not in TRANSCRIPTION_COVERAGE_VALUES:
         reasons.append("transcription_coverage_unknown")
+    # F8b6: a check found words in the text that the scan page does not show; text and image do not match.
+    if str(page.get("text_not_on_page") or "").strip():
+        reasons.append("text_not_on_page")
     # Decision 12: a partial_page transcription is not rejected; it is paired with its crop (F8b4).
     reasons.extend(page_crop_reasons(page))
     reasons.extend(_page_text_reasons(page, root))

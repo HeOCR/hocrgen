@@ -90,3 +90,14 @@ def test_bidi_mark_template_renders_nothing_visible() -> None:
     assert convert_wikitext("{{כ|ימינה=כן}}(jaz) gledam").text == "(jaz) gledam"
     with pytest.raises(UnsupportedWikitextError):
         convert_wikitext("{{כ|צבע=אדום}}")
+
+
+def test_templates_added_for_the_f8b6_indexes() -> None:
+    """F8b6: ``{{חיריק ללא אות}}`` (ZWJ + hiriq), ``{{רווח בין אותיות}}`` (letter-spaced text) and ``{{שיר מנוקד}}`` (a poem)."""
+
+    assert convert_wikitext("ב{{חיריק ללא אות}}").text == "ב‍ִ"
+    assert convert_wikitext("א {{רווח בין אותיות|שלום עולם }} ב").text == "א שלום עולם ב"
+    assert convert_wikitext("{{רווח בין אותיות|.3em|שלום}}").text == "שלום"
+    assert convert_wikitext("{{שיר מנוקד|\nשורה א\nשורה ב\n\nשורה ג\n}}").text == "שורה א\nשורה ב\n\nשורה ג"
+    slugs = {entry["slug"] for entry in MANIFEST["pages"]}
+    assert {"ws_index_336412__p0054", "ws_index_336412__p0156", "ws_index_398674__p0009"} <= slugs  # checked against MediaWiki

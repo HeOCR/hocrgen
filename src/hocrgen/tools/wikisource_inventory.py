@@ -788,6 +788,18 @@ def index_evidence_problems(record: dict[str, Any]) -> list[str]:
         problems += _recorded_problems(creator, "names", "role", "death_year", "evidence_url", "evidence_kind")
         if not isinstance(creator.get("death_year"), int):
             problems.append("death_year must be an integer year")
+        if "add" in creator and creator["add"] is not True:
+            problems.append("add must be true when given")
+    for correction in record.get("creator_corrections") or []:
+        problems += _recorded_problems(correction, "names", "correction", "evidence")
+        if correction.get("correction") not in CREATOR_CORRECTIONS:
+            problems.append(f"creator correction must be one of {', '.join(sorted(CREATOR_CORRECTIONS))}")
+    for ground in record.get("additional_grounds") or []:
+        problems += _recorded_problems(ground, "ground")
+    if record.get("published_year"):
+        problems += _recorded_problems(record["published_year"], "value", "evidence", "evidence_url")
+        if not isinstance(record["published_year"].get("value"), int):
+            problems.append("published_year value must be an integer year")
     if record.get("scan_source"):
         problems += _recorded_problems(record["scan_source"], "name", "evidence")
     if record.get("language"):
@@ -812,14 +824,55 @@ def load_index_evidence(path: Path | None) -> dict[str, dict[str, Any]]:
     return evidence
 
 
+# F8b6: corrections to creators the tool parsed from free text: ``not_a_creator`` (a date, a fragment of a
+# sentence), ``anonymous`` (an unsigned work, e.g. a newspaper's editorial board). A creator with a death year is
+# never corrected.
+CREATOR_CORRECTIONS = frozenset({"not_a_creator", "anonymous"})
+
+
+def apply_creator_corrections(creators: list[dict[str, Any]], evidence: dict[str, Any] | None) -> None:
+    """Apply recorded, cited corrections to parsed creators whose names match exactly (normalised), in place.
+
+    ``not_a_creator`` drops the parsed mention; ``anonymous`` keeps it with the role ``anonymous``. Neither touches a
+    creator the tool found a death year for, so a correction never removes evidence.
+    """
+
+    for correction in (evidence or {}).get("creator_corrections") or []:
+        names = {_normalise_name(name) for name in correction["names"]}
+        note = f"{correction['evidence']} (recorded by {correction['recorded_by']}, {correction['checked_at']})"
+        for creator in list(creators):
+            if creator.get("death_year") is not None or _normalise_name(creator.get("name") or "") not in names:
+                continue
+            if correction["correction"] == "not_a_creator":
+                creators.remove(creator)
+            else:
+                creator["role"] = "anonymous"
+                creator["anonymous_evidence"] = note
+
+
+def apply_publication_evidence(year: int | None, year_evidence: str | None, evidence: dict[str, Any] | None) -> tuple[int | None, str | None]:
+    """Fill an unrecorded publication year from a recorded, cited fact (F8b6); a year the wikis record is kept."""
+
+    recorded = (evidence or {}).get("published_year")
+    if not recorded or year is not None:
+        return year, year_evidence
+    return recorded["value"], f"{recorded['evidence']} ({recorded['evidence_url']}; recorded by {recorded['recorded_by']}, {recorded['checked_at']})"
+
+
 def apply_creator_evidence(creators: list[dict[str, Any]], evidence: dict[str, Any] | None) -> None:
     """Fill a missing death year from a recorded, cited fact whose names match the creator exactly (normalised).
 
-    A recorded fact never replaces a death year the tool found itself, and it never matches on a partial name.
+    A recorded fact never replaces a death year the tool found itself, and it never matches on a partial name. A
+    recorded creator marked ``add`` (F8b6) is added when no parsed creator matches its names: a creator the wikis do
+    not name (``creators_missing``), with the same cited death year.
     """
 
     for recorded in (evidence or {}).get("creators") or []:
         names = {_normalise_name(name) for name in recorded["names"]}
+        if recorded.get("add") and not any(_normalise_name(creator.get("name") or "") in names for creator in creators):
+            creators.append({"name": recorded["names"][0], "role": recorded["role"], "wikidata": recorded.get("wikidata"),
+                             "origins": [f"recorded_{recorded['recorded_by']}"], "author_page": None, "death_year": None,
+                             "death_year_evidence_url": None, "death_year_sources": []})
         for creator in creators:
             if creator.get("death_year") is not None or _normalise_name(creator.get("name") or "") not in names:
                 continue
@@ -1083,6 +1136,7 @@ def run_inventory(
                         "transcription_coverage": page.get("transcription_coverage"),
                         "needs_crop": page_needs_crop(page),
                         "crop": page.get("crop"),
+                        "text_not_on_page": page.get("text_not_on_page"),
                         "transclusions": page.get("transclusions"),
                         "reference_normalization": page_reference_normalization(page, snapshot_root),
                         "render_check": check,
@@ -1146,7 +1200,12 @@ def page_check_problems(check: dict[str, Any]) -> list[str]:
         problems.append("checked_at must be an ISO date")
     if check.get("checked_by") == "tool":
         problems.extend(crop_problems(check.get("crop")))
-    elif check.get("crop") is not None:
+        if check.get("text_not_on_page"):
+            problems.append("only an agent or human check records text_not_on_page")
+        return problems
+    if check.get("text_not_on_page") is not None and not (isinstance(check["text_not_on_page"], str) and check["text_not_on_page"].strip()):
+        problems.append("text_not_on_page must say, in words, what text is not on the page")
+    if check.get("crop") is not None:
         problems.extend(reviewed_crop_problems(check))
     return problems
 
@@ -1277,6 +1336,11 @@ def apply_page_check(page: dict[str, Any], index: dict[str, Any], check: dict[st
         return provenance
     page["transcription_coverage"] = check["transcription_coverage"]
     page["transcription_coverage_check"] = {key: value for key, value in provenance.items() if key != "applied"}
+    if check["checked_by"] != "tool" and str(check.get("text_not_on_page") or "").strip():
+        # F8b6: the text holds words the scan page does not show (an editor's paraphrase, note or placeholder, or text
+        # merged from other pages): text and image do not match, so the page is not a pair.
+        page["text_not_on_page"] = check["text_not_on_page"]
+        page["transcription_coverage_check"]["text_not_on_page"] = check["text_not_on_page"]
     if check["transcription_coverage"] == TRANSCRIPTION_COVERAGE_PARTIAL:
         # An agent's or human's own crop (F8b5) wins; otherwise the tool's crop serves the deciding check.
         if check["checked_by"] != "tool" and check.get("crop"):
@@ -1395,8 +1459,13 @@ def build_index_record(
         "evidence_checked_at": checked_at,
     }
     evidence = (index_evidence or {}).get(str(info.get("sha1")))
+    apply_creator_corrections(creators, evidence)
     apply_creator_evidence(creators, evidence)
     apply_language_evidence(record, evidence)
+    year, year_evidence = apply_publication_evidence(year, year_evidence, evidence)
+    record["work"]["published_year"], record["work"]["published_year_evidence"] = year, year_evidence
+    if evidence and evidence.get("additional_grounds"):
+        record["work"]["additional_grounds"] = [f"{ground['ground']} (recorded by {ground['recorded_by']}, {ground['checked_at']})" for ground in evidence["additional_grounds"]]
     record["work_rights"] = work_rights_from_creators(creators, year, year_evidence)
     scan = scan_rights_from_commons(record, file_wikitext=file_wikitext, uploader=info.get("user"))
     if scan["scan_source"] is None and evidence and evidence.get("scan_source"):
@@ -1730,6 +1799,7 @@ def compact_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
                         {key: creator.get(key) for key in ("name", "role", "wikidata", "death_year", "death_year_evidence_url")}
                         for creator in record["work"]["creators"]
                     ],
+                    **({"additional_grounds": record["work"]["additional_grounds"]} if record["work"].get("additional_grounds") else {}),
                 },
                 "work_rights": record["work_rights"],
                 "scan_rights": record["scan_rights"],
@@ -1772,6 +1842,8 @@ def _page_gate_counts(pages: list[dict[str, Any]]) -> dict[str, Any]:
     cropped_regions = {"3": 0, "4": 0}
     cropped_reviewed = {"3": 0, "4": 0}
     pending_pages: list[dict[str, Any]] = []
+    text_mismatch_pages: list[dict[str, Any]] = []
+    text_mismatch = {"3": 0, "4": 0}
     unresolved_crop = {"3": 0, "4": 0}
     unresolved_coverage = {"3": 0, "4": 0}
     needs_crop = {"3": 0, "4": 0}
@@ -1798,6 +1870,9 @@ def _page_gate_counts(pages: list[dict[str, Any]]) -> dict[str, Any]:
             transcluding += 1
         if ((page.get("reference_normalization") or {}).get("footnote_marker_style")) is not None:
             footnoted[level] += 1
+        if "text_not_on_page" in page["reasons"]:
+            text_mismatch[level] += 1
+            text_mismatch_pages.append({"page_title": page.get("page_title"), "quality": page["quality"], "detail": page.get("text_not_on_page")})
         remaining = [reason for reason in page["reasons"] if reason not in (COVERAGE_PENDING_REASON, *CROP_REASONS)]
         if remaining:
             reasons[remaining[0]] += 1
@@ -1852,6 +1927,8 @@ def _page_gate_counts(pages: list[dict[str, Any]]) -> dict[str, Any]:
         "render_checks": dict(sorted(checks.items())),
         "crop_unresolved_pages": sorted(crop_unresolved_pages, key=lambda entry: entry["page_title"]),
         "pending_coverage_pages": sorted(pending_pages, key=lambda entry: str(entry["page_title"])),
+        "text_not_on_page": text_mismatch,
+        "text_not_on_page_pages": sorted(text_mismatch_pages, key=lambda entry: str(entry["page_title"])),
         "rejected_by_first_reason": dict(sorted(reasons.items())),
         "unsupported_markup": dict(sorted(markup.items())),
     }
@@ -1906,6 +1983,23 @@ F8B3_BASELINE = {
     "reference_eligible_q4": 29,
     "reference_eligible_now_q4": 25,
 }
+# The F8b5 run (committed before F8b6).
+F8B5_BASELINE = {
+    "indexes_admitted": 72,
+    "pages_admitted": {"3": 1190, "4": 48},
+    "pages_converting": {"3": 1190, "4": 48},
+    "pages_passing_but_coverage": {"3": 1188, "4": 48},
+    "pages_full_page": {"3": 946, "4": 43},
+    "pages_cropped": {"3": 241, "4": 5},
+    "pages_cropped_review_recommended": {"3": 0, "4": 0},
+    "pages_cropped_regions": {"3": 29, "4": 0},
+    "pages_cropped_reviewed": {"3": 96, "4": 2},
+    "pages_crop_unresolved": {"3": 0, "4": 0},
+    "pages_pending": {"3": 1, "4": 0},
+    "pages_tool_undecided": {"3": 1, "4": 0},
+    "reference_eligible_q4": 29,
+    "reference_eligible_now_q4": 29,
+}
 # The F8b4 run (committed before F8b5), for the funnel's before column.
 F8B4_BASELINE = {
     "indexes_admitted": 68,
@@ -1950,7 +2044,7 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
         gate = record.get("page_gate") or {}
         totals["checked"] += int(gate.get("checked", 0))
         for level in ("3", "4"):
-            for key in ("converts", "pending_coverage_only", "eligible", "needs_crop", "cropped", "cropped_review_recommended", "cropped_regions", "cropped_reviewed", "crop_unresolved", "coverage_unresolved", "footnote_marks_bracketed"):
+            for key in ("converts", "pending_coverage_only", "eligible", "needs_crop", "cropped", "cropped_review_recommended", "cropped_regions", "cropped_reviewed", "crop_unresolved", "coverage_unresolved", "footnote_marks_bracketed", "text_not_on_page"):
                 totals[f"{key}{level}"] += int((gate.get(key) or {}).get(level, 0))
         totals["reference"] += int(gate.get("reference_eligible_q4", 0))
         totals["reference_now"] += int(gate.get("reference_eligible_now_q4", 0))
@@ -1964,8 +2058,10 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
     base = F8B2_BASELINE
     before = F8B3_BASELINE
     last = F8B4_BASELINE
+    prev = F8B5_BASELINE
     crop_unresolved_pages = [entry for r in admitted for entry in ((r.get("page_gate") or {}).get("crop_unresolved_pages") or [])]
     pending_pages = [entry for r in admitted for entry in ((r.get("page_gate") or {}).get("pending_coverage_pages") or [])]
+    text_mismatch_pages = [entry for r in admitted for entry in ((r.get("page_gate") or {}).get("text_not_on_page_pages") or [])]
 
     def _pair(values: dict[str, int]) -> str:
         return f"{values['3']} / {values['4']}"
@@ -1975,7 +2071,7 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
         return f"{values.get('3', 0)} / {values.get('4', 0)}"
 
     lines = [
-        "# Hebrew Wikisource Index inventory (F8b2, F8b3, F8b4, F8b5)",
+        "# Hebrew Wikisource Index inventory (F8b2, F8b3, F8b4, F8b5, F8b6)",
         "",
         f"Generated by `hocrgen.tools.wikisource_inventory` from evidence checked on {compact['checked_at']}; do not edit by hand.",
         "The per-Index data is in [`wikisource_index_inventory.json`](./wikisource_index_inventory.json). The evidence the run adds to",
@@ -1989,23 +2085,24 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
         "",
         "Quality-3 / quality-4 pages at each stage. Each column is the run before the next PR (same evidence date).",
         "",
-        "| Stage | F8b2 | F8b3 | F8b4 | F8b5 |",
-        "| --- | ---: | ---: | ---: | ---: |",
-        f"| Indexes; their quality-3 / quality-4 pages | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} |",
-        f"| Indexes admitted by the Index gate | {base['indexes_admitted']} | {before['indexes_admitted']} | {last['indexes_admitted']} | {len(admitted)} |",
-        f"| Pages in admitted Indexes | {_pair(base['pages_admitted'])} | {_pair(before['pages_admitted'])} | {_pair(last['pages_admitted'])} | {sum(_q(r, '3') for r in admitted)} / {sum(_q(r, '4') for r in admitted)} |",
-        f"| Pages the converter renders (`wikisource_plain_text`) | {_pair(base['pages_converting'])} | {_pair(before['pages_converting'])} | {_pair(last['pages_converting'])} | {totals['converts3']} / {totals['converts4']} |",
-        f"| Pages passing every other gate (attestation, checksums) | {_pair(base['pages_passing_but_coverage'])} | {_pair(before['pages_passing_but_coverage'])} | {_pair(last['pages_passing_but_coverage'])} | {passing3} / {passing4} |",
-        f"| **Eligible as full pages** (`full_page`) | {_pair(base['pages_full_page'])} | {_pair(before['pages_full_page'])} | {_pair(last['pages_full_page'])} | {totals['eligible3']} / {totals['eligible4']} |",
-        f"| **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | {_pair(before['pages_cropped'])} | {_pair(last['pages_cropped'])} | {totals['cropped3']} / {totals['cropped4']} |",
-        f"| Of those, crop placed or confirmed by an agent or human | — | — | {_pair(last['pages_cropped_reviewed'])} | {totals['cropped_reviewed3']} / {totals['cropped_reviewed4']} |",
-        f"| Of those, multi-region crop (rest of the box masked) | — | — | {_pair(last['pages_cropped_regions'])} | {totals['cropped_regions3']} / {totals['cropped_regions4']} |",
-        f"| Of those, tool crop flagged and not reviewed (`review_recommended`: a poorly read page, or tool regions) | — | — | {_pair(last['pages_cropped_review_recommended'])} | {totals['cropped_review_recommended3']} / {totals['cropped_review_recommended4']} |",
-        f"| `partial_page` without a resolved crop (`crop_unresolved`, listed below) | 0 / 0 | {_pair(before['pages_crop_unresolved'])} | {_pair(last['pages_crop_unresolved'])} | {totals['crop_unresolved3']} / {totals['crop_unresolved4']} |",
+        "| Stage | F8b2 | F8b3 | F8b4 | F8b5 | F8b6 |",
+        "| --- | ---: | ---: | ---: | ---: | ---: |",
+        f"| Indexes; their quality-3 / quality-4 pages | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} |",
+        f"| Indexes admitted by the Index gate | {base['indexes_admitted']} | {before['indexes_admitted']} | {last['indexes_admitted']} | {prev['indexes_admitted']} | {len(admitted)} |",
+        f"| Pages in admitted Indexes | {_pair(base['pages_admitted'])} | {_pair(before['pages_admitted'])} | {_pair(last['pages_admitted'])} | {_pair(prev['pages_admitted'])} | {sum(_q(r, '3') for r in admitted)} / {sum(_q(r, '4') for r in admitted)} |",
+        f"| Pages the converter renders (`wikisource_plain_text`) | {_pair(base['pages_converting'])} | {_pair(before['pages_converting'])} | {_pair(last['pages_converting'])} | {_pair(prev['pages_converting'])} | {totals['converts3']} / {totals['converts4']} |",
+        f"| Pages passing every other gate (attestation, checksums) | {_pair(base['pages_passing_but_coverage'])} | {_pair(before['pages_passing_but_coverage'])} | {_pair(last['pages_passing_but_coverage'])} | {_pair(prev['pages_passing_but_coverage'])} | {passing3} / {passing4} |",
+        f"| **Eligible as full pages** (`full_page`) | {_pair(base['pages_full_page'])} | {_pair(before['pages_full_page'])} | {_pair(last['pages_full_page'])} | {_pair(prev['pages_full_page'])} | {totals['eligible3']} / {totals['eligible4']} |",
+        f"| **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | {_pair(before['pages_cropped'])} | {_pair(last['pages_cropped'])} | {_pair(prev['pages_cropped'])} | {totals['cropped3']} / {totals['cropped4']} |",
+        f"| Of those, crop placed or confirmed by an agent or human | — | — | {_pair(last['pages_cropped_reviewed'])} | {_pair(prev['pages_cropped_reviewed'])} | {totals['cropped_reviewed3']} / {totals['cropped_reviewed4']} |",
+        f"| Of those, multi-region crop (rest of the box masked) | — | — | {_pair(last['pages_cropped_regions'])} | {_pair(prev['pages_cropped_regions'])} | {totals['cropped_regions3']} / {totals['cropped_regions4']} |",
+        f"| Of those, tool crop flagged and not reviewed (`review_recommended`: a poorly read page, or tool regions) | — | — | {_pair(last['pages_cropped_review_recommended'])} | {_pair(prev['pages_cropped_review_recommended'])} | {totals['cropped_review_recommended3']} / {totals['cropped_review_recommended4']} |",
+        f"| `partial_page` without a resolved crop (`crop_unresolved`, listed below) | 0 / 0 | {_pair(before['pages_crop_unresolved'])} | {_pair(last['pages_crop_unresolved'])} | {_pair(prev['pages_crop_unresolved'])} | {totals['crop_unresolved3']} / {totals['crop_unresolved4']} |",
         f"| Coverage not decided (no check; of them, tool alignment too poor) | {_pair(base['pages_passing_but_coverage'])}; — | {_pair(before['pages_pending'])}; — "
-        f"| {_pair(last['pages_pending'])}; {_pair(last['pages_tool_undecided'])} | {totals['pending_coverage_only3']} / {totals['pending_coverage_only4']}; {totals['coverage_unresolved3']} / {totals['coverage_unresolved4']} |",
-        f"| Reference-eligible quality-4 pages (adjudication-eligible), every gate but coverage | {base['reference_eligible_q4']} | {before['reference_eligible_q4']} | {last['reference_eligible_q4']} | {totals['reference']} |",
-        f"| Of those, eligible now (full page or cropped) | 0 | {before['reference_eligible_now_q4']} | {last['reference_eligible_now_q4']} | {totals['reference_now']} |",
+        f"| {_pair(last['pages_pending'])}; {_pair(last['pages_tool_undecided'])} | {_pair(prev['pages_pending'])}; {_pair(prev['pages_tool_undecided'])} | {totals['pending_coverage_only3']} / {totals['pending_coverage_only4']}; {totals['coverage_unresolved3']} / {totals['coverage_unresolved4']} |",
+        f"| Not a pair: words in the text the page does not show (`text_not_on_page`, listed below) | — | — | — | — | {totals['text_not_on_page3']} / {totals['text_not_on_page4']} |",
+        f"| Reference-eligible quality-4 pages (adjudication-eligible), every gate but coverage | {base['reference_eligible_q4']} | {before['reference_eligible_q4']} | {last['reference_eligible_q4']} | {prev['reference_eligible_q4']} | {totals['reference']} |",
+        f"| Of those, eligible now (full page or cropped) | 0 | {before['reference_eligible_now_q4']} | {last['reference_eligible_now_q4']} | {prev['reference_eligible_now_q4']} | {totals['reference_now']} |",
         "",
         "In F8b2 the converter column counts pages that also passed the other page gates; the F8b2 run did not count them apart.",
         "In F8b3 every `partial_page` page was `needs_crop`: no crop existed yet. In F8b4 the reviewed crops are the tool's crops",
@@ -2102,6 +2199,20 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
     for entry in sorted(pending_pages, key=lambda entry: str(entry["page_title"])):
         lines.append(f"| {_cell(entry['page_title'])} | {entry['quality']} | {entry.get('checked_by') or '—'} |")
     if not pending_pages:
+        lines.append("| (none) | | |")
+    lines += [
+        "",
+        "## Pages whose text is not all on the page (`text_not_on_page`)",
+        "",
+        "Pages an agent or human check found to hold words the scan page does not show (F8b6). Text and image do not match,",
+        "so they are not pairs. They stay listed.",
+        "",
+        "| Page | Quality | What is not on the page |",
+        "| --- | ---: | --- |",
+    ]
+    for entry in sorted(text_mismatch_pages, key=lambda entry: str(entry["page_title"])):
+        lines.append(f"| {_cell(entry['page_title'])} | {entry['quality']} | {_cell(entry.get('detail') or '—')} |")
+    if not text_mismatch_pages:
         lines.append("| (none) | | |")
     if totals["render_stale"]:
         lines += ["", f"{totals['render_stale']} recorded checks are stale (another page revision or Commons file) and were not applied."]
