@@ -1,0 +1,28 @@
+version: 1
+dataset: Knesset committee protocols, sessions up to 1975-12-31 (typewritten scans)
+operator: The Knesset
+odata_url: https://knesset.gov.il/OdataV4/ParliamentInfo/
+files_host: https://fs.knesset.gov.il/
+rights_basis: >-
+  Copyright Act 2007 sections 36 and 42: committee protocols are State works, public domain 50 years after
+  creation, so a session on or before 1975-12-31 is PD. They are most likely not section-6 "דברי הכנסת"
+  (plenary only). Protocols from 1976 on stay excluded until the requested legal opinion (F8 decision 5).
+  Committee background material (חומר רקע) is submitted by ministries, NGOs and the public: not a Knesset
+  work, never admitted.
+session_date_cutoff: "1975-12-31"
+captured_at: 2026-11-06
+capture: >-
+  One-off operator capture, 9 requests in total (7 OData queries, one of them a 404 and one a 400, and 2
+  PDFs), 10 to 15 s apart, with the User-Agent "HeOCR-hocrgen-fixture-capture/0.1
+  (+https://github.com/HeOCR/hocrgen; one-off operator capture, throttled)". The Knesset firewall blocked
+  an earlier agent after about 100 queries. Raw PDFs are not committed; each entry pins the PDF sha256.
+entries_path: entries.jsonl
+scope: fixture
+notes: >-
+  Five-entry F8e fixture. Three admitted pages: pages 2 and 3 of the Economic Committee (ועדת הכלכלה)
+  session of 1952-11-25 (Knesset 2; the verification note called it the Finance Committee, but OData names
+  the Economic Committee), and page 2 of its session of 1975-12-31 (Knesset 8), the last admissible day.
+  Each image is the PDF's embedded 300 ppi bitonal CCITT scan, extracted losslessly with pdfimages and
+  re-encoded as a 1-bit PNG; pixel_sha256 is over the decoded pixels. Images only: the PDFs' hidden
+  Imagestore OCR layer is machine OCR and is not carried. Two metadata-only entries prove the gates: the
+  session of 1976-01-06 (rejected pending the legal opinion) and a committee background-material file.

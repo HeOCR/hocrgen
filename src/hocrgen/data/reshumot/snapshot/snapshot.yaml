@@ -1,0 +1,34 @@
+version: 1
+dataset: Reshumot born-digital gazette (ספר החוקים, קובץ התקנות)
+operator: Ministry of Justice, Reshumot unit (gov.il)
+landing_url: https://www.gov.il/he/departments/official_gazette
+collector_url: https://www.gov.il/he/Departments/DynamicCollectors/gazette-official
+api_search_url: https://pub-justice.openapi.gov.il/pub/moj/portal/rest/searchpredefinedapi/v1/SearchPredefinedApi/Reshumot/Search
+api_access_note: >-
+  Undocumented JSON search API behind the gov.il gazette collector, called with the public x-client-id
+  embedded in that page. Automated access allowed by the maintainer (F8 decision 4). Document URLs are
+  opaque tokens, so booklet number, series and date are the stable keys.
+rights_basis: >-
+  Copyright Act 2007 section 6: no copyright in laws and regulations. Admitted series: ספר החוקים
+  (FolderType 1) and קובץ התקנות (FolderType 3). ילקוט הפרסומים, bills and other series are not section-6
+  material and are never admitted.
+born_digital_from: "2006-01-01"
+born_digital_note: >-
+  Samples from 2006 (booklet 2061) on are Adobe InDesign PDFs; samples up to 2005 are bitonal scans with an
+  OCR layer (verification note, Source 3). The exact switch booklet is unverified, so the gate also requires
+  per-PDF born-digital evidence.
+captured_at: 2026-11-06
+capture: >-
+  One-off operator capture, 4 requests to gov.il (2 searches, 2 PDFs), 6 s apart, with the User-Agent
+  "HeOCR-hocrgen-fixture-capture/0.1 (+https://github.com/HeOCR/hocrgen; one-off operator capture,
+  throttled)". Raw PDFs are not committed; each entry pins the PDF sha256.
+entries_path: entries.jsonl
+scope: fixture
+notes: >-
+  Three-entry F8e fixture. Pages 2 and 4 of ספר החוקים 2580 (16.8.2016) pass the logical-order check and
+  carry a rendered page image (pdftoppm, 150 dpi, 8-bit gray) plus the embedded text. The text is the
+  pdftotext output (kept under extraction/) converted from poppler's bidi markup to logical order
+  (parsers/pdf_bidi.py) and checked against phrases from the gazette API. Rendered pages are not scans:
+  every image carries rendering.is_scan false. Page 2 of קובץ התקנות 7712 (13.9.2016) fails the check
+  (footnote markers glued to the year digits, a stray backspace) and is kept without an image only to prove
+  the rejection.

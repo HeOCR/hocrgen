@@ -1,6 +1,6 @@
 # F8 — Real-source map and paired-text source intake
 
-Status: `F8a` (this map and the F8 notation) is planning only. `F8b` is implemented on the current ref (review-only `wikisource_he_proofread`; see [`docs/wikisource_proofread_source.md`](../../docs/wikisource_proofread_source.md)). `F8d` and `F8d2` are implemented (see [F8d findings](#f8d-findings-2026-11-06) and [F8d2 findings](#f8d2-findings-2026-11-06)). `F8c` is completed (slug-keyed NLI rights and cached free-use printed-book seeds). `F8e` is planned. The maintainer answered the decisions list on 2026-11-06; see [`planning/decisions/2026-11-06-f8-real-source-decisions.md`](../decisions/2026-11-06-f8-real-source-decisions.md). Parent milestone: F8. Source proposals: `HeOCR/hocrgen#103` (`F8b`), `#104` (`F8c`) and `#105` (`F8d`). Evidence was checked on 2026-11-06 against each source's own pages and APIs; the per-source notes are in [`docs/2026_11_06_israeli_public_domain_documents_research/verification/`](../../docs/2026_11_06_israeli_public_domain_documents_research/verification/).
+Status: `F8a` (this map and the F8 notation) is planning only. `F8b` is implemented on the current ref (review-only `wikisource_he_proofread`; see [`docs/wikisource_proofread_source.md`](../../docs/wikisource_proofread_source.md)). `F8d` and `F8d2` are implemented (see [F8d findings](#f8d-findings-2026-11-06) and [F8d2 findings](#f8d2-findings-2026-11-06)). `F8c` is completed (slug-keyed NLI rights and cached free-use printed-book seeds). `F8e` is completed (review-only `reshumot_born_digital` and `knesset_committee_protocols_pre1976`; see [F8e findings](#f8e-findings-2026-11-06)). The maintainer answered the decisions list on 2026-11-06; see [`planning/decisions/2026-11-06-f8-real-source-decisions.md`](../decisions/2026-11-06-f8-real-source-decisions.md). Parent milestone: F8. Source proposals: `HeOCR/hocrgen#103` (`F8b`), `#104` (`F8c`), `#105` (`F8d`) and `#112` (`F8e`). Evidence was checked on 2026-11-06 against each source's own pages and APIs; the per-source notes are in [`docs/2026_11_06_israeli_public_domain_documents_research/verification/`](../../docs/2026_11_06_israeli_public_domain_documents_research/verification/).
 
 F8 maps real (non-synthetic) Hebrew document sources beyond HASH. It ranks them by what HeOCR lacks most: **real page images paired with human-made text**, for both printed and handwritten Hebrew. It supplies the printed real-reference source that [E2d](./e2d-real-scan-evaluation.md) says is "not yet selected". It changes no source, profile, licence, gate or score.
 
@@ -32,7 +32,7 @@ The text tier is recorded separately from the content type. A page's `content_ty
 | 3 | BGU Pinkas Dataset (Zenodo 3569694) | `handwritten_historical`, c. 1500–1800 cursive, 30 pages | 1: PAGE XML at word, line and page level | Zenodo licence field `cc-by-4.0` for the annotations. Scans: NLI Ms. Heb. 4°662 (Ktiv), `public-domain-free-use` | `CC-BY-4.0` / `open_with_attribution` | `F8d2` |
 | 4 | YidTakNL Vaybertaytsh ground truth (figshare 10.6084/m9.figshare.25422844) | `printed_historical` Yiddish in Hebrew script, 1709–1781 | 1: Transkribus GT (human-corrected HTR), page-level plain text with JPEGs, no geometry | figshare licence CC BY 4.0 for the dataset. Scans per item: NLI `public-domain-free-use`, or HUC with no open licence | `CC-BY-4.0` / `open_with_attribution`; NLI-scanned pages only | `F8d`, `F8d2` |
 | 5 | Reshumot (ספר החוקים, קובץ התקנות), about 2006 on | `printed_modern` gazette | 2: born-digital PDF | §6: no copyright in laws and regulations | `PD-IL` / `open` | `F8e` |
-| 6 | Knesset committee protocols, 1949–1975 | typewritten scans | 4 | §42: state works created on or before 1975 are PD | `PD-IL` / `open` | `F8e` |
+| 6 | Knesset committee protocols, 1949–1975 | `typewritten_historical` scans | 4 | §42: state works created on or before 1975 are PD | `PD-IL` / `open` | `F8e` |
 
 Scale, measured on 2026-11-06:
 
@@ -80,7 +80,7 @@ Scale, measured on 2026-11-06:
    Files whose only PD tag is a `PD-US-*` one are rejected. Each Index is admitted separately.
 4. **Non-commercial licences stay out of `profile_open_v1`.** They map to `RESTRICTED-NONOPEN` until an adapter needs finer values (`CC-BY-NC-4.0`, `CC-BY-NC-SA-4.0`).
 5. **New source ids never reuse an existing name.** BGU's dataset becomes `pinkas_dataset_bgu`, distinct from `pinkas_open`. The existing ids stay unchanged, under E4 governance.
-6. **A `typewritten_historical` content type** is defined only when `F8e` lands.
+6. **A `typewritten_historical` content type** is defined only when `F8e` lands. Defined in `F8e`: machine-typed pages such as the Knesset committee protocols up to 1975. The classifier counts it as `printed`; the declared content type keeps it distinct.
 
 ## Maintainer decisions needed
 
@@ -110,7 +110,7 @@ These are rights or ground-truth calls, so they are the maintainer's. **Answered
 - `F8c` (completed): key the `nli` rights strategy on the IIIF `license` slug, and admit `public-domain-free-use` printed books as `printed_historical`. Images only. The three cached printed-book seeds stay in the exploratory catalog; promoting them to runnable seeds changes the NLI depth count and is a separate step.
 - `F8d`: fixture-backed `review_only` imports of the CC-BY-4.0 ground-truth datasets: `pinkas_dataset_bgu` (PAGE XML), and YidTakNL once its bundle is checked. YidTakNL is limited to training and character-level evaluation (decision 6). Scan provenance is verified first. **Implemented:** YidTakNL landed as `yidtaknl_vaybertaytsh_gt`; `pinkas_dataset_bgu` moved to `F8d2`.
 - `F8d2`: NLI-matched ground truth. Admit `pinkas_dataset_bgu` once its scans are matched to an NLI free-use record, and match more YidTakNL works to NLI canvases page by page. **Implemented** (see [F8d2 findings](#f8d2-findings-2026-11-06)).
-- `F8e`: born-digital and typewritten government print (Reshumot from about 2006, Knesset committee scans up to 1975), with automated access allowed (decision 4) and hard throttling. Committee protocols from 1976 on wait for the legal opinion (decision 5).
+- `F8e` (completed): born-digital and typewritten government print (Reshumot from about 2006, Knesset committee scans up to 1975), with automated access allowed (decision 4) and hard throttling. Committee protocols from 1976 on wait for the legal opinion (decision 5). See [F8e findings](#f8e-findings-2026-11-06).
 
 ## F8d findings (2026-11-06)
 
@@ -165,6 +165,32 @@ These are rights or ground-truth calls, so they are the maintainer's. **Answered
   - Two more pages are vendored as entries: 1747 page 7 and JB 899 page 10.
   - The rejected HUC entry no longer credits an NLI scan.
   - The JB 899 record's top-level manifest has 0 canvases, which the F8c gate rejects. Its capture therefore also pins the volume sequence (138 canvases, upstream sha256), and the gate sees that count.
+
+## F8e findings (2026-11-06)
+
+**Reshumot (`reshumot_born_digital`, implemented).** Fetcher `reshumot`, snapshot `src/hocrgen/data/reshumot/snapshot/`.
+
+- **Scope.** Only ספר החוקים (FolderType 1) and קובץ התקנות (3), published on or after 2006-01-01, and only PDFs with born-digital evidence: an InDesign creator, embedded fonts and no page image. ילקוט הפרסומים, bills and the other series are rejected (`series_not_section_6`).
+- **Images.** Pages are rendered by HeOCR with `pdftoppm` (poppler 26.07.0) at 150 dpi, 8-bit gray. Each image records `rendering.is_scan: false`, the renderer, its version, the dpi and a pixel checksum, so evaluation never mistakes it for a scan.
+- **Bidi.** `pdftotext` writes each RTL line in a bidi-markup form: Hebrew in logical order, but digits, Latin letters and the neutrals next to them in visual order inside LRE … PDF. Stripping the control characters gives, for example, `התשע"ו*2016-`. `hocrgen.parsers.pdf_bidi` inverts the markup, and the result is then checked independently.
+  - The checks: no control characters; no word that starts with a final letter form; Hebrew year then `-` and four digits; section numbers as `1.`; parentheses that never close early; Hebrew punctuation followed by a space.
+  - It must also contain the booklet number, the date and the law titles that the gazette API lists for that page.
+  - Any failure rejects the page's text with `extraction_order_not_verified` plus the check's reason code. The adapter re-derives the text from the committed `pdftotext` output on every run.
+- **What the checks found** (all 12 pages of both booklets were run).
+  - ספר החוקים 2580: pages 1, 2, 4 and 6 pass. Pages 3, 5 and 7 fail: signature blocks and tables come out merged and out of order. Page 8, the colophon with an ISSN, is flagged `latin_run_order_unverified`.
+  - קובץ התקנות 7712: page 1 passes. Pages 2 to 4 fail, because their superscript footnote markers are glued to the year digits on the wrong side (`התשנ"ה-11995`).
+  - So born-digital Reshumot text is not uniformly clean, and the per-page check is needed. Page-level reading order follows poppler's layout analysis: side headings and section numbers come out as blocks before the body text.
+- **Fixture.** Pages 2 and 4 of ספר החוקים 2580 (16.8.2016), plus page 2 of קובץ התקנות 7712 (13.9.2016), which has no image and is kept to prove the rejection. Each entry pins the PDF's sha256, booklet number and date. The capture made 4 requests to gov.il.
+- **Text status.** The text is tier 2 (`born_digital_pdf_text`), `not_adjudicated` and not reference-eligible until F2 attestation and adjudication.
+
+**Knesset committee protocols (`knesset_committee_protocols_pre1976`, implemented).** Fetcher `knesset_committee`, snapshot `src/hocrgen/data/knesset_committees/snapshot/`.
+
+- **Gates.** OData group type 23 (פרוטוקול ועדה) only, from an open session dated on or before 1975-12-31. The date in the document name must match the session date.
+  - Sessions from 1976 on are rejected with `post_1975_committee_protocol_pending_legal_opinion` (decision 5).
+  - Background material (group type 87, חומר רקע) is rejected with `committee_background_material_not_knesset_work`.
+- **Images only.** Each page is the PDF's embedded 300 ppi bitonal CCITT scan, extracted losslessly with `pdfimages`. The PDFs' hidden Imagestore OCR layer is not carried, and an entry with text is rejected.
+- **Correction to the verification note.** The 1952 file `2_ptv_399388.PDF` is the Economic Committee (ועדת הכלכלה, session 2026737, 1952-11-25), not the Finance Committee.
+- **Fixture.** Pages 2 and 3 of that file, and page 2 of the Economic Committee session of 1975-12-31 (session 2037304, Knesset 8), the last admissible day. Two metadata-only entries prove the gates: the 1976-01-06 session and a background-material file. The capture made 9 Knesset requests, 10 to 15 s apart; the firewall did not block it.
 
 ## Sequencing and non-goals
 

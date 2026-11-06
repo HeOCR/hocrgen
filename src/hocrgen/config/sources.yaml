@@ -185,6 +185,50 @@ sources:
     settings:
       extra:
         pinkas_dataset_snapshot_root: package://data/pinkas_dataset_bgu/snapshot
+  - id: reshumot_born_digital
+    name: Reshumot born-digital gazette pages (ספר החוקים, קובץ התקנות, 2006 on) with embedded text
+    fetcher: reshumot
+    status: review_only
+    default_public_release: false
+    allowed_content_types:
+      - printed_modern
+    rights_strategy:
+      type: exact_match
+      values:
+        - PD-IL
+    normalized_license: PD-IL
+    rights_classification: open
+    requires_manual_review: false
+    source_operations:
+      operational_status: active
+      health_expectations:
+        min_candidates: 1
+        min_assets: 1
+    settings:
+      extra:
+        government_print_snapshot_root: package://data/reshumot/snapshot
+  - id: knesset_committee_protocols_pre1976
+    name: Knesset committee protocol scans, sessions up to 1975-12-31 (typewritten)
+    fetcher: knesset_committee
+    status: review_only
+    default_public_release: false
+    allowed_content_types:
+      - typewritten_historical
+    rights_strategy:
+      type: exact_match
+      values:
+        - PD-IL
+    normalized_license: PD-IL
+    rights_classification: open
+    requires_manual_review: false
+    source_operations:
+      operational_status: active
+      health_expectations:
+        min_candidates: 1
+        min_assets: 1
+    settings:
+      extra:
+        government_print_snapshot_root: package://data/knesset_committees/snapshot
   - id: project_synthetic
     name: hocrsyngen manifest-backed synthetic source
     fetcher: hocrsyngen_manifest

@@ -897,7 +897,8 @@ def test_f8_real_source_map_is_planning_only_and_gate_preserving() -> None:
     assert roadmap_rows["F8b"][4] == "completed"
     for pr_id in ["F8c", "F8e"]:
         assert roadmap_rows[pr_id][1] == "F8"
-    assert roadmap_rows["F8e"][4] == "planned"
+    # F8e landed review-only Reshumot (born-digital) and pre-1976 Knesset committee (typewritten) sources.
+    assert roadmap_rows["F8e"][4] == "completed"
     # F8c landed slug-keyed NLI rights with exploratory printed-book seeds.
     assert roadmap_rows["F8c"][4] == "completed"
     # F8d landed YidTakNL; F8d2 admitted pinkas_dataset_bgu once its scans matched NLI Ms. Heb. 4°662.

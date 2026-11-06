@@ -18,6 +18,7 @@ from hocrgen.core.errors import ConfigValidationError, StageExecutionError
 from hocrgen.dedupe.exact import deduplicate_items
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.biblia import BibliaImporter
+from hocrgen.fetchers.government_print import KnessetCommitteeImporter, ReshumotImporter
 from hocrgen.fetchers.hocrsyngen_manifest import HocrsyngenManifestFetcher
 from hocrgen.fetchers.modern_handwriting import ModernHandwritingIntakeFetcher
 from hocrgen.fetchers.nli import NliFetcher
@@ -99,6 +100,8 @@ FETCHERS = {
     "modern_handwriting_intake": ModernHandwritingIntakeFetcher(),
     "synthetic": SyntheticFetcher(),
     "wikisource_proofread": WikisourceProofreadImporter(),
+    "reshumot": ReshumotImporter(),
+    "knesset_committee": KnessetCommitteeImporter(),
 }
 
 
