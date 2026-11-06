@@ -893,7 +893,9 @@ def test_f8_real_source_map_is_planning_only_and_gate_preserving() -> None:
     assert roadmap_rows["F8"][2].split(", ") == ["F8a", "F8b", "F8c", "F8d", "F8e"]
     assert roadmap_rows["F8"][4] == "partial"
     assert roadmap_rows["F8a"][4] == "completed"
-    for pr_id in ["F8b", "F8c", "F8e"]:
+    assert roadmap_rows["F8b"][1] == "F8"
+    assert roadmap_rows["F8b"][4] == "completed"
+    for pr_id in ["F8c", "F8e"]:
         assert roadmap_rows[pr_id][1] == "F8"
         assert roadmap_rows[pr_id][4] == "planned"
     # F8d landed YidTakNL; pinkas_dataset_bgu is held on unverified scan provenance.
