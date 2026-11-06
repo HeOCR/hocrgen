@@ -4,7 +4,7 @@ from pathlib import PurePosixPath
 import re
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_serializer, model_validator
 
 from hocrgen.config.models import PrivacyFlag, RightsClassification
 
@@ -802,6 +802,21 @@ class BenchmarkLayoutReferenceFileReference(BenchmarkReferenceFileReference):
     page_ids: list[str] = Field(default_factory=list)
 
 
+ReferenceModality = Literal["printed", "handwritten"]
+
+
+class ReferenceNormalizationFactsRecord(ManifestModel):
+    """How a reference differs from the print by convention, for evaluation masking (E2d2, issue #124)."""
+
+    footnote_marker_style: Literal["bracketed_index"] | None = None
+    footnote_count: int = Field(default=0, ge=0)
+
+
+# E2d1: optional per-item facts, omitted from serialized output while unset so existing manifests and release
+# artifacts stay byte-identical.
+_OPTIONAL_REFERENCE_ITEM_FIELDS = ("modality", "reference_normalization")
+
+
 class BenchmarkReferenceManifestItemRecord(ManifestModel):
     reference_id: str
     item_id: str
@@ -817,6 +832,17 @@ class BenchmarkReferenceManifestItemRecord(ManifestModel):
     correction_of: str | None = None
     superseded_by: str | None = None
     change_reason: str | None = None
+    # E2d1 modality track (printed / handwritten); distinct from the open/proprietary prediction ``track``.
+    modality: ReferenceModality | None = None
+    reference_normalization: ReferenceNormalizationFactsRecord | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_unset_optional_facts(self, handler: Any) -> dict[str, Any]:
+        payload = handler(self)
+        for key in _OPTIONAL_REFERENCE_ITEM_FIELDS:
+            if payload.get(key) is None:
+                payload.pop(key, None)
+        return payload
 
     @model_validator(mode="after")
     def validate_reference_status(self) -> "BenchmarkReferenceManifestItemRecord":

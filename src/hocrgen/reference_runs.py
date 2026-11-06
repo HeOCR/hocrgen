@@ -8,11 +8,18 @@ Scored set: synthetic gold derived from a validated hocrsyngen batch, plus revie
 E2c5: ``diagnostic_only`` runs score unreviewed text alone, with no scored set. Such a run is never a benchmark:
 it refuses scored-set inputs, is marked ``benchmark_ready: false`` and ``diagnostic_only: true``, and reports any
 baseline delta under ``diagnostic_comparison`` rather than ``comparison``.
+
+E2d1/E2d2: a ``modality`` track (``printed`` / ``handwritten``) restricts the adjudicated scored set to reference
+items of that modality. It is distinct from the open/proprietary prediction ``track``, applies to adjudicated
+references only and never changes the synthetic-gold block. Adjudicated items that declare
+``reference_normalization.footnote_marker_style`` get the ``footnote_masked.v1`` reference view (issue #124), and an
+optional paired bootstrap adds percentile intervals to comparison deltas.
 """
 from __future__ import annotations
 
 import hashlib
 import json
+import random
 import re
 from pathlib import Path
 from typing import Any, Iterable, Mapping
@@ -25,11 +32,14 @@ from pydantic import ValidationError
 from hocrgen.manifests.models import BenchmarkReferenceManifestRecord, BenchmarkTranscriptionReferenceRecord
 from hocrgen.reference_evaluation import (
     _aggregate,
+    _item_strata,
     DEFAULT_PROFILE_IDS,
+    FOOTNOTE_MASKED_VIEW_ID,
     NORMALIZATION_PROFILES,
     PRIMARY_PROFILE_ID,
     evaluate_reference_profiles,
     evaluate_text_profiles,
+    footnote_masked_pair,
 )
 
 PREDICTION_SCHEMA_VERSIONS = frozenset({"1.0", "heocr_engine_prediction.v1"})
@@ -41,6 +51,8 @@ TRACKS = frozenset({"open", "proprietary"})
 LINE_ANNOTATIONS_SCHEMA_VERSION = "hocrsyngen_line_annotations.v1"
 LOGICAL_JOINS = {"space": " ", "cell": " | "}  # hocrsyngen LOGICAL_JOIN_SEPARATORS
 PER_CELL_VIEW_ID = "per_cell.v1"
+MODALITY_TRACKS = frozenset({"printed", "handwritten"})
+BOOTSTRAP_CONFIDENCE = 0.95
 _SHA256 = re.compile(r"[0-9a-f]{64}\Z")
 
 
@@ -329,22 +341,31 @@ def load_per_cell_view(batch_dir: Path, gold: Mapping[str, Any]) -> dict[str, An
                        "sha256": sidecar_sha}}
 
 
-def load_adjudicated_references(manifest_path: Path) -> dict[str, Any]:
+def load_adjudicated_references(manifest_path: Path, *, modality: str | None = None) -> dict[str, Any]:
     """Load reviewed+adjudicated transcription references; anything else is excluded with a reason.
 
     The whole manifest is validated (including duplicate item/reference ids). Declared child checksums are
     verified, and the actual child hashes are recorded so edited references change the recorded identity.
+    With ``modality`` (E2d1), only items that declare that modality are scored; items of another modality or with
+    none are excluded with a reason, and a track with no scored item fails closed.
     """
+    if modality is not None and modality not in MODALITY_TRACKS:
+        raise StageExecutionError(f"modality must be one of {sorted(MODALITY_TRACKS)}, got {modality!r}")
     payload, manifest_sha = _read_json(manifest_path, "reference manifest")
     try:
         manifest = BenchmarkReferenceManifestRecord.model_validate(payload)
     except ValidationError as exc:
         raise StageExecutionError(f"invalid reference manifest {manifest_path.name}: {exc}") from exc
     root = manifest_path.parent.resolve()
-    references, strata, excluded, children = {}, {}, [], []
+    references, strata, excluded, children, normalization = {}, {}, [], [], {}
     for item in manifest.items:
         if item.public_reference_status not in {"reviewed", "adjudicated"} or item.adjudication_status != "adjudicated":
             excluded.append({"item_id": item.item_id, "reason": "reference is not reviewed and adjudicated"})
+            continue
+        if modality is not None and item.modality != modality:
+            reason = (f"modality {item.modality} is not this run's {modality} track" if item.modality
+                      else f"no modality declared; a {modality}-track run scores only {modality} items")
+            excluded.append({"item_id": item.item_id, "reason": reason})
             continue
         if item.transcription_reference is None:
             excluded.append({"item_id": item.item_id, "reason": "no transcription reference"})
@@ -363,11 +384,16 @@ def load_adjudicated_references(manifest_path: Path) -> dict[str, Any]:
         if record.item_id != item.item_id:
             raise StageExecutionError(f"reference item id mismatch for {item.item_id}")
         references[item.item_id] = record
-        strata[item.item_id] = {"reference_origin": "adjudicated_reference"}
+        strata[item.item_id] = {"reference_origin": "adjudicated_reference",
+                                **({"modality": item.modality} if item.modality else {})}
+        if item.reference_normalization is not None and item.reference_normalization.footnote_marker_style:
+            normalization[item.item_id] = item.reference_normalization.footnote_marker_style
         children.append({"item_id": item.item_id, "reference_id": item.reference_id,
                          "path": item.transcription_reference.path, "sha256": child_sha,
                          "declared_sha256": declared})
-    return {"references": references, "strata": strata, "excluded": excluded,
+    if modality is not None and not references:
+        raise StageExecutionError(f"no adjudicated reference in the {modality} modality track")
+    return {"references": references, "strata": strata, "excluded": excluded, "footnote_marker_styles": normalization,
             "identity": {"kind": "benchmark_reference_manifest", "sha256": manifest_sha,
                          "reference_manifest_id": manifest.reference_manifest_id,
                          "child_references": children,
@@ -401,7 +427,8 @@ def load_unreviewed_texts(path: Path) -> dict[str, Any]:
 
 def _score(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any] | None,
            adjudicated: Mapping[str, Any] | None, unreviewed: Mapping[str, Any] | None, profiles: list[str],
-           alignment_masked: bool, cell_view: Mapping[str, Any] | None = None) -> dict[str, Any]:
+           alignment_masked: bool, cell_view: Mapping[str, Any] | None = None,
+           modality: str | None = None) -> dict[str, Any]:
     gold_texts = dict(gold["texts"]) if gold else {}
     references = dict(adjudicated["references"]) if adjudicated else {}
     overlap = sorted(gold_texts.keys() & references.keys())
@@ -419,10 +446,18 @@ def _score(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any
             alignment_masked=alignment_masked)
     for report in scored.values():
         report["track"] = track
-    result: dict[str, Any] = {"track": track, "scored": scored}
+    if modality is not None and "adjudicated_reference" in scored:
+        scored["adjudicated_reference"]["modality"] = modality
+    result: dict[str, Any] = {"track": track, **({"modality": modality} if modality is not None else {}), "scored": scored}
+    views: dict[str, Any] = {}
     if gold_texts and cell_view is not None:
-        result["reference_views"] = {"synthetic_gold": {cell_view["view_id"]: _cell_view_reports(
-            predictions, track=track, gold=gold, cell_view=cell_view, profiles=profiles)}}
+        views["synthetic_gold"] = {cell_view["view_id"]: _cell_view_reports(
+            predictions, track=track, gold=gold, cell_view=cell_view, profiles=profiles)}
+    if references and adjudicated.get("footnote_marker_styles"):
+        views["adjudicated_reference"] = {FOOTNOTE_MASKED_VIEW_ID: _footnote_view_reports(
+            predictions, track=track, adjudicated=adjudicated, profiles=profiles)}
+    if views:
+        result["reference_views"] = views
     if unreviewed and unreviewed["texts"]:
         diagnostic = evaluate_text_profiles(
             sorted(unreviewed["texts"]),
@@ -451,6 +486,85 @@ def _cell_view_reports(predictions: Mapping[str, str], *, track: str, gold: Mapp
             "item_count": len(ids), "views": views}
 
 
+def _footnote_view_reports(predictions: Mapping[str, str], *, track: str, adjudicated: Mapping[str, Any],
+                           profiles: list[str]) -> dict[str, Any]:
+    """Score adjudicated items that declare a footnote marker style as is and footnote-masked (E2d2, issue #124)."""
+    styles = adjudicated["footnote_marker_styles"]
+    ids = sorted(styles)
+    references = {item_id: adjudicated["references"][item_id] for item_id in ids}
+    strata = {item_id: adjudicated["strata"][item_id] for item_id in ids}
+    masked_predictions, masked_references, masking_items, skipped = {}, {}, [], []
+    for item_id in ids:
+        if item_id not in predictions:
+            continue
+        try:
+            prediction, reference, stats = footnote_masked_pair(references[item_id], predictions[item_id],
+                                                                marker_style=styles[item_id])
+        except ValueError as exc:
+            skipped.append({"item_id": item_id, "reason": str(exc)})
+            continue
+        masked_predictions[item_id], masked_references[item_id] = prediction, reference
+        masking_items.append({"item_id": item_id, **stats})
+    scored_ids = sorted(masked_references)
+    views = {
+        "as_is": evaluate_reference_profiles(
+            scored_ids, predictions={k: v for k, v in predictions.items() if k in masked_references},
+            references={item_id: references[item_id] for item_id in scored_ids}, profiles=profiles,
+            item_strata={item_id: strata[item_id] for item_id in scored_ids}),
+        FOOTNOTE_MASKED_VIEW_ID: evaluate_text_profiles(
+            scored_ids, predictions=masked_predictions, references=masked_references, profiles=profiles,
+            item_strata={item_id: _item_strata(references[item_id], strata[item_id]) for item_id in scored_ids}),
+    }
+    for report in views.values():
+        report["track"] = track
+    return {
+        "view_id": FOOTNOTE_MASKED_VIEW_ID,
+        "scope": "adjudicated items whose reference declares a footnote_marker_style (bracketed_index)",
+        "item_count": len(ids),
+        "masking": {
+            "method": "reference [n] marks removed; prediction characters aligned to them by Levenshtein removed",
+            "diagnostic_limit": "heuristic alignment near the marks; never replaces primary.v1",
+            "reference_marks": sum(item["reference_marks"] for item in masking_items),
+            "masked_reference_characters": sum(item["masked_reference_characters"] for item in masking_items),
+            "removed_prediction_characters": sum(item["removed_prediction_characters"] for item in masking_items),
+            "items": masking_items,
+            "skipped": skipped,
+        },
+        "views": views,
+    }
+
+
+def paired_bootstrap_interval(
+    baseline: list[tuple[int, int]], candidate: list[tuple[int, int]], *, resamples: int, seed: int,
+    confidence: float = BOOTSTRAP_CONFIDENCE,
+) -> list[float] | None:
+    """Percentile interval of the candidate-minus-baseline error rate over items resampled with replacement.
+
+    Each list holds ``(edits, reference_units)`` per common item, in the same item order; the two sets share
+    reference units, so each resample re-aggregates both sets over the same items. Deterministic for a seed.
+    """
+    if len(baseline) != len(candidate):
+        raise ValueError("paired bootstrap needs the same items in both sets")
+    if not baseline or resamples <= 0:
+        return None
+    rng = random.Random(seed)
+    n = len(baseline)
+    deltas = []
+    for _ in range(resamples):
+        picks = [rng.randrange(n) for _ in range(n)]
+        units = sum(baseline[i][1] for i in picks)
+        if not units:
+            continue
+        deltas.append((sum(candidate[i][0] for i in picks) - sum(baseline[i][0] for i in picks)) / units)
+    if not deltas:
+        return None
+    deltas.sort()
+    tail = (1 - confidence) / 2
+    low = deltas[min(len(deltas) - 1, max(0, int(tail * len(deltas))))]
+    high = deltas[min(len(deltas) - 1, max(0, int((1 - tail) * len(deltas)) - 1))]
+    return [low, high]
+
+
 def _single_stage_change(base_set: dict, cand_set: dict) -> dict[str, Any] | None:
     """Return the one ordered stage difference between single-pipeline sets, or None if it is not exactly one."""
     if len(base_set["pipelines"]) != 1 or len(cand_set["pipelines"]) != 1:
@@ -472,7 +586,8 @@ def _single_stage_change(base_set: dict, cand_set: dict) -> dict[str, Any] | Non
     return None
 
 
-def _report_deltas(base_report: dict[str, Any], cand_report: dict[str, Any]) -> dict[str, Any]:
+def _report_deltas(base_report: dict[str, Any], cand_report: dict[str, Any],
+                   bootstrap: Mapping[str, int] | None = None) -> dict[str, Any]:
     base_items = {item["item_id"]: item for item in base_report["items"]}
     cand_items = {item["item_id"]: item for item in cand_report["items"]}
     common = sorted(base_items.keys() & cand_items.keys())
@@ -504,6 +619,19 @@ def _report_deltas(base_report: dict[str, Any], cand_report: dict[str, Any]) -> 
             "baseline_wer": base_agg["wer"], "candidate_wer": cand_agg["wer"],
             "delta_wer": None if None in (base_agg["wer"], cand_agg["wer"]) else cand_agg["wer"] - base_agg["wer"],
         }
+        if bootstrap:
+            def pairs(items: dict[str, Any], edit_key: str, unit_key: str) -> list[tuple[int, int]]:
+                return [(items[i]["profiles"][profile_id][edit_key], items[i]["profiles"][profile_id][unit_key]) for i in common]
+            profiles[profile_id]["paired_bootstrap"] = {
+                "resamples": bootstrap["resamples"], "seed": bootstrap["seed"], "confidence": BOOTSTRAP_CONFIDENCE,
+                "unit": "item", "method": "percentile interval of the re-aggregated delta over items resampled with replacement",
+                "delta_cer_interval": paired_bootstrap_interval(
+                    pairs(base_items, "character_edits", "reference_characters"),
+                    pairs(cand_items, "character_edits", "reference_characters"), **bootstrap),
+                "delta_wer_interval": paired_bootstrap_interval(
+                    pairs(base_items, "word_edits", "reference_words"),
+                    pairs(cand_items, "word_edits", "reference_words"), **bootstrap),
+            }
     return {
         "common_item_count": len(common),
         "baseline_only_items": sorted(base_items.keys() - cand_items.keys()),
@@ -527,14 +655,16 @@ def _comparison_context(base_set: dict, cand_set: dict) -> dict[str, Any]:
     }
 
 
-def _comparison(baseline: dict[str, Any], candidate: dict[str, Any], base_set: dict, cand_set: dict) -> dict[str, Any]:
+def _comparison(baseline: dict[str, Any], candidate: dict[str, Any], base_set: dict, cand_set: dict,
+                bootstrap: Mapping[str, int] | None = None) -> dict[str, Any]:
     context = _comparison_context(base_set, cand_set)
-    deltas = {origin: _report_deltas(baseline["scored"][origin], report)
+    deltas = {origin: _report_deltas(baseline["scored"][origin], report, bootstrap)
               for origin, report in candidate["scored"].items() if origin in baseline["scored"]}
     comparison = {"track": context.pop("track"), "deltas": deltas, **context}
     if "reference_views" in candidate:
         comparison["reference_view_deltas"] = {
-            origin: {view_id: {name: _report_deltas(baseline["reference_views"][origin][view_id]["views"][name], report)
+            origin: {view_id: {name: _report_deltas(baseline["reference_views"][origin][view_id]["views"][name], report,
+                                                    bootstrap)
                                for name, report in block["views"].items()}
                      for view_id, block in by_view.items()}
             for origin, by_view in candidate["reference_views"].items()
@@ -543,12 +673,12 @@ def _comparison(baseline: dict[str, Any], candidate: dict[str, Any], base_set: d
 
 
 def _diagnostic_comparison(baseline: dict[str, Any], candidate: dict[str, Any], base_set: dict,
-                           cand_set: dict) -> dict[str, Any]:
+                           cand_set: dict, bootstrap: Mapping[str, int] | None = None) -> dict[str, Any]:
     """Delta between two sets on unreviewed text only; never a scored comparison (E2c5)."""
     context = _comparison_context(base_set, cand_set)
     return {"track": context.pop("track"), "reference_status": "unreviewed", "benchmark_ready": False,
             "scored": False, "unreviewed_deltas": _report_deltas(baseline["unreviewed_diagnostics"],
-                                                                 candidate["unreviewed_diagnostics"]),
+                                                                 candidate["unreviewed_diagnostics"], bootstrap),
             **context}
 
 
@@ -556,7 +686,8 @@ def run_reference_evaluation(
     *, predictions_dir: Path, synthetic_batch: Path | None = None, reference_manifest: Path | None = None,
     unreviewed_texts: Path | None = None, mapping_path: Path | None = None, asset_index_path: Path | None = None,
     baseline_predictions_dir: Path | None = None, profiles: Iterable[str] = DEFAULT_PROFILE_IDS,
-    alignment_masked: bool = False, diagnostic_only: bool = False,
+    alignment_masked: bool = False, diagnostic_only: bool = False, modality: str | None = None,
+    bootstrap_resamples: int = 0, bootstrap_seed: int = 0,
 ) -> dict[str, Any]:
     if diagnostic_only:
         if synthetic_batch is not None or reference_manifest is not None:
@@ -572,12 +703,18 @@ def run_reference_evaluation(
     elif synthetic_batch is None and reference_manifest is None:
         raise StageExecutionError("a scored set is required: --synthetic-batch and/or --reference-manifest "
                                   "(or use --diagnostic-only with --unreviewed-texts)")
+    if modality is not None and (reference_manifest is None or diagnostic_only):
+        raise StageExecutionError("--modality selects a modality track of adjudicated references and needs "
+                                  "--reference-manifest (not --diagnostic-only)")
+    if bootstrap_resamples < 0 or (bootstrap_resamples and baseline_predictions_dir is None):
+        raise StageExecutionError("--bootstrap-resamples must be a non-negative count and needs --baseline-predictions")
+    bootstrap = {"resamples": bootstrap_resamples, "seed": bootstrap_seed} if bootstrap_resamples else None
     profile_ids = list(profiles)
     if PRIMARY_PROFILE_ID not in profile_ids or set(profile_ids) - NORMALIZATION_PROFILES.keys():
         raise StageExecutionError(f"profiles must be known and include {PRIMARY_PROFILE_ID}")
     gold = load_synthetic_gold(synthetic_batch) if synthetic_batch else None
     cell_view = load_per_cell_view(synthetic_batch, gold) if synthetic_batch else None
-    adjudicated = load_adjudicated_references(reference_manifest) if reference_manifest else None
+    adjudicated = load_adjudicated_references(reference_manifest, modality=modality) if reference_manifest else None
     unreviewed = load_unreviewed_texts(unreviewed_texts) if unreviewed_texts else None
     if diagnostic_only and not unreviewed["texts"]:
         raise StageExecutionError("--diagnostic-only needs at least one unreviewed text")
@@ -595,7 +732,7 @@ def run_reference_evaluation(
     predictions, assembly = _assemble(mapping, candidate_set)
     try:
         result = _score(predictions, track=candidate_set["track"], gold=gold, adjudicated=adjudicated, unreviewed=unreviewed,
-                        profiles=profile_ids, alignment_masked=alignment_masked, cell_view=cell_view)
+                        profiles=profile_ids, alignment_masked=alignment_masked, cell_view=cell_view, modality=modality)
         comparison = None
         baseline_set = None
         if baseline_predictions_dir is not None:
@@ -603,9 +740,9 @@ def run_reference_evaluation(
             baseline_predictions, _ = _assemble(mapping, baseline_set)
             baseline = _score(baseline_predictions, track=baseline_set["track"], gold=gold, adjudicated=adjudicated,
                               unreviewed=unreviewed if diagnostic_only else None,
-                              profiles=profile_ids, alignment_masked=False, cell_view=cell_view)
+                              profiles=profile_ids, alignment_masked=False, cell_view=cell_view, modality=modality)
             compare = _diagnostic_comparison if diagnostic_only else _comparison
-            comparison = compare(baseline, result, baseline_set, candidate_set)
+            comparison = compare(baseline, result, baseline_set, candidate_set, bootstrap)
     except ValueError as exc:
         raise StageExecutionError(str(exc)) from exc
     references = [identity for identity in (gold and gold["identity"], adjudicated and adjudicated["identity"]) if identity]
@@ -636,9 +773,22 @@ def run_reference_evaluation(
         "scored_set_policy": "synthetic gold and reviewed+adjudicated references only; unreviewed text is diagnostic",
         "diagnostic_only": diagnostic_only,
     }
+    reference_views = []
     if cell_view is not None:
-        run_record["reference_views"] = [{"origin": "synthetic_gold", "view_id": cell_view["view_id"],
-                                          "source": cell_view["source"], "item_count": len(cell_view["texts"])}]
+        reference_views.append({"origin": "synthetic_gold", "view_id": cell_view["view_id"],
+                                "source": cell_view["source"], "item_count": len(cell_view["texts"])})
+    if "adjudicated_reference" in result.get("reference_views", {}):
+        reference_views.append({"origin": "adjudicated_reference", "view_id": FOOTNOTE_MASKED_VIEW_ID,
+                                "source": {"kind": "benchmark_reference_manifest",
+                                           "field": "items[].reference_normalization.footnote_marker_style"},
+                                "item_count": len(adjudicated["footnote_marker_styles"])})
+    if reference_views:
+        run_record["reference_views"] = reference_views
+    if modality is not None:
+        run_record["modality"] = modality
+        run_record["modality_scope"] = "adjudicated_reference items declaring this modality; distinct from track"
+    if bootstrap is not None:
+        run_record["paired_bootstrap"] = {**bootstrap, "confidence": BOOTSTRAP_CONFIDENCE, "unit": "item"}
     if diagnostic_only:
         run_record["benchmark_ready"] = False
         run_record["scored_set_policy"] = "diagnostic only: no scored set; unreviewed text under unreviewed_diagnostics"
@@ -651,6 +801,6 @@ def run_reference_evaluation(
 __all__ = [
     "build_mapping_from_asset_sha256", "load_adjudicated_references",
     "load_engine_prediction", "load_per_cell_view", "load_prediction_set", "load_synthetic_gold",
-    "load_unreviewed_texts",
+    "load_unreviewed_texts", "paired_bootstrap_interval",
     "run_reference_evaluation", "validate_mapping",
 ]

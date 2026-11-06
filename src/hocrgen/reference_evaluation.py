@@ -506,9 +506,16 @@ def alignment_masked_prediction(
     stats = {"excluded_reference_characters": excluded, "removed_prediction_characters": 0}
     if not excluded:
         return prediction, stats
+    kept = _drop_aligned_to_excluded("".join(full_chars), mask, prediction, max_cells)
+    stats["removed_prediction_characters"] = len(prediction) - len(kept)
+    return kept, stats
+
+
+def _drop_aligned_to_excluded(reference: str, mask: list[bool], prediction: str, max_cells: int) -> str:
+    """Remove prediction characters that a Levenshtein alignment places on excluded (``False``) reference characters."""
     n = len(mask)
     kept: list[str] = []
-    for operation, position, pred_index in _align("".join(full_chars), prediction, max_cells):
+    for operation, position, pred_index in _align(reference, prediction, max_cells):
         if pred_index is None:
             continue
         if operation == "pair":
@@ -521,8 +528,7 @@ def alignment_masked_prediction(
                         and (left_excluded or right_excluded))
         if keep:
             kept.append(prediction[pred_index])
-    stats["removed_prediction_characters"] = len(prediction) - len(kept)
-    return "".join(kept), stats
+    return "".join(kept)
 
 
 def evaluate_alignment_masked(
@@ -565,3 +571,41 @@ def evaluate_alignment_masked(
         "items": items,
         "skipped": skipped,
     }
+
+
+# --- E2d2: footnote-masked reference view (issue #124) ------------------------------------------------------------
+
+FOOTNOTE_MASKED_VIEW_ID = "footnote_masked.v1"
+FOOTNOTE_MARKER_STYLES = frozenset({"bracketed_index"})
+_BRACKETED_FOOTNOTE_MARK = re.compile(r"\[[0-9]{1,3}\]")
+FOOTNOTE_MASK_MAX_CELLS = 25_000_000
+
+
+def footnote_masked_pair(
+    record: BenchmarkTranscriptionReferenceRecord, prediction: str, *, marker_style: str,
+    max_cells: int = FOOTNOTE_MASK_MAX_CELLS,
+) -> tuple[str, str, dict]:
+    """Mask footnote marks on both sides of one scoped pair (the ``footnote_masked.v1`` view).
+
+    A reference that declares ``marker_style: bracketed_index`` writes every footnote mark as ``[n]`` where the
+    print has its own mark (``*)``, ``1)``, ``(א``, ...). The marks are removed from the scoped reference text, and
+    prediction characters that a Levenshtein alignment against the unmasked scoped reference places on a mark are
+    removed from the prediction. The alignment is heuristic near the marks; the view never replaces ``primary.v1``.
+    Returns ``(masked_prediction, masked_reference, stats)``.
+    """
+    if marker_style not in FOOTNOTE_MARKER_STYLES:
+        raise ValueError(f"unsupported footnote marker style: {marker_style}")
+    reference = reference_text(record)
+    mask = [True] * len(reference)
+    marks = list(_BRACKETED_FOOTNOTE_MARK.finditer(reference))
+    for match in marks:
+        for offset in range(match.start(), match.end()):
+            mask[offset] = False
+    masked_reference = "".join(char for char, keep in zip(reference, mask) if keep)
+    stats = {"reference_marks": len(marks), "masked_reference_characters": mask.count(False),
+             "removed_prediction_characters": 0}
+    if not marks:
+        return prediction, masked_reference, stats
+    masked_prediction = _drop_aligned_to_excluded(reference, mask, prediction, max_cells)
+    stats["removed_prediction_characters"] = len(prediction) - len(masked_prediction)
+    return masked_prediction, masked_reference, stats

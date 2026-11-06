@@ -165,6 +165,14 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate_references_parser.add_argument("--diagnostic-only", action="store_true",
                                             help="Score only --unreviewed-texts, with no scored set (E2c5); the run is "
                                                  "never benchmark-ready and refuses scored-set inputs")
+    evaluate_references_parser.add_argument("--modality", choices=["printed", "handwritten"], default=None,
+                                            help="Modality track (E2d1): score only adjudicated references of this "
+                                                 "modality; distinct from the open/proprietary track")
+    evaluate_references_parser.add_argument("--bootstrap-resamples", type=int, default=0,
+                                            help="With --baseline-predictions: add paired item-bootstrap intervals "
+                                                 "to comparison deltas (0, the default, adds none)")
+    evaluate_references_parser.add_argument("--bootstrap-seed", type=int, default=0,
+                                            help="Seed for --bootstrap-resamples (default 0)")
     evaluate_references_parser.add_argument("--write-mapping", type=Path, default=None,
                                             help="Write the mapping used to this path")
     evaluate_references_parser.add_argument("--output", type=Path, default=None, help="Optional path for the JSON report")
@@ -600,6 +608,9 @@ def handle_evaluate_references(args: argparse.Namespace) -> int:
             profiles=args.profile or DEFAULT_PROFILE_IDS,
             alignment_masked=args.alignment_masked,
             diagnostic_only=args.diagnostic_only,
+            modality=args.modality,
+            bootstrap_resamples=args.bootstrap_resamples,
+            bootstrap_seed=args.bootstrap_seed,
         )
         for path, payload in ((args.write_mapping, report["mapping"]), (args.output, report)):
             if path is None:
