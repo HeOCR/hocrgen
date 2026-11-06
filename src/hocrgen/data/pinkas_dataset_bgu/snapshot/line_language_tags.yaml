@@ -1,0 +1,1117 @@
+format: hocrgen.pinkas_line_language_tags.v1
+source_id: pinkas_dataset_bgu
+review_procedure: 'agent_proposed tags are advisory and never change scope. To confirm or override a line, a human reviewer sets language, tag_source: human, tagged_by: <their name>, tagged_at: <date> and a rationale, keeping the proposal block. Only tag_source human with language he unlocks word-level Hebrew evaluation. See docs/pinkas_dataset_source.md.'
+proposal_method: 'pinkas_line_lexicon.v1: exact-token match against closed Western Yiddish and Hebrew marker lexicons (hocrgen.tools.pinkas_line_language); both present -> mixed, Yiddish only -> yi, Hebrew only -> he, neither -> unknown; orthography markers (initial וו, יי, final ען, ligatures) only lower confidence'
+pages:
+- entry_id: nli_990000445290205171__page105_right
+  annotation_sha256: bd0ac1927e2b731f53ba44773398b47cf2fdd6a9c0b9cbfef3750411130c3aa2
+  lines:
+  - line_id: l0
+    text: דיא ער בת"כ בפועל ממש ושאר גדרים מקבל עליו הוט גוועזן לא הועיל ער הוט אלש גבראכן אונ' עובר גוועזן האחרון הכביד ער
+    language: mixed
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (medium): 10 Yiddish and 1 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: mixed
+      confidence: medium
+      yiddish_markers: [דיא, ער, הוט, גוועזן, אלש, אונ']
+      hebrew_markers: [לא]
+      orthography_markers: []
+  - line_id: l1
+    text: הוט השררה יר"ה פהאן אננדר גהענגט אונ' דורך דעם מבאיש ריחינו גוועזן שיצא ע"י כך קצף על כל העדה עד כי קצר המצע מהשתרע
+    language: mixed
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 5 Yiddish and 5 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: mixed
+      confidence: high
+      yiddish_markers: [הוט, אונ', דורך, דעם, גוועזן]
+      hebrew_markers: [ע"י, על, כל, עד, כי]
+      orthography_markers: []
+  - line_id: l10
+    text: צלין  בלי הנחה וכל ישראל ישמעו ויראו ולא יזידון עוד ואם יעשה תשובה כנ"ל ורפא לו יהיה עכ"פ זה בועד האב"ד והחבורה
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 9 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [וכל, ולא, ואם, כנ"ל, לו, יהיה, עכ"פ, זה, האב"ד]
+      orthography_markers: []
+  - line_id: l11
+    text: קדישא יצ"ו בצירוף קריאי בעדה בערך כ"ה ב"ב יום א' כ"ח אייר תי# ל' נאם מנחמענדל ר' יצחק ר' אביגדורש זצלה"ה
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (low): 0 Yiddish and 4 Hebrew lexicon marker tokens; possible Yiddish spellings to check: אייר'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: low
+      yiddish_markers: []
+      hebrew_markers: [יצ"ו, יום, נאם, זצלה"ה]
+      orthography_markers: [אייר]
+  - line_id: l12
+    text: ונאום יוסף בן לא"א הר' משה זלה"ה לואנץ
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 4 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [ונאום, בן, לא"א, זלה"ה]
+      orthography_markers: []
+  - line_id: l13
+    text: ונאם יודא בן לא"א מהרר משה ז"ל אופנהיים
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (low): 0 Yiddish and 4 Hebrew lexicon marker tokens; possible Yiddish spellings to check: אופנהיים'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: low
+      yiddish_markers: []
+      hebrew_markers: [ונאם, בן, לא"א, ז"ל]
+      orthography_markers: [אופנהיים]
+  - line_id: l14
+    text: ונאם שמואל ב"ר שניאר ז"ל בינג
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 3 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [ונאם, ב"ר, ז"ל]
+      orthography_markers: []
+  - line_id: l15
+    text: ונאם הק' עזריאל בלא"א יצחק ז"ל ה"ה ברילן
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 3 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [ונאם, בלא"א, ז"ל]
+      orthography_markers: []
+  - line_id: l16
+    text: ונא' הקטן מאיר מזיא
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 2 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [ונא', הקטן]
+      orthography_markers: []
+  - line_id: l17
+    text: ונא' הקטין יעקב בכרך
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (medium): 0 Yiddish and 1 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: medium
+      yiddish_markers: []
+      hebrew_markers: [ונא']
+      orthography_markers: []
+  - line_id: l18
+    text: ונא' הצעיר שמואל הקטן מכונה זנוויל הז
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 2 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [ונא', הקטן]
+      orthography_markers: []
+  - line_id: l19
+    text: ונא' נפתלי בן לא"א משה ז"ל מענטלר
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 4 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [ונא', בן, לא"א, ז"ל]
+      orthography_markers: []
+  - line_id: l2
+    text: ולהעלות כל מעשיו הרעים על הנייר בכן משפטו חרוץ ומסוכם פה אחד מהאב"ד והחבורה קדישא יצ"ו בצירוף הממונים שנתבררו
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (low): 0 Yiddish and 6 Hebrew lexicon marker tokens; possible Yiddish spellings to check: הנייר'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: low
+      yiddish_markers: []
+      hebrew_markers: [כל, על, בכן, פה, אחד, יצ"ו]
+      orthography_markers: [הנייר]
+  - line_id: l20
+    text: ונא' יששכר בן לא"א מה"ר משה ר' מענדלש ז"ל בכרך
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 5 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [ונא', בן, לא"א, מה"ר, ז"ל]
+      orthography_markers: []
+  - line_id: l21
+    text: ונא' יצאק בלא"א הרר אלחנן זצל בכרך
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 3 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [ונא', בלא"א, זצל]
+      orthography_markers: []
+  - line_id: l22
+    text: מאיר בן מהר"ר אברהם הכהן זלה"ה
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 3 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [בן, מהר"ר, זלה"ה]
+      orthography_markers: []
+  - line_id: l23
+    text: אהרן בר יעקב מאיר ז"ל
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 2 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [בר, ז"ל]
+      orthography_markers: []
+  - line_id: l24
+    text: נפתלי בן לאא"מ הר"ר יודא אופנהיים
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (low): 0 Yiddish and 3 Hebrew lexicon marker tokens; possible Yiddish spellings to check: אופנהיים'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: low
+      yiddish_markers: []
+      hebrew_markers: [בן, לאא"מ, הר"ר]
+      orthography_markers: [אופנהיים]
+  - line_id: l25
+    text: משה בר משה נפתלי ז"ל בינג
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 2 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [בר, ז"ל]
+      orthography_markers: []
+  - line_id: l3
+    text: על ככה עם שאר קריאי העדה יצ"ו דז דיזר זעליקמן זאל מוחרם ומנודה זיין מופרש ומובדל מכל קדושת ישראל גם קבורתו קבורת
+    language: mixed
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 4 Yiddish and 5 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: mixed
+      confidence: high
+      yiddish_markers: [דז, דיזר, זאל, זיין]
+      hebrew_markers: [על, עם, יצ"ו, מכל, גם]
+      orthography_markers: []
+  - line_id: l4
+    text: חמור יקבר ער זאל קיין דריסת הרגל נוך קיין לינת לילה בקהלתינו פה הבין וכל מי שעובר על זה דער איין עסק קל מיט איתו הבין
+    language: mixed
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 8 Yiddish and 4 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: mixed
+      confidence: high
+      yiddish_markers: [ער, זאל, קיין, נוך, דער, איין, מיט]
+      hebrew_markers: [פה, וכל, על, זה]
+      orthography_markers: []
+  - line_id: l426
+    text: '242'
+    language: unknown
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): no Hebrew-script letters (a numeral or an empty line)'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: unknown
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: []
+      orthography_markers: []
+  - line_id: l5
+    text: וועת אונ' נוהג קלות בנידוי הזה איז יהיה מוחרם כמוהו גם זאל זיך קיינר מקהלתינו יצו אים משדך זיין הן הער צו קומן
+    language: mixed
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 10 Yiddish and 3 Hebrew lexicon marker tokens; possible Yiddish spellings to check: וועת'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: mixed
+      confidence: high
+      yiddish_markers: [אונ', איז, זאל, זיך, קיינר, אים, זיין, הער, צו, קומן]
+      hebrew_markers: [הזה, יהיה, גם]
+      orthography_markers: [וועת]
+  - line_id: l518
+    text: יען וביען שמצאנו וראינו דז זעליקמן וימפפן הוט מצער כל הקהל רבים ויחידים גוועזן מיט מסירות מזיק גוועזן אונ' אלי דרכי השלו'
+    language: mixed
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 6 Yiddish and 3 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: mixed
+      confidence: high
+      yiddish_markers: [דז, הוט, גוועזן, מיט, אונ']
+      hebrew_markers: [יען, וביען, כל]
+      orthography_markers: []
+  - line_id: l6
+    text: אודר אנויש חוץ לקהלתינו זיינה קינדר זעלן מגורש מפה מבית הספר זיין היא ניט צו בלייבן גם זרעו קיין הנאה מקהלתינו הבין
+    language: mixed
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (medium): 7 Yiddish and 1 Hebrew lexicon marker tokens; possible Yiddish spellings to check: בלייבן'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: mixed
+      confidence: medium
+      yiddish_markers: [אודר, זיינה, זעלן, זיין, ניט, צו, קיין]
+      hebrew_markers: [גם]
+      orthography_markers: [בלייבן]
+  - line_id: l7
+    text: אמנם אם יחזור בתשובה שלימה וישלם כל היזקותיו שהזיק לרבים וליחידים תשובה על שציער את הרבים בצער גדול
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 5 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [אמנם, אם, כל, על, את]
+      orthography_markers: []
+  - line_id: l8
+    text: אזי שערי תשובה לא ננעלו ושב ורפא לו ועכ"פ זאל ער ואר זיין פרשון כלל קיין דריסת הרגל או לינת לילה בקהלתינו פה
+    language: mixed
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 5 Yiddish and 6 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: mixed
+      confidence: high
+      yiddish_markers: [זאל, ער, ואר, זיין, קיין]
+      hebrew_markers: [אזי, לא, לו, ועכ"פ, או, פה]
+      orthography_markers: []
+  - line_id: l9
+    text: הכנן וועלכר גבאי זו דאש ואר ברענגט דז ער זאלט דריסת הרגל פה הבין דער זאל ת"ק ר"ט להשררה ור"ה ות"ק ר"ט לצדקה ואר
+    language: mixed
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (medium): 9 Yiddish and 1 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: mixed
+      confidence: medium
+      yiddish_markers: [וועלכר, דאש, ואר, דז, ער, זאלט, דער, זאל]
+      hebrew_markers: [פה]
+      orthography_markers: []
+  - line_id: l39
+    text: ''
+    language: unknown
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): no Hebrew-script letters (a numeral or an empty line)'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: unknown
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: []
+      orthography_markers: []
+  - line_id: l26
+    text: יצא הדבר מאת החבורה יצ"ו בצירוף האב"ד ובני ישיבה וקריאי העדה יצ"ו הכשרים שהר"ר אנשל צום שוך
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 3 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [יצ"ו, האב"ד]
+      orthography_markers: []
+  - line_id: l27
+    text: לא יבא לשום דבר שבקדושה מהיום עד כלות שלשה שני' ולא יעשה לו שום חסד מפסק הנ"ל כי אם
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 10 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [לא, לשום, מהיום, עד, ולא, לו, שום, הנ"ל, כי, אם]
+      orthography_markers: []
+  - line_id: l28
+    text: בהתוועדות כל האנשי' הנ"ל החברותה וב"י וקריאי העדה נעשה יום ג' כ"ח חשון תי"א לפ"ק
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 4 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [כל, הנ"ל, יום, לפ"ק]
+      orthography_markers: []
+  - line_id: l487
+    text: '243'
+    language: unknown
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): no Hebrew-script letters (a numeral or an empty line)'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: unknown
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: []
+      orthography_markers: []
+  - line_id: l29
+    text: כיום בעצם היום זה תאסף בחבורה ובצירוף האב"ד ובני ישיבה וקריאי העדה הנ"ל והסכימו לעשות
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 4 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [היום, זה, האב"ד, הנ"ל]
+      orthography_markers: []
+  - line_id: l30
+    text: חסד להר"ר אנשל הנ"ל שיכול מהיום לקרות בתורה אמנם שלא לקרותו לשום דבר של צרכי הקהל ולא ליתן
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 7 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [הנ"ל, מהיום, אמנם, שלא, לשום, של, ולא]
+      orthography_markers: []
+  - line_id: l31
+    text: לו שום מינוי יועמד בחזקתו כפי הפסק הנ"ל יום א' כ"ח שבט תיא# ל'
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 4 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [לו, שום, הנ"ל, יום]
+      orthography_markers: []
+  - line_id: l571
+    text: '244'
+    language: unknown
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): no Hebrew-script letters (a numeral or an empty line)'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: unknown
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: []
+      orthography_markers: []
+  - line_id: l32
+    text: כהיום יום ד' ט"ו באלול תיב# ל' יצא הדבר מפי החברותה יצ"ו ובהסכמת האב"ד שכהר"ר אנשיל הנ"ל לא יבוא
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 6 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [כהיום, יום, יצ"ו, האב"ד, הנ"ל, לא]
+      orthography_markers: []
+  - line_id: l33
+    text: לשום דבר שבקדושא מהיום עד כלות שלשה שנים ולא יקרא בתורה בזמן בנ"ל ולא יהיה לו שום מצוה
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 8 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [לשום, מהיום, עד, ולא, יהיה, לו, שום]
+      orthography_markers: []
+  - line_id: l34
+    text: אם לא כשיהיה חיוב לקרות בתורה כגון יאר צייט או יולדות או סנדקית יכול לקרות בתורה ולא יהיה
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (low): 0 Yiddish and 6 Hebrew lexicon marker tokens; possible Yiddish spellings to check: צייט'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: low
+      yiddish_markers: []
+      hebrew_markers: [אם, לא, או, ולא, יהיה]
+      orthography_markers: [צייט]
+  - line_id: l35
+    text: לו שאר מצות אף אם יהיה חיוב לקרות בתורה אמנם המצוה שקנה בשנה שעבר יכול להחזיק עד
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 5 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [לו, אם, יהיה, אמנם, עד]
+      orthography_markers: []
+  - line_id: l36
+    text: כלות השנה הזאת נאם מנחמענדל
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 2 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [הזאת, נאם]
+      orthography_markers: []
+  - line_id: l37
+    text: ונאם זנוויל בינג גבאי קהל
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (medium): 0 Yiddish and 1 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: medium
+      yiddish_markers: []
+      hebrew_markers: [ונאם]
+      orthography_markers: []
+  - line_id: l38
+    text: ונא' משה ווימפפן ג"ק
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (low): 0 Yiddish and 1 Hebrew lexicon marker tokens; possible Yiddish spellings to check: ווימפפן'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: low
+      yiddish_markers: []
+      hebrew_markers: [ונא']
+      orthography_markers: [ווימפפן]
+  - line_id: l573
+    text: '245'
+    language: unknown
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): no Hebrew-script letters (a numeral or an empty line)'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: unknown
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: []
+      orthography_markers: []
+- entry_id: nli_990000445290205171__page112_right
+  annotation_sha256: 3e6d030cde4bc3cabfd45320e17ac946d5868364601fc4daf9f2a4b665c5f47f
+  lines:
+  - line_id: l40
+    text: מאחר דש אלמנה ברענדלין שיף  האט ואר שפראכן ומטיב צו זיין עם נשים עניות בשעה שכורעים לילד
+    language: mixed
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (medium): 5 Yiddish and 1 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: mixed
+      confidence: medium
+      yiddish_markers: [דש, האט, ואר, צו, זיין]
+      hebrew_markers: [עם]
+      orthography_markers: []
+  - line_id: l41
+    text: בכן זא זיא זאלכים נאך קומט איז איר פון חבורא קדישא יצ"ו ואר שפראכן ווארין כל שנה זיא
+    language: mixed
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 10 Yiddish and 3 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: mixed
+      confidence: high
+      yiddish_markers: [זא, זיא, נאך, קומט, איז, איר, פון, ואר, ווארין]
+      hebrew_markers: [בכן, יצ"ו, כל]
+      orthography_markers: []
+  - line_id: l42
+    text: היא איזט ששה ר"ט צו געבין, זא לנג זיא זיך כנ"ל ור הלט אונ' כל הקהל מיט איר צו ורידן איזט
+    language: mixed
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 13 Yiddish and 2 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: mixed
+      confidence: high
+      yiddish_markers: [איזט, צו, זא, לנג, זיא, זיך, ור, הלט, אונ', מיט, איר]
+      hebrew_markers: [כנ"ל, כל]
+      orthography_markers: []
+  - line_id: l44
+    text: '261'
+    language: unknown
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): no Hebrew-script letters (a numeral or an empty line)'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: unknown
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: []
+      orthography_markers: []
+  - line_id: l43
+    text: נעשה יום א', ז"ך תשרי תי"ו יו"ד זיי"ן פר"ק
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (low): 0 Yiddish and 1 Hebrew lexicon marker tokens; possible Yiddish spellings to check: זיי"ן'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: low
+      yiddish_markers: []
+      hebrew_markers: [יום]
+      orthography_markers: [זיי"ן]
+  - line_id: l39
+    text: '1656'
+    language: unknown
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): no Hebrew-script letters (a numeral or an empty line)'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: unknown
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: []
+      orthography_markers: []
+  - line_id: l13
+    text: כהיום יום א' ו' אייר תי"ו טי"ת זי"ן לפ"ק, קבל עליו מורינו הגאון האב"ד ור"מ מהר"ר מענדלן יצ"ו את כל המבואר לפנינו דהיינו
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (low): 0 Yiddish and 8 Hebrew lexicon marker tokens; possible Yiddish spellings to check: אייר דהיינו'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: low
+      yiddish_markers: []
+      hebrew_markers: [כהיום, יום, לפ"ק, האב"ד, מהר"ר, יצ"ו, את, כל]
+      orthography_markers: [אייר, דהיינו]
+  - line_id: l14
+    text: בענין סמיכות הבחורים אשר לא מבני עירינו הוא, לא יסמיך האב"ד לשום בחור אם לא שיש לו השחרור מקדם ואף גם זאת
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 11 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [אשר, לא, הוא, האב"ד, לשום, אם, לו, גם, זאת]
+      orthography_markers: []
+  - line_id: l15
+    text: אם הוא משוחרר אל יסמכהו אם לא שהבחור היה לומר בכאן על הישיבה ג' זמני' ואם מבני עירינו הוא אל יתן לו סמיכות
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 12 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [אם, הוא, אל, לא, היה, בכאן, על, ואם, לו]
+      orthography_markers: []
+  - line_id: l16
+    text: רק שני שנים אחר החתונה וילמוד דוקא תוך אות' שתי שני' גפ"ת וילך על הישיבה אכן באם ששום אחד מבני עירינו
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 3 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [רק, על, אחד]
+      orthography_markers: []
+  - line_id: l17
+    text: חפץ בהסמיכות מפני הכבוד והוא אחד שנשוי ימים רבי' כמו כן ארבעים אזי יהא התיקין כמקדם
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 4 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [אחד, כמו, אזי, יהא]
+      orthography_markers: []
+  - line_id: l18
+    text: בענין שחרור לא ישחרר האב"ד לשום אדם עד שברור לו שאותו בחור הגון וראוי לכך ושהוא יודע הטיב לקרות גפ"ת
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 5 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [לא, האב"ד, לשום, עד, לו]
+      orthography_markers: []
+  - line_id: l19
+    text: ואז יהא משכרתו א' ז"ב אם ביכולתו ואם דל הוא אשר אין ידו משגת ליתן ג"ג אז מחויב לשחררו בחנם וכן הבחורי'
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 8 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [ואז, יהא, אם, ואם, הוא, אשר, אין, אז]
+      orthography_markers: []
+  - line_id: l20
+    text: לא יקחו מהבחור הרוצה להשתחרור רק א' ר"ט לכלל הבחור'
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 2 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [לא, רק]
+      orthography_markers: []
+  - line_id: l21
+    text: האב"ד הנ"ל לחבורה יצ"ו שע"ד כך לא היו שלמים בדעת ומאחר שמקרוב חדשים באו איזה חילוק לבבות בין הגאון
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 4 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [האב"ד, הנ"ל, יצ"ו, לא]
+      orthography_markers: []
+  - line_id: l22
+    text: אחד מפני איזה תלונה שבלבו בכן קבל עליו הגאון הנ"ל להיות מעתה בלב שלם ליראת ה' ובמילי דעלמא עם החברות'
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 4 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [אחד, בכן, הנ"ל, עם]
+      orthography_markers: []
+  - line_id: l23
+    text: יצ"ו לטובת קהלתינו ולחיזוק מעמדה וכל החרמות ונדויים שהחרים עד היום הן בע"פ הן בכתב על יושבי מדין החבור'
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (low): 0 Yiddish and 5 Hebrew lexicon marker tokens; possible Yiddish spellings to check: ונדויים'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: low
+      yiddish_markers: []
+      hebrew_markers: [יצ"ו, וכל, עד, היום, על]
+      orthography_markers: [ונדויים]
+  - line_id: l24
+    text: יצ"ו רבי' או יחידי' יהיו בטלין ומבוטלי' מהיו' מכ"ש שלא ליתן חרם מהיום ואילך ומהיום יהיה באהבה ובחבה עם
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 7 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [יצ"ו, או, מכ"ש, שלא, מהיום, יהיה, עם]
+      orthography_markers: []
+  - line_id: l26
+    text: ומאחר שכבר כתוב בפנקס הקהל יצ"ו דף קי"א שאין רשות להגאון האב"ד לכתוב ולחתו' כתבי' מענייני הקהל ומענייני
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (low): 0 Yiddish and 2 Hebrew lexicon marker tokens; possible Yiddish spellings to check: מענייני ומענייני'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: low
+      yiddish_markers: []
+      hebrew_markers: [יצ"ו, האב"ד]
+      orthography_markers: [מענייני, ומענייני]
+  - line_id: l27
+    text: קטטות שבין איש לרעהו או הזמנו' וכדומה לזה לשום בר ישראל הדר בשררה אחרת בלתי ידיעת והסכמ' הגבאי'
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 3 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [או, לשום, בר]
+      orthography_markers: []
+  - line_id: l28
+    text: ע"כ והנה ראינו שלא נתקיים כאשר עתה מקרוב ראינו בכן לחזק ענין הנ"ל באנו ולא יעשה כזאת מכאן ולהבא
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (low): 0 Yiddish and 6 Hebrew lexicon marker tokens; possible Yiddish spellings to check: נתקיים'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: low
+      yiddish_markers: []
+      hebrew_markers: [ע"כ, שלא, כאשר, בכן, הנ"ל, ולא]
+      orthography_markers: [נתקיים]
+  - line_id: l29
+    text: גם שלא יכתוב לשום א' בשם מורינוא לאיש אשר לא מבני קהילתינו יצ"ו אם לא בידיעת חברות'
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 8 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [גם, שלא, לשום, אשר, לא, יצ"ו, אם]
+      orthography_markers: []
+  - line_id: l30
+    text: יצ"ו ואם יבא אחד לכאן להתגורר פה עמנו להיות א' מהמלמדים ומכ"ש לישא אשה בכאן ויכנה עצמו בשם מורינו
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 7 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [יצ"ו, ואם, אחד, לכאן, פה, עמנו, בכאן]
+      orthography_markers: []
+  - line_id: l31
+    text: אזי בטל ומבוטל יהא אותם מורינו אצלינו עד שיסכימו בחברות' יצ"ו ליתן לו מחדש ובהסכמת הגאון האב"ד יצ"ו
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 8 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [אזי, יהא, אצלינו, עד, יצ"ו, לו, האב"ד]
+      orthography_markers: []
+  - line_id: l32
+    text: ומאחר שבכתב רבנות הנתחדש להגאון האב"ד יצ"ו מוזכר באם לא הוגד לו רביעי' שנה קודם כלות זמנו שיכלה זמן
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 4 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [האב"ד, יצ"ו, לא, לו]
+      orthography_markers: []
+  - line_id: l33
+    text: הרבנו' זא זאל דש רבנות ווייטר ווערין בכן נמנו וגמרו החברות' יצ"ו שהגבאים אשר יהיו בימים
+    language: mixed
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 5 Yiddish and 3 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: mixed
+      confidence: high
+      yiddish_markers: [זא, זאל, דש, ווייטר, ווערין]
+      hebrew_markers: [בכן, יצ"ו, אשר]
+      orthography_markers: []
+  - line_id: l34
+    text: ההם מחוייבי' להזכיר הדבר בשביל הרבנו' קודם ר"ח שבט בסמוך לכלות הרבנו' בכנס חמשים טקוטין לצדקה פה
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (low): 0 Yiddish and 1 Hebrew lexicon marker tokens; possible Yiddish spellings to check: מחוייבי'''
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: low
+      yiddish_markers: []
+      hebrew_markers: [פה]
+      orthography_markers: [מחוייבי']
+  - line_id: l35
+    text: כל הנ"ל נעשה בכל עוז ותוקף ואופן המועיל יום הנ"ל ואפי' בשם חבר דהעברת קולמוס דין קיומיהן
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 4 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [כל, הנ"ל, יום]
+      orthography_markers: []
+  - line_id: l36
+    text: ונמחק בכוונה בהסכמת בחבור' יצ"ו כי טעו' סופר היה
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 3 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [יצ"ו, כי, היה]
+      orthography_markers: []
+  - line_id: l37
+    text: נאו' מאיר בר גרשון זלה"ה מזיא גבאי קהל י"ץ בעת ההיא
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 3 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [נאו', בר, זלה"ה]
+      orthography_markers: []
+  - line_id: l38
+    text: ונאו' אהרן בר יעקב מאיר ז"ל
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): 0 Yiddish and 3 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: [ונאו', בר, ז"ל]
+      orthography_markers: []
+  - line_id: l1
+    text: '260'
+    language: unknown
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): no Hebrew-script letters (a numeral or an empty line)'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: unknown
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: []
+      orthography_markers: []
+  - line_id: l46
+    text: החבור' יצ"ו בלב שלם וחפץ ה' יצליח ותשועת ה' מהרה תצמיח
+    language: he
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (medium): 0 Yiddish and 1 Hebrew lexicon marker tokens'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: he
+      confidence: medium
+      yiddish_markers: []
+      hebrew_markers: [יצ"ו]
+      orthography_markers: []
+  - line_id: l45
+    text: '1657'
+    language: unknown
+    tag_source: agent_proposed
+    tagged_by: hocrgen.tools.pinkas_line_language
+    tagged_at: 2026-11-06
+    rationale: 'pinkas_line_lexicon.v1 proposal (high): no Hebrew-script letters (a numeral or an empty line)'
+    proposal:
+      method: pinkas_line_lexicon.v1
+      language: unknown
+      confidence: high
+      yiddish_markers: []
+      hebrew_markers: []
+      orthography_markers: []

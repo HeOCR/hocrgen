@@ -21,9 +21,15 @@ scan_provenance: >-
   (hocrgen.nli_iiif_manifest_capture.v1); the F8c licence-slug gate decides scan rights from it.
 captured_at: 2026-11-06
 entries_path: entries.jsonl
+line_language_tags_path: line_language_tags.yaml
 scope: fixture
 notes: >-
   Two-entry F8d2 fixture: the right-hand pages of NLI images 105 and 112, both in the official train split.
   Committed JPEGs are 640 px thumbnails. The PAGE XML files are the upstream bytes, gzip-compressed (mtime 0);
   their decompressed sha256 equals the upstream file's. Geometry stays in upstream pixel coordinates in the XML
   and is scaled to the thumbnail when parsed.
+line_language_tags: >-
+  F8d3: line_language_tags.yaml holds one reviewable language tag per PAGE XML line (he, yi, mixed, unknown), bound
+  to the annotation sha256 and the exact line text. All tags are agent_proposed (lexicon method
+  pinkas_line_lexicon.v1) and advisory: they change no scope. Only a human tag with language he makes a line
+  word_level_hebrew (maintainer decision 8); every other line keeps the page default character_level_only.
