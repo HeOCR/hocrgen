@@ -1,12 +1,14 @@
 # E2c — Reference-aware evaluation expansion
 
-Status: E2c1–E2c5 implemented on the current ref. Parent milestone: E2, Baselines and evaluation utilities. This is independent of F6 public-beta readiness and does not create reference evidence.
+Status: E2c1–E2c7 implemented on the current ref. Parent milestone: E2, Baselines and evaluation utilities. This is independent of F6 public-beta readiness and does not create reference evidence.
 
 - **E2c1**: this planning contract.
 - **E2c2**: deterministic reference-aware scoring and diagnostics, building on E2a's existing API without changing its results.
 - **E2c3**: versioned normalization profiles applied to both sides and recorded in results, per-stratum aggregates, and a labelled `alignment_masked` diagnostic for unscoped full-page predictions.
 - **E2c4**: an `evaluate-references` CLI over `heocr_engine_prediction.v1` / schema `"1.0"` prediction files with an explicit or sha256-derived page mapping, a run record, and per-stage ΔCER between two prediction sets. Synthetic gold is the scored set; HASH and tender pages are `unreviewed` diagnostics only.
 - **E2c5**: an explicit `--diagnostic-only` mode for `evaluate-references` that scores `--unreviewed-texts` with no scored set, so real-page sanity checks need no placeholder scored set. See [E2c5 diagnostic-only runs](#e2c5-diagnostic-only-runs).
+- **E2c6**: paired common-item error accounting. See [E2c6](#e2c6--paired-error-accounting-planned).
+- **E2c7**: a per-cell reference view for synthetic gold, derived from hocrsyngen line annotations, reported beside the unchanged scores. See [E2c7](#e2c7--per-cell-reference-view).
 
 ## Contract and sequence
 
@@ -75,3 +77,19 @@ is secondary and never replaces the primary result. Keep diagnostic-only and
 scored comparisons distinct, refuse cross-track comparisons, and retain common
 item coverage and exclusions. Empty sets and zero denominators remain explicit.
 Use offline adversarial fixtures and preserve existing output fields.
+
+## E2c7 — Per-cell reference view
+
+Parent milestone E2; source issue #98 (option 1, chosen by the maintainer). hocrsyngen ledger gold joins a row's
+cells with ` | ` that is not on the page, so line-per-cell engines pay about 3 edits per cell boundary. Add a second
+synthetic-gold reference view, `per_cell.v1`, in which every `logical_join: "cell"` segment of the batch's
+`hocrsyngen_line_annotations.v1` sidecar starts a new line. Report the items with cell joins against both
+`logical_order` and the view, under every requested profile and stratum, with paired deltas when a baseline is
+given, and record the sidecar's sha256 in the run record.
+
+Constraints: drive the view from `logical_join`, never from a blanket `|` replacement, so a literal `|` in page
+text stays scored. If the batch has no sidecar the view is absent; a present sidecar that does not rebuild every
+item's `logical_order` exactly, or does not match the manifest, fails closed. The change is additive: `scored`,
+`primary.v1`, `comparison.deltas` and the existing run-record fields stay byte-identical, pinned by a test that
+scores the same batch with and without the sidecar. The view is not a headline and does not change scored
+eligibility or track isolation.
