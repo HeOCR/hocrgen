@@ -171,6 +171,45 @@ def score_text_pair(item_id: str, *, prediction: str, reference: str) -> TextMet
 
 
 def levenshtein_distance(left: str, right: str) -> int:
+    """Unit-cost edit distance between two strings (or two sequences of hashable tokens).
+
+    Uses Hyyro's bit-parallel form of Myers' algorithm on Python integers, which gives exactly the same distance
+    as the dynamic program in ``_levenshtein_dp`` in O(len(left) * len(right) / word size) time (E2d2: real
+    pages are thousands of characters long).
+    """
+    if left == right:
+        return 0
+    if not left:
+        return len(right)
+    if not right:
+        return len(left)
+    if len(left) > len(right):
+        left, right = right, left
+    peq: dict = {}
+    for index, item in enumerate(left):
+        peq[item] = peq.get(item, 0) | (1 << index)
+    mask = (1 << len(left)) - 1
+    high = 1 << (len(left) - 1)
+    positive, negative, score = mask, 0, len(left)
+    for item in right:
+        equal = peq.get(item, 0)
+        vertical = equal | negative
+        horizontal = (((equal & positive) + positive) ^ positive) | equal
+        horizontal_positive = negative | (~(horizontal | positive) & mask)
+        horizontal_negative = positive & horizontal
+        if horizontal_positive & high:
+            score += 1
+        elif horizontal_negative & high:
+            score -= 1
+        horizontal_positive = ((horizontal_positive << 1) | 1) & mask
+        horizontal_negative = (horizontal_negative << 1) & mask
+        positive = horizontal_negative | (~(vertical | horizontal_positive) & mask)
+        negative = horizontal_positive & vertical
+    return score
+
+
+def _levenshtein_dp(left: str, right: str) -> int:
+    """The reference dynamic program (kept for equivalence tests)."""
     if left == right:
         return 0
     if not left:

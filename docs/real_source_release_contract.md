@@ -97,7 +97,7 @@ The report is `manifests/public_beta_source_depth_composition_report.json`, sche
 - The registry `src/hocrgen/config/synthetic_training_works.yaml` (`synthetic_training_works.v1`) records such works, each with the work-group keys of the real items that show it. For example, the `nli_record` keys that `F8f` matched PBY editions to.
 - A real item that matches a registered work stays in `train` with its whole component. Its split assignment says `split_constraint: synthetic_training_overlap`.
 - The registry is packaged with its two producers and **no works**, because no S15a corpus has been built yet.
-- The n-gram overlap check that S15a also asks hocrgen to run (real references against the corpus line index) is left to `HeOCR/hocrgen#102` and E2d.
+- The n-gram overlap check that S15a also asks hocrgen to run (real references against the corpus line index) is `hocrgen.tools.eval_text_leakage` (`E2d2`, [results](./e2d2_real_printed_evaluation.md#leakage)).
 
 ## 3. Promotion and release terms
 
