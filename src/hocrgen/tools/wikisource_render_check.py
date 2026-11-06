@@ -36,6 +36,7 @@ from typing import Any
 from hocrgen.parsers.wikitext import (
     BIDI_CONTROL_CHARACTERS,
     EDITOR_NOTE_SIGNATURE,
+    NOTE_LIST_HEADINGS,
     UnsupportedWikitextError,
     convert_wikitext,
     page_body,
@@ -152,6 +153,13 @@ def drop_editor_notes(lines: list[str]) -> list[str]:
     return [re.sub(r"\s+", " ", re.sub(r"\[(\d+)\]", renumber, line)).strip() for line in kept]
 
 
+def drop_note_list_headings(lines: list[str]) -> list[str]:
+    """Drop an editor's heading that labels the footnote list (``הערות``, ``הערות שוליים``), as the converter does (F8b7)."""
+
+    return [line for index, line in enumerate(lines)
+            if not (line in NOTE_LIST_HEADINGS and index + 1 < len(lines) and re.match(r"^\[1\] ", lines[index + 1]))]
+
+
 def compare(wikitext: str, html: str, transclusions: dict[str, str] | None = None) -> dict[str, Any]:
     """Compare the converter's text with MediaWiki's visible rendering of the same page body.
 
@@ -163,7 +171,7 @@ def compare(wikitext: str, html: str, transclusions: dict[str, str] | None = Non
         ours = [line for line in convert_wikitext(wikitext, transclusions).text.split("\n") if line.strip()]
     except UnsupportedWikitextError as error:
         return {"converted": False, "error": str(error), "tokens_equal": False, "lines_equal": False}
-    theirs = drop_editor_notes([tolerate_editor_markup(line) for line in visible_lines(html)])
+    theirs = drop_note_list_headings(drop_editor_notes([tolerate_editor_markup(line) for line in visible_lines(html)]))
     return {
         "converted": True,
         "tokens_equal": " ".join(ours).split() == " ".join(theirs).split(),

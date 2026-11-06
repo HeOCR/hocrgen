@@ -1,0 +1,36 @@
+{
+  "schema_version": "wikisource_editor_standins.v1",
+  "description": "Reviewed per-Index-file mappings from a character a Wikisource editor typed in place of a printed character (an editor's stand-in) to the printed character (F8b7, HeOCR/hocrgen#111). Applied after wikisource_plain_text conversion, where the context holds; the page keeps the faithful conversion's checksum (text_adjustments.converted_text_sha256) and records each mapping applied with its count. A mapping is admitted only for files where occurrences were checked on the page images; the survey of other stand-ins that were not mapped is in docs/wikisource_proofread_source.md.",
+  "mappings": [
+    {
+      "mapping_id": "typed_pipe_as_paseq.v1",
+      "stand_in": "|",
+      "printed": "׀",
+      "printed_name": "HEBREW PUNCTUATION PASEQ (U+05C0)",
+      "context": "between_hebrew_words",
+      "rendered_from": [
+        "{{!}} (the MediaWiki pipe magic word, which renders a plain |)",
+        "a | typed in the page body"
+      ],
+      "files": [
+        "The Seliḥot for the Entire Year.pdf",
+        "Siddur Torah Ohr (Schulzinger Bros. 1940).pdf",
+        "Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf"
+      ],
+      "basis": "In these three vocalised liturgical books every | the editors typed stands between two words of a verse at a Masoretic paseq or legarmeh position (for example Exodus 34:6, Daniel 9:19, Psalms 89:9, Psalms 137:7, Genesis 22:11, Deuteronomy 6:4), and the page shows a vertical stroke there. U+05C0 is the Hebrew character for that stroke; the ASCII vertical line is the keyboard stand-in.",
+      "verified": [
+        {"file": "The Seliḥot for the Entire Year.pdf", "page": 10, "occurrences_checked": 4, "occurrences_on_page": 4},
+        {"file": "The Seliḥot for the Entire Year.pdf", "page": 25, "occurrences_checked": 1, "occurrences_on_page": 3},
+        {"file": "The Seliḥot for the Entire Year.pdf", "page": 62, "occurrences_checked": 1, "occurrences_on_page": 1},
+        {"file": "Siddur Torah Ohr (Schulzinger Bros. 1940).pdf", "page": 23, "occurrences_checked": 2, "occurrences_on_page": 3},
+        {"file": "Siddur Torah Ohr (Schulzinger Bros. 1940).pdf", "page": 26, "occurrences_checked": 1, "occurrences_on_page": 1},
+        {"file": "Siddur Torah Ohr (Schulzinger Bros. 1940).pdf", "page": 71, "occurrences_checked": 1, "occurrences_on_page": 3},
+        {"file": "Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf", "page": 160, "occurrences_checked": 1, "occurrences_on_page": 1}
+      ],
+      "checked_by": "agent",
+      "checker": "Claude Code (claude-opus-5-5), F8b7",
+      "checked_at": "2026-11-06",
+      "method": "Viewed the Commons 1920 px render of each listed page at the line holding the stand-in (located by aligning the page text to OCR line boxes, localisation only) and confirmed a printed vertical stroke between the two words; the other occurrences in the three files are at the same kind of verse position."
+    }
+  ]
+}

@@ -890,7 +890,7 @@ def test_f8_real_source_map_is_planning_only_and_gate_preserving() -> None:
     roadmap_rows = _roadmap_table_rows(roadmap)
 
     assert roadmap_rows["F8"][1] == "Real-source map and paired-text source intake"
-    assert roadmap_rows["F8"][2].split(", ") == ["F8a", "F8b", "F8b2", "F8b3", "F8b4", "F8b5", "F8b6", "F8c", "F8c2", "F8d", "F8d2", "F8d3", "F8d3b", "F8e", "F8f", "F8g"]
+    assert roadmap_rows["F8"][2].split(", ") == ["F8a", "F8b", "F8b2", "F8b3", "F8b4", "F8b5", "F8b6", "F8b7", "F8c", "F8c2", "F8d", "F8d2", "F8d3", "F8d3b", "F8e", "F8f", "F8g"]
     # F8g promoted the real sources under real_source_composition.v2; nothing is published.
     assert roadmap_rows["F8g"][1] == "F8"
     assert roadmap_rows["F8g"][4] == "completed"
@@ -918,6 +918,10 @@ def test_f8_real_source_map_is_planning_only_and_gate_preserving() -> None:
     assert roadmap_rows["F8b6"][1] == "F8"
     assert roadmap_rows["F8b6"][4] == "completed"
     assert "`F8b6` (completed)" in plan
+    # F8b7 hardens the Wikisource pairs: unprinted footnotes, editor stand-ins and text the scan hides.
+    assert roadmap_rows["F8b7"][1] == "F8"
+    assert roadmap_rows["F8b7"][4] == "completed"
+    assert "`F8b7` (completed)" in plan
     for pr_id in ["F8c", "F8e"]:
         assert roadmap_rows[pr_id][1] == "F8"
     # F8e landed review-only Reshumot (born-digital) and pre-1976 Knesset committee (typewritten) sources.

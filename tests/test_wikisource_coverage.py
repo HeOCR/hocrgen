@@ -242,13 +242,18 @@ def test_committed_tool_checks_load_and_hold_only_geometry_and_scores() -> None:
     path = Path("docs/wikisource_page_tool_checks.json")
     payload = json.loads(path.read_text(encoding="utf-8"))
     assert payload["schema_version"] == inv.PAGE_CHECKS_SCHEMA_VERSION and payload["check_defaults"]["checked_by"] == "tool"
-    assert set(payload["methods"]) == {wc.METHOD_ID} and payload["thresholds"] == wc.THRESHOLDS
+    assert set(payload["methods"]) == {wc.METHOD_ID, wc.FOOTNOTE_METHOD} and payload["thresholds"] == wc.THRESHOLDS
     selected = inv.load_page_checks([Path("docs/wikisource_page_checks.json"), path])
     assert len(selected) >= 1000
     allowed = {"page_title", "revision_id", "commons_file_sha1", "scan_page", "transcription_coverage", "outcome", "ocr_pass",
-               "render_sha256", "render_size", "alignment", "crop", "missing", "ocr_engine", "checked_by", "checker", "checked_at", "method"}
+               "render_sha256", "render_size", "alignment", "crop", "missing", "ocr_engine", "checked_by", "checker", "checked_at", "method",
+               "footnotes"}
+    note_keys = {"note", "chars", "aligned_share", "bracketed_share", "status"}
     for check in payload["checks"]:
         assert set(check) <= allowed, set(check) - allowed
+        # F8b7: the footnote check holds counts, shares and statuses only (no OCR or page text)
+        for note in (check.get("footnotes") or {}).get("notes", []):
+            assert set(note) == note_keys
         if check["transcription_coverage"] == "partial_page":
             assert check["missing"].startswith("untranscribed text located by OCR boxes")
         if check["crop"]["status"] == "resolved":

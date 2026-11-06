@@ -20,12 +20,14 @@ import json
 import math
 import re
 import urllib.parse
+from dataclasses import dataclass
+from functools import cache
 from pathlib import Path
 from typing import Any
 
 from PIL import Image
 
-from hocrgen.config.loader import ConfigBundle, load_yaml_file
+from hocrgen.config.loader import ConfigBundle, load_yaml_file, package_root
 from hocrgen.config.models import SourceConfig
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.base import StageOptions
@@ -43,7 +45,6 @@ from hocrgen.parsers.wikitext import (
     WikitextConversion,
     convert_wikitext,
     pagequality_level,
-    wikitext_to_plain_text,
 )
 from hocrgen.utils.hashing import sha256_file
 from hocrgen.utils.io import copy_file
@@ -78,6 +79,9 @@ WIKISOURCE_INTEGRITY_REASONS = {
     "page_text_file_mismatch",
     "transclusion_missing",
     "transclusion_checksum_mismatch",
+    "text_adjustment_invalid",
+    "text_adjustment_mismatch",
+    "excluded_span_invalid",
 }
 
 # Maintainer decision (F8a decision 2, accepted 2026-11-06): not PD in Israel (Birnbaum died 1988).
@@ -97,6 +101,16 @@ CROP_REGION_UNION_TOLERANCE = 0.002
 # Footnote marks: the printed mark (``*)``, ``1)``, ``(א``) is not typed by editors, so the converter writes the
 # MediaWiki number as ``[n]``. Recorded per page so evaluation can mask the marks (F8b4).
 FOOTNOTE_MARKER_STYLE = "bracketed_index"
+# F8b7: reviewed per-file mappings from an editor's stand-in to the printed character, applied after conversion.
+EDITOR_STANDINS_SCHEMA_VERSION = "wikisource_editor_standins.v1"
+EDITOR_STANDIN_CONTEXTS = {
+    # the stand-in between two Hebrew words (a Hebrew letter or point before it, a Hebrew letter after it, each at
+    # most one space away): a printed mark between words, never part of a word, a number or markup
+    "between_hebrew_words": re.compile(r"(?<=[\u0591-\u05c7\u05d0-\u05ea])( ?){stand_in}(?=( ?)[\u05d0-\u05ea])"),
+}
+# F8b7: text an agent or human check found not visible on the scan (an ink blot, a tear): kept in the reference,
+# located on the page, and excluded from primary scoring (``illegible`` / ``exclude_primary`` reference spans).
+EXCLUDED_SPAN_KINDS = {"illegible_on_scan"}
 
 _LICENCE_TOKEN = re.compile(r"^(PD|CC|Cc-|GFDL|FAL|OGL|Copyrighted|Attribution)", re.IGNORECASE)
 _BOT_NAME = re.compile(r"bot$", re.IGNORECASE)
@@ -378,6 +392,10 @@ def page_exclusion_reasons(page: dict[str, Any], indexes: dict[str, dict[str, An
     # F8b6: a check found words in the text that the scan page does not show; text and image do not match.
     if str(page.get("text_not_on_page") or "").strip():
         reasons.append("text_not_on_page")
+    # F8b7: the tool could not find a footnote of the text on the page (an unsigned editor's note, or small type OCR
+    # misread). The page waits for an agent or human to compare its footnotes with the page.
+    if (page.get("footnote_check") or {}).get("status") == "flagged" and not page.get("footnotes_reviewed"):
+        reasons.append("footnote_not_located")
     # Decision 12: a partial_page transcription is not rejected; it is paired with its crop (F8b4).
     reasons.extend(page_crop_reasons(page))
     reasons.extend(_page_text_reasons(page, root))
@@ -553,6 +571,137 @@ def page_transclusions(page: dict[str, Any], root: Path) -> dict[str, str]:
     return pinned
 
 
+@dataclass(frozen=True)
+class PageText:
+    """A page's text at each step (F8b7).
+
+    ``faithful`` is the converter's MediaWiki rendering of the pinned wikitext; its SHA-256 is the raw-text checksum
+    the page keeps (``text_adjustments.converted_text_sha256``). ``conversion`` drops the footnotes a reviewed check
+    found not printed (``unprinted_notes``), and ``text`` then maps editors' stand-ins to the printed characters
+    (``editor_standins``): it is the pair text. ``adjustments`` is the provenance of both steps, or ``None`` when the
+    pair text is the faithful rendering.
+    """
+
+    faithful: WikitextConversion
+    conversion: WikitextConversion
+    text: str
+    adjustments: dict[str, Any] | None
+
+
+def page_file_name(page: dict[str, Any]) -> str:
+    """The Index file a page belongs to, from its title (``עמוד:<file>/<n>``): the key of the stand-in mappings."""
+
+    title = str(page.get("page_title") or "")
+    return title.split(":", 1)[-1].rsplit("/", 1)[0]
+
+
+@cache
+def _packaged_editor_standins(path: str) -> tuple[dict[str, Any], ...]:
+    payload = json.loads(Path(path).read_text(encoding="utf-8"))
+    if payload.get("schema_version") != EDITOR_STANDINS_SCHEMA_VERSION:
+        raise StageExecutionError(f"editor stand-in mappings must be {EDITOR_STANDINS_SCHEMA_VERSION}")
+    mappings = tuple(payload.get("mappings") or [])
+    for mapping in mappings:
+        problems = editor_standin_problems(mapping)
+        if problems:
+            raise StageExecutionError(f"bad editor stand-in mapping {mapping.get('mapping_id')}: {', '.join(problems)}")
+    return mappings
+
+
+def editor_standins_path() -> Path:
+    return package_root() / "data" / "wikisource" / "editor_standins.json"
+
+
+def editor_standin_problems(mapping: dict[str, Any]) -> list[str]:
+    """Schema problems of one reviewed stand-in mapping; empty when it is well formed."""
+
+    problems = [f"missing {key}" for key in ("mapping_id", "stand_in", "printed", "context", "files", "checked_by", "checker", "checked_at", "method")
+                if not mapping.get(key)]
+    if mapping.get("context") and mapping["context"] not in EDITOR_STANDIN_CONTEXTS:
+        problems.append(f"context must be one of {', '.join(sorted(EDITOR_STANDIN_CONTEXTS))}")
+    if mapping.get("checked_by") and mapping["checked_by"] not in {"agent", "human"}:
+        problems.append("checked_by must be agent or human")
+    if len(str(mapping.get("stand_in") or "")) != 1 or len(str(mapping.get("printed") or "")) != 1:
+        problems.append("stand_in and printed must be single characters")
+    if not mapping.get("verified"):
+        problems.append("a mapping must list the occurrences verified on page images")
+    return problems
+
+
+def editor_standins_for(page: dict[str, Any], mappings: tuple[dict[str, Any], ...] | None = None) -> list[dict[str, Any]]:
+    """The reviewed stand-in mappings that apply to a page's Index file (F8b7)."""
+
+    mappings = _packaged_editor_standins(str(editor_standins_path())) if mappings is None else mappings
+    name = page_file_name(page)
+    return [mapping for mapping in mappings if name in mapping["files"]]
+
+
+def apply_editor_standins(text: str, mappings: list[dict[str, Any]]) -> tuple[str, list[dict[str, Any]]]:
+    """Replace each mapping's stand-in by the printed character where its context holds; returns the counts applied."""
+
+    applied: list[dict[str, Any]] = []
+    for mapping in mappings:
+        pattern = re.compile(EDITOR_STANDIN_CONTEXTS[mapping["context"]].pattern.replace("{stand_in}", re.escape(mapping["stand_in"])))
+        text, count = pattern.subn(lambda match: match.group(1) + mapping["printed"], text)
+        if count:
+            applied.append({"mapping_id": mapping["mapping_id"], "stand_in": mapping["stand_in"], "printed": mapping["printed"], "count": count})
+    return text, applied
+
+
+def unprinted_note_numbers(page: dict[str, Any]) -> list[int]:
+    """Footnotes a reviewed check found not printed (F8b7), by the number the faithful conversion gives them."""
+
+    return sorted({int(entry["note"]) for entry in page.get("unprinted_notes") or []})
+
+
+def derive_page_text(
+    wikitext: str, transclusions: dict[str, str], page: dict[str, Any], mappings: tuple[dict[str, Any], ...] | None = None
+) -> PageText:
+    """The page's pair text from its pinned wikitext: the faithful conversion, without the footnotes a reviewed check
+    found not printed, with editors' stand-ins mapped to the printed characters (F8b7). Raises
+    ``UnsupportedWikitextError`` on unknown markup and ``ValueError`` on an unprinted note the page does not have."""
+
+    faithful = convert_wikitext(wikitext, transclusions)
+    notes = unprinted_note_numbers(page)
+    conversion = convert_wikitext(wikitext, transclusions, unprinted_notes=notes) if notes else faithful
+    text, standins = apply_editor_standins(conversion.text, editor_standins_for(page, mappings))
+    adjustments = None
+    if notes or standins:
+        adjustments = {"converted_text_sha256": _sha256(faithful.text), "unprinted_notes": notes, "editor_standins": standins}
+    return PageText(faithful, conversion, text, adjustments)
+
+
+def page_text_sha256_converted(page: dict[str, Any]) -> str | None:
+    """The raw-text checksum: the SHA-256 of the faithful conversion (the pair text's, when nothing is adjusted)."""
+
+    return (page.get("text_adjustments") or {}).get("converted_text_sha256") or page.get("text_sha256")
+
+
+def excluded_span_problems(page: dict[str, Any], text: str) -> list[str]:
+    """Problems of a page's recorded excluded spans (F8b7) against its pair text; empty when they are sound."""
+
+    record = page.get("excluded_spans")
+    if not record:
+        return []
+    if not isinstance(record, dict) or record.get("text_sha256") != _sha256(text):
+        return ["excluded spans are pinned to another text"]
+    problems: list[str] = []
+    for span in record.get("spans") or []:
+        start, end = span.get("start"), span.get("end")
+        if span.get("kind") not in EXCLUDED_SPAN_KINDS:
+            problems.append(f"span kind must be one of {', '.join(sorted(EXCLUDED_SPAN_KINDS))}")
+        if not (isinstance(start, int) and isinstance(end, int) and 0 <= start < end <= len(text)):
+            problems.append("span offsets must lie in the text")
+        elif "\n" in text[start:end] or not text[start:end].strip():
+            problems.append("a span must be non-blank text within one line")
+        regions = span.get("regions_normalized")
+        if not regions or not all(crop_box_valid(region) for region in regions):
+            problems.append("a span must be located on the page by one or more boxes")
+        if not str(span.get("detail") or "").strip():
+            problems.append("a span must say why the text is not visible")
+    return problems if record.get("spans") else ["excluded spans record no span"]
+
+
 def _page_text_reasons(page: dict[str, Any], root: Path) -> list[str]:
     wikitext_path = root / str(page.get("wikitext_path", ""))
     if not page.get("wikitext_path") or not wikitext_path.is_file():
@@ -567,18 +716,24 @@ def _page_text_reasons(page: dict[str, Any], root: Path) -> list[str]:
     except StageExecutionError as exc:
         return [str(exc).split(":", 1)[0]]
     try:
-        text = wikitext_to_plain_text(wikitext, transclusions)
+        derived = derive_page_text(wikitext, transclusions, page)
     except UnsupportedWikitextError:
         return ["wikitext_unsupported_markup"]
-    if not text.strip():
+    except ValueError:
+        return ["text_adjustment_invalid"]
+    if not derived.text.strip():
         return ["page_text_empty"]  # a proofread page whose body was left empty: no text to pair
-    if _sha256(text) != page.get("text_sha256"):
+    if derived.adjustments != page.get("text_adjustments"):
+        return ["text_adjustment_mismatch"]
+    if _sha256(derived.text) != page.get("text_sha256"):
         return ["page_text_checksum_mismatch"]
     text_path = root / str(page.get("text_path", ""))
     if not page.get("text_path") or not text_path.is_file():
         return ["page_text_file_missing"]
-    if text_path.read_text(encoding="utf-8") != text + "\n":
+    if text_path.read_text(encoding="utf-8") != derived.text + "\n":
         return ["page_text_file_mismatch"]
+    if excluded_span_problems(page, derived.text):
+        return ["excluded_span_invalid"]
     return []
 
 
@@ -592,7 +747,8 @@ def page_attestation(page: dict[str, Any]) -> dict[str, Any]:
     proofreader, validator = _quality_editors(page)
     post_edits = [edit for edit in page.get("edits_after_quality_set") or [] if edit.get("text_changed")]
     if page.get("quality") == 4:
-        unchanged = not post_edits and page.get("quality_set_text_sha256") == page.get("text_sha256")
+        # The validator saw the faithful rendering: F8b7's adjustments (unprinted notes, stand-ins) do not change it.
+        unchanged = not post_edits and page.get("quality_set_text_sha256") == page_text_sha256_converted(page)
         eligible = validator is not None and unchanged
         reason = None if eligible else "text_changed_after_validation"
         attestation = "two_editor_validated"
@@ -623,16 +779,29 @@ def _editor_record(entry: dict[str, Any] | None) -> dict[str, Any] | None:
     }
 
 
-def reference_normalization(conversion: WikitextConversion) -> dict[str, Any]:
+def reference_normalization(conversion: WikitextConversion, page: dict[str, Any] | None = None) -> dict[str, Any]:
     """Per-page facts about how the reference text differs from the print by convention, for evaluation masking.
 
     ``footnote_marker_style`` is ``bracketed_index`` when the page has footnotes: each printed mark (``*)``,
     ``1)``, ``(א``) is written ``[n]``, numbered in order of first use, because editors do not type the printed
     mark. It is ``None`` on a page without footnotes.
+
+    ``excluded_spans`` (F8b7; only on a page that has them) lists text that is in the reference but not visible on the scan (``illegible_on_scan``:
+    an ink blot, a tear), by character offsets in the pair text and by boxes on the page (fractions of the page
+    image). Evaluation excludes the text from primary scoring and can mask the boxes on the image.
     """
 
     footnotes = conversion.features.get("footnotes", 0)
-    return {"footnote_marker_style": FOOTNOTE_MARKER_STYLE if footnotes else None, "footnote_count": footnotes}
+    facts: dict[str, Any] = {"footnote_marker_style": FOOTNOTE_MARKER_STYLE if footnotes else None, "footnote_count": footnotes}
+    spans = ((page or {}).get("excluded_spans") or {}).get("spans") or []
+    if not spans:
+        return facts
+    facts["excluded_spans"] = [
+        {"kind": span["kind"], "start": span["start"], "end": span["end"], "regions_normalized": span["regions_normalized"],
+         "coordinate_frame": "page", "detail": span["detail"]}
+        for span in spans
+    ]
+    return facts
 
 
 def crop_provenance(page: dict[str, Any]) -> dict[str, Any]:
@@ -661,20 +830,26 @@ def page_permalink(page: dict[str, Any]) -> str:
     return f"{WIKISOURCE_SITE_URL}/w/index.php?title={title}&oldid={page['revision_id']}"
 
 
-def page_conversion(page: dict[str, Any], root: Path) -> WikitextConversion:
-    """Convert the page's pinned wikitext and check the text against the pinned checksum."""
+def page_text(page: dict[str, Any], root: Path) -> PageText:
+    """Derive the page's pair text from its pinned wikitext and check it against the pinned checksums (F8b7)."""
 
     wikitext = (root / page["wikitext_path"]).read_text(encoding="utf-8")
-    conversion = convert_wikitext(wikitext, page_transclusions(page, root))
-    if _sha256(conversion.text) != page["text_sha256"]:
+    derived = derive_page_text(wikitext, page_transclusions(page, root), page)
+    if derived.adjustments != page.get("text_adjustments") or _sha256(derived.text) != page["text_sha256"]:
         raise StageExecutionError(f"Wikisource page text checksum mismatch for {page['source_item_id']}")
-    return conversion
+    return derived
+
+
+def page_conversion(page: dict[str, Any], root: Path) -> WikitextConversion:
+    """The page's conversion (without the footnotes a reviewed check found not printed), checked against the pin."""
+
+    return page_text(page, root).conversion
 
 
 def page_plain_text(page: dict[str, Any], root: Path) -> str:
-    """Derive the page's plain text from its pinned wikitext and check it against the pinned checksum."""
+    """Derive the page's pair text from its pinned wikitext and check it against the pinned checksum."""
 
-    return page_conversion(page, root).text
+    return page_text(page, root).text
 
 
 def _sha256(text: str) -> str:
@@ -720,7 +895,8 @@ class WikisourceProofreadImporter:
             image = page["image"]
             commons = index["commons_file"]
             work = index["work"]
-            conversion = page_conversion(page, root)
+            derived = page_text(page, root)
+            conversion = derived.conversion
             # Decision 12 (F8b4): a partial page pairs its text with the crop of the transcribed region.
             asset = (page.get("crop") or {}).get("asset") if page_needs_crop(page) else None
             pair_image = asset or image
@@ -757,9 +933,13 @@ class WikisourceProofreadImporter:
                         # Typographic size spans (small / large text) in the page body; the text itself is unsized.
                         "text_size_spans": conversion.size_spans,
                         # Reference-normalisation facts evaluation can mask (F8b4): footnote marks are [n], not the print's.
-                        "reference_normalization": reference_normalization(conversion),
+                        "reference_normalization": reference_normalization(conversion, page),
                         "page_text_ref": page["text_path"],
                         "page_text_sha256": page["text_sha256"],
+                        # F8b7: the faithful MediaWiki rendering's checksum, and what was changed to reach the pair text
+                        # (footnotes found not printed, editors' stand-ins mapped to the printed character).
+                        "converted_text_sha256": page_text_sha256_converted(page),
+                        "text_adjustments": derived.adjustments,
                         "raw_wikitext_sha256": page["wikitext_sha256"],
                         "raw_wikitext_revision_sha1": page["revision_sha1"],
                         "work_title": work["title"],
@@ -835,6 +1015,7 @@ def page_reference_record(source_id: str, page: dict[str, Any], root: Path) -> B
         )
     text = page_plain_text(page, root)
     paragraphs = [paragraph for paragraph in text.split("\n") if paragraph.strip()]
+    spans = reference_spans(page, text)
     reviewers = [f"wikisource:{attestation['proofreader']['user']}", f"wikisource:{attestation['validator']['user']}"]
     return BenchmarkTranscriptionReferenceRecord(
         schema_version="benchmark_transcription_reference.v1",
@@ -855,7 +1036,7 @@ def page_reference_record(source_id: str, page: dict[str, Any], root: Path) -> B
             {"line_id": f"line-{number}", "page_id": "page-1", "reading_order": number, "text": paragraph, "layout_line_id": None}
             for number, paragraph in enumerate(paragraphs, start=1)
         ],
-        spans=[],
+        spans=spans,
         review={
             "status": "reviewed",
             "reviewers": reviewers,
@@ -869,6 +1050,38 @@ def page_reference_record(source_id: str, page: dict[str, Any], root: Path) -> B
             ),
         },
     )
+
+
+def reference_spans(page: dict[str, Any], text: str) -> list[dict[str, Any]]:
+    """The page's excluded spans (F8b7) as reference spans on its paragraph lines: ``illegible``, ``exclude_primary``.
+
+    Lines are the text's non-blank paragraphs, numbered as ``page_reference_record`` numbers them; a span lies inside
+    one paragraph (``excluded_span_problems`` checks it), so its offsets are taken from that paragraph's start.
+    """
+
+    starts: list[tuple[int, int, int]] = []  # (line number, start, end) in the text
+    position = 0
+    number = 0
+    for paragraph in text.split("\n"):
+        if paragraph.strip():
+            number += 1
+            starts.append((number, position, position + len(paragraph)))
+        position += len(paragraph) + 1
+    records = []
+    for index, span in enumerate(((page.get("excluded_spans") or {}).get("spans") or []), start=1):
+        line, line_start, _ = next(entry for entry in starts if entry[1] <= span["start"] and span["end"] <= entry[2])
+        records.append(
+            {
+                "span_id": f"span-{index}",
+                "line_id": f"line-{line}",
+                "start": span["start"] - line_start,
+                "end": span["end"] - line_start,
+                "status": "illegible",
+                "scoring": "exclude_primary",
+                "note": f"{span['kind']}: {span['detail']}",
+            }
+        )
+    return records
 
 
 def write_wikisource_reference_pool(source: SourceConfig, bundle: ConfigBundle, output_dir: Path) -> dict[str, Any]:
@@ -899,7 +1112,7 @@ def write_wikisource_reference_pool(source: SourceConfig, bundle: ConfigBundle, 
                 "sha256": _sha256(payload),
                 "wikisource_revision_id": page["revision_id"],
                 "adjudication_status": "needs_adjudication",
-                "reference_normalization": reference_normalization(page_conversion(page, root)),
+                "reference_normalization": reference_normalization(page_conversion(page, root), page),
                 "image": {
                     "crop_of_page": page["image"]["sha256"],
                     "box_normalized": page["crop"]["box_normalized"],

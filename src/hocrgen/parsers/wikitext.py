@@ -44,7 +44,7 @@ import json
 import re
 import unicodedata
 from collections import Counter
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Collection, Mapping
 from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
@@ -61,6 +61,13 @@ UNSUPPORTED_TAGS = (
 DROPPED_LINK_NAMESPACES = ("file", "image", "קובץ", "תמונה", "category", "קטגוריה")
 UNSUPPORTED_LINK_NAMESPACES = ("media",)
 BLOCK_HTML_TAGS = ("div", "center", "p", "table", "tr", "td", "th", "caption", "blockquote", "ul", "ol", "li", "dl", "dd", "dt", "h1", "h2", "h3", "h4", "h5", "h6")
+# F8b7: an editor's heading that labels MediaWiki's footnote list ("==הערות==", "==הערות שוליים==" right before
+# {{הערות שוליים}} or <references/>) is not printed: the print's footnotes stand at the foot of the page unlabelled.
+NOTE_LIST_HEADINGS = ("הערות", "הערות שוליים")
+_NOTE_LIST_HEADING = re.compile(
+    r"^[ \t]*(={1,6})[ \t]*(?:" + "|".join(NOTE_LIST_HEADINGS) + r")[ \t]*\1[ \t]*\n(?=\s*(?:\{\{\s*הערות שוליים\s*[|}]|\ue002))",
+    re.MULTILINE,
+)
 # A footnote signed by a Wikisource editor ("ויקיעורך", "ויקי עורך", "הערת ויקיעורך") is not printed on the page.
 EDITOR_NOTE_SIGNATURE = re.compile(r"ויקי\s?עור(?:ך|כת)")
 
@@ -157,7 +164,9 @@ class Args:
 
 
 class _Context:
-    def __init__(self) -> None:
+    def __init__(self, unprinted_notes: frozenset[int] = frozenset()) -> None:
+        # F8b7: footnote numbers (as the faithful conversion numbers them) a reviewed check found not printed.
+        self.unprinted_notes = unprinted_notes
         self.sizes: Counter[str] = Counter()
         self.features: Counter[str] = Counter()
         self.ref_bodies: list[tuple[str | None, str | None, bool]] = []
@@ -833,6 +842,33 @@ def wikitext_to_plain_text(wikitext: str, transclusions: Mapping[str, str] | Non
     return convert_wikitext(wikitext, transclusions).text
 
 
+_NOTE_LINE = re.compile(r"^\[(\d+)\] ", re.MULTILINE)
+
+
+def footnote_spans(text: str) -> list[tuple[int, int, int]]:
+    """Where each footnote stands in converted text (F8b7): ``(number, start, end)`` character offsets.
+
+    The converter writes the notes as lines ``[n] text``, numbered 1, 2, ... in order, where the list stands (at the
+    foot of the body when the page has no list). The last run of such lines numbered from 1 is the notes block; a
+    note runs from its own line to the next note's line, the last one to the end of the text (or of the block, when
+    body text follows the list). Text without notes gives an empty list.
+    """
+
+    starts = [(int(match.group(1)), match.start()) for match in _NOTE_LINE.finditer(text)]
+    block: list[tuple[int, int]] = []
+    for number, start in starts:
+        if number == 1:
+            block = [(number, start)]
+        elif block and number == block[-1][0] + 1:
+            block.append((number, start))
+    if not block:
+        return []
+    ends = [start for _, start in block[1:]]
+    tail = text.find("\n\n", block[-1][1])
+    ends.append(len(text) if tail < 0 else tail)
+    return [(number, start, end) for (number, start), end in zip(block, ends)]
+
+
 # --- Labelled-section transclusion (F8b4) ----------------------------------------------------------------------
 
 _SECTION_CALL = re.compile(r"\{\{\s*#(?:קטע|section|lst)\s*:([^{}|]*)\|([^{}|]*)\}\}", re.IGNORECASE)
@@ -914,11 +950,19 @@ def page_body(wikitext: str) -> str:
     return text
 
 
-def convert_wikitext(wikitext: str, transclusions: Mapping[str, str] | None = None) -> WikitextConversion:
+def convert_wikitext(
+    wikitext: str, transclusions: Mapping[str, str] | None = None, *, unprinted_notes: Collection[int] = ()
+) -> WikitextConversion:
     """Convert a page's pinned wikitext. ``transclusions`` maps each page title the body transcludes by labelled
-    section (``{{#קטע:title|section}}``, F8b4) to that page's pinned wikitext; a title not given is rejected."""
+    section (``{{#קטע:title|section}}``, F8b4) to that page's pinned wikitext; a title not given is rejected.
 
-    ctx = _Context()
+    ``unprinted_notes`` (F8b7) lists footnotes, by the number the faithful conversion gives them, that a reviewed
+    check found to have no printed counterpart (an unsigned editor's note). They are dropped with their marks, as
+    signed editors' notes are, and the other notes are renumbered; a number that is not a footnote of the page
+    raises ``ValueError``. Without it the conversion is the faithful MediaWiki rendering.
+    """
+
+    ctx = _Context(frozenset(int(number) for number in unprinted_notes))
     text = page_body(wikitext)
     text = re.sub(r"<includeonly>.*?</includeonly>", "", text, flags=re.DOTALL | re.IGNORECASE)
     text = re.sub(r"</?noinclude\s*>", "", text, flags=re.IGNORECASE)
@@ -943,10 +987,15 @@ def convert_wikitext(wikitext: str, transclusions: Mapping[str, str] | None = No
         raise UnsupportedWikitextError("markup", "behaviour switch")
     text = _extract_ref_tags(text, ctx)
     text = re.sub(r"<references\s*/>|<references\s*>\s*</references>", _REFERENCES, text, flags=re.IGNORECASE)
+    text, headings = _NOTE_LIST_HEADING.subn("", text)
+    if headings:
+        ctx.features["editor_headings_dropped"] += headings
     text = ctx.expand(text)
     body = _render_blocks(text, ctx)
     if ctx.notes or ctx.follow:
         body = _place_notes(body, ctx)
+    elif ctx.unprinted_notes:
+        raise ValueError(f"unprinted note {min(ctx.unprinted_notes)} is not a footnote of the page (no notes)")
     body = body.replace(_REFERENCES, "")
     return WikitextConversion(
         body,
@@ -1040,6 +1089,13 @@ def _place_notes(body: str, ctx: _Context) -> str:
     dropped = len(order) - len(kept)
     if dropped:
         ctx.features["editor_notes_dropped"] += dropped
+    if ctx.unprinted_notes:
+        # F8b7: unsigned editors' notes a reviewed check found not printed, by their faithful number.
+        unknown = sorted(ctx.unprinted_notes - set(range(1, len(kept) + 1)))
+        if unknown:
+            raise ValueError(f"unprinted note {unknown[0]} is not a footnote of the page ({len(kept)} notes)")
+        kept = [index for number, index in enumerate(kept, start=1) if number not in ctx.unprinted_notes]
+        ctx.features["unprinted_notes_dropped"] += len(ctx.unprinted_notes)
     if kept:
         ctx.features["footnotes"] += len(kept)
     numbers = {index: number for number, index in enumerate(kept, start=1)}
