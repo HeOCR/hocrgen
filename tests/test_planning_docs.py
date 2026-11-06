@@ -893,10 +893,12 @@ def test_f8_real_source_map_is_planning_only_and_gate_preserving() -> None:
     assert roadmap_rows["F8"][2].split(", ") == ["F8a", "F8b", "F8c", "F8d", "F8e"]
     assert roadmap_rows["F8"][4] == "partial"
     assert roadmap_rows["F8a"][4] == "completed"
-    for pr_id in ["F8b", "F8c", "F8d"]:
+    for pr_id in ["F8b", "F8c", "F8d", "F8e"]:
         assert roadmap_rows[pr_id][1] == "F8"
         assert roadmap_rows[pr_id][4] == "planned"
-    assert roadmap_rows["F8e"][4] == "deferred"
+    decision = Path("planning/decisions/2026-11-06-f8-real-source-decisions.md").read_text(encoding="utf-8")
+    for token in ["**Quality 4**", "character-level evaluation", "*Open.*", "legal opinion"]:
+        assert token in decision
     assert "## Milestone F8 — Real-source map and paired-text source intake" in roadmap
     assert "`F8a` now defines milestone F8" in agent_plan
     for token in [

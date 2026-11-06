@@ -1,6 +1,6 @@
 # F8 — Real-source map and paired-text source intake
 
-Status: `F8a` (this map and the F8 notation) is planning only. `F8b`–`F8d` are planned and `F8e` is deferred. Parent milestone: F8. Source proposals: `HeOCR/hocrgen#103` (`F8b`), `#104` (`F8c`) and `#105` (`F8d`). Evidence was checked on 2026-11-06 against each source's own pages and APIs; the per-source notes are in [`docs/2026_11_06_israeli_public_domain_documents_research/verification/`](../../docs/2026_11_06_israeli_public_domain_documents_research/verification/).
+Status: `F8a` (this map and the F8 notation) is planning only. `F8b`–`F8e` are planned. The maintainer answered the decisions list on 2026-11-06; see [`planning/decisions/2026-11-06-f8-real-source-decisions.md`](../decisions/2026-11-06-f8-real-source-decisions.md). Parent milestone: F8. Source proposals: `HeOCR/hocrgen#103` (`F8b`), `#104` (`F8c`) and `#105` (`F8d`). Evidence was checked on 2026-11-06 against each source's own pages and APIs; the per-source notes are in [`docs/2026_11_06_israeli_public_domain_documents_research/verification/`](../../docs/2026_11_06_israeli_public_domain_documents_research/verification/).
 
 F8 maps real (non-synthetic) Hebrew document sources beyond HASH. It ranks them by what HeOCR lacks most: **real page images paired with human-made text**, for both printed and handwritten Hebrew. It supplies the printed real-reference source that [E2d](./e2d-real-scan-evaluation.md) says is "not yet selected". It changes no source, profile, licence, gate or score.
 
@@ -31,8 +31,8 @@ The text tier is recorded separately from the content type. A page's `content_ty
 | 2 | NLI IIIF items whose manifest `license` is `public-domain-free-use` | `printed_historical` books; the current `nli` seeds are all manuscripts | 4 | NLI rights page for the slug: may be used "for any purpose, including commercial use" | `PD-IL` / `open`, as `nli_any_use_permitted` today | `F8c` |
 | 3 | BGU Pinkas Dataset (Zenodo 3569694) | `handwritten_historical`, c. 1500–1800 cursive, 30 pages | 1: PAGE XML at word, line and page level | Zenodo licence field `cc-by-4.0` | `CC-BY-4.0` / `open_with_attribution` | `F8d` |
 | 4 | YidTakNL Vaybertaytsh ground truth (figshare 10.6084/m9.figshare.25422844) | `printed_historical` Yiddish in Hebrew script, 1709–1781 | 1: Transkribus GT (human-corrected HTR) with images | figshare licence CC BY 4.0 | `CC-BY-4.0` / `open_with_attribution` | `F8d` |
-| 5 | Reshumot (ספר החוקים, קובץ התקנות), about 2006 on | `printed_modern` gazette | 2: born-digital PDF | §6: no copyright in laws and regulations | `PD-IL` / `open` | `F8e` (deferred) |
-| 6 | Knesset committee protocols, 1949–1975 | typewritten scans | 4 | §42: state works created on or before 1975 are PD | `PD-IL` / `open` | `F8e` (deferred) |
+| 5 | Reshumot (ספר החוקים, קובץ התקנות), about 2006 on | `printed_modern` gazette | 2: born-digital PDF | §6: no copyright in laws and regulations | `PD-IL` / `open` | `F8e` |
+| 6 | Knesset committee protocols, 1949–1975 | typewritten scans | 4 | §42: state works created on or before 1975 are PD | `PD-IL` / `open` | `F8e` |
 
 Scale, measured on 2026-11-06:
 
@@ -84,7 +84,7 @@ Scale, measured on 2026-11-06:
 
 ## Maintainer decisions needed
 
-These are rights or ground-truth calls, so they are the maintainer's:
+These are rights or ground-truth calls, so they are the maintainer's. **Answered 2026-11-06:** 1, 2, 4 and 7 were accepted. For 5, a legal opinion will be requested. For 6, printed Yiddish is in scope for training and character-level evaluation only. 3 is open. See the [decision record](../decisions/2026-11-06-f8-real-source-decisions.md).
 
 1. **Wikisource text licence.** Accept CC BY-SA 4.0 page text as references? Share-alike would then apply to the reference files we release. (`F8b`)
 2. **Wikisource proofreading as human attestation.** Each quality change is a named human edit in the page history. The proposal: quality 4 (validated by a second editor) counts as human-attested and adjudication-eligible; quality 3 counts as single-reviewer human proofreading. An agent never edits or attests these pages. (`F8b`, E2d)
@@ -103,10 +103,10 @@ These are rights or ground-truth calls, so they are the maintainer's:
 ## Planned PRs
 
 - `F8a`: this real-source map, the decisions above and the F8 notation (planning only).
-- `F8b`: a fixture-backed `review_only` Wikisource source. It pins page revision ids and Commons file SHA-1s, emits page-level text with its quality level and editor provenance, and gates on the Commons licence. It is blocked on maintainer decisions 1–3.
+- `F8b`: a fixture-backed `review_only` Wikisource source. It pins page revision ids and Commons file SHA-1s, and emits page-level text with its quality level and editor provenance. It is gated per Index on evidence that the work and the scan are public domain. HebrewBooks-sourced Index files are excluded until decision 3.
 - `F8c`: key the `nli` rights strategy on the IIIF `license` slug, and admit `public-domain-free-use` printed books as `printed_historical`. Images only.
-- `F8d`: fixture-backed `review_only` imports of the CC-BY-4.0 ground-truth datasets: `pinkas_dataset_bgu` (PAGE XML), and YidTakNL once its bundle and decision 6 are settled. Scan provenance is verified first.
-- `F8e`: born-digital and typewritten government print (Reshumot from about 2006, Knesset committee scans up to 1975). **Deferred** on decisions 4–5.
+- `F8d`: fixture-backed `review_only` imports of the CC-BY-4.0 ground-truth datasets: `pinkas_dataset_bgu` (PAGE XML), and YidTakNL once its bundle is checked. YidTakNL is limited to training and character-level evaluation (decision 6). Scan provenance is verified first.
+- `F8e`: born-digital and typewritten government print (Reshumot from about 2006, Knesset committee scans up to 1975), with automated access allowed (decision 4) and hard throttling. Committee protocols from 1976 on wait for the legal opinion (decision 5).
 
 ## Sequencing and non-goals
 
