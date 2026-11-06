@@ -41,9 +41,11 @@ from hocrgen.fetchers.yidtaknl import (
 )
 from hocrgen.fetchers.wikisource import (
     WIKISOURCE_INTEGRITY_REASONS,
+    crop_asset_problems,
     index_exclusion_reasons,
     load_wikisource_snapshot,
     page_exclusion_reasons,
+    page_needs_crop,
     wikisource_snapshot_root,
 )
 from hocrgen.utils.hashing import sha256_file
@@ -1005,6 +1007,19 @@ def _inspect_wikisource_source(source: SourceConfig, bundle: ConfigBundle) -> tu
         if asset_path.is_file() and image.get("sha256") and sha256_file(asset_path) != image["sha256"]:
             check["status"] = "error"
             check["message"] = f"checksum mismatch for {page['source_item_id']}"
+        if page_needs_crop(page):
+            # F8b4: the crop asset is pinned, its box lies inside the page image, and it is that image cut at the box.
+            problems = crop_asset_problems(page, root)
+            crop_check = {
+                "name": "wikisource_page_crop",
+                "record_id": page.get("source_item_id"),
+                "box_normalized": (page.get("crop") or {}).get("box_normalized"),
+                "status": "error" if problems else "ok",
+            }
+            if problems:
+                crop_check["message"] = ", ".join(problems)
+                check["status"] = "error"
+            checks.append(crop_check)
         if check["status"] == "ok":
             asset_count += 1
         checks.append(check)

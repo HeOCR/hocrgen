@@ -1,5 +1,5 @@
 {
- "description": "MediaWiki's own rendering (he.wikisource.org action=parse, contentmodel=wikitext, of the pinned page body: the wikitext without its ProofreadPage header and footer, plus <references/>) of pinned pages, captured 2026-11-06 by hocrgen.tools.wikisource_render_check. Tests compare wikisource_plain_text.v2 with each rendering offline. Page text: CC-BY-SA-4.0, Hebrew Wikisource contributors; the permalink is the page title at revision_id.",
+ "description": "MediaWiki's own rendering (he.wikisource.org action=parse, contentmodel=wikitext, of the pinned page body: the wikitext without its ProofreadPage header and footer, plus <references/>) of pinned pages, captured 2026-11-06 by hocrgen.tools.wikisource_render_check. Tests compare wikisource_plain_text.v2 with each rendering offline. Page text: CC-BY-SA-4.0, Hebrew Wikisource contributors; the permalink is the page title at revision_id. F8b4: a page that transcludes labelled sections lists the pinned transcluded pages (title, revision id, file, SHA-256) under transclusions; MediaWiki rendered their current revisions, which were the pinned ones at capture.",
  "captured_at": "2026-11-06",
  "pages": [
   {
@@ -180,6 +180,22 @@
    "wikitext_sha256": "7c217395ffef2948e527273bd35f1437c09d3d27048b29f28cdf639aa30296f8",
    "html_sha256": "cc8681cf99cdaac522933e2c5148b0ee01fcfc44bbf093c8c01b47036f8a5982",
    "lines_equal": true
+  },
+  {
+   "slug": "ws_index_1720479__p0013",
+   "page_title": "עמוד:משלי עם פירוש קב ונקי.pdf/13",
+   "revision_id": 2973362,
+   "wikitext_sha256": "bee02a2090e2305d8de5aa9d4226df5a6dfa942c52c48b3c7e69538d1d971dbf",
+   "html_sha256": "3a4f2074938963d74e36bfd585c4fb97a5d0cba1d841d460e655b5f172fded3c",
+   "lines_equal": true,
+   "transclusions": [
+    {
+     "title": "משלי ג/טעמים",
+     "revision_id": 2988305,
+     "path": "ws_index_1720479__p0013__transcluded_1.wikitext.txt",
+     "wikitext_sha256": "043f5304443a265d13058200d1183cc130df918f5bd23ac52784693c0cb3bd76"
+    }
+   ]
   }
  ]
 }

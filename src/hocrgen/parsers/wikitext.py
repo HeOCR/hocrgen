@@ -44,7 +44,7 @@ import json
 import re
 import unicodedata
 from collections import Counter
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from dataclasses import dataclass, field
 from functools import cache
 from pathlib import Path
@@ -718,7 +718,7 @@ TEMPLATE_RENDERERS: dict[str, Renderer] = {
     "מ": _mishnah_list_item,
     "רן": _poem,
     "מ:טעמי המקרא": lambda args, ctx: (args.check("1"), "\n\n")[1],
-    "מ:טעמי המקרא-סוף": _drop(),
+    "מ:טעמי המקרא-סוף": lambda args, ctx: (args.check(), "\n\n")[1],  # closes the verse <div>: ends the paragraph
     # spacing
     "רווח קשיח": _hard_space,
     "רווח קשיח2": _hard_space,
@@ -785,6 +785,15 @@ TEMPLATE_RENDERERS: dict[str, Renderer] = {
     # {{ד"מ}}: a hand-numbered note's start, "1 " in bold, then "[2]" small grey when 2 is given.
     'ד"מ': lambda args, ctx: f"<cite>{ctx.expand(args.check('1', '2').need('1'))} </cite> "
     + (f"<small>[{_v(args, ctx, '2')}]</small>" if args.filled("2") else ""),
+    # F8b4: Bible text reached through labelled-section transclusion (Mikra al pi ha-Masora)
+    "מ:דחי": lambda args, ctx: ctx.expand(args.check("1", "2").need("1")),  # shows 1; 2 is the other accent reading
+    "מ:אות-ג": lambda args, ctx: (ctx.sizes.update({"large": 1}), ctx.expand(args.check("1").need("1")))[1],
+    "ר0": lambda args, ctx: "" if (args.check("רווח").raw("רווח") or "").strip() == "לא" else " ",
+    "ר1": lambda args, ctx: (args.check(), "<br />")[1],  # a line break, then an indent (display only)
+    "ר2": lambda args, ctx: (args.check(), "<br />")[1],
+    'כו"ק': lambda args, ctx: f"{ctx.expand(args.check('1', '2').need('1'))} {ctx.expand(args.need('2'))}",  # ketiv (grey), qere
+    'קו"כ': lambda args, ctx: f"{ctx.expand(args.check('1', '2').need('2'))} {ctx.expand(args.need('1'))}",  # qere, ketiv (grey)
+    "מ:מקף אפור": lambda args, ctx: (args.check(), "־")[1],
     _REF_TEMPLATE: _ref_placeholder,
     "\ue006dropped": lambda args, ctx: (ctx.features.update({"malformed_markup": 1}), "")[1],
 }
@@ -812,8 +821,76 @@ def normalize_template_name(name: str) -> str:
 # --- Conversion ------------------------------------------------------------------------------------------------
 
 
-def wikitext_to_plain_text(wikitext: str) -> str:
-    return convert_wikitext(wikitext).text
+def wikitext_to_plain_text(wikitext: str, transclusions: Mapping[str, str] | None = None) -> str:
+    return convert_wikitext(wikitext, transclusions).text
+
+
+# --- Labelled-section transclusion (F8b4) ----------------------------------------------------------------------
+
+_SECTION_CALL = re.compile(r"\{\{\s*#(?:קטע|section|lst)\s*:([^{}|]*)\|([^{}|]*)\}\}", re.IGNORECASE)
+_SECTION_OPENER = re.compile(r"\{\{\s*#(?:קטע|section|lst|lsth|lstx|קטע-בלי)\s*:", re.IGNORECASE)
+
+
+def normalize_page_title(title: str) -> str:
+    """MediaWiki title normalisation for a transcluded page: no bidi marks, single spaces for spaces and underscores."""
+
+    title = "".join(char for char in title if char not in BIDI_CONTROL_CHARACTERS)
+    return re.sub(r"[\s_]+", " ", title).strip()
+
+
+def transcluded_titles(wikitext: str, *, body: bool = True) -> list[str]:
+    """Titles transcluded by labelled section, in order of first use: in a Page's body, or (``body=False``) anywhere
+    in a transcluded page's text. Not followed into the targets."""
+
+    text = page_body(wikitext) if body else wikitext
+    return list(dict.fromkeys(normalize_page_title(match.group(1)) for match in _SECTION_CALL.finditer(text)))
+
+
+def section_text(target_wikitext: str, section: str) -> str:
+    """The text of every section ``section`` of a page, as Labelled Section Transclusion takes it.
+
+    A section runs from ``<section begin=name/>`` (``<קטע התחלה=name/>``) to the matching end tag; several sections
+    of one name are joined. The target is transcluded, so its ``<noinclude>`` parts are left out and its
+    ``<includeonly>`` parts kept. A section that is not on the page is rejected (MediaWiki would show nothing).
+    """
+
+    text = target_wikitext.replace("\r\n", "\n").replace("\r", "\n")
+    text = re.sub(r"<noinclude>.*?</noinclude>", "", text, flags=re.DOTALL | re.IGNORECASE)
+    text = re.sub(r"</?includeonly\s*>", "", text, flags=re.IGNORECASE)
+    text = re.sub(r"<!--.*?-->", "", text, flags=re.DOTALL)
+    name = section.strip()
+    # Labelled Section Transclusion matches the section name literally, quoted or not, spaces included.
+    begin = re.compile(rf"<(?:section\s+begin|קטע\s+התחלה)\s*=\s*([\"']?){re.escape(name)}\1\s*/?>", re.IGNORECASE)
+    end = re.compile(rf"<(?:section\s+end|קטע\s+סוף)\s*=\s*([\"']?){re.escape(name)}\1\s*/?>", re.IGNORECASE)
+    parts: list[str] = []
+    position = 0
+    while (opening := begin.search(text, position)) is not None:
+        closing = end.search(text, opening.end())
+        stop = closing.start() if closing else len(text)
+        parts.append(text[opening.end() : stop])
+        position = closing.end() if closing else len(text)
+    if not parts:
+        raise UnsupportedWikitextError("transclusion", f"section {name!r} not on the transcluded page")
+    return "".join(parts)
+
+
+def transclude_sections(text: str, transclusions: Mapping[str, str], depth: int = 0) -> str:
+    """Replace each ``{{#קטע:title|section}}`` with that section of the pinned page, following nested calls."""
+
+    if depth > 5:
+        raise UnsupportedWikitextError("transclusion", "nested too deeply")
+    pinned = {normalize_page_title(title): wikitext for title, wikitext in transclusions.items()}
+
+    def replace(match: re.Match[str]) -> str:
+        title = normalize_page_title(match.group(1))
+        if title not in pinned:
+            raise UnsupportedWikitextError("transclusion", f"page not pinned: {title}")
+        return transclude_sections(section_text(pinned[title], match.group(2)), transclusions, depth + 1)
+
+    text = _SECTION_CALL.sub(replace, text)
+    if _SECTION_OPENER.search(text):
+        raise UnsupportedWikitextError("transclusion", "labelled-section call with unsupported arguments")
+    return text
 
 
 def page_body(wikitext: str) -> str:
@@ -829,13 +906,17 @@ def page_body(wikitext: str) -> str:
     return text
 
 
-def convert_wikitext(wikitext: str) -> WikitextConversion:
+def convert_wikitext(wikitext: str, transclusions: Mapping[str, str] | None = None) -> WikitextConversion:
+    """Convert a page's pinned wikitext. ``transclusions`` maps each page title the body transcludes by labelled
+    section (``{{#קטע:title|section}}``, F8b4) to that page's pinned wikitext; a title not given is rejected."""
+
     ctx = _Context()
     text = page_body(wikitext)
     text = re.sub(r"<includeonly>.*?</includeonly>", "", text, flags=re.DOTALL | re.IGNORECASE)
     text = re.sub(r"</?noinclude\s*>", "", text, flags=re.IGNORECASE)
     if re.search(r"</?(?:noinclude|includeonly)\b", text, flags=re.IGNORECASE):
         raise UnsupportedWikitextError("tag", "unbalanced noinclude or includeonly")
+    text = transclude_sections(text, transclusions or {})
 
     def keep_literal(match: re.Match[str]) -> str:
         ctx.nowiki.append(match.group(1) or "")

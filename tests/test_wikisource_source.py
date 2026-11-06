@@ -16,6 +16,7 @@ from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.wikisource import (
     WikisourceProofreadImporter,
+    crop_asset_problems,
     index_exclusion_reason,
     index_exclusion_reasons,
     load_wikisource_snapshot,
@@ -28,7 +29,7 @@ from hocrgen.fetchers.wikisource import (
     write_wikisource_reference_pool,
 )
 from hocrgen.manifests.models import BenchmarkTranscriptionReferenceRecord, ItemRecord
-from hocrgen.parsers.wikitext import UnsupportedWikitextError, convert_wikitext, wikitext_to_plain_text
+from hocrgen.parsers.wikitext import UnsupportedWikitextError, convert_wikitext, section_text, transcluded_titles, wikitext_to_plain_text
 from hocrgen.source_ops import _inspect_source
 
 SOURCE_ID = "wikisource_he_proofread"
@@ -36,6 +37,9 @@ SNAPSHOT_ROOT = package_root() / "data" / "wikisource" / "snapshot"
 SELIHOT = "selihot_baer_1885__p0034"
 BOSTENAY = "bostenay_lehmann_1872__p0047"
 HYMAN = "hyman_toldoth_1910_vol1__p0041"
+# F8b4: partial pages paired with their crops (the notes section, and the Yiddish columns, are not transcribed)
+BUBER = "buber_tanhuma_1885__p0233"
+SIPPUREI = "sippurei_maasiyot_1902__p0011"
 
 
 def _bundle_and_source():
@@ -87,7 +91,7 @@ def test_wikisource_source_is_review_only_sharealike_and_outside_the_public_prof
 def test_index_gate_admits_only_files_with_work_and_scan_evidence() -> None:
     indexes, _ = _snapshot()
     admitted = sorted(key for key, index in indexes.items() if not index_exclusion_reasons(index))
-    assert admitted == ["bostenay_lehmann_1872", "hyman_toldoth_1910_vol1", "selihot_baer_1885"]
+    assert admitted == ["bostenay_lehmann_1872", "buber_tanhuma_1885", "hyman_toldoth_1910_vol1", "selihot_baer_1885", "sippurei_maasiyot_1902"]
     assert index_exclusion_reason(indexes["birnbaum_siddur_1949"]) == "excluded_birnbaum_work"
     assert index_exclusion_reason(indexes["birnbaum_haggadah_1953"]) == "excluded_birnbaum_work"
     assert "creator_died_after_1955" in index_exclusion_reasons(indexes["birnbaum_siddur_1949"])
@@ -250,9 +254,15 @@ def test_page_gate_skips_low_quality_and_unattributed_quality() -> None:
     no_proofreader = copy.deepcopy(pages[SELIHOT])
     no_proofreader["quality_history"] = [no_proofreader["quality_history"][-1]]
     assert page_exclusion_reason(no_proofreader, indexes, SNAPSHOT_ROOT) == "proofreader_missing"
-    # Decision 12: a partial page is not rejected; it is marked needs_crop for the F8b4 crop.
+    # Decision 12 (F8b4): a partial page pairs through a resolved crop; without one it is reported, not dropped silently.
     partial = copy.deepcopy(pages[HYMAN])
     partial["transcription_coverage"] = "partial_page"
+    assert page_exclusion_reason(partial, indexes, SNAPSHOT_ROOT) == "crop_unrecorded"
+    partial["crop"] = {"status": "unresolved", "reason": "transcription_not_located"}
+    assert page_exclusion_reason(partial, indexes, SNAPSHOT_ROOT) == "crop_unresolved"
+    partial["crop"] = {"status": "resolved", "box_normalized": [0.1, 0.2, 1.2, 0.9]}
+    assert page_exclusion_reason(partial, indexes, SNAPSHOT_ROOT) == "crop_geometry_invalid"
+    partial["crop"] = {"status": "resolved", "box_normalized": [0.1, 0.2, 0.9, 0.9]}
     assert page_exclusion_reason(partial, indexes, SNAPSHOT_ROOT) is None
     assert page_needs_crop(partial) and not page_needs_crop(pages[HYMAN])
     unknown = copy.deepcopy(pages[HYMAN])
@@ -418,7 +428,7 @@ def test_template_renderings_follow_mediawiki(wikitext: str, expected: str) -> N
         ("{{הערה|א|קבוצה=ב}}", "footnote"),
         ("א<ref group=x>ב</ref>", "footnote"),
         ("א{{הערה|שם=x}}", "footnote"),
-        ("{{#קטע:דף|קטע}}", "template"),
+        ("{{#קטע:דף|קטע}}", "transclusion"),
         ("טקסט{{תבנית חדשה|א}}", "template"),
         ("{{#if:x|y}}", "template"),
         ("<pre>א</pre>", "tag"),
@@ -431,6 +441,25 @@ def test_wikitext_outside_the_closed_set_is_rejected(wikitext: str, kind: str) -
     with pytest.raises(UnsupportedWikitextError) as error:
         wikitext_to_plain_text(wikitext)
     assert error.value.kind == kind
+
+
+def test_labelled_section_transclusion_renders_the_pinned_sections() -> None:
+    """F8b4: {{#קטע:title|section}} takes that section of the pinned page, as Labelled Section Transclusion does."""
+
+    commentary = (
+        "<noinclude>{{ניווט}}</noinclude><קטע התחלה=עמוד 6/>{{#קטע:משלי א/טעמים|א}}{{מ:טעמי המקרא-סוף}}\n"
+        "'''משלי שלמה''' – פירוש.<קטע סוף=עמוד 6/><קטע התחלה=עמוד 7/>אחר<קטע סוף=עמוד 7/>"
+    )
+    verses = "<noinclude>{{מ:טעמי המקרא}}</noinclude><קטע התחלה=א/>{{מ:דחי|מִ֭שְׁלֵי|x}} שְׁלֹמֹ֣ה{{ר1}}מֶ֗לֶךְ<קטע סוף=א/>"
+    page = '<noinclude><pagequality level="3" user="X" /></noinclude>{{#קטע:פירוש/א|עמוד 6}}<noinclude></noinclude>'
+    pinned = {"פירוש/א": commentary, "משלי_א/טעמים": verses}
+    assert transcluded_titles(page) == ["פירוש/א"] and transcluded_titles(commentary, body=False) == ["משלי א/טעמים"]
+    assert convert_wikitext(page, pinned).text == "מִ֭שְׁלֵי שְׁלֹמֹ֣ה\nמֶ֗לֶךְ\n\nמשלי שלמה – פירוש."
+    assert section_text('<section begin="a" />x<section end="a" />y<section begin=a/>z', "a") == "xz"
+    with pytest.raises(UnsupportedWikitextError, match="page not pinned"):
+        convert_wikitext(page, {"פירוש/א": commentary})
+    with pytest.raises(UnsupportedWikitextError, match="not on the transcluded page"):
+        convert_wikitext(page.replace("עמוד 6", "עמוד 9"), pinned)
 
 
 def test_unused_positional_arguments_are_hidden_as_mediawiki_hides_them() -> None:
@@ -449,8 +478,10 @@ def test_discovery_emits_stable_ids_and_provenance_metadata() -> None:
     candidates = importer.discover_candidates(source, bundle, options)
     assert [candidate.candidate_id for candidate in candidates] == [
         f"{SOURCE_ID}:{BOSTENAY}",
+        f"{SOURCE_ID}:{BUBER}",
         f"{SOURCE_ID}:{HYMAN}",
         f"{SOURCE_ID}:{SELIHOT}",
+        f"{SOURCE_ID}:{SIPPUREI}",
     ]
     assert [c.candidate_id for c in importer.discover_candidates(source, bundle, StageOptions(max_items=1))] == [f"{SOURCE_ID}:{BOSTENAY}"]
     enriched = {record.source_item_id: record for record in importer.fetch_candidate_metadata(source, bundle, candidates, options)}
@@ -476,6 +507,21 @@ def test_discovery_emits_stable_ids_and_provenance_metadata() -> None:
     assert enriched[BOSTENAY].metadata["text_size_spans"] == {}
     assert enriched[HYMAN].metadata["scan_source_origin"] == "hebrewbooks"
     assert enriched[HYMAN].metadata["wikisource_quality_label"] == "proofread"
+    # Footnote marks are [n]: a reference-normalisation fact evaluation can mask (F8b4).
+    assert selihot.metadata["reference_normalization"] == {"footnote_marker_style": None, "footnote_count": 0}
+    # F8b4 (decision 12): a partial page pairs its unchanged text with the crop of the transcribed region.
+    for slug in (BUBER, SIPPUREI):
+        record = enriched[slug]
+        crop = record.metadata["crop"]
+        assert record.metadata["needs_crop"] and record.metadata["transcription_coverage"] == "partial_page"
+        assert record.asset_references[0].reference == f"assets/{slug}__crop.png"
+        assert record.metadata["expected_asset_sha256"] == crop["asset_sha256"]
+        assert crop["source_page_image"]["path"] == f"assets/{slug}.jpg" and crop["method"] == "ocr_alignment_union_box.v1"
+        x0, y0, x1, y1 = crop["box_px"]
+        assert 0 <= x0 < x1 <= crop["source_page_image"]["width"] and 0 <= y0 < y1 <= crop["source_page_image"]["height"]
+        assert crop["located_by"]["checker"].startswith("hocrgen.tools.wikisource_coverage")
+        assert record.metadata["transcription_coverage_check"]["checked_by"] == "agent"  # the agent's verdict, the tool's crop
+    assert enriched[BUBER].metadata["crop"]["box_normalized"][3] < 0.4  # the notes below are cut away
     for record in enriched.values():
         assert record.asset_references[0].reference.startswith("assets/")
         for key, value in record.metadata.items():
@@ -527,8 +573,10 @@ def test_acquire_rejects_asset_checksum_mismatch(tmp_path: Path) -> None:
 def test_source_health_reports_exclusions_missing_assets_and_text_drift(tmp_path: Path) -> None:
     bundle, source = _bundle_and_source()
     checks, candidate_count, asset_count = _inspect_source(source, bundle)
-    assert (candidate_count, asset_count) == (3, 3)
+    assert (candidate_count, asset_count) == (5, 5)
     assert all(check["status"] == "ok" for check in checks)
+    crops = {check["record_id"]: check for check in checks if check["name"] == "wikisource_page_crop"}
+    assert sorted(crops) == [BUBER, SIPPUREI] and all(check["status"] == "ok" for check in crops.values())
     index_exclusions = next(check for check in checks if check["name"] == "wikisource_index_exclusions")
     assert index_exclusions["actual"] == {
         "creator_death_year_missing": 1,
@@ -545,7 +593,7 @@ def test_source_health_reports_exclusions_missing_assets_and_text_drift(tmp_path
     bundle = load_and_validate_bundle(config_root)
     source = next(source for source in bundle.source_registry.sources if source.id == SOURCE_ID)
     checks, candidate_count, asset_count = _inspect_source(source, bundle)
-    assert (candidate_count, asset_count) == (1, 0)
+    assert (candidate_count, asset_count) == (3, 2)
     assert any(check["name"] == "wikisource_page_asset" and check["status"] == "error" for check in checks)
     drift = {check["record_id"]: check["message"] for check in checks if check["name"] == "wikisource_page_text"}
     assert drift == {SELIHOT: "wikitext_checksum_mismatch", BOSTENAY: "page_text_file_missing"}
@@ -556,12 +604,53 @@ def test_source_health_reports_exclusions_missing_assets_and_text_drift(tmp_path
     assert all(not str(check.get("path", "")).startswith("/") for check in checks)
 
 
+def test_source_health_and_acquisition_verify_the_crop_against_its_page(tmp_path: Path) -> None:
+    """F8b4: the crop asset is pinned, its box lies inside the page image, and it is that image cut at the box."""
+
+    config_root = _copy_snapshot_config(tmp_path)
+    snapshot = config_root / "wikisource_snapshot"
+    pages_path = snapshot / "pages.jsonl"
+    pages = [json.loads(line) for line in pages_path.read_text(encoding="utf-8").splitlines()]
+    by_id = {page["source_item_id"]: page for page in pages}
+    assert crop_asset_problems(by_id[BUBER], snapshot) == []
+    moved = copy.deepcopy(by_id[BUBER])
+    moved["crop"]["box_px"] = [moved["crop"]["box_px"][0] + 1, *moved["crop"]["box_px"][1:]]
+    assert crop_asset_problems(moved, snapshot) == ["crop_geometry_mismatch"]
+    # Another crop asset with the right checksum but other pixels: re-pin it to look valid, then compare pixels.
+    from PIL import Image
+
+    other = snapshot / "assets" / f"{BUBER}__crop.png"
+    with Image.open(other) as image:
+        flipped = image.transpose(Image.FLIP_LEFT_RIGHT)
+    flipped.save(other)
+    by_id[BUBER]["crop"]["asset"]["sha256"] = hashlib.sha256(other.read_bytes()).hexdigest()
+    assert crop_asset_problems(by_id[BUBER], snapshot) == ["crop_pixels_mismatch"]
+    pages_path.write_text("".join(json.dumps(page, ensure_ascii=False) + "\n" for page in pages), encoding="utf-8")
+    bundle = load_and_validate_bundle(config_root)
+    source = next(source for source in bundle.source_registry.sources if source.id == SOURCE_ID)
+    checks, _, asset_count = _inspect_source(source, bundle)
+    crop = next(check for check in checks if check["name"] == "wikisource_page_crop" and check["record_id"] == BUBER)
+    assert crop["status"] == "error" and crop["message"] == "crop_pixels_mismatch" and asset_count == 4
+    importer = WikisourceProofreadImporter()
+    candidates = [c for c in importer.discover_candidates(source, bundle, StageOptions()) if c.source_item_id == BUBER]
+    enriched = importer.fetch_candidate_metadata(source, bundle, candidates, StageOptions())
+    items = [
+        ItemRecord(**record.model_dump(), item_id=record.candidate_id, normalized_license="CC-BY-SA-4.0", rights_classification="sharealike",
+                   eligibility="review_required", eligibility_reason="wikisource fixture")
+        for record in enriched
+    ]
+    with pytest.raises(StageExecutionError, match="crop_pixels_mismatch"):
+        importer.acquire_items(source, bundle, items, tmp_path / "acquired", StageOptions())
+    (snapshot / "assets" / f"{BUBER}__crop.png").unlink()
+    assert crop_asset_problems(by_id[BUBER], snapshot) == ["crop_asset_missing"]
+
+
 def test_review_profile_routes_pages_to_review_and_open_profile_ignores_them(tmp_path: Path, capsys) -> None:
     assert main(["build-release", "--profile", "profile_review_v1", "--dry-run", "--workdir", str(tmp_path / "review")]) == 0
     run_dir = Path(json.loads(capsys.readouterr().out)["run_dir"])
     queue = json.loads((run_dir / "review" / "queue.json").read_text(encoding="utf-8"))
     queued = {item["item_id"]: item for item in queue["items"] if item["source_id"] == SOURCE_ID}
-    assert sorted(queued) == [f"{SOURCE_ID}:{BOSTENAY}", f"{SOURCE_ID}:{HYMAN}", f"{SOURCE_ID}:{SELIHOT}"]
+    assert sorted(queued) == [f"{SOURCE_ID}:{BOSTENAY}", f"{SOURCE_ID}:{BUBER}", f"{SOURCE_ID}:{HYMAN}", f"{SOURCE_ID}:{SELIHOT}", f"{SOURCE_ID}:{SIPPUREI}"]
     assert all("policy:review_only_source" in item["review_reasons"] for item in queued.values())
     classified = json.loads((run_dir / "classify" / "classified_items.json").read_text(encoding="utf-8"))
     assert {item["content_class"] for item in classified["items"] if item["source_id"] == SOURCE_ID} == {"printed"}
@@ -586,7 +675,7 @@ def test_reference_pool_writes_skip_counts_when_nothing_is_eligible(tmp_path: Pa
     manifest = write_wikisource_reference_pool(source, bundle, out_dir)
     assert manifest["items"] == []
     assert json.loads((out_dir / "reference_pool.json").read_text(encoding="utf-8"))["skipped"] == {
-        "quality_3_single_reviewer": 1,
+        "quality_3_single_reviewer": 3,
         "text_changed_after_validation": 1,
     }
 
@@ -598,9 +687,11 @@ def test_reference_pool_converts_only_adjudication_eligible_validated_pages(tmp_
     manifest = write_wikisource_reference_pool(source, bundle, tmp_path / "pool")
     assert benchmark_manifest.read_bytes() == before
     assert [entry["item_id"] for entry in manifest["items"]] == [f"{SOURCE_ID}:{SELIHOT}"]
-    assert manifest["skipped"] == {"quality_3_single_reviewer": 1, "text_changed_after_validation": 1}
+    assert manifest["skipped"] == {"quality_3_single_reviewer": 3, "text_changed_after_validation": 1}
     assert manifest["text_license"] == "CC-BY-SA-4.0"
     entry = manifest["items"][0]
+    assert entry["reference_normalization"] == {"footnote_marker_style": None, "footnote_count": 0}
+    assert set(entry["image"]) == {"page"}
     payload = (tmp_path / "pool" / entry["path"]).read_text(encoding="utf-8")
     assert hashlib.sha256(payload.encode("utf-8")).hexdigest() == entry["sha256"]
     record = BenchmarkTranscriptionReferenceRecord.model_validate_json(payload)

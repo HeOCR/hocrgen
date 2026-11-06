@@ -1,4 +1,4 @@
-# Hebrew Wikisource proofread-page source (F8b, F8b3)
+# Hebrew Wikisource proofread-page source (F8b, F8b3, F8b4)
 
 Source id `wikisource_he_proofread`, fetcher `wikisource_proofread`. Source proposal: `HeOCR/hocrgen#103`. Plan: [`planning/tasks/f8-real-source-map.md`](../planning/tasks/f8-real-source-map.md).
 
@@ -48,7 +48,7 @@ Real protection still excludes:
   - the validator is also the proofreader, by username or by user id;
   - its transcription coverage was never recorded (`transcription_coverage_unrecorded`), or is not `full_page` / `partial_page` (`transcription_coverage_unknown`);
   - the pinned wikitext does not carry the recorded quality, or uses markup the converter does not support (`wikitext_unsupported_markup`).
-- **Partial pages are kept** (decision 12). A `partial_page` transcription (for example commentary without the verse above it) is not rejected: the item carries `needs_crop: true`, and F8b4 crops the image to the transcribed region. Until then the F2 reference conversion skips it (`needs_crop`).
+- **Partial pages are cropped, not dropped** (decision 12, F8b4). A `partial_page` transcription (for example commentary without the verse above it) pairs its text with a crop of the page image to the transcribed region (see [Crops](#crops-of-partial-pages-f8b4)). The item carries `needs_crop: true` and its `crop` provenance. A partial page without a crop is rejected and reported: `crop_unrecorded` (no tool crop for the pinned revision and scan), `crop_unresolved` (the tool could not place one) or `crop_geometry_invalid` (the box is not inside the page).
 - Quality 4 is human-attested and **adjudication-eligible**, but only while the pinned plain text equals the text at the validating revision. Any later edit that changes the plain text sets `adjudication_eligible: false` with `text_changed_after_validation`. This holds even when the validator made the edit.
 - Quality 3 is single-reviewer human proofreading (`quality_3_single_reviewer`): never adjudication-eligible.
 - hocrgen never edits or attests Wikisource pages.
@@ -58,10 +58,32 @@ Real protection still excludes:
 Coverage is a scope fact, not an attestation: whether the text covers the whole printed page body. Running heads, page numbers, catchwords and signature marks are outside the body; footnotes and marginal notes are inside it. Each check records:
 
 - `transcription_coverage` (`full_page` or `partial_page`) and, for a partial page, `missing`: what is not transcribed, in words (no page text);
-- `checked_by` (`agent` or `human`), the `checker`, `checked_at` and the `method`;
+- `checked_by` (`tool`, `agent` or `human`), the `checker`, `checked_at` and the `method`;
 - the page revision and the Commons file SHA-1 it was made against. A check made on another revision or file is stale and not applied.
 
-A human check overrides an agent check of the same page. Agent checks never change a quality level or a proofreader's attestation. The fixture pages' checks are in `pages.jsonl`; the inventory's are in [`wikisource_page_checks.json`](./wikisource_page_checks.json).
+A human check overrides an agent check of the same page, and either overrides a tool check. Checks never change a quality level or a proofreader's attestation. The fixture pages' checks are in `pages.jsonl`; the inventory's agent and human checks are in [`wikisource_page_checks.json`](./wikisource_page_checks.json) and its tool checks in [`wikisource_page_tool_checks.json`](./wikisource_page_tool_checks.json).
+
+### Tool checks: OCR used for localisation only (F8b4)
+
+`hocrgen.tools.wikisource_coverage` checks coverage at scale. For each page it runs a local OCR engine, Tesseract with its Hebrew model, called as a subprocess (an operator tool, not a hocrgen dependency), **only to get line and word boxes**. It then aligns the page's human text to the OCR lines and records a check with `checked_by: tool`, the tool version, the method id (`tool_ocr_alignment_v1`), the OCR engine (version, model SHA-256, the pass used) and every threshold. OCR text is never stored, never merged into the reference and never used as text: a check holds boxes, counts and scores only, and a test asserts that no OCR or page text is in it.
+
+- **Alignment.** Both texts are reduced to letters and digits (NFKC, no niqqud or cantillation, Hebrew final forms folded, `[n]` footnote marks dropped). Each OCR line is matched to the transcription by character-trigram votes on one diagonal band, so it matches only where the transcription has the same run of text in the same order, with bounded drift. Lines OCR misreads are recovered when they sit between two aligned lines (in Tesseract's order, or directly above and below in the same column) and the transcription has unmatched text of a fitting length between those lines' matches (`interpolated`). Untranscribed text interleaved with transcribed text has no such gap.
+- **Unread print.** Bands of ink that no readable OCR line covers (a vocalised verse block Tesseract skipped, for example) count as untranscribed text. Thin bands (rules, niqqud rows), narrow ones (scan borders) and tall unbroken ones (illustrations, ornaments) are ignored.
+- **Page furniture.** A short line above all transcribed lines (a running head) and short lines below them (page number, catchword, signature) are ignored, as are narrow, off-centre marks in the top or bottom band of the page (library and digitisation stamps); the crop still excludes them.
+- **Verdict.** `full_page` when the untranscribed text-bearing lines are at most 4% of the text area (10% on a poorly read page, where under half the transcription aligns) with at most one such line and no unread print block; else `partial_page`. When too little of the transcription is located in the image (aligned and interpolated lines span under 60% of it, or aligned lines under 20%), the tool decides nothing (`outcome: alignment_too_poor`) and the page stays undecided.
+- **Passes.** OCR runs on a greyscale 2× upscale of the 960 px Commons render: automatic layout first, then single-column layout, then automatic layout on a shading-flattened image, stopping at the first pass that decides the page with a resolvable crop; the best-aligned pass is kept.
+
+### Crops of partial pages (F8b4)
+
+The crop is the union of the aligned and interpolated line boxes plus a margin (0.6 median line heights), with the margin stopped halfway to any untranscribed region outside the union. It therefore contains all the transcribed text and as little untranscribed text as a rectangle can. Untranscribed regions left inside the box (for example a Latin heading between two Hebrew blocks) are listed as `untranscribed_inside`, in normalised page coordinates, so evaluation can mask them. A crop is `unresolved`, with a reason, when the transcription is not located well enough (`transcription_not_located`: aligned and interpolated lines span under 70% of it) or when untranscribed text inside the box exceeds 15% of its text area (`untranscribed_text_inside_crop`). The tool computes a crop for every page; it is applied only when the deciding check (tool, agent or human) says `partial_page`, so an agent's or human's partial verdict uses the tool's crop.
+
+A page record's `crop` holds `status`, `reason`, `method` (`ocr_alignment_union_box.v1`), `box_normalized` (`[x0, y0, x1, y1]` as fractions of the page), `untranscribed_inside` and `located_by` (the tool, its version, the render URL and SHA-256 it ran on, the OCR engine and the alignment scores). In the packaged snapshot a resolved crop also carries `box_px` (the box in the pinned page image, rounded outward) and `asset`: the cropped sub-image, pinned by SHA-256. The candidate for a partial page is that crop plus the page's unchanged human text; its metadata `crop` names the source page image (path, SHA-256, size), the box, the method and how it was located.
+
+Source health checks every cropped page: the crop asset exists with its SHA-256, the box is inside the page image, and the asset is exactly the page image cut at the box (same size, same pixels). Acquisition runs the same check. A failure gives `crop_asset_missing`, `crop_asset_checksum_mismatch`, `crop_geometry_mismatch` or `crop_pixels_mismatch`.
+
+### Reference normalisation facts (F8b4)
+
+Each item's metadata, and each F2 reference-pool entry, records `reference_normalization`: `footnote_marker_style` is `bracketed_index` when the page has footnotes (each printed mark is written `[n]`, see below) and `null` otherwise, with `footnote_count`. Evaluation can mask the marks from this fact; E2c scoring is unchanged (follow-up: `HeOCR/hocrgen#124`).
 
 ## Wikitext to plain text (`wikisource_plain_text.v2`)
 
@@ -88,7 +110,7 @@ A human check overrides an agent check of the same page. Agent checks never chan
 
 `wikisource_plain_text.v2` keeps v1's text for v1's three fixture pages. It changes v1's text where v1 was wrong against MediaWiki's rendering: block HTML now ends a paragraph, and an editor's in-body `<noinclude>` (for example Bostenay's chapter headings) is kept.
 
-**Not supported yet:** `{{#קטע:...}}`, a labelled-section transclusion of another page's text (13 pages, in the *Qav ve-Naqi* and Ibn Yaḥya Indexes). Rendering it needs the transcluded pages pinned too.
+**Labelled-section transclusion** (F8b4): `{{#קטע:title|section}}` (also `#section:` and `#lst:`) is replaced by that section of the transcluded page, as MediaWiki's Labelled Section Transclusion takes it: the text between `<section begin=name/>` (`<קטע התחלה=name/>`) and the matching end tag, the name matched literally (spaces included), several sections of one name joined, the target's `<noinclude>` parts left out and its `<includeonly>` parts kept. Nested calls are followed. Every transcluded page is pinned by revision id and SHA-256 (`transclusions` on the page record, files under `transcluded/`); a page not pinned, or a section not on it, is rejected. The 13 pages of the *Qav ve-Naqi* and Ibn Yaḥya Indexes that use it now convert. Their Bible text (*Miqra al pi ha-Masora*) adds `מ:דחי` (the first accent reading), `מ:אות-ג` (a large letter), `ר0`, `ר1`, `ר2` (verse-half breaks), `כו"ק` / `קו"כ` (ketiv and qere, both shown) and `מ:מקף אפור`; `מ:טעמי המקרא-סוף` closes the verse block and ends the paragraph. All 13 match MediaWiki's rendering line for line; one is a committed render fixture.
 
 Known transcription conventions that differ from the print, kept as the editors wrote them:
 - normalised punctuation (`.` for the printed mid-dot, `"` for printed `«»`);
@@ -107,7 +129,7 @@ Known transcription conventions that differ from the print, kept as the editors 
   - the quality history and edits after the quality was set;
   - wikitext and text checksums;
   - the image's own checksum and its render source (Commons file SHA-1, page and render URL).
-- `wikitext/`: raw pinned wikitext. `text/`: derived plain text, whose SHA-256 excludes the file's final newline. `assets/`: page renders downscaled to 600 px wide.
+- `wikitext/`: raw pinned wikitext. `transcluded/`: pinned wikitext of transcluded pages (F8b4). `text/`: derived plain text, whose SHA-256 excludes the file's final newline. `assets/`: page renders downscaled to 600 px wide, and the crops of partial pages (`*__crop.png`, F8b4).
 
 Discovery and source health (`discover/source_health.json`) both check the packaged `text/` file that `page_text_ref` points to. The file must exist and must equal the derived text plus one final newline. A failure gives `page_text_file_missing` or `page_text_file_mismatch`. Source health reports admitted Indexes, Index exclusion counts by reason, page exclusion counts, missing or altered assets, and wikitext or text drift. Acquisition fails on an asset checksum mismatch.
 
@@ -116,6 +138,7 @@ Discovery and source health (`discover/source_health.json`) both check the packa
 `hocrgen.fetchers.wikisource.write_wikisource_reference_pool(source, bundle, out_dir)` writes a `benchmark_transcription_reference.v1` file for each adjudication-eligible quality-4 page, plus `reference_pool.json` (`wikisource_reference_pool.v1`):
 
 - `review.status` is `reviewed`, with the proofreader and validator as `wikisource:<user>` reviewers;
+- each pool entry records the page's `reference_normalization` and the image it pairs with: the page image, or for a partial page the crop's box on it (F8b4);
 - `adjudicator` is null, and each pool entry is `needs_adjudication`;
 - lines are rendered paragraphs.
 
@@ -125,9 +148,9 @@ It never touches `benchmark_v1`. Adjudication, and any benchmark membership, are
 PYTHONPATH=src python -c 'from pathlib import Path; from hocrgen.config.loader import load_and_validate_bundle; from hocrgen.fetchers.wikisource import write_wikisource_reference_pool; b = load_and_validate_bundle(); s = next(x for x in b.source_registry.sources if x.id == "wikisource_he_proofread"); print(write_wikisource_reference_pool(s, b, Path("wikisource_reference_pool")))'
 ```
 
-On the fixture, one page converts (Seliḥot p. 34). Bostenay p. 47 is skipped because its validator added a missing space 14 seconds after validating; Hyman p. 41 is skipped as quality 3.
+On the fixture, one page converts (Seliḥot p. 34). Bostenay p. 47 is skipped because its validator added a missing space 14 seconds after validating; Hyman p. 41 and the two cropped pages (Buber's *Tanhuma* p. 233, *Sippurei Ma'asiyot* p. 11, F8b4) are skipped as quality 3.
 
-## Operator-only full inventory (F8b2, F8b3)
+## Operator-only full inventory (F8b2, F8b3, F8b4)
 
 `hocrgen.tools.wikisource_inventory` runs every `מפתח:` Index on he.wikisource.org through the gates above. It is an operator tool: it calls the Wikisource, Commons, Wikipedia and Wikidata APIs, with a contact User-Agent, `maxlag` and a 0.5 s delay between uncached requests. CI never runs it, and it never edits any wiki.
 
@@ -142,11 +165,20 @@ For each Index it records:
 The evidence file records each fact with its source URL (Wikidata, with the National Library of Israel authority id), `recorded_by` (`agent` or `human`), the recorder and the date. A recorded fact only fills a gap the tool left; it never replaces evidence the tool found. Facts looked for and not found are listed under `not_recorded` with the reason. The render checks recorded in the packaged snapshot, and the page render checks in [`wikisource_page_checks.json`](./wikisource_page_checks.json) (`--page-checks`), are applied. Pages of admitted Indexes are pinned into an operator snapshot root and run through `page_exclusion_reasons` and `page_attestation`.
 
 ```bash
+# 1. pin every page (and its transcluded pages) into the operator snapshot
 PYTHONPATH=src python -m hocrgen.tools.wikisource_inventory --work-dir <operator folder outside the repo> --checked-at 2026-11-06 \
+  --index-evidence docs/wikisource_index_evidence.json --page-checks docs/wikisource_page_checks.json
+# 2. tool coverage checks and crops (F8b4; needs a local tesseract with the heb model; --capture fetches the renders)
+PYTHONPATH=src python -m hocrgen.tools.wikisource_coverage --inventory <work-dir>/wikisource_inventory.json --snapshot <work-dir>/snapshot \
+  --renders <operator folder> --ocr-cache <operator folder> --capture --checked-at 2026-11-06 \
+  --out <operator folder>/tool_checks.json --compact-out docs/wikisource_page_tool_checks.json
+# 3. the committed summary, with agent, human and tool checks
+PYTHONPATH=src python -m hocrgen.tools.wikisource_inventory --work-dir <work-dir> --checked-at 2026-11-06 \
   --index-evidence docs/wikisource_index_evidence.json --page-checks docs/wikisource_page_checks.json \
+  --page-checks docs/wikisource_page_tool_checks.json \
   --summary-json docs/wikisource_index_inventory.json --summary-md docs/wikisource_index_inventory.md
 PYTHONPATH=src python -m hocrgen.tools.wikisource_render_check --inventory <work-dir>/wikisource_inventory.json \
   --snapshot <work-dir>/snapshot --renders <operator folder> --capture --report <operator folder>/render_report.json
 ```
 
-The raw API cache, the pinned page wikitext and text, the MediaWiki renderings and the full `wikisource_inventory.json` stay in the operator folder. Only the per-Index summary is committed: [`wikisource_index_inventory.md`](./wikisource_index_inventory.md) and its JSON, with ids, rights evidence, gate reasons and page counts, but no page text or images. A test replays every committed record through `index_exclusion_reasons` and re-renders the markdown.
+The raw API cache, the pinned page wikitext and text, the MediaWiki renderings, the Commons page renders, the OCR output and the full `wikisource_inventory.json` and tool checks stay in the operator folder. The committed tool checks hold geometry and scores only, no OCR or page text. Only the per-Index summary is committed: [`wikisource_index_inventory.md`](./wikisource_index_inventory.md) and its JSON, with ids, rights evidence, gate reasons and page counts, but no page text or images. A test replays every committed record through `index_exclusion_reasons` and re-renders the markdown.

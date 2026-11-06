@@ -80,25 +80,49 @@
           "4": 9
         },
         "eligible": {
-          "3": 9,
+          "3": 126,
           "4": 9
         },
-        "needs_crop": {
+        "cropped": {
+          "3": 3,
+          "4": 0
+        },
+        "cropped_review_recommended": {
           "3": 0,
           "4": 0
         },
-        "pending_coverage_only": {
-          "3": 120,
+        "crop_unresolved": {
+          "3": 0,
           "4": 0
         },
+        "needs_crop": {
+          "3": 3,
+          "4": 0
+        },
+        "pending_coverage_only": {
+          "3": 0,
+          "4": 0
+        },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 5,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 6,
         "reference_eligible_now_q4": 6,
         "render_checks": {
-          "checked": 18,
-          "full_page": 18,
-          "partial_page": 0,
+          "by_agent": 18,
+          "by_tool": 120,
+          "checked": 138,
+          "full_page": 135,
+          "partial_page": 3,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -178,7 +202,19 @@
           "4": 0
         },
         "eligible": {
-          "3": 9,
+          "3": 87,
+          "4": 0
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
           "4": 0
         },
         "needs_crop": {
@@ -186,17 +222,29 @@
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 78,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 2,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 9,
-          "full_page": 9,
+          "by_agent": 9,
+          "by_tool": 78,
+          "checked": 87,
+          "full_page": 87,
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -277,25 +325,49 @@
           "4": 1
         },
         "eligible": {
-          "3": 9,
+          "3": 71,
           "4": 1
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
         },
         "needs_crop": {
           "3": 0,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 62,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 1,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 1,
         "reference_eligible_now_q4": 1,
         "render_checks": {
-          "checked": 10,
-          "full_page": 10,
+          "by_agent": 10,
+          "by_tool": 62,
+          "checked": 72,
+          "full_page": 72,
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -376,6 +448,18 @@
           "4": 0
         },
         "eligible": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
@@ -384,17 +468,28 @@
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 1,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
+          "by_tool": 1,
+          "checked": 1,
+          "full_page": 1,
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -477,6 +572,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -485,6 +592,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -493,6 +609,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -574,6 +691,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -582,6 +711,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -590,6 +728,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -671,6 +810,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -679,6 +830,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -687,6 +847,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -766,6 +927,18 @@
           "4": 0
         },
         "eligible": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
@@ -774,17 +947,28 @@
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 1,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
+          "by_tool": 1,
+          "checked": 1,
+          "full_page": 1,
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -868,22 +1052,45 @@
           "3": 0,
           "4": 0
         },
-        "needs_crop": {
-          "3": 0,
-          "4": 0
-        },
-        "pending_coverage_only": {
+        "cropped": {
           "3": 1,
           "4": 0
         },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "needs_crop": {
+          "3": 1,
+          "4": 0
+        },
+        "pending_coverage_only": {
+          "3": 0,
+          "4": 0
+        },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
+          "by_tool": 1,
+          "checked": 1,
           "full_page": 0,
-          "partial_page": 0,
+          "partial_page": 1,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1036,6 +1243,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -1044,6 +1263,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -1052,6 +1280,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1294,25 +1523,58 @@
           "4": 0
         },
         "eligible": {
-          "3": 7,
-          "4": 0
-        },
-        "needs_crop": {
-          "3": 2,
-          "4": 0
-        },
-        "pending_coverage_only": {
           "3": 43,
           "4": 0
         },
+        "cropped": {
+          "3": 7,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 1,
+          "4": 0
+        },
+        "needs_crop": {
+          "3": 8,
+          "4": 0
+        },
+        "pending_coverage_only": {
+          "3": 1,
+          "4": 0
+        },
+        "coverage_unresolved": {
+          "3": 1,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 50,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 9,
-          "full_page": 7,
-          "partial_page": 2,
-          "stale": 0
+          "by_agent": 9,
+          "by_tool": 42,
+          "checked": 51,
+          "full_page": 43,
+          "partial_page": 8,
+          "stale": 0,
+          "tool_undecided": 1
         },
+        "crop_unresolved_pages": [
+          {
+            "page_title": "עמוד:Biblia Hebraica.pdf/461",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "transcription_not_located",
+            "checked_by": "tool"
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1396,6 +1658,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -1404,6 +1678,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -1412,6 +1695,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1573,25 +1857,49 @@
           "4": 2
         },
         "eligible": {
-          "3": 8,
+          "3": 65,
           "4": 2
+        },
+        "cropped": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
         },
         "needs_crop": {
           "3": 1,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 57,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 2,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 11,
-          "full_page": 10,
+          "by_agent": 11,
+          "by_tool": 57,
+          "checked": 68,
+          "full_page": 67,
           "partial_page": 1,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1735,25 +2043,50 @@
           "4": 0
         },
         "eligible": {
-          "3": 8,
+          "3": 34,
+          "4": 0
+        },
+        "cropped": {
+          "3": 2,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
           "4": 0
         },
         "needs_crop": {
-          "3": 1,
+          "3": 2,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 29,
+          "3": 2,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 2,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 7,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 9,
-          "full_page": 8,
-          "partial_page": 1,
-          "stale": 0
+          "by_agent": 9,
+          "by_tool": 27,
+          "checked": 36,
+          "full_page": 34,
+          "partial_page": 2,
+          "stale": 0,
+          "tool_undecided": 2
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1830,6 +2163,18 @@
           "4": 0
         },
         "eligible": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
@@ -1838,17 +2183,28 @@
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 1,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
+          "by_tool": 1,
+          "checked": 1,
+          "full_page": 1,
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -1935,25 +2291,49 @@
           "4": 0
         },
         "eligible": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
         "needs_crop": {
-          "3": 0,
+          "3": 1,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 3,
+          "3": 1,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 1,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 1,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
-          "partial_page": 0,
-          "stale": 0
+          "by_tool": 2,
+          "checked": 2,
+          "full_page": 1,
+          "partial_page": 1,
+          "stale": 0,
+          "tool_undecided": 1
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2031,6 +2411,18 @@
           "4": 0
         },
         "eligible": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
@@ -2039,17 +2431,28 @@
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 1,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
+          "by_tool": 1,
+          "checked": 1,
+          "full_page": 1,
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2131,6 +2534,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -2139,6 +2554,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -2147,6 +2571,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2279,25 +2704,49 @@
           "4": 6
         },
         "eligible": {
-          "3": 0,
+          "3": 5,
           "4": 5
+        },
+        "cropped": {
+          "3": 0,
+          "4": 1
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
         },
         "needs_crop": {
           "3": 0,
           "4": 1
         },
         "pending_coverage_only": {
-          "3": 5,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 1,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 5,
         "reference_eligible_now_q4": 5,
         "render_checks": {
-          "checked": 6,
-          "full_page": 5,
+          "by_agent": 6,
+          "by_tool": 5,
+          "checked": 11,
+          "full_page": 10,
           "partial_page": 1,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2367,25 +2816,49 @@
           "4": 2
         },
         "eligible": {
-          "3": 0,
+          "3": 1,
           "4": 2
         },
-        "needs_crop": {
+        "cropped": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped_review_recommended": {
           "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "needs_crop": {
+          "3": 1,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 2,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 2,
         "reference_eligible_now_q4": 2,
         "render_checks": {
-          "checked": 2,
-          "full_page": 2,
-          "partial_page": 0,
+          "by_agent": 2,
+          "by_tool": 5,
+          "checked": 7,
+          "full_page": 6,
+          "partial_page": 1,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {
           "quality_attribute_mismatch": 3
         },
@@ -2591,6 +3064,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -2599,6 +3084,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -2607,6 +3101,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -2706,25 +3201,49 @@
           "4": 5
         },
         "eligible": {
-          "3": 0,
+          "3": 2,
           "4": 4
         },
-        "needs_crop": {
+        "cropped": {
+          "3": 4,
+          "4": 1
+        },
+        "cropped_review_recommended": {
+          "3": 4,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
+          "4": 0
+        },
+        "needs_crop": {
+          "3": 4,
           "4": 1
         },
         "pending_coverage_only": {
-          "3": 6,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 3,
-        "reference_eligible_now_q4": 2,
+        "reference_eligible_now_q4": 3,
         "render_checks": {
-          "checked": 5,
-          "full_page": 4,
-          "partial_page": 1,
+          "by_agent": 5,
+          "by_tool": 6,
+          "checked": 11,
+          "full_page": 6,
+          "partial_page": 5,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -4020,6 +4539,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -4028,6 +4559,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -4036,6 +4576,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -4116,6 +4657,18 @@
           "4": 0
         },
         "eligible": {
+          "3": 5,
+          "4": 0
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
@@ -4124,17 +4677,28 @@
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 5,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
+          "by_tool": 5,
+          "checked": 5,
+          "full_page": 5,
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -4388,6 +4952,18 @@
           "4": 0
         },
         "eligible": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
@@ -4396,17 +4972,29 @@
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 3,
+          "3": 2,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 2,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
+          "by_tool": 1,
+          "checked": 1,
+          "full_page": 1,
           "partial_page": 0,
-          "stale": 0
+          "stale": 0,
+          "tool_undecided": 2
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -4486,6 +5074,18 @@
           "4": 0
         },
         "eligible": {
+          "3": 2,
+          "4": 0
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
@@ -4494,17 +5094,29 @@
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 4,
+          "3": 2,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 2,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
+          "by_tool": 2,
+          "checked": 2,
+          "full_page": 2,
           "partial_page": 0,
-          "stale": 0
+          "stale": 0,
+          "tool_undecided": 2
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -4657,6 +5269,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -4665,6 +5289,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -4673,6 +5306,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -4758,25 +5392,49 @@
           "4": 0
         },
         "eligible": {
-          "3": 8,
+          "3": 186,
+          "4": 0
+        },
+        "cropped": {
+          "3": 2,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
           "4": 0
         },
         "needs_crop": {
-          "3": 1,
+          "3": 2,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 179,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 9,
-          "full_page": 8,
-          "partial_page": 1,
+          "by_agent": 9,
+          "by_tool": 179,
+          "checked": 188,
+          "full_page": 186,
+          "partial_page": 2,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -5299,25 +5957,226 @@
           "4": 2
         },
         "eligible": {
-          "3": 1,
+          "3": 8,
+          "4": 1
+        },
+        "cropped": {
+          "3": 46,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 29,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 24,
           "4": 1
         },
         "needs_crop": {
-          "3": 7,
+          "3": 70,
           "4": 1
         },
         "pending_coverage_only": {
-          "3": 81,
+          "3": 11,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 11,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 4,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 2,
         "reference_eligible_now_q4": 1,
         "render_checks": {
-          "checked": 11,
-          "full_page": 2,
-          "partial_page": 9,
-          "stale": 0
+          "by_agent": 11,
+          "by_tool": 70,
+          "checked": 81,
+          "full_page": 9,
+          "partial_page": 72,
+          "stale": 0,
+          "tool_undecided": 11
         },
+        "crop_unresolved_pages": [
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/105",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/107",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "transcription_not_located",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/109",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/111",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/112",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/118",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/121",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/125",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/127",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/133",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/135",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/141",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/147",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/155",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/443",
+            "quality": 4,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "agent"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/476",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/491",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/492",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/79",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/89",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/91",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/95",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/96",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/97",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "transcription_not_located",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:SD Luzzatto - Commentary on Bereshit.pdf/99",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          }
+        ],
         "rejected_by_first_reason": {
           "page_text_empty": 1
         },
@@ -5485,6 +6344,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -5493,6 +6364,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -5501,6 +6381,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -5645,22 +6526,75 @@
           "3": 1,
           "4": 0
         },
+        "cropped": {
+          "3": 50,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 4,
+          "4": 0
+        },
         "needs_crop": {
-          "3": 8,
+          "3": 54,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 46,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 2,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 9,
+          "by_agent": 9,
+          "by_tool": 46,
+          "checked": 55,
           "full_page": 1,
-          "partial_page": 8,
+          "partial_page": 54,
           "stale": 0
         },
+        "crop_unresolved_pages": [
+          {
+            "page_title": "עמוד:Salomon Buber. Midrash Tanhuma.1885.pdf/227",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:Salomon Buber. Midrash Tanhuma.1885.pdf/239",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:Salomon Buber. Midrash Tanhuma.1885.pdf/245",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:Salomon Buber. Midrash Tanhuma.1885.pdf/256",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -5751,6 +6685,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -5759,6 +6705,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -5767,6 +6722,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -5860,6 +6816,18 @@
           "3": 0,
           "4": 1
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -5868,14 +6836,26 @@
           "3": 1,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 1,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
+          "by_agent": 1,
           "checked": 1,
           "full_page": 1,
           "partial_page": 0,
-          "stale": 0
+          "stale": 0,
+          "tool_undecided": 1
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -5967,6 +6947,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -5975,14 +6967,25 @@
           "3": 1,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 1,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
           "checked": 0,
           "full_page": 0,
           "partial_page": 0,
-          "stale": 0
+          "stale": 0,
+          "tool_undecided": 1
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -6070,25 +7073,49 @@
           "4": 0
         },
         "eligible": {
+          "3": 6,
+          "4": 0
+        },
+        "cropped": {
+          "3": 2,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
         "needs_crop": {
-          "3": 0,
+          "3": 2,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 10,
+          "3": 2,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 2,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
-          "partial_page": 0,
-          "stale": 0
+          "by_tool": 8,
+          "checked": 8,
+          "full_page": 6,
+          "partial_page": 2,
+          "stale": 0,
+          "tool_undecided": 2
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -6176,25 +7203,49 @@
           "4": 0
         },
         "eligible": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
         "needs_crop": {
-          "3": 0,
+          "3": 1,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 3,
+          "3": 1,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 1,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
-          "partial_page": 0,
-          "stale": 0
+          "by_tool": 2,
+          "checked": 2,
+          "full_page": 1,
+          "partial_page": 1,
+          "stale": 0,
+          "tool_undecided": 1
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -6284,22 +7335,45 @@
           "3": 0,
           "4": 0
         },
-        "needs_crop": {
-          "3": 0,
-          "4": 0
-        },
-        "pending_coverage_only": {
+        "cropped": {
           "3": 1,
           "4": 0
         },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "needs_crop": {
+          "3": 1,
+          "4": 0
+        },
+        "pending_coverage_only": {
+          "3": 0,
+          "4": 0
+        },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
+          "by_tool": 1,
+          "checked": 1,
           "full_page": 0,
-          "partial_page": 0,
+          "partial_page": 1,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -6387,6 +7461,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -6395,6 +7481,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -6403,6 +7498,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -6490,25 +7586,49 @@
           "4": 0
         },
         "eligible": {
-          "3": 9,
+          "3": 32,
           "4": 0
         },
-        "needs_crop": {
+        "cropped": {
+          "3": 2,
+          "4": 0
+        },
+        "cropped_review_recommended": {
           "3": 0,
           "4": 0
         },
-        "pending_coverage_only": {
-          "3": 25,
+        "crop_unresolved": {
+          "3": 0,
           "4": 0
         },
+        "needs_crop": {
+          "3": 2,
+          "4": 0
+        },
+        "pending_coverage_only": {
+          "3": 0,
+          "4": 0
+        },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 3,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 9,
-          "full_page": 9,
-          "partial_page": 0,
+          "by_agent": 9,
+          "by_tool": 25,
+          "checked": 34,
+          "full_page": 32,
+          "partial_page": 2,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -6663,6 +7783,18 @@
           "4": 0
         },
         "eligible": {
+          "3": 10,
+          "4": 0
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
@@ -6671,17 +7803,28 @@
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 10,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 1,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
+          "by_tool": 10,
+          "checked": 10,
+          "full_page": 10,
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -6773,25 +7916,49 @@
           "4": 0
         },
         "eligible": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 1,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
         "needs_crop": {
-          "3": 0,
+          "3": 1,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 3,
+          "3": 1,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 1,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
-          "partial_page": 0,
-          "stale": 0
+          "by_tool": 2,
+          "checked": 2,
+          "full_page": 1,
+          "partial_page": 1,
+          "stale": 0,
+          "tool_undecided": 1
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7136,22 +8303,47 @@
           "3": 0,
           "4": 2
         },
-        "needs_crop": {
+        "cropped": {
+          "3": 5,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 1,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
-        "pending_coverage_only": {
-          "3": 6,
+        "needs_crop": {
+          "3": 5,
           "4": 0
         },
+        "pending_coverage_only": {
+          "3": 1,
+          "4": 0
+        },
+        "coverage_unresolved": {
+          "3": 1,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 3,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 1,
         "reference_eligible_now_q4": 1,
         "render_checks": {
-          "checked": 2,
-          "full_page": 2,
-          "partial_page": 0,
-          "stale": 0
+          "by_agent": 2,
+          "by_tool": 17,
+          "checked": 19,
+          "full_page": 13,
+          "partial_page": 6,
+          "stale": 0,
+          "tool_undecided": 2
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {
           "quality_attribute_mismatch": 13
         },
@@ -7385,25 +8577,64 @@
           "4": 0
         },
         "eligible": {
+          "3": 10,
+          "4": 0
+        },
+        "cropped": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped_review_recommended": {
           "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 2,
           "4": 0
         },
         "needs_crop": {
-          "3": 0,
+          "3": 3,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 29,
+          "3": 16,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 16,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 13,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
-          "partial_page": 0,
-          "stale": 0
+          "by_tool": 13,
+          "checked": 13,
+          "full_page": 10,
+          "partial_page": 3,
+          "stale": 0,
+          "tool_undecided": 16
         },
+        "crop_unresolved_pages": [
+          {
+            "page_title": "עמוד:Siddur Torah Ohr (Schulzinger Bros. 1940).pdf/194",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "transcription_not_located",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:Siddur Torah Ohr (Schulzinger Bros. 1940).pdf/25",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "transcription_not_located",
+            "checked_by": "tool"
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7649,25 +8880,93 @@
           "4": 3
         },
         "eligible": {
-          "3": 7,
+          "3": 39,
           "4": 2
         },
-        "needs_crop": {
+        "cropped": {
+          "3": 14,
+          "4": 1
+        },
+        "cropped_review_recommended": {
           "3": 2,
           "4": 1
         },
-        "pending_coverage_only": {
-          "3": 54,
+        "crop_unresolved": {
+          "3": 6,
           "4": 0
         },
-        "reference_eligible_q4": 3,
-        "reference_eligible_now_q4": 2,
-        "render_checks": {
-          "checked": 12,
-          "full_page": 9,
-          "partial_page": 3,
-          "stale": 0
+        "needs_crop": {
+          "3": 20,
+          "4": 1
         },
+        "pending_coverage_only": {
+          "3": 4,
+          "4": 0
+        },
+        "coverage_unresolved": {
+          "3": 4,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 7,
+          "4": 0
+        },
+        "transcluding_pages": 0,
+        "reference_eligible_q4": 3,
+        "reference_eligible_now_q4": 3,
+        "render_checks": {
+          "by_agent": 12,
+          "by_tool": 50,
+          "checked": 62,
+          "full_page": 41,
+          "partial_page": 21,
+          "stale": 0,
+          "tool_undecided": 4
+        },
+        "crop_unresolved_pages": [
+          {
+            "page_title": "עמוד:The Seliḥot for the Entire Year.pdf/37",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "transcription_not_located",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:The Seliḥot for the Entire Year.pdf/39",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "transcription_not_located",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:The Seliḥot for the Entire Year.pdf/49",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "transcription_not_located",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:The Seliḥot for the Entire Year.pdf/58",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "transcription_not_located",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:The Seliḥot for the Entire Year.pdf/61",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "transcription_not_located",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:The Seliḥot for the Entire Year.pdf/67",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "transcription_not_located",
+            "checked_by": "tool"
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7744,25 +9043,56 @@
           "4": 0
         },
         "eligible": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped": {
+          "3": 3,
+          "4": 0
+        },
+        "cropped_review_recommended": {
           "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 1,
           "4": 0
         },
         "needs_crop": {
-          "3": 0,
+          "3": 4,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 5,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 2,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
-          "partial_page": 0,
+          "by_tool": 5,
+          "checked": 5,
+          "full_page": 1,
+          "partial_page": 4,
           "stale": 0
         },
+        "crop_unresolved_pages": [
+          {
+            "page_title": "עמוד:Tosefta Moed edited by Zuckermandel.pdf/117",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7843,22 +9173,60 @@
           "3": 0,
           "4": 0
         },
-        "needs_crop": {
+        "cropped": {
+          "3": 2,
+          "4": 0
+        },
+        "cropped_review_recommended": {
           "3": 0,
           "4": 0
         },
-        "pending_coverage_only": {
+        "crop_unresolved": {
+          "3": 2,
+          "4": 0
+        },
+        "needs_crop": {
           "3": 4,
           "4": 0
         },
+        "pending_coverage_only": {
+          "3": 0,
+          "4": 0
+        },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
+          "by_tool": 4,
+          "checked": 4,
           "full_page": 0,
-          "partial_page": 0,
+          "partial_page": 4,
           "stale": 0
         },
+        "crop_unresolved_pages": [
+          {
+            "page_title": "עמוד:Tosefta-1-Zeraim-Zuckermandel.djvu/33",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:Tosefta-1-Zeraim-Zuckermandel.djvu/35",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -7939,22 +9307,45 @@
           "3": 0,
           "4": 0
         },
-        "needs_crop": {
-          "3": 0,
-          "4": 0
-        },
-        "pending_coverage_only": {
+        "cropped": {
           "3": 1,
           "4": 0
         },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "needs_crop": {
+          "3": 1,
+          "4": 0
+        },
+        "pending_coverage_only": {
+          "3": 0,
+          "4": 0
+        },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
+          "by_tool": 1,
+          "checked": 1,
           "full_page": 0,
-          "partial_page": 0,
+          "partial_page": 1,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -8293,25 +9684,63 @@
           "4": 0
         },
         "eligible": {
+          "3": 25,
+          "4": 0
+        },
+        "cropped": {
           "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 2,
           "4": 0
         },
         "needs_crop": {
-          "3": 0,
+          "3": 2,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 27,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
-          "partial_page": 0,
+          "by_tool": 27,
+          "checked": 27,
+          "full_page": 25,
+          "partial_page": 2,
           "stale": 0
         },
+        "crop_unresolved_pages": [
+          {
+            "page_title": "עמוד:בממלכת כוזר היהודית.pdf/7",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "transcription_not_located",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:בממלכת כוזר היהודית.pdf/8",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -8387,6 +9816,18 @@
           "4": 0
         },
         "eligible": {
+          "3": 3,
+          "4": 0
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
@@ -8395,17 +9836,28 @@
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 3,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
+          "by_tool": 3,
+          "checked": 3,
+          "full_page": 3,
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -8827,25 +10279,58 @@
           "4": 2
         },
         "eligible": {
-          "3": 0,
+          "3": 13,
           "4": 2
         },
+        "cropped": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 1,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 1,
+          "4": 0
+        },
         "needs_crop": {
-          "3": 0,
+          "3": 2,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 16,
+          "3": 1,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 1,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 1,
         "reference_eligible_now_q4": 1,
         "render_checks": {
-          "checked": 2,
-          "full_page": 2,
-          "partial_page": 0,
-          "stale": 0
+          "by_agent": 2,
+          "by_tool": 15,
+          "checked": 17,
+          "full_page": 15,
+          "partial_page": 2,
+          "stale": 0,
+          "tool_undecided": 1
         },
+        "crop_unresolved_pages": [
+          {
+            "page_title": "עמוד:ויכוח על חכמת הקבלה.pdf/8",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "transcription_not_located",
+            "checked_by": "tool"
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -8920,6 +10405,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -8928,6 +10425,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -8936,6 +10442,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -9012,25 +10519,48 @@
           "4": 0
         },
         "eligible": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
         "needs_crop": {
-          "3": 0,
+          "3": 1,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 2,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
-          "partial_page": 0,
+          "by_tool": 2,
+          "checked": 2,
+          "full_page": 1,
+          "partial_page": 1,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -9158,25 +10688,48 @@
           "4": 0
         },
         "eligible": {
+          "3": 2,
+          "4": 0
+        },
+        "cropped": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
         "needs_crop": {
-          "3": 0,
+          "3": 1,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 3,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
-          "partial_page": 0,
+          "by_tool": 3,
+          "checked": 3,
+          "full_page": 2,
+          "partial_page": 1,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -9326,6 +10879,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -9334,6 +10899,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -9342,6 +10916,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -9592,25 +11167,49 @@
           "4": 12
         },
         "eligible": {
-          "3": 0,
+          "3": 22,
           "4": 12
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
         },
         "needs_crop": {
           "3": 0,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 22,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 5,
+          "4": 2
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 4,
         "reference_eligible_now_q4": 4,
         "render_checks": {
-          "checked": 12,
-          "full_page": 12,
+          "by_agent": 12,
+          "by_tool": 22,
+          "checked": 34,
+          "full_page": 34,
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -9682,10 +11281,22 @@
       "page_gate": {
         "checked": 12,
         "converts": {
-          "3": 0,
+          "3": 12,
           "4": 0
         },
         "eligible": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
@@ -9694,26 +11305,30 @@
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 0,
+          "3": 12,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 12,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 1,
+          "4": 0
+        },
+        "transcluding_pages": 12,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
           "checked": 0,
           "full_page": 0,
           "partial_page": 0,
-          "stale": 0
+          "stale": 0,
+          "tool_undecided": 12
         },
-        "rejected_by_first_reason": {
-          "wikitext_unsupported_markup": 12
-        },
-        "unsupported_markup": {
-          "unsupported wikitext template: #קטע:משלי ג/טעמים": 4,
-          "unsupported wikitext template: #קטע:פירוש קב ונקי על ספר משלי/א": 5,
-          "unsupported wikitext template: #קטע:פירוש קב ונקי על ספר משלי/ב": 2,
-          "unsupported wikitext template: #קטע:פירוש קב ונקי על ספר משלי/הקדמה": 1
-        }
+        "crop_unresolved_pages": [],
+        "rejected_by_first_reason": {},
+        "unsupported_markup": {}
       }
     },
     {
@@ -9791,22 +11406,54 @@
           "3": 0,
           "4": 0
         },
-        "needs_crop": {
+        "cropped": {
+          "3": 3,
+          "4": 0
+        },
+        "cropped_review_recommended": {
           "3": 0,
           "4": 0
         },
-        "pending_coverage_only": {
-          "3": 15,
+        "crop_unresolved": {
+          "3": 1,
           "4": 0
         },
+        "needs_crop": {
+          "3": 4,
+          "4": 0
+        },
+        "pending_coverage_only": {
+          "3": 11,
+          "4": 0
+        },
+        "coverage_unresolved": {
+          "3": 11,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 5,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
+          "by_tool": 4,
+          "checked": 4,
           "full_page": 0,
-          "partial_page": 0,
-          "stale": 0
+          "partial_page": 4,
+          "stale": 0,
+          "tool_undecided": 11
         },
+        "crop_unresolved_pages": [
+          {
+            "page_title": "עמוד:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf/17",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "transcription_not_located",
+            "checked_by": "tool"
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -9885,6 +11532,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -9893,6 +11552,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -9901,6 +11569,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -9977,6 +11646,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -9985,6 +11666,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -9993,6 +11683,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -10226,25 +11917,70 @@
           "4": 0
         },
         "eligible": {
+          "3": 6,
+          "4": 0
+        },
+        "cropped": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped_review_recommended": {
           "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 3,
           "4": 0
         },
         "needs_crop": {
-          "3": 0,
+          "3": 4,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 10,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 3,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
-          "partial_page": 0,
+          "by_tool": 10,
+          "checked": 10,
+          "full_page": 6,
+          "partial_page": 4,
           "stale": 0
         },
+        "crop_unresolved_pages": [
+          {
+            "page_title": "עמוד:משפטי הטעמים רעדעלהיים תקס\"ח.pdf/14",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "transcription_not_located",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:משפטי הטעמים רעדעלהיים תקס\"ח.pdf/15",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:משפטי הטעמים רעדעלהיים תקס\"ח.pdf/5",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -10335,25 +12071,93 @@
           "4": 0
         },
         "eligible": {
+          "3": 19,
+          "4": 0
+        },
+        "cropped": {
+          "3": 28,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 12,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 6,
           "4": 0
         },
         "needs_crop": {
-          "3": 3,
+          "3": 34,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 46,
+          "3": 2,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 2,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 9,
-          "full_page": 6,
-          "partial_page": 3,
-          "stale": 0
+          "by_agent": 9,
+          "by_tool": 44,
+          "checked": 53,
+          "full_page": 19,
+          "partial_page": 34,
+          "stale": 0,
+          "tool_undecided": 2
         },
+        "crop_unresolved_pages": [
+          {
+            "page_title": "עמוד:סיפורי המעשיות - נחמן בן שמחה - לעמבערג - תרסב.pdf/10",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:סיפורי המעשיות - נחמן בן שמחה - לעמבערג - תרסב.pdf/12",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:סיפורי המעשיות - נחמן בן שמחה - לעמבערג - תרסב.pdf/174",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:סיפורי המעשיות - נחמן בן שמחה - לעמבערג - תרסב.pdf/22",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:סיפורי המעשיות - נחמן בן שמחה - לעמבערג - תרסב.pdf/27",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:סיפורי המעשיות - נחמן בן שמחה - לעמבערג - תרסב.pdf/29",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -10501,22 +12305,96 @@
           "3": 0,
           "4": 0
         },
-        "needs_crop": {
+        "cropped": {
+          "3": 7,
+          "4": 1
+        },
+        "cropped_review_recommended": {
           "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 7,
+          "4": 0
+        },
+        "needs_crop": {
+          "3": 14,
           "4": 1
         },
         "pending_coverage_only": {
-          "3": 14,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 1,
-        "reference_eligible_now_q4": 0,
+        "reference_eligible_now_q4": 1,
         "render_checks": {
-          "checked": 1,
+          "by_agent": 1,
+          "by_tool": 14,
+          "checked": 15,
           "full_page": 0,
-          "partial_page": 1,
+          "partial_page": 15,
           "stale": 0
         },
+        "crop_unresolved_pages": [
+          {
+            "page_title": "עמוד:ספר המספר.pdf/1",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:ספר המספר.pdf/11",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:ספר המספר.pdf/13",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:ספר המספר.pdf/4",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:ספר המספר.pdf/5",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:ספר המספר.pdf/6",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          },
+          {
+            "page_title": "עמוד:ספר המספר.pdf/7",
+            "quality": 3,
+            "reason": "crop_unresolved",
+            "detail": "untranscribed_text_inside_crop",
+            "checked_by": "tool"
+          }
+        ],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -10608,6 +12486,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -10616,6 +12506,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -10624,6 +12523,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -10706,6 +12606,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -10714,6 +12626,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -10722,6 +12643,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -11126,10 +13048,22 @@
       "page_gate": {
         "checked": 2,
         "converts": {
-          "3": 1,
+          "3": 2,
           "4": 0
         },
         "eligible": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
@@ -11141,20 +13075,28 @@
           "3": 1,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 1,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 1,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
+          "by_tool": 1,
+          "checked": 1,
+          "full_page": 1,
           "partial_page": 0,
-          "stale": 0
+          "stale": 0,
+          "tool_undecided": 1
         },
-        "rejected_by_first_reason": {
-          "wikitext_unsupported_markup": 1
-        },
-        "unsupported_markup": {
-          "unsupported wikitext template: #קטע:משלי א/טעמים": 1
-        }
+        "crop_unresolved_pages": [],
+        "rejected_by_first_reason": {},
+        "unsupported_markup": {}
       }
     },
     {
@@ -11359,25 +13301,49 @@
           "4": 0
         },
         "eligible": {
+          "3": 2,
+          "4": 0
+        },
+        "cropped": {
+          "3": 3,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 2,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
         "needs_crop": {
-          "3": 0,
+          "3": 3,
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 6,
+          "3": 1,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 1,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
-          "partial_page": 0,
-          "stale": 0
+          "by_tool": 5,
+          "checked": 5,
+          "full_page": 2,
+          "partial_page": 3,
+          "stale": 0,
+          "tool_undecided": 1
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -11594,6 +13560,18 @@
           "4": 0
         },
         "eligible": {
+          "3": 1,
+          "4": 0
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
           "3": 0,
           "4": 0
         },
@@ -11602,17 +13580,28 @@
           "4": 0
         },
         "pending_coverage_only": {
-          "3": 1,
+          "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
-          "checked": 0,
-          "full_page": 0,
+          "by_tool": 1,
+          "checked": 1,
+          "full_page": 1,
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }
@@ -11969,6 +13958,18 @@
           "3": 0,
           "4": 0
         },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
         "needs_crop": {
           "3": 0,
           "4": 0
@@ -11977,6 +13978,15 @@
           "3": 0,
           "4": 0
         },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
         "reference_eligible_q4": 0,
         "reference_eligible_now_q4": 0,
         "render_checks": {
@@ -11985,6 +13995,7 @@
           "partial_page": 0,
           "stale": 0
         },
+        "crop_unresolved_pages": [],
         "rejected_by_first_reason": {},
         "unsupported_markup": {}
       }

@@ -264,32 +264,47 @@ def test_compact_inventory_and_summary_are_deterministic_and_text_free() -> None
     rejected["index_key"] = "ws_index_2"
     key = admitted["index_key"]
     applied = {"applied": True, "checked_by": "agent"}
+    tool = {"applied": True, "checked_by": "tool"}
+    crop = {"status": "resolved", "box_normalized": [0.1, 0.1, 0.9, 0.5], "review_recommended": True}
     pages = [
         {"index_key": key, "quality": 4, "reasons": ["transcription_coverage_unrecorded"], "adjudication_eligible": True},
         {"index_key": key, "quality": 4, "reasons": [], "adjudication_eligible": True, "transcription_coverage": "full_page", "render_check": applied},
-        {"index_key": key, "quality": 3, "reasons": [], "adjudication_eligible": False, "transcription_coverage": "partial_page", "needs_crop": True, "render_check": applied},
+        {"index_key": key, "quality": 3, "reasons": [], "adjudication_eligible": False, "transcription_coverage": "partial_page", "needs_crop": True,
+         "crop": crop, "render_check": tool, "reference_normalization": {"footnote_marker_style": "bracketed_index", "footnote_count": 2}},
+        {"index_key": key, "page_title": "עמוד:X.pdf/9", "quality": 3, "reasons": ["crop_unresolved"], "adjudication_eligible": False,
+         "transcription_coverage": "partial_page", "needs_crop": True, "crop": {"status": "unresolved", "reason": "untranscribed_text_inside_crop"}, "render_check": tool},
+        {"index_key": key, "quality": 3, "reasons": ["transcription_coverage_unrecorded"], "adjudication_eligible": False,
+         "render_check": {"applied": False, "reason": "tool_alignment_too_poor", "checked_by": "tool"}},
         {"index_key": key, "quality": 3, "reasons": ["quality_editor_not_named_human", "transcription_coverage_unrecorded"], "adjudication_eligible": False},
         {"index_key": key, "quality": 3, "reasons": ["transcription_coverage_unrecorded", "wikitext_unsupported_markup"], "adjudication_eligible": False, "unsupported_markup": "unsupported wikitext template: x"},
     ]
     compact = inv.compact_inventory(_inventory_with([admitted, rejected], pages))
     gate = compact["indexes"][0]["page_gate"]
     assert gate == {
-        "checked": 5,
-        "converts": {"3": 2, "4": 2},
+        "checked": 7,
+        "converts": {"3": 4, "4": 2},
         "eligible": {"3": 0, "4": 1},
-        "needs_crop": {"3": 1, "4": 0},
-        "pending_coverage_only": {"3": 0, "4": 1},
+        "cropped": {"3": 1, "4": 0},
+        "cropped_review_recommended": {"3": 1, "4": 0},
+        "crop_unresolved": {"3": 1, "4": 0},
+        "needs_crop": {"3": 2, "4": 0},
+        "pending_coverage_only": {"3": 1, "4": 1},
+        "coverage_unresolved": {"3": 1, "4": 0},
+        "footnote_marks_bracketed": {"3": 1, "4": 0},
+        "transcluding_pages": 0,
         "reference_eligible_q4": 2,
         "reference_eligible_now_q4": 1,
-        "render_checks": {"checked": 2, "full_page": 1, "partial_page": 1, "stale": 0},
+        "render_checks": {"by_agent": 1, "by_tool": 2, "checked": 3, "full_page": 1, "partial_page": 2, "stale": 0, "tool_undecided": 1},
+        "crop_unresolved_pages": [{"page_title": "עמוד:X.pdf/9", "quality": 3, "reason": "crop_unresolved", "detail": "untranscribed_text_inside_crop", "checked_by": "tool"}],
         "rejected_by_first_reason": {"quality_editor_not_named_human": 1, "wikitext_unsupported_markup": 1},
         "unsupported_markup": {"unsupported wikitext template: x": 1},
     }
     assert compact["indexes"][1]["page_gate"] is None
     summary = inv.render_summary(compact)
     assert summary == inv.render_summary(json.loads(json.dumps(compact)))
-    assert "| Indexes admitted by the Index gate | 29 | 1 |" in summary
-    assert "| Coverage checked `partial_page`: `needs_crop` (F8b4) | 0 / 0 | 1 / 0 |" in summary
+    assert "| Indexes admitted by the Index gate | 29 | 68 | 1 |" in summary
+    assert "| **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | 0 / 0 | 1 / 0 |" in summary
+    assert "| עמוד:X.pdf/9 | 3 | `crop_unresolved` | untranscribed_text_inside_crop | tool |" in summary
     assert "| `creator_death_year_missing` | 1 | 3 | 1 | 3 |" in summary
     assert "death year for יוסף פלוני (published 1893, after 1855)" in summary
 

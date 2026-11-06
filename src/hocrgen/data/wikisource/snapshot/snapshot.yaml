@@ -18,4 +18,6 @@ notes: >-
   wikitext is pinned by revision id and SHA-256; plain text is derived with wikisource_plain_text.v1 (identical under v2) and
   pinned by SHA-256 (the .txt files end with one newline that is not part of the hash). Four further
   Index records carry Commons evidence only, to exercise the rejection gates (Birnbaum, PD-US-only and a
-  missing death year). Nothing here was edited on Wikisource or Commons.
+  missing death year). F8b4 adds two partial pages (Buber's Tanhuma p. 233, Sippurei Ma'asiyot p. 11) with their
+  600 px greyscale page renders and their crops to the transcribed region (PNG, the page image cut at crop.box_px),
+  located by hocrgen.tools.wikisource_coverage and pinned by SHA-256. Nothing here was edited on Wikisource or Commons.
