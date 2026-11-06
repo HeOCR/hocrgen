@@ -20,8 +20,10 @@ An Index is admitted only when its record carries evidence of **both** of the fo
    - `state_work_by_1975`: a state work created in 1975 or earlier, with the state body named;
    - `anonymous_published_by_1955`: an anonymous or pseudonymous work published in 1955 or earlier.
 2. **The scan's rights are clear** (`scan_rights.basis`):
-   - `faithful_reproduction_of_pd_work`, with the scan's source recorded on Commons; or
+   - `faithful_reproduction_of_pd_work`; or
    - `explicit_open_licence`, with an open licence (`CC0-1.0`, `PDM-1.0`, `CC-BY-4.0`, `CC-BY-SA-4.0`).
+
+   Either basis also needs `scan_rights.scan_source`: the scanning body's name plus the evidence that names it. A non-empty Commons `source` field is not enough on its own, because it often repeats only the book's title or imprint. Korfu's does, so Korfu gets `scan_provenance_unrecorded`.
 
 A Commons licence template is never enough on its own. Further rules:
 
@@ -45,7 +47,7 @@ Scans that came from HebrewBooks are admitted on the same check (maintainer deci
 - A page is rejected when:
   - an editor who set quality is not a named human (an empty name, an IP edit, the `bot` group, or a name ending in "bot");
   - the `<pagequality user=...>` attribute disagrees with the editor who made that revision;
-  - the validator is also the proofreader;
+  - the validator is also the proofreader, by username or by user id;
   - the transcription covers only part of the page body (`partial_page_transcription`), or its coverage was never recorded (`transcription_coverage_unrecorded`);
   - the pinned wikitext does not carry the recorded quality.
 - Quality 4 is human-attested and **adjudication-eligible**, but only while the pinned plain text equals the text at the validating revision. Any later edit that changes the plain text sets `adjudication_eligible: false` with `text_changed_after_validation`. This holds even when the validator made the edit.
@@ -58,7 +60,7 @@ Scans that came from HebrewBooks are admitted on the same check (maintainer deci
 
 1. Drop `<noinclude>` blocks: the `<pagequality>` tag, running header and footer, and `<references/>`. Running heads and page numbers are therefore not part of the page text.
 2. Drop HTML comments and `<pagequality>`, `<section>` and `<קטע>` tags.
-3. Reject `<ref>` footnotes, tables, math, galleries, `includeonly` and parser functions.
+3. Reject markup whose semantics are not implemented: `<nowiki>` and `<pre>` (literal text), `<ref>` footnotes, tables, math, galleries, `includeonly`, parser functions, and explicitly numbered template arguments such as `{{ק|1=א}}`.
 4. Expand templates from a closed table, checked with `action=expandtemplates`:
    - `ק`, `ג`, `מרכז` and `עם-ניקוד` keep their text; `מרכז` and `עם-ניקוד` are blocks.
    - `קיצור` keeps the printed abbreviation, not the editor's tooltip expansion.
@@ -93,7 +95,7 @@ Known transcription conventions that differ from the print, kept as the editors 
   - the image's own checksum and its render source (Commons file SHA-1, page and render URL).
 - `wikitext/`: raw pinned wikitext. `text/`: derived plain text, whose SHA-256 excludes the file's final newline. `assets/`: page renders downscaled to 600 px wide.
 
-Source health (`discover/source_health.json`) reports admitted Indexes, Index exclusion counts by reason, page exclusion counts, missing or altered assets, and wikitext or text drift. Acquisition fails on an asset checksum mismatch.
+Discovery and source health (`discover/source_health.json`) both check the packaged `text/` file that `page_text_ref` points to. The file must exist and must equal the derived text plus one final newline. A failure gives `page_text_file_missing` or `page_text_file_mismatch`. Source health reports admitted Indexes, Index exclusion counts by reason, page exclusion counts, missing or altered assets, and wikitext or text drift. Acquisition fails on an asset checksum mismatch.
 
 ## Operator-only F2 conversion
 

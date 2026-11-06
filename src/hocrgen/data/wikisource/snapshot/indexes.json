@@ -46,6 +46,11 @@
       "scan_rights": {
         "basis": "explicit_open_licence",
         "licence": "CC0-1.0",
+        "scan_source": {
+          "name": "Open Siddur Project (scan by Efraim Feinstein)",
+          "url": "http://opensiddur.org",
+          "evidence": "Commons file page: original scan by Efraim Feinstein for the Open Siddur Project."
+        },
         "evidence": "Commons file page: original scan by Efraim Feinstein for the Open Siddur Project, shared with a CC0 Public Domain declaration; cropping by Aharon Varady, also CC0.",
         "digitized_by_google": false,
         "digitization_check": "No Google stamp on the inspected page render; the Commons record names no Google source."
@@ -106,6 +111,11 @@
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
         "licence": null,
+        "scan_source": {
+          "name": "National Library of Israel",
+          "url": null,
+          "evidence": "Commons Book template Source field: {{Institution:National Library of Israel}}; Index page source: הספריה הלאומית."
+        },
         "evidence": "Commons file page: source National Library of Israel; licence PD-scan with PD-old-auto-expired, deathyear=1890. A flat scan of an 1872 print.",
         "digitized_by_google": false,
         "digitization_check": "No Google stamp on the inspected page render; the Commons record names no Google source."
@@ -158,6 +168,11 @@
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
         "licence": null,
+        "scan_source": {
+          "name": "Internet Archive / Open Siddur Project",
+          "url": "https://archive.org/details/PhilipBirnbaumHaSiddurHaShalemTheDailyPrayerBook1949",
+          "evidence": "Commons source field names the Internet Archive item and the Open Siddur Project."
+        },
         "evidence": "Internet Archive and Open Siddur Project scan.",
         "digitized_by_google": null,
         "digitization_check": "Not checked: rejection-evidence record without page renders."
@@ -210,6 +225,11 @@
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
         "licence": null,
+        "scan_source": {
+          "name": "Open Siddur Project / Internet Archive",
+          "url": "https://archive.org/details/sederhaggadahshelpesahpaltielbirnbaum1953",
+          "evidence": "Commons source field names the Open Siddur Project and the Internet Archive item."
+        },
         "evidence": "Open Siddur Project and Internet Archive scan.",
         "digitized_by_google": null,
         "digitization_check": "Not checked: rejection-evidence record without page renders."
@@ -263,6 +283,11 @@
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
         "licence": null,
+        "scan_source": {
+          "name": "HebrewBooks",
+          "url": "http://www.hebrewbooks.org/43956",
+          "evidence": "Commons Book template Source and institution fields: HebrewBooks (hebrewbooks.org/43956)."
+        },
         "evidence": "Commons file page: source HebrewBooks (hebrewbooks.org/43956); licence PD-scan with PD-old-auto-1923, deathyear=1937. A flat scan of a 1910 print.",
         "digitized_by_google": false,
         "digitization_check": "No Google stamp on the inspected page render; the Commons record names no Google source."
@@ -316,6 +341,11 @@
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
         "licence": null,
+        "scan_source": {
+          "name": "Open Siddur Project",
+          "url": null,
+          "evidence": "Commons source field: The Open Siddur Project."
+        },
         "evidence": "Open Siddur Project scan.",
         "digitized_by_google": null,
         "digitization_check": "Not checked: rejection-evidence record without page renders."
@@ -369,6 +399,7 @@
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
         "licence": null,
+        "scan_source": null,
         "evidence": "Commons source field repeats the title; the scan's origin is not recorded.",
         "digitized_by_google": null,
         "digitization_check": "Not checked: rejection-evidence record without page renders."

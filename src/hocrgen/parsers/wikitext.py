@@ -62,7 +62,7 @@ TEMPLATE_RULES: dict[str, TemplateRule] = {
 }
 
 PAGE_ONLY_TAGS = ("pagequality", "section", "קטע")
-UNSUPPORTED_TAGS = ("ref", "math", "gallery", "timeline", "score", "chem", "graph", "templatestyles", "includeonly", "onlyinclude")
+UNSUPPORTED_TAGS = ("nowiki", "pre", "ref", "math", "gallery", "timeline", "score", "chem", "graph", "templatestyles", "includeonly", "onlyinclude")
 DROPPED_LINK_NAMESPACES = ("file", "image", "קובץ", "תמונה", "category", "קטגוריה")
 UNSUPPORTED_LINK_NAMESPACES = ("media",)
 
@@ -227,6 +227,10 @@ def _render_template(body: str) -> str:
     rule = TEMPLATE_RULES.get(name)
     if rule is None:
         raise UnsupportedWikitextError("template", name)
+    for part in parts[1:]:
+        numbered = re.match(r"^\s*(\d+)\s*=", part)
+        if numbered:
+            raise UnsupportedWikitextError("template argument", f"{name}|{numbered.group(1)}=")
     positional = [part for part in parts[1:] if not re.match(r"^\s*[^=\[\]{}|]+=", part)]
     if rule.action == "literal":
         return rule.literal

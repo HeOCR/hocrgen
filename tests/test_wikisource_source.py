@@ -90,7 +90,11 @@ def test_index_gate_admits_only_files_with_work_and_scan_evidence() -> None:
     assert index_exclusion_reason(indexes["birnbaum_haggadah_1953"]) == "excluded_birnbaum_work"
     assert "creator_died_after_1955" in index_exclusion_reasons(indexes["birnbaum_siddur_1949"])
     assert index_exclusion_reasons(indexes["siddur_torah_ohr_1940"]) == ["pd_us_only_licence", "google_digitization_unchecked"]
-    assert index_exclusion_reasons(indexes["korfu_siddur_1885"]) == ["creator_death_year_missing", "google_digitization_unchecked"]
+    assert index_exclusion_reasons(indexes["korfu_siddur_1885"]) == [
+        "creator_death_year_missing",
+        "scan_provenance_unrecorded",
+        "google_digitization_unchecked",
+    ]
 
 
 def test_birnbaum_exclusion_holds_even_with_otherwise_clean_evidence() -> None:
@@ -174,9 +178,17 @@ def test_scan_rights_need_open_licence_or_recorded_reproduction_provenance() -> 
     nc_scan["scan_rights"]["licence"] = "CC-BY-NC-4.0"
     assert index_exclusion_reasons(nc_scan) == ["scan_licence_not_open"]
     unsourced = copy.deepcopy(indexes["bostenay_lehmann_1872"])
-    unsourced["commons_file"]["source_field"] = None
-    unsourced["commons_file"]["institution_field"] = None
+    unsourced["scan_rights"]["scan_source"] = None
     assert index_exclusion_reasons(unsourced) == ["scan_provenance_unrecorded"]
+    unevidenced = copy.deepcopy(indexes["selihot_baer_1885"])
+    unevidenced["scan_rights"]["scan_source"] = {"name": "Open Siddur Project", "evidence": ""}
+    assert index_exclusion_reasons(unevidenced) == ["scan_provenance_unrecorded"]
+    # A bibliographic Commons source field is not scan provenance: Korfu's names the book, not a scanner.
+    korfu = copy.deepcopy(indexes["korfu_siddur_1885"])
+    assert korfu["commons_file"]["source_field"]
+    korfu["work"]["creators"][0].update({"death_year": 1900, "death_year_evidence_url": "u"})
+    korfu["scan_rights"]["digitized_by_google"] = False
+    assert index_exclusion_reasons(korfu) == ["scan_provenance_unrecorded"]
     no_evidence = copy.deepcopy(indexes["bostenay_lehmann_1872"])
     no_evidence["scan_rights"]["evidence"] = " "
     assert index_exclusion_reasons(no_evidence) == ["scan_rights_evidence_missing"]
@@ -206,6 +218,10 @@ def test_page_gate_skips_low_quality_and_unattributed_quality() -> None:
     proofreader = next(entry for entry in self_validated["quality_history"] if entry["level"] == 3)
     proofreader.update({"user": "Nahum", "user_id": 68, "pagequality_user_attribute": "Nahum"})
     assert page_exclusion_reason(self_validated, indexes, SNAPSHOT_ROOT) == "validator_is_proofreader"
+    same_account = copy.deepcopy(pages[SELIHOT])
+    proofreader = next(entry for entry in same_account["quality_history"] if entry["level"] == 3)
+    proofreader["user_id"] = same_account["quality_history"][-1]["user_id"]
+    assert page_exclusion_reason(same_account, indexes, SNAPSHOT_ROOT) == "validator_is_proofreader"
     no_proofreader = copy.deepcopy(pages[SELIHOT])
     no_proofreader["quality_history"] = [no_proofreader["quality_history"][-1]]
     assert page_exclusion_reason(no_proofreader, indexes, SNAPSHOT_ROOT) == "proofreader_missing"
@@ -233,6 +249,15 @@ def test_page_gate_rejects_drifted_or_unsupported_wikitext(tmp_path: Path) -> No
     wikitext_path.write_text(unsupported, encoding="utf-8")
     drifted = {**page, "wikitext_sha256": hashlib.sha256(unsupported.encode("utf-8")).hexdigest()}
     assert page_exclusion_reason(drifted, indexes, root) == "wikitext_unsupported_markup"
+    wikitext_path.write_text(original, encoding="utf-8")
+    text_path = root / page["text_path"]
+    pinned_text = text_path.read_text(encoding="utf-8")
+    text_path.write_text(pinned_text.rstrip("\n"), encoding="utf-8")
+    assert page_exclusion_reason(page, indexes, root) == "page_text_file_mismatch"
+    text_path.unlink()
+    assert page_exclusion_reason(page, indexes, root) == "page_text_file_missing"
+    text_path.write_text(pinned_text, encoding="utf-8")
+    assert page_exclusion_reason(page, indexes, root) is None
     downgraded = original.replace('level="4"', 'level="3"')
     wikitext_path.write_text(downgraded, encoding="utf-8")
     tagged = {**page, "wikitext_sha256": hashlib.sha256(downgraded.encode("utf-8")).hexdigest()}
@@ -303,6 +328,11 @@ def test_wikitext_normalisation_rules() -> None:
         "{{#if:x|y}}",
         "טקסט {{ק|לא סגור",
         "<noinclude>חסר סוף",
+        "<nowiki>'''א'''</nowiki>",
+        "טקסט<nowiki/>המשך",
+        "<pre>א</pre>",
+        "{{ק|1=א}}",
+        "{{מרכז| 2 =א|ב}}",
     ],
 )
 def test_wikitext_outside_the_closed_set_is_rejected(wikitext: str) -> None:
@@ -349,6 +379,22 @@ def test_discovery_emits_stable_ids_and_provenance_metadata() -> None:
             assert not (isinstance(value, str) and value.startswith("/")), key
 
 
+def test_enrichment_accepts_anonymous_creators_without_death_year(tmp_path: Path) -> None:
+    config_root = _copy_snapshot_config(tmp_path)
+    indexes_path = config_root / "wikisource_snapshot" / "indexes.json"
+    payload = json.loads(indexes_path.read_text(encoding="utf-8"))
+    hyman = next(index for index in payload["indexes"] if index["index_key"] == "hyman_toldoth_1910_vol1")
+    hyman["work"] = {"title": "t", "published_year": 1910, "creators": [{"name": "פלוני", "role": "pseudonymous"}]}
+    hyman["work_rights"] = {"basis": "anonymous_published_by_1955", "evidence": "recorded"}
+    indexes_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    bundle = load_and_validate_bundle(config_root)
+    source = next(source for source in bundle.source_registry.sources if source.id == SOURCE_ID)
+    importer = WikisourceProofreadImporter()
+    candidates = [c for c in importer.discover_candidates(source, bundle, StageOptions()) if c.source_item_id == HYMAN]
+    [record] = importer.fetch_candidate_metadata(source, bundle, candidates, StageOptions())
+    assert record.metadata["work_creators"] == [{"name": "פלוני", "role": "pseudonymous", "death_year": None}]
+
+
 def test_acquire_rejects_asset_checksum_mismatch(tmp_path: Path) -> None:
     bundle = load_and_validate_bundle(_copy_snapshot_config(tmp_path))
     source = next(source for source in bundle.source_registry.sources if source.id == SOURCE_ID)
@@ -387,21 +433,24 @@ def test_source_health_reports_exclusions_missing_assets_and_text_drift(tmp_path
         "excluded_birnbaum_work": 2,
         "google_digitization_unchecked": 4,
         "pd_us_only_licence": 3,
+        "scan_provenance_unrecorded": 1,
     }
 
     config_root = _copy_snapshot_config(tmp_path)
     snapshot = config_root / "wikisource_snapshot"
     (snapshot / "assets" / f"{HYMAN}.jpg").unlink()
     (snapshot / "wikitext" / f"{SELIHOT}.wikitext.txt").write_text("drift", encoding="utf-8")
+    (snapshot / "text" / f"{BOSTENAY}.txt").unlink()
     bundle = load_and_validate_bundle(config_root)
     source = next(source for source in bundle.source_registry.sources if source.id == SOURCE_ID)
     checks, candidate_count, asset_count = _inspect_source(source, bundle)
-    assert (candidate_count, asset_count) == (2, 1)
+    assert (candidate_count, asset_count) == (1, 0)
     assert any(check["name"] == "wikisource_page_asset" and check["status"] == "error" for check in checks)
-    drift = next(check for check in checks if check["name"] == "wikisource_page_text")
-    assert drift["status"] == "error" and drift["record_id"] == SELIHOT
+    drift = {check["record_id"]: check["message"] for check in checks if check["name"] == "wikisource_page_text"}
+    assert drift == {SELIHOT: "wikitext_checksum_mismatch", BOSTENAY: "page_text_file_missing"}
     assert next(check for check in checks if check["name"] == "wikisource_page_exclusions")["actual"] == {
-        "wikitext_checksum_mismatch": 1
+        "page_text_file_missing": 1,
+        "wikitext_checksum_mismatch": 1,
     }
     assert all(not str(check.get("path", "")).startswith("/") for check in checks)
 
@@ -422,6 +471,23 @@ def test_review_profile_routes_pages_to_review_and_open_profile_ignores_them(tmp
 
 
 # --- operator-only F2 reference conversion -----------------------------------------------------------------
+
+
+def test_reference_pool_writes_skip_counts_when_nothing_is_eligible(tmp_path: Path) -> None:
+    config_root = _copy_snapshot_config(tmp_path)
+    pages_path = config_root / "wikisource_snapshot" / "pages.jsonl"
+    pages = [json.loads(line) for line in pages_path.read_text(encoding="utf-8").splitlines()]
+    kept = [page for page in pages if page["source_item_id"] != SELIHOT]
+    pages_path.write_text("".join(json.dumps(page) + "\n" for page in kept), encoding="utf-8")
+    bundle = load_and_validate_bundle(config_root)
+    source = next(source for source in bundle.source_registry.sources if source.id == SOURCE_ID)
+    out_dir = tmp_path / "new" / "pool"
+    manifest = write_wikisource_reference_pool(source, bundle, out_dir)
+    assert manifest["items"] == []
+    assert json.loads((out_dir / "reference_pool.json").read_text(encoding="utf-8"))["skipped"] == {
+        "quality_3_single_reviewer": 1,
+        "text_changed_after_validation": 1,
+    }
 
 
 def test_reference_pool_converts_only_adjudication_eligible_validated_pages(tmp_path: Path) -> None:

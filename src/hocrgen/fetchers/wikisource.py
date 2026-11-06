@@ -52,7 +52,13 @@ SCAN_RIGHTS_BASES = {"faithful_reproduction_of_pd_work", "explicit_open_licence"
 OPEN_SCAN_LICENCES = {"CC0-1.0", "PDM-1.0", "CC-BY-4.0", "CC-BY-SA-4.0"}
 ANONYMOUS_CREATOR_ROLES = {"anonymous", "pseudonymous"}
 # Page reasons that mean the pinned snapshot itself is broken; source health reports them as errors.
-WIKISOURCE_INTEGRITY_REASONS = {"wikitext_missing", "wikitext_checksum_mismatch", "page_text_checksum_mismatch"}
+WIKISOURCE_INTEGRITY_REASONS = {
+    "wikitext_missing",
+    "wikitext_checksum_mismatch",
+    "page_text_checksum_mismatch",
+    "page_text_file_missing",
+    "page_text_file_mismatch",
+}
 
 # Maintainer decision (F8a decision 2, accepted 2026-11-06): not PD in Israel (Birnbaum died 1988).
 EXCLUDED_INDEX_FILES = {
@@ -189,7 +195,6 @@ def _work_rights_reasons(index: dict[str, Any]) -> list[str]:
 
 
 def _scan_rights_reasons(index: dict[str, Any]) -> list[str]:
-    commons = index.get("commons_file") or {}
     rights = index.get("scan_rights") or {}
     basis = rights.get("basis")
     if basis not in SCAN_RIGHTS_BASES:
@@ -199,10 +204,21 @@ def _scan_rights_reasons(index: dict[str, Any]) -> list[str]:
         reasons.append("scan_rights_evidence_missing")
     if basis == "explicit_open_licence" and rights.get("licence") not in OPEN_SCAN_LICENCES:
         reasons.append("scan_licence_not_open")
-    if basis == "faithful_reproduction_of_pd_work" and not (commons.get("source_field") or commons.get("institution_field")):
+    if not _scan_source_recorded(rights.get("scan_source")):
         reasons.append("scan_provenance_unrecorded")
     reasons.extend(_google_digitization_reasons(index))
     return reasons
+
+
+def _scan_source_recorded(scan_source: Any) -> bool:
+    """A scan source is recorded only as a named scanning body plus the evidence naming it.
+
+    A non-empty Commons ``source`` field is not enough: it often repeats the book's title or imprint.
+    """
+
+    if not isinstance(scan_source, dict):
+        return False
+    return bool(str(scan_source.get("name") or "").strip()) and bool(str(scan_source.get("evidence") or "").strip())
 
 
 def _google_digitization_reasons(index: dict[str, Any]) -> list[str]:
@@ -279,7 +295,9 @@ def page_exclusion_reasons(page: dict[str, Any], indexes: dict[str, dict[str, An
         reasons.append("quality_editor_not_named_human")
     if any(entry.get("pagequality_user_attribute") != entry.get("user") for entry in present):
         reasons.append("quality_attribute_mismatch")
-    if proofreader and validator and proofreader.get("user") == validator.get("user"):
+    if proofreader and validator and (
+        proofreader.get("user") == validator.get("user") or proofreader.get("user_id") == validator.get("user_id")
+    ):
         reasons.append("validator_is_proofreader")
     coverage = page.get("transcription_coverage")
     if coverage is None:
@@ -310,6 +328,11 @@ def _page_text_reasons(page: dict[str, Any], root: Path) -> list[str]:
         return ["wikitext_unsupported_markup"]
     if _sha256(text) != page.get("text_sha256"):
         return ["page_text_checksum_mismatch"]
+    text_path = root / str(page.get("text_path", ""))
+    if not page.get("text_path") or not text_path.is_file():
+        return ["page_text_file_missing"]
+    if text_path.read_text(encoding="utf-8") != text + "\n":
+        return ["page_text_file_mismatch"]
     return []
 
 
@@ -449,7 +472,7 @@ class WikisourceProofreadImporter:
                         "work_title": work["title"],
                         "work_published_year": work.get("published_year"),
                         "work_creators": [
-                            {"name": creator["name"], "role": creator["role"], "death_year": creator["death_year"]}
+                            {"name": creator.get("name"), "role": creator.get("role"), "death_year": creator.get("death_year")}
                             for creator in work.get("creators", [])
                         ],
                         "work_rights_basis": index["work_rights"]["basis"],
@@ -551,6 +574,7 @@ def write_wikisource_reference_pool(source: SourceConfig, bundle: ConfigBundle, 
 
     root = wikisource_snapshot_root(source, bundle)
     _, indexes, pages = load_wikisource_snapshot(root)
+    output_dir.mkdir(parents=True, exist_ok=True)
     entries: list[dict[str, Any]] = []
     skipped: dict[str, int] = {}
     for page in sorted(pages, key=lambda record: record["source_item_id"]):
