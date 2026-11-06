@@ -153,7 +153,7 @@ def test_active_source_health_is_emitted_in_discover_and_build_release(tmp_path:
     assert exit_code == 0
     assert discover_summary["source_health"]["selected_source_count"] == 4
     assert discover_summary["source_depth_feasibility_report"] == "discover/source_depth_feasibility.json"
-    assert source_health["summary"]["active_source_count"] == 6
+    assert source_health["summary"]["active_source_count"] == 7
     assert source_depth["artifact_scope"] == "operator_only"
     assert source_stats["source_health"]["skipped_source_count"] == 0
 

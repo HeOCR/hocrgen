@@ -140,6 +140,10 @@ public-domain-hand-written-hebrew-scans   → real-handwriting page-level scan c
   - `review_only`, privacy default `clear`, `requires_manual_review: false` (maintainer decision 2026-11-06: HASH needs no human privacy review); included only in `profile_review_v1` and kept out of `profile_open_v1` until F7d changes the composition contract, governs writer-group leakage, and vendors tranche assets
   - rights lanes: NLI "Any Use Permitted" (`LicenseRef-Public-Domain-Israel`) normalized as `PD-IL`; `PDM-1.0` / `LicenseRef-Public-Domain-Ukraine` normalized as `PDM-1.0`; `CC-BY-SA-3.0`, non-Hebrew, and partial-Hebrew entries are never emitted
   - emits `source_group_id` and `writer_group_id` metadata, verifies asset checksums, and never reads HASH transcripts or HTR candidates
+- `yidtaknl_vaybertaytsh_gt` (F8d, review-only)
+  - packaged-static-records importer over a pinned YidTakNL snapshot (`src/hocrgen/data/yidtaknl/snapshot/`): printed Yiddish in Vaybertaytsh, Amsterdam 1781, with page-level Transkribus text (human-corrected HTR) by reference and checksum
+  - `review_only`, `CC-BY-4.0` / `open_with_attribution`, privacy default `clear`; included only in `profile_review_v1`
+  - every page is marked language `yi`, evaluation scope `character_level_only` (training and character-level evaluation only, never word- or language-level Hebrew evaluation) and `not_adjudicated`; entries without that marker, or whose scan lacks an open licence (the HUC-scanned works), are never emitted
 - `project_synthetic`
   - hocrsyngen `generation_manifest.v1` fixture-backed synthetic candidate input source
   - consumes a configured manifest batch and keeps legacy in-repo generator fixtures out of the active source path

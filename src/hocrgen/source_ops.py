@@ -13,6 +13,12 @@ from hocrgen.fetchers.hash import hash_entry_asset, hash_entry_exclusion_reason,
 from hocrgen.fetchers.hocrsyngen_manifest import validate_hocrsyngen_batch
 from hocrgen.fetchers.modern_handwriting import validate_modern_intake_manifest
 from hocrgen.fetchers.nli import parse_nli_fixture_html
+from hocrgen.fetchers.yidtaknl import (
+    load_yidtaknl_snapshot,
+    yidtaknl_entry_asset,
+    yidtaknl_entry_exclusion_reason,
+    yidtaknl_snapshot_root,
+)
 from hocrgen.utils.hashing import sha256_file
 
 F1_TARGET_SCALE_COUNT_KEY = "f1_source_depth_candidate_count"
@@ -573,6 +579,8 @@ def _inspect_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[di
         return _inspect_records_source(source, bundle)
     if source.fetcher == "hash":
         return _inspect_hash_source(source, bundle)
+    if source.fetcher == "yidtaknl":
+        return _inspect_yidtaknl_source(source, bundle)
     if source.fetcher == "hocrsyngen_manifest":
         return _inspect_hocrsyngen_manifest_source(source, bundle)
     if source.fetcher == "modern_handwriting_intake":
@@ -738,6 +746,56 @@ def _inspect_hash_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[li
             asset_count += 1
         checks.append(check)
     checks.append({"name": "hash_entry_exclusions", "actual": dict(sorted(exclusions.items())), "status": "ok"})
+    return checks, candidate_count, asset_count
+
+
+def _inspect_yidtaknl_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int]:
+    checks: list[dict[str, Any]] = []
+    try:
+        root = yidtaknl_snapshot_root(source, bundle)
+    except StageExecutionError as exc:
+        return [{"name": "yidtaknl_snapshot_root", "status": "error", "message": str(exc)}], 0, 0
+    snapshot_path = root / "snapshot.yaml"
+    checks.append(_path_check("yidtaknl_snapshot", snapshot_path, bundle))
+    if not snapshot_path.exists():
+        return checks, 0, 0
+    try:
+        snapshot, entries = load_yidtaknl_snapshot(root)
+    except (OSError, ValueError) as exc:
+        checks.append({"name": "yidtaknl_entries", "path": _format_health_path(root, bundle), "status": "error", "message": str(exc)})
+        return checks, 0, 0
+    checks.append(
+        {
+            "name": "yidtaknl_dataset_doi",
+            "actual": snapshot.get("dataset_doi"),
+            "status": "ok" if snapshot.get("dataset_doi") else "error",
+        }
+    )
+    candidate_count = 0
+    asset_count = 0
+    exclusions: dict[str, int] = {}
+    for entry in entries:
+        reason = yidtaknl_entry_exclusion_reason(entry, source)
+        if reason is not None:
+            exclusions[reason] = exclusions.get(reason, 0) + 1
+            continue
+        candidate_count += 1
+        asset = yidtaknl_entry_asset(entry) or {}
+        asset_path = (root / str(asset.get("local_path", ""))).resolve()
+        asset_check = _path_check("yidtaknl_entry_asset", asset_path, bundle)
+        if asset_path.exists() and asset.get("sha256") and sha256_file(asset_path) != asset["sha256"]:
+            asset_check["status"] = "error"
+            asset_check["message"] = f"checksum mismatch for {entry['entry_id']}"
+        text = entry.get("text") or {}
+        text_path = (root / str(text.get("local_path", ""))).resolve()
+        text_check = _path_check("yidtaknl_entry_text", text_path, bundle)
+        if text_path.exists() and sha256_file(text_path) != text.get("sha256"):
+            text_check["status"] = "error"
+            text_check["message"] = f"text checksum mismatch for {entry['entry_id']}"
+        if asset_check["status"] == "ok" and text_check["status"] == "ok":
+            asset_count += 1
+        checks.extend([asset_check, text_check])
+    checks.append({"name": "yidtaknl_entry_exclusions", "actual": dict(sorted(exclusions.items())), "status": "ok"})
     return checks, candidate_count, asset_count
 
 

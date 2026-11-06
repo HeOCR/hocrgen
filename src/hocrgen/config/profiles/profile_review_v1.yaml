@@ -7,6 +7,7 @@ include_sources:
   - project_synthetic
   - hash_nli_any_use
   - hash_public_domain
+  - yidtaknl_vaybertaytsh_gt
 exclude_sources: []
 allowed_rights_classifications:
   - open

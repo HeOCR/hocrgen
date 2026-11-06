@@ -1,0 +1,2 @@
+# Upstream text bytes are pinned by sha256 (CRLF line endings); never normalize them.
+text/*.txt -text
