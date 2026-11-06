@@ -23,12 +23,14 @@ from hocrgen.fetchers.modern_handwriting import validate_modern_intake_manifest
 from hocrgen.fetchers.nli import SEED_CAPTURE_FIELD, SEED_CAPTURE_SHA256_FIELD, parse_nli_fixture_html
 from hocrgen.fetchers.nli_iiif import capture_asset_problems, decide_nli_rights, load_nli_manifest_capture
 from hocrgen.fetchers.pinkas_dataset import (
+    load_entry_line_scopes,
     load_entry_page_lines,
     load_pinkas_dataset_snapshot,
     pinkas_dataset_entry_asset,
     pinkas_dataset_entry_exclusion_reason,
     pinkas_dataset_snapshot_root,
 )
+from hocrgen.fetchers.pinkas_line_language import load_line_language_tags, page_scope_summary, tag_file_problems
 from hocrgen.fetchers.yidtaknl import (
     load_yidtaknl_matched_pages,
     load_yidtaknl_snapshot,
@@ -1021,10 +1023,18 @@ def _inspect_pinkas_dataset_source(source: SourceConfig, bundle: ConfigBundle) -
     if not snapshot_path.exists():
         return checks, 0, 0
     try:
-        _, entries = load_pinkas_dataset_snapshot(root)
+        snapshot, entries = load_pinkas_dataset_snapshot(root)
     except (OSError, ValueError) as exc:
         checks.append({"name": "pinkas_dataset_entries", "path": _format_health_path(root, bundle), "status": "error", "message": str(exc)})
         return checks, 0, 0
+    tag_check: dict[str, Any] = {"name": "pinkas_dataset_line_language_tags", "status": "ok"}
+    try:
+        tag_file = load_line_language_tags(root, snapshot)
+    except StageExecutionError as exc:
+        tag_file = None
+        tag_check.update(status="error", message=str(exc))
+    tag_pages: dict[str, tuple[str, list[Any]]] = {}
+    scope_counts: dict[str, int] = {}
     candidate_count = 0
     asset_count = 0
     exclusions: dict[str, int] = {}
@@ -1049,6 +1059,13 @@ def _inspect_pinkas_dataset_source(source: SourceConfig, bundle: ConfigBundle) -
                 if len(page.lines) != entry["annotation"].get("line_count"):
                     annotation_check["status"] = "error"
                     annotation_check["message"] = f"line count mismatch for {entry['entry_id']}"
+                tag_pages[entry["entry_id"]] = (entry["annotation"]["sha256"], page.lines)
+                summary = page_scope_summary(load_entry_line_scopes(root, entry, tag_file, page))
+                for scope, count in (
+                    ("word_level_hebrew", summary["word_level_hebrew_line_count"]),
+                    ("character_level_only", summary["character_level_only_line_count"]),
+                ):
+                    scope_counts[scope] = scope_counts.get(scope, 0) + count
             except (OSError, ValueError, StageExecutionError) as exc:
                 annotation_check["status"] = "error"
                 annotation_check["message"] = str(exc)
@@ -1056,6 +1073,20 @@ def _inspect_pinkas_dataset_source(source: SourceConfig, bundle: ConfigBundle) -
             asset_count += 1
         checks.extend([asset_check, annotation_check])
     checks.append({"name": "pinkas_dataset_entry_exclusions", "actual": dict(sorted(exclusions.items())), "status": "ok"})
+    if tag_file is not None:
+        tag_counts: dict[str, int] = {}
+        for page_tags in tag_file.pages:
+            for tag in page_tags.lines:
+                key = f"{tag.tag_source}:{tag.language}"
+                tag_counts[key] = tag_counts.get(key, 0) + 1
+        tag_check["actual"] = {"tags": dict(sorted(tag_counts.items())), "line_scopes": dict(sorted(scope_counts.items()))}
+        unparsed = {str(entry.get("entry_id")) for entry in entries} - set(tag_pages)
+        problems = tag_file_problems(tag_file, tag_pages, unparsed)
+        if problems:
+            tag_check.update(status="error", message="stale line language tags: " + "; ".join(problems))
+    elif tag_check["status"] == "ok":
+        tag_check["actual"] = {"tags": {}, "line_scopes": dict(sorted(scope_counts.items()))}
+    checks.append(tag_check)
     return checks, candidate_count, asset_count
 
 

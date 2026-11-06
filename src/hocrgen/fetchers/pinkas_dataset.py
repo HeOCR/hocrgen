@@ -14,6 +14,13 @@ from hocrgen.config.models import SourceConfig
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.nli_scan_evidence import nli_scan_evidence
+from hocrgen.fetchers.pinkas_line_language import (
+    LineEvaluationScope,
+    LineLanguageTagFile,
+    derive_line_scopes,
+    load_line_language_tags,
+    page_scope_summary,
+)
 from hocrgen.fetchers.snapshot_records import load_snapshot, snapshot_root_setting
 from hocrgen.manifests.models import (
     AcquiredAsset,
@@ -228,12 +235,27 @@ def load_entry_page_lines(root: Path, entry: dict[str, Any]) -> PageXmlPageRecor
     return parse_page_xml_lines(xml_bytes, (int(asset["width_px"]), int(asset["height_px"])))
 
 
+def load_entry_line_scopes(
+    root: Path, entry: dict[str, Any], tag_file: LineLanguageTagFile | None, page: PageXmlPageRecord | None = None
+) -> list[LineEvaluationScope]:
+    """Derive the per-line evaluation scope of one entry from the snapshot's language-tag sidecar.
+
+    This is what an evaluator reads: a line may be scored at word level as Hebrew only when its scope is
+    `word_level_hebrew` (a human `he` tag that still binds to the line). Geometry is in thumbnail pixels.
+    """
+
+    page = page or load_entry_page_lines(root, entry)
+    page_tags = tag_file.page(entry["entry_id"]) if tag_file is not None else None
+    return derive_line_scopes(entry["entry_id"], entry["annotation"]["sha256"], page.lines, page_tags)
+
+
 class PinkasDatasetImporter:
     """Packaged-static-records adapter over a pinned excerpt of the BGU Pinkas Dataset (Zenodo 3569694).
 
     Each candidate is one handwritten page, an NLI scan, with its upstream PAGE XML (region, line and word geometry
     and text). The annotation is carried by reference and checksum; `load_entry_page_lines` turns it into typed line
     records scaled to the thumbnail. It becomes a scored reference only through F2 attestation and adjudication.
+    Per-line evaluation scope comes from the snapshot's language-tag sidecar (F8d3, `pinkas_line_language`).
     """
 
     def discover_candidates(self, source: SourceConfig, bundle: ConfigBundle, options: StageOptions) -> list[CandidateRecord]:
@@ -265,9 +287,14 @@ class PinkasDatasetImporter:
 
     def fetch_candidate_metadata(self, source: SourceConfig, bundle: ConfigBundle, candidates, options: StageOptions) -> list[EnrichedCandidateRecord]:
         enriched: list[EnrichedCandidateRecord] = []
+        tag_files: dict[Path, LineLanguageTagFile | None] = {}
         for candidate in candidates:
             entry = candidate.raw_metadata["entry"]
             root = Path(candidate.raw_metadata["snapshot_root"])
+            if root not in tag_files:
+                tag_files[root] = load_line_language_tags(root, load_pinkas_dataset_snapshot(root)[0])
+            line_scopes = load_entry_line_scopes(root, entry, tag_files[root])
+            scope_summary = page_scope_summary(line_scopes)
             asset = pinkas_dataset_entry_asset(entry) or {}
             rights, scan, annotation, usage_scope = entry["rights"], entry["scan"], entry["annotation"], entry["usage_scope"]
             enriched.append(
@@ -294,7 +321,11 @@ class PinkasDatasetImporter:
                         "upstream_split": (entry.get("upstream") or {}).get("split"),
                         "source_group_id": f"pinkas_dataset_bgu:{entry['work_id']}",
                         "usage_scope": dict(usage_scope),
-                        "evaluation_scope": usage_scope["evaluation_scope"],
+                        # The pinned page default is `character_level_only`; the derived page scope widens only when
+                        # every line carries a binding human `he` tag. Per-line scope is in `line_scopes`.
+                        "evaluation_scope": scope_summary["page_evaluation_scope"],
+                        "line_scope_summary": scope_summary,
+                        "line_scopes": [scope.model_dump(mode="json", exclude={"geometry", "entry_id"}) for scope in line_scopes],
                         "annotation_reference": annotation["local_path"],
                         "annotation_encoding": annotation.get("encoding"),
                         "annotation_format": annotation.get("format"),
