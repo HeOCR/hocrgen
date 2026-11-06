@@ -328,6 +328,7 @@ Per-item rights:
 - **Caveat: the Birnbaum Siddur 1949 and Haggadah 1953 are tagged only `PD-US-not renewed`.** Birnbaum died in 1988, so these are **not PD in Israel**. Exclude them, or treat them as `UNKNOWN` / review_only. That removes about 470 of the 2,092 proofread pages.
 - Several Index files are modern works (e.g. "Ilan Sendowski …") and need their own rights check.
 - Proposed: scans `PD-IL` or `PDM-1.0` per file, with the transcription as `CC-BY-SA-4.0`, `rights_classification: sharealike`, status **allowed per Index**. Gate on the Commons licence template (`PD-old*` or `PD-scan`; reject `PD-US-*`-only files).
+  - **Superseded in F8a review:** a template alone is not enough. `PD-scan` concerns the reproduction, and `PD-old*` can rest on terms shorter than Israel's. `planning/tasks/f8-real-source-map.md` requires per-file evidence that the work is PD in Israel and that the scan's rights are clear.
 
 **Fixture feasibility: yes, and easy and deterministic.** Pin the revision ID and the Commons file SHA1. Samples checked:
 - `https://he.wikisource.org/wiki/עמוד:Aaron_Hyman._Toldoth_Tannaim_veAmoraim._I._1910.pdf/33` (quality 4, validated, 3.3 kB of text)

@@ -73,7 +73,11 @@ Scale, measured on 2026-11-06:
 
 1. **Key NLI rights on the IIIF manifest `license` slug** (`F8c`). The slug is language-neutral, and the display text differs between books ("Any Use Permitted") and newspapers. Only `public-domain-free-use` maps to `open`.
 2. **Exclude the Birnbaum Siddur (1949) and Haggadah (1953)** from `F8b`. Their Commons files are tagged only `PD-US-not renewed`; Birnbaum died in 1988, so they are not PD in Israel. This removes about 470 proofread pages.
-3. **Gate `F8b` on the Commons file's licence template** (`PD-old*` or `PD-scan`). Reject files whose only PD tag is a `PD-US-*` one. Each Index is admitted separately.
+3. **Gate `F8b` on per-file rights evidence for both the work and the scan.** No Commons template is enough on its own. `PD-scan` concerns the reproduction, and `PD-old*` can rest on terms shorter than Israel's. Each Index needs:
+   - evidence that the underlying work is PD in Israel: the author died on or before 1955-12-31, or the work is a state work created on or before 1975-12-31, or an anonymous or pseudonymous work published on or before 1955-12-31;
+   - evidence of the scan's rights: a faithful reproduction of a PD work, or an explicit open licence.
+
+   Files whose only PD tag is a `PD-US-*` one are rejected. Each Index is admitted separately.
 4. **Non-commercial licences stay out of `profile_open_v1`.** They map to `RESTRICTED-NONOPEN` until an adapter needs finer values (`CC-BY-NC-4.0`, `CC-BY-NC-SA-4.0`).
 5. **New source ids never reuse an existing name.** BGU's dataset becomes `pinkas_dataset_bgu`, distinct from `pinkas_open`. The existing ids stay unchanged, under E4 governance.
 6. **A `typewritten_historical` content type** is defined only when `F8e` lands.
@@ -106,7 +110,8 @@ These are rights or ground-truth calls, so they are the maintainer's:
 
 ## Sequencing and non-goals
 
-- Every new source starts `review_only` and outside `profile_open_v1`. Promotion is a later, explicit PR.
+- Every **new** F8 source id (`F8b`, `F8d`, `F8e`) starts `review_only` and outside `profile_open_v1`. Promotion is a later, explicit PR.
+- `F8c` is different: it extends the existing `allowed` source `nli_any_use_permitted`. Its new printed items still reach `profile_open_v1` only through that source's seed vetting and the normal gates. Only `public-domain-free-use` maps to `open`.
 - References enter only through F2 reference manifests, after human attestation and adjudication. `benchmark_v1` membership stays frozen.
 - F8 adds no live crawling and no network-dependent CI. Fixtures are small and pinned.
 - No privacy-review gate is added for public-domain historical sources (maintainer decision 2026-11-06). Modern material about living people, such as recent court rulings, still needs its legal screening; that is one reason the court rulings are deferred.

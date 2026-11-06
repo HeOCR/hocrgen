@@ -1428,7 +1428,7 @@ Map real (non-synthetic) Hebrew document sources beyond HASH, ranked by what HeO
 
 ### Planned PRs
 - `F8a`: the real-source map, routine decisions, maintainer decision list, and F8 notation (planning only)
-- `F8b`: a fixture-backed `review_only` Hebrew Wikisource proofread-page source paired with Commons scans
+- `F8b`: a fixture-backed `review_only` Hebrew Wikisource proofread-page source paired with Commons scans, gated per Index on evidence that both the work (in Israel) and the scan are public domain
 - `F8c`: key the `nli` rights strategy on the IIIF manifest `license` slug and admit `public-domain-free-use` printed books
 - `F8d`: fixture-backed `review_only` imports of CC-BY-4.0 human ground-truth datasets (`pinkas_dataset_bgu`, then YidTakNL)
 - `F8e`: born-digital and typewritten government print (Reshumot, Knesset committee scans to 1975), deferred
@@ -1437,7 +1437,7 @@ Map real (non-synthetic) Hebrew document sources beyond HASH, ranked by what HeO
 `F8a` is implemented on the current ref as planning only, in [the F8 plan](../planning/tasks/f8-real-source-map.md). The verification evidence is under [`2026_11_06_israeli_public_domain_documents_research/verification/`](./2026_11_06_israeli_public_domain_documents_research/verification/). It does not change sources, profiles, licences, review data, readiness semantics, scores, or any export.
 
 ### Required sequencing
-1. Every F8 source starts `review_only` and outside `profile_open_v1`; promotion is a later explicit PR.
+1. Every new F8 source id (`F8b`, `F8d`, `F8e`) starts `review_only` and outside `profile_open_v1`; promotion is a later explicit PR. `F8c` instead extends the existing `allowed` `nli_any_use_permitted` source, so its new printed items reach `profile_open_v1` only through that source's seed vetting and normal gates, with only `public-domain-free-use` mapped to `open`.
 2. Text becomes a reference only through F2 reference manifests after human attestation and adjudication. OCR and HTR output is never ground truth, and `benchmark_v1` membership stays frozen.
 3. `F8b` waits for the maintainer decisions on CC BY-SA text, Wikisource proofreading as human attestation, and HebrewBooks-derived scans.
 4. `F8e` waits for the maintainer decision on government site terms; there is no automated access until then.

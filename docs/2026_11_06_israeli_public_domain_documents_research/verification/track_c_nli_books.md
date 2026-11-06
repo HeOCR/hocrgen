@@ -186,7 +186,7 @@ Other slugs exist in Wayback CDX. Their pages were not read:
 
 **Text availability:**
 - Ktiv itself: images only.
-- External transcription sets are mostly medieval, e.g. BiblIA (Zenodo 5167263 dataset and 5468286 model, CC-BY-SA-4.0). **Already covered by `biblia_open`.** Tikkoun Sofrim (Zenodo 4736094) is crowd transcription of Tanhuma manuscripts and is a lead for the HTR track.
+- External transcription sets are mostly medieval. Example: the BiblIA ground-truth dataset (Zenodo 5167263, **CC-BY-NC-SA-4.0**). Its HTR model (Zenodo 5468286) is CC-BY-SA-4.0. hocrgen's packaged `biblia_open` source is a third, unrelated thing: Commons image records with no transcriptions. So `biblia_open` does **not** cover the BiblIA ground truth, and that ground truth is non-commercial (see Track D §1). *(Corrected in F8a review.)* Tikkoun Sofrim (Zenodo 4736094) is crowd transcription of Tanhuma manuscripts and is a lead for the HTR track.
 - I found no Ktiv-wide transcription layer.
 
 **Access:** IIIF manifests (live). Rosetta viewer.
