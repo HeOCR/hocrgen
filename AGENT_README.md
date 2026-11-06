@@ -154,7 +154,7 @@ public-domain-hand-written-hebrew-scans   → real-handwriting page-level scan c
   - packaged-static-records importer over a pinned excerpt of the BGU Pinkas Dataset (`src/hocrgen/data/pinkas_dataset_bgu/snapshot/`): handwritten pages of NLI Ms. Heb. 4°662 (Frankfurt am Main community pinkas) with their upstream PAGE XML (gzipped)
   - `review_only`, `CC-BY-4.0` / `open_with_attribution` for the annotations; scans admitted only with the NLI `public-domain-free-use` slug and a recorded canvas match; privacy default `clear`; included only in `profile_review_v1`
   - `parse_page_xml_lines` yields typed line records with polygons scaled to the thumbnail; entries are marked languages `he`/`yi`, scope `character_level_only` and `not_adjudicated`
-  - F8d3: per-line language tags in `line_language_tags.yaml`; only a human `he` tag makes a line `word_level_hebrew`; `python -m hocrgen.tools.pinkas_line_language propose|check` writes advisory proposals and validates the sidecar (see `docs/pinkas_dataset_source.md`)
+  - F8d3: per-line language tags in `line_language_tags.yaml`; only a human `he` tag makes a line `full_hebrew`; `python -m hocrgen.tools.pinkas_line_language propose|check` writes advisory proposals and validates the sidecar (see `docs/pinkas_dataset_source.md`)
 - `reshumot_born_digital` (F8e, review-only)
   - packaged-static-records importer over a pinned Reshumot snapshot (`src/hocrgen/data/reshumot/snapshot/`): ספר החוקים and קובץ התקנות pages from 2006 on, `PD-IL` / `open` under Copyright Act section 6; ילקוט הפרסומים, bills and scanned-era booklets are never emitted
   - each page image is rendered from the born-digital PDF (`rendering.is_scan: false`, renderer, version, dpi and pixel checksum recorded) and is not a scan

@@ -1,6 +1,6 @@
 format: hocrgen.pinkas_line_language_tags.v1
 source_id: pinkas_dataset_bgu
-review_procedure: 'agent_proposed tags are advisory and never change scope. To confirm or override a line, a human reviewer sets language, tag_source: human, tagged_by: <their name>, tagged_at: <date> and a rationale, keeping the proposal block. Only tag_source human with language he unlocks word-level Hebrew evaluation. See docs/pinkas_dataset_source.md.'
+review_procedure: 'agent_proposed tags are advisory and never change scope. To confirm or override a line, a human reviewer sets language, tag_source: human, tagged_by: <their name>, tagged_at: <date> and a rationale, keeping the proposal block. Only tag_source human with language he gives a line full Hebrew scope. See docs/pinkas_dataset_source.md.'
 proposal_method: 'pinkas_line_lexicon.v1: exact-token match against closed Western Yiddish and Hebrew marker lexicons (hocrgen.tools.pinkas_line_language); both present -> mixed, Yiddish only -> yi, Hebrew only -> he, neither -> unknown; orthography markers (initial וו, יי, final ען, ligatures) only lower confidence'
 pages:
 - entry_id: nli_990000445290205171__page105_right

@@ -187,7 +187,7 @@ def build_proposals(root: Path, tagged_at: date) -> tuple[LineLanguageTagFile, l
         review_procedure=(
             "agent_proposed tags are advisory and never change scope. To confirm or override a line, a human "
             "reviewer sets language, tag_source: human, tagged_by: <their name>, tagged_at: <date> and a rationale, "
-            "keeping the proposal block. Only tag_source human with language he unlocks word-level Hebrew evaluation. "
+            "keeping the proposal block. Only tag_source human with language he gives a line full Hebrew scope. "
             "See docs/pinkas_dataset_source.md."
         ),
         proposal_method=(
@@ -250,7 +250,7 @@ def summarize(root: Path) -> tuple[dict[str, Any], list[str]]:
             "tags_by_source_and_language": {source: dict(sorted(langs.items())) for source, langs in sorted(counts.items())},
             "agent_proposals_by_confidence": dict(sorted(confidence.items())),
             "page_scopes": {entry_id: summary["page_evaluation_scope"] for entry_id, summary in sorted(page_scopes.items())},
-            "word_level_hebrew_line_count": sum(summary["word_level_hebrew_line_count"] for summary in page_scopes.values()),
+            "full_hebrew_line_count": sum(summary["full_hebrew_line_count"] for summary in page_scopes.values()),
             "scope_neutral_line_count": sum(summary["scope_neutral_line_count"] for summary in page_scopes.values()),
         },
         problems,

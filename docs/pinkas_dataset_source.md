@@ -12,9 +12,9 @@ Each item is one handwritten page of the Frankfurt am Main community pinkas, NLI
 
 ## Line language and evaluation scope (F8d3)
 
-The line text mixes Hebrew and Western Yiddish, often within one line. Maintainer decision 8 (2026-11-06, [`planning/decisions/2026-11-06-f8-real-source-decisions.md`](../planning/decisions/2026-11-06-f8-real-source-decisions.md)):
+The line text mixes Hebrew and Western Yiddish, often within one line. Maintainer decision 8 (2026-11-06, clarified by the maintainer the same day; [`planning/decisions/2026-11-06-f8-real-source-decisions.md`](../planning/decisions/2026-11-06-f8-real-source-decisions.md)):
 
-- **Hebrew lines** may be used for training, character-level evaluation and word-level Hebrew evaluation.
+- **Hebrew lines** may be used with full Hebrew scope: training, character-level evaluation, and word-level and language-level Hebrew evaluation. Nothing is excluded.
 - **Yiddish lines** keep the decision-6 scope: training and character-level evaluation only.
 - A line counts as Hebrew **only** through an explicit, reviewable per-line tag. Untagged lines keep `character_level_only`. Tags are never inferred silently from a heuristic.
 
@@ -42,26 +42,26 @@ The models reject an `agent_proposed` tag with any other `tagged_by`, a `human` 
 | Line and tag | `evaluation_scope` | Allowed uses | Reason code |
 | --- | --- | --- | --- |
 | no Hebrew-script letter, any tag or none | `character_level_only`, `scope_neutral: true` | training, character-level evaluation | `scope_neutral_no_hebrew_letters` |
-| `human`, `he` | `word_level_hebrew` | training, character-level evaluation, word-level evaluation | `human_tagged_he` |
+| `human`, `he` | `full_hebrew` | training, character-level, word-level Hebrew and language-level Hebrew evaluation; nothing excluded | `human_tagged_he` |
 | `human`, `yi` / `mixed` / `unknown` | `character_level_only` | training, character-level evaluation | `human_tagged_yi` / `_mixed` / `_unknown` |
 | any `agent_proposed` tag | `character_level_only` | training, character-level evaluation | `agent_proposed_tag_is_advisory` |
 | no tag | `character_level_only` | training, character-level evaluation | `untagged` |
 | stale tag | `character_level_only` | training, character-level evaluation | `tag_stale` |
 
-- Word-level Hebrew lines still exclude `language_level_hebrew` evaluation. Decision 8 grants word-level Hebrew evaluation only.
-- **Scope-neutral lines (F8d3b).** A line whose pinned text has no letter in U+05D0–U+05EA (digits, punctuation, years, an empty line) is scope-neutral. This is decided from the text, never from a tag, so a human `he` tag on such a line changes nothing. A scope-neutral line is never word-level evaluable itself, and the page rule ignores it.
+- Every `character_level_only` row excludes both `word_level` and `language_level_hebrew`. The `language_level_hebrew` exclusion exists to keep Yiddish from being treated as Hebrew-language data. A human-tagged Hebrew line is Hebrew, so it has no exclusions (the maintainer's clarification of decision 8, 2026-11-06).
+- **Scope-neutral lines (F8d3b).** A line whose pinned text has no letter in U+05D0–U+05EA (digits, punctuation, years, an empty line) is scope-neutral. This is decided from the text, never from a tag, so a human `he` tag on such a line changes nothing. A scope-neutral line never gets Hebrew scope itself, and the page rule ignores it.
 - A tag is **stale** when its `text` differs from the parsed line, or when its page block's `annotation_sha256` differs from the entry's. A stale tag never widens scope.
 - A `mixed` line is not a Hebrew line, so it stays `character_level_only`.
-- **Page scope.** The entries keep the pinned page default `usage_scope.evaluation_scope: character_level_only`. The derived page scope is `word_level_hebrew` only when the page has at least one text line and every text line (every line that is not scope-neutral) is `word_level_hebrew`. So while any text line is untagged, stale, advisory or not Hebrew, the page stays `character_level_only`. Page numbers, years and empty lines never hold a page back.
+- **Page scope.** The entries keep the pinned page default `usage_scope.evaluation_scope: character_level_only`. The derived page scope is `full_hebrew` only when the page has at least one text line and every text line (every line that is not scope-neutral) is human-tagged `he`, and so `full_hebrew`. So while any text line is untagged, stale, advisory or not Hebrew, the page stays `character_level_only`. Page numbers, years and empty lines never hold a page back.
 
 ### What evaluators read
 
 - `load_entry_line_scopes(root, entry, tag_file)` in `hocrgen.fetchers.pinkas_dataset` returns one `LineEvaluationScope` per line, in reading order. Each carries the tag's language, source and reviewer, the derived scope and reason, and the line geometry in thumbnail pixels.
 - Candidate metadata carries:
   - `line_scopes`: the same records without geometry;
-  - `line_scope_summary`: counts, reasons, and the word-level and scope-neutral line ids;
+  - `line_scope_summary`: counts, reasons, and the `full_hebrew` and scope-neutral line ids;
   - `evaluation_scope`: the derived page scope.
-- Source health adds the `pinkas_dataset_line_language_tags` check. It counts tags by source and language, and lines by derived scope (`word_level_hebrew`, `character_level_only`, `scope_neutral`). It fails on a malformed sidecar or any stale tag.
+- Source health adds the `pinkas_dataset_line_language_tags` check. It counts tags by source and language, and lines by derived scope (`full_hebrew`, `character_level_only`, `scope_neutral`). It fails on a malformed sidecar or any stale tag.
 - `F8d3` changes no scorer, no `profile_open_v1` membership and no `benchmark_v1` membership. Scoring that uses line scope is later work.
 
 ## Proposing tags
@@ -129,6 +129,6 @@ Only a human confirms or overrides a tag. An agent never sets `tag_source: human
 4. **Check.** Run the tool's `check` command and the source tests. A changed `text` makes the tag stale, and `check` fails.
 5. **Open a PR.** Name the reviewer in the PR. Re-running `propose` later keeps human tags, and refreshes only the advisory ones.
 
-**If the PAGE XML changes.** Human tags made against the old annotation checksum become stale, and give no word-level scope. `propose` refuses to rebind them to the new checksum. A human re-reviews those lines and updates the page block's `annotation_sha256` before proposals are refreshed.
+**If the PAGE XML changes.** Human tags made against the old annotation checksum become stale, and give no Hebrew scope. `propose` refuses to rebind them to the new checksum. A human re-reviews those lines and updates the page block's `annotation_sha256` before proposals are refreshed.
 
-A partial review is fine. Reviewed lines with `he` become `word_level_hebrew`. Every other line stays `character_level_only`. The page becomes `word_level_hebrew` once a human has tagged every text line `he`.
+A partial review is fine. Reviewed lines with `he` become `full_hebrew`. Every other line stays `character_level_only`. The page becomes `full_hebrew` once a human has tagged every text line `he`.

@@ -1062,7 +1062,7 @@ def _inspect_pinkas_dataset_source(source: SourceConfig, bundle: ConfigBundle) -
                 tag_pages[entry["entry_id"]] = (entry["annotation"]["sha256"], page.lines)
                 summary = page_scope_summary(load_entry_line_scopes(root, entry, tag_file, page))
                 for scope, count in (
-                    ("word_level_hebrew", summary["word_level_hebrew_line_count"]),
+                    ("full_hebrew", summary["full_hebrew_line_count"]),
                     ("character_level_only", summary["character_level_only_line_count"]),
                     ("scope_neutral", summary["scope_neutral_line_count"]),
                 ):
