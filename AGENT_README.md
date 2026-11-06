@@ -144,6 +144,11 @@ public-domain-hand-written-hebrew-scans   → real-handwriting page-level scan c
   - packaged-static-records importer over a pinned YidTakNL snapshot (`src/hocrgen/data/yidtaknl/snapshot/`): printed Yiddish in Vaybertaytsh, Amsterdam 1781, with page-level Transkribus text (human-corrected HTR) by reference and checksum
   - `review_only`, `CC-BY-4.0` / `open_with_attribution`, privacy default `clear`; included only in `profile_review_v1`
   - every page is marked language `yi`, evaluation scope `character_level_only` (training and character-level evaluation only, never word- or language-level Hebrew evaluation) and `not_adjudicated`; entries without that marker, or whose scan lacks an open licence (the HUC-scanned works), are never emitted
+- `wikisource_he_proofread` (F8b, review-only)
+  - packaged-static-records importer over a pinned Hebrew Wikisource ProofreadPage snapshot (`src/hocrgen/data/wikisource/snapshot/`): quality 3/4 pages paired with their Commons page renders
+  - page text `CC-BY-SA-4.0` / `sharealike`; scan rights per Commons file; admitted per Index only on evidence that the work is PD in Israel and the scan's rights are clear; Birnbaum works and `PD-US-*`-only files rejected
+  - records revision ids, Commons file SHA-1s, the named proofreader and validator, and adjudication eligibility; derives plain text with `wikisource_plain_text.v1` (see `docs/wikisource_proofread_source.md`)
+  - included only in `profile_review_v1`; never edits Wikisource
 - `project_synthetic`
   - hocrsyngen `generation_manifest.v1` fixture-backed synthetic candidate input source
   - consumes a configured manifest batch and keeps legacy in-repo generator fixtures out of the active source path

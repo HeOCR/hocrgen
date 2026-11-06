@@ -137,6 +137,28 @@ sources:
     settings:
       extra:
         yidtaknl_snapshot_root: package://data/yidtaknl/snapshot
+  - id: wikisource_he_proofread
+    name: Hebrew Wikisource proofread pages (ProofreadPage) with Commons page scans
+    fetcher: wikisource_proofread
+    status: review_only
+    default_public_release: false
+    allowed_content_types:
+      - printed_historical
+    rights_strategy:
+      type: exact_match
+      values:
+        - CC-BY-SA-4.0
+    normalized_license: CC-BY-SA-4.0
+    rights_classification: sharealike
+    requires_manual_review: true
+    source_operations:
+      operational_status: active
+      health_expectations:
+        min_candidates: 1
+        min_assets: 1
+    settings:
+      extra:
+        wikisource_snapshot_root: package://data/wikisource/snapshot
   - id: project_synthetic
     name: hocrsyngen manifest-backed synthetic source
     fetcher: hocrsyngen_manifest

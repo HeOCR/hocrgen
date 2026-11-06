@@ -19,6 +19,13 @@ from hocrgen.fetchers.yidtaknl import (
     yidtaknl_entry_exclusion_reason,
     yidtaknl_snapshot_root,
 )
+from hocrgen.fetchers.wikisource import (
+    WIKISOURCE_INTEGRITY_REASONS,
+    index_exclusion_reasons,
+    load_wikisource_snapshot,
+    page_exclusion_reasons,
+    wikisource_snapshot_root,
+)
 from hocrgen.utils.hashing import sha256_file
 
 F1_TARGET_SCALE_COUNT_KEY = "f1_source_depth_candidate_count"
@@ -581,6 +588,8 @@ def _inspect_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[di
         return _inspect_hash_source(source, bundle)
     if source.fetcher == "yidtaknl":
         return _inspect_yidtaknl_source(source, bundle)
+    if source.fetcher == "wikisource_proofread":
+        return _inspect_wikisource_source(source, bundle)
     if source.fetcher == "hocrsyngen_manifest":
         return _inspect_hocrsyngen_manifest_source(source, bundle)
     if source.fetcher == "modern_handwriting_intake":
@@ -796,6 +805,58 @@ def _inspect_yidtaknl_source(source: SourceConfig, bundle: ConfigBundle) -> tupl
             asset_count += 1
         checks.extend([asset_check, text_check])
     checks.append({"name": "yidtaknl_entry_exclusions", "actual": dict(sorted(exclusions.items())), "status": "ok"})
+    return checks, candidate_count, asset_count
+
+
+def _inspect_wikisource_source(source: SourceConfig, bundle: ConfigBundle) -> tuple[list[dict[str, Any]], int, int]:
+    checks: list[dict[str, Any]] = []
+    try:
+        root = wikisource_snapshot_root(source, bundle)
+    except StageExecutionError as exc:
+        return [{"name": "wikisource_snapshot_root", "status": "error", "message": str(exc)}], 0, 0
+    snapshot_path = root / "snapshot.yaml"
+    checks.append(_path_check("wikisource_snapshot", snapshot_path, bundle))
+    if not snapshot_path.exists():
+        return checks, 0, 0
+    try:
+        _, indexes, pages = load_wikisource_snapshot(root)
+    except (OSError, ValueError, KeyError, ConfigValidationError) as exc:
+        checks.append({"name": "wikisource_records", "path": _format_health_path(root, bundle), "status": "error", "message": str(exc)})
+        return checks, 0, 0
+    index_exclusions: dict[str, int] = {}
+    admitted_indexes = 0
+    for index in indexes.values():
+        reasons = index_exclusion_reasons(index)
+        if not reasons:
+            admitted_indexes += 1
+        for reason in reasons:
+            index_exclusions[reason] = index_exclusions.get(reason, 0) + 1
+    checks.append({"name": "wikisource_admitted_indexes", "actual": admitted_indexes, "status": "ok"})
+    checks.append({"name": "wikisource_index_exclusions", "actual": dict(sorted(index_exclusions.items())), "status": "ok"})
+    candidate_count = 0
+    asset_count = 0
+    page_exclusions: dict[str, int] = {}
+    for page in pages:
+        reasons = page_exclusion_reasons(page, indexes, root)
+        integrity = [reason for reason in reasons if reason in WIKISOURCE_INTEGRITY_REASONS]
+        if integrity:
+            checks.append(
+                {"name": "wikisource_page_text", "record_id": page.get("source_item_id"), "status": "error", "message": ", ".join(integrity)}
+            )
+        if reasons:
+            page_exclusions[reasons[0]] = page_exclusions.get(reasons[0], 0) + 1
+            continue
+        candidate_count += 1
+        image = page.get("image") or {}
+        asset_path = (root / str(image.get("path", ""))).resolve()
+        check = _path_check("wikisource_page_asset", asset_path, bundle)
+        if asset_path.is_file() and image.get("sha256") and sha256_file(asset_path) != image["sha256"]:
+            check["status"] = "error"
+            check["message"] = f"checksum mismatch for {page['source_item_id']}"
+        if check["status"] == "ok":
+            asset_count += 1
+        checks.append(check)
+    checks.append({"name": "wikisource_page_exclusions", "actual": dict(sorted(page_exclusions.items())), "status": "ok"})
     return checks, candidate_count, asset_count
 
 

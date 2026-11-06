@@ -1,0 +1,21 @@
+version: 1
+site: he.wikisource.org
+api_url: https://he.wikisource.org/w/api.php
+commons_api_url: https://commons.wikimedia.org/w/api.php
+captured_at: "2026-11-06"
+capture_user_agent: hocrgen-f8b-fixture-capture/0.1 (https://github.com/HeOCR/hocrgen; operator capture)
+indexes_path: indexes.json
+pages_path: pages.jsonl
+text_licence:
+  license_expression: CC-BY-SA-4.0
+  evidence: "siteinfo rightsinfo on 2026-11-06: Creative Commons Attribution-Share Alike 4.0 (https://creativecommons.org/licenses/by-sa/4.0/deed.he)"
+  attribution: Hebrew Wikisource contributors
+text_normalization: wikisource_plain_text.v1
+scope: fixture
+notes: >-
+  F8b fixture snapshot. Three ProofreadPage pages from three admitted Index files, each with its page
+  image rendered by Commons from the pinned PDF (by file SHA-1) and downscaled to 600 px wide. Page
+  wikitext is pinned by revision id and SHA-256; plain text is derived with wikisource_plain_text.v1 and
+  pinned by SHA-256 (the .txt files end with one newline that is not part of the hash). Four further
+  Index records carry Commons evidence only, to exercise the rejection gates (Birnbaum, PD-US-only and a
+  missing death year). Nothing here was edited on Wikisource or Commons.
