@@ -270,7 +270,7 @@ def _rebuild_logical_order(lines: Any, separators: Mapping[str, str], where: str
         index, join = line.get("logical_line_index"), line.get("logical_join")
         if index is None:
             continue  # drawn but not in page gold
-        if not isinstance(index, int) or join not in (None, *LOGICAL_JOINS):
+        if not isinstance(index, int) or isinstance(index, bool) or join not in (None, *LOGICAL_JOINS):
             raise StageExecutionError(f"{where}: invalid logical_line_index or logical_join")
         if join is None:
             if index in rebuilt:
@@ -306,7 +306,8 @@ def load_per_cell_view(batch_dir: Path, gold: Mapping[str, Any]) -> dict[str, An
     texts: dict[str, str] = {}
     seen: set[str] = set()
     for page in payload["pages"]:
-        item_id = page_items.get(page.get("page_sha256")) if isinstance(page, dict) else None
+        page_sha = page.get("page_sha256") if isinstance(page, dict) else None
+        item_id = page_items.get(page_sha) if isinstance(page_sha, str) else None  # unhashable values never look up
         if item_id is None:
             raise StageExecutionError(f"{path.name} has a page that is not in the generation manifest")
         if item_id in seen or len(item_pages[item_id]) != 1:

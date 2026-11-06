@@ -175,6 +175,17 @@ def test_sidecar_without_cell_joins_adds_no_view_and_still_fails_closed(tmp_path
     (lambda sidecar: sidecar["pages"].pop(0), "does not annotate every item"),
     (lambda sidecar: sidecar["pages"][0].update(page_sha256="ab" * 32), "not in the generation manifest"),
     (lambda sidecar: sidecar.update(schema="hocrsyngen_line_annotations.v0"), "is not a"),
+    # Malformed field types fail closed as StageExecutionError, never TypeError (an unhashable sha, a bool index).
+    (lambda sidecar: sidecar["pages"][0].update(page_sha256=[sidecar["pages"][0]["page_sha256"]]),
+     "not in the generation manifest"),
+    (lambda sidecar: sidecar["pages"][0].update(page_sha256={"sha256": "ab"}), "not in the generation manifest"),
+    (lambda sidecar: sidecar["pages"].__setitem__(0, "page"), "not in the generation manifest"),
+    (lambda sidecar: sidecar["pages"][1].update(lines={"0": "x"}), "lines must be a list"),
+    (lambda sidecar: sidecar["pages"][1]["lines"].__setitem__(0, "פנקס חשבונות"), "each line needs string text"),
+    (lambda sidecar: sidecar["pages"][1]["lines"][0].update(text=["פנקס"]), "each line needs string text"),
+    (lambda sidecar: sidecar["pages"][1]["lines"][0].update(logical_line_index=[0]), "invalid logical_line_index"),
+    (lambda sidecar: sidecar["pages"][1]["lines"][1].update(logical_line_index=True), "invalid logical_line_index"),
+    (lambda sidecar: sidecar["pages"][1]["lines"][2].update(logical_join=["cell"]), "invalid logical_line_index"),
 ])
 def test_present_but_inconsistent_sidecar_fails_closed(tmp_path: Path, tamper, message) -> None:
     batch = _batch(tmp_path)
