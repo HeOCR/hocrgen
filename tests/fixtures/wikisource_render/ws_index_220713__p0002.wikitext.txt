@@ -1,0 +1,72 @@
+<noinclude><pagequality level="4" user="Nahum" /></noinclude><div style="text-align:center;">
+<div style="font:bold 1.5em Shofar;">מפתח כללי:</div>
+{|style="margin:1em auto 2em;text-align:right;"
+|-
+|הקדמת המו״ל — להוצאה החדשה
+|style="text-align:left;"|V
+|-
+!colspan=2 style="padding:.5em 0;text-align:right;"|ספר לקוטי אמרים
+|-
+|מפתח כללי
+|style="text-align:left;"|VIII
+|-
+|פתח דבר
+|style="text-align:left;"|IX
+|-
+|לוח המפתחות
+|style="text-align:left;"|XI
+|-
+|'''לקוטי אמרים'''
+|style="text-align:left;"|א—142
+|-
+|מפתח פסוקי תנ״ך, מאמרי חז״ל, זהר וכו׳
+|style="text-align:left;"|עב—152
+|-
+!colspan=2 style="padding:.5em 0;text-align:right;"|'''ספר אור תורה'''
+|-
+|מפתח
+|style="text-align:left;"|II
+|-
+|קטע משיחת כ״ק אדמו״ר (מהוריי״צ) נ״ע — ע״ד הס׳ אור תורה
+|style="text-align:left;"|III
+|-
+|הסכמות
+|style="text-align:left;"|IV
+|-
+|פתח דבר
+|style="text-align:left;"|V
+|-
+|לוח המפתחות
+|style="text-align:left;"|VII
+|-
+!style="padding:.5em 0 0;text-align:right;"|'''אור תורה'''
+|style="text-align:left;"|א—230
+|-
+!style="padding:.5em 0;text-align:right;"|'''הוספות לספרי הרב המגיד ממעזריטש'''
+|style="text-align:left;"|א, א—צג, ב
+|-
+|style="padding-right:10%;"|מפתחות
+|style="text-align:left;"|א—קכז
+|-
+|}
+<div dir="ltr" lang="en">
+<span style="font-variant:small-caps;font-weight:bold;">Likutei Amorim • Or Torah</span><br/>
+Copyright © 1972, Second Printing 1974<br/>
+Third Printing 1980, Fourth Printing 1986<br/>
+Fifth Printing 2003, Sixth Printing 2004<br/>
+by<br/>
+'''Kehot Publication Society'''<br/>
+770 Eastern Parkway • Brooklyn, New York 11213<br/>
+(718) 774-4000 • <br/>FAX (718) 774-2718
+Orders:<br/>
+291 Kingston Avenue • Brooklyn, New York 11213<br/>
+(718) 778-0226 • <br/>FAX (718) 778-4148
+<br/>www.kehotonline.com
+All rights reserved.<br/>
+The Kehot logo is a trademark of Merkos L'Inyonei Chinuch.<br/>
+ISBN 0-8266-5533-5<br/>
+Library of Congress Catalog Card No. 79-92253<br/>
+''Printed in the United States of America''
+</div>
+</div><noinclude>
+<references/></noinclude>

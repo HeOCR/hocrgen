@@ -20,13 +20,15 @@ from hocrgen.fetchers.wikisource import (
     index_exclusion_reasons,
     load_wikisource_snapshot,
     page_attestation,
+    digitized_by_google,
     page_exclusion_reason,
+    page_needs_crop,
     page_plain_text,
     scan_source_origin,
     write_wikisource_reference_pool,
 )
 from hocrgen.manifests.models import BenchmarkTranscriptionReferenceRecord, ItemRecord
-from hocrgen.parsers.wikitext import UnsupportedWikitextError, wikitext_to_plain_text
+from hocrgen.parsers.wikitext import UnsupportedWikitextError, convert_wikitext, wikitext_to_plain_text
 from hocrgen.source_ops import _inspect_source
 
 SOURCE_ID = "wikisource_he_proofread"
@@ -89,12 +91,27 @@ def test_index_gate_admits_only_files_with_work_and_scan_evidence() -> None:
     assert index_exclusion_reason(indexes["birnbaum_siddur_1949"]) == "excluded_birnbaum_work"
     assert index_exclusion_reason(indexes["birnbaum_haggadah_1953"]) == "excluded_birnbaum_work"
     assert "creator_died_after_1955" in index_exclusion_reasons(indexes["birnbaum_siddur_1949"])
-    assert index_exclusion_reasons(indexes["siddur_torah_ohr_1940"]) == ["pd_us_only_licence", "google_digitization_unchecked"]
-    assert index_exclusion_reasons(indexes["korfu_siddur_1885"]) == [
-        "creator_death_year_missing",
-        "scan_provenance_unrecorded",
-        "google_digitization_unchecked",
-    ]
+    # Decision 10: the PD-US-only tag, an unrecorded scan source and an unchecked Google stamp no longer reject.
+    assert index_exclusion_reasons(indexes["siddur_torah_ohr_1940"]) == ["index_language_unrecorded"]
+    assert index_exclusion_reasons(indexes["korfu_siddur_1885"]) == ["creator_death_year_missing", "index_language_unrecorded"]
+
+
+def test_index_language_must_be_recorded_as_hebrew() -> None:
+    # Team-lead decision (F8b3): the source is Hebrew. An English Index such as "She" (a Hebrew translation typed
+    # over an English scan) and an Index with no recorded language are both rejected.
+    indexes, _ = _snapshot()
+    for key in ("selihot_baer_1885", "bostenay_lehmann_1872", "hyman_toldoth_1910_vol1"):
+        assert indexes[key]["work"]["language"] == "he"
+        assert indexes[key]["work"]["language_evidence"]
+    english = copy.deepcopy(indexes["bostenay_lehmann_1872"])
+    english["work"]["language"] = "en"
+    assert index_exclusion_reasons(english) == ["index_language_not_hebrew"]
+    for missing in (None, "", "  "):
+        unrecorded = copy.deepcopy(indexes["bostenay_lehmann_1872"])
+        unrecorded["work"]["language"] = missing
+        assert index_exclusion_reasons(unrecorded) == ["index_language_unrecorded"]
+    del unrecorded["work"]["language"]
+    assert index_exclusion_reasons(unrecorded) == ["index_language_unrecorded"]
 
 
 def test_birnbaum_exclusion_holds_even_with_otherwise_clean_evidence() -> None:
@@ -106,19 +123,23 @@ def test_birnbaum_exclusion_holds_even_with_otherwise_clean_evidence() -> None:
     assert index_exclusion_reasons(birnbaum) == ["excluded_birnbaum_work"]
 
 
-def test_google_digitized_scans_are_held_pending_a_maintainer_decision() -> None:
+def test_google_digitized_scans_are_admitted_and_recorded_as_provenance() -> None:
+    # Maintainer decision 9 (2026-11-06): Google-digitized scans pass the same per-file check.
     indexes, _ = _snapshot()
     stamped = copy.deepcopy(indexes["bostenay_lehmann_1872"])
     stamped["scan_rights"]["digitized_by_google"] = True
-    assert index_exclusion_reasons(stamped) == ["google_digitized_scan_pending"]
+    assert index_exclusion_reasons(stamped) == []
+    assert digitized_by_google(stamped) is True
     google_source = copy.deepcopy(indexes["bostenay_lehmann_1872"])
     google_source["commons_file"]["provenance_text"] = "Missing pages added from Google Books."
-    assert index_exclusion_reasons(google_source) == ["google_digitized_scan_pending"]
+    assert index_exclusion_reasons(google_source) == []
+    assert digitized_by_google(google_source) is True
     unchecked = copy.deepcopy(indexes["bostenay_lehmann_1872"])
     del unchecked["scan_rights"]["digitized_by_google"]
-    assert index_exclusion_reasons(unchecked) == ["google_digitization_unchecked"]
+    assert index_exclusion_reasons(unchecked) == []
+    assert digitized_by_google(unchecked) is None
     for key in ("selihot_baer_1885", "bostenay_lehmann_1872", "hyman_toldoth_1910_vol1"):
-        assert indexes[key]["scan_rights"]["digitized_by_google"] is False
+        assert digitized_by_google(indexes[key]) is False
 
 
 def test_hebrewbooks_scans_are_admitted_on_the_same_rights_check() -> None:
@@ -132,18 +153,20 @@ def test_hebrewbooks_scans_are_admitted_on_the_same_rights_check() -> None:
     assert scan_source_origin(indexes["korfu_siddur_1885"]) == "unrecorded"
 
 
-def test_a_commons_template_alone_is_not_enough() -> None:
+def test_the_commons_tag_never_decides_the_works_status() -> None:
+    # Decision 10: a template alone admits nothing, and a missing or PD-US-only template rejects nothing.
     indexes, _ = _snapshot()
     template_only = copy.deepcopy(indexes["selihot_baer_1885"])
     template_only["work_rights"] = {}
     template_only["scan_rights"] = {}
     assert index_exclusion_reasons(template_only) == ["work_rights_basis_unsupported", "scan_rights_basis_unsupported"]
-    no_template = copy.deepcopy(indexes["selihot_baer_1885"])
-    no_template["commons_file"]["licence_templates"] = []
-    assert index_exclusion_reasons(no_template) == ["no_licence_template"]
-    mixed_us = copy.deepcopy(indexes["selihot_baer_1885"])
-    mixed_us["commons_file"]["licence_templates"] = ["PD-US", "PD-100"]
-    assert index_exclusion_reasons(mixed_us) == []
+    for templates in ([], ["PD-US-not renewed"], ["PD-US", "PD-100"]):
+        tagged = copy.deepcopy(indexes["selihot_baer_1885"])
+        tagged["commons_file"]["licence_templates"] = templates
+        assert index_exclusion_reasons(tagged) == []
+    protected = copy.deepcopy(indexes["selihot_baer_1885"])
+    protected["work"]["creators"][0]["death_year"] = 1988
+    assert index_exclusion_reasons(protected) == ["creator_died_after_1955"]
     unpinned = copy.deepcopy(indexes["selihot_baer_1885"])
     unpinned["commons_file"]["sha1"] = None
     assert index_exclusion_reasons(unpinned) == ["commons_file_unpinned"]
@@ -162,33 +185,35 @@ def test_a_commons_template_alone_is_not_enough() -> None:
         ({"published_year": 1955, "creators": [{"name": "?", "role": "anonymous"}]}, "anonymous_published_by_1955", []),
         ({"published_year": 1956, "creators": []}, "anonymous_published_by_1955", ["anonymous_work_after_1955"]),
         ({"published_year": 1900, "creators": [{"name": "A", "role": "author"}]}, "anonymous_published_by_1955", ["named_creator_on_anonymous_basis"]),
+        # Decision 10: published on or before 1855, presumed PD in Israel without a death year.
+        ({"published_year": 1855, "published_year_evidence": "e", "creators": [{"name": "A", "role": "author", "death_year": None}]}, "presumed_pd_by_publication_age", []),
+        ({"published_year": 1700, "published_year_evidence": "e", "creators": []}, "presumed_pd_by_publication_age", []),
+        ({"published_year": 1856, "published_year_evidence": "e", "creators": []}, "presumed_pd_by_publication_age", ["published_after_1855"]),
+        ({"published_year": 1850, "creators": []}, "presumed_pd_by_publication_age", ["publication_year_missing"]),
+        ({"published_year": 1850, "published_year_evidence": "e", "creators": [{"name": "A", "role": "translator", "death_year": 1960}]}, "presumed_pd_by_publication_age", ["creator_died_after_1955"]),
     ],
 )
 def test_work_rights_follow_israeli_terms(work: dict, work_rights: str, expected: list[str]) -> None:
     indexes, _ = _snapshot()
     index = copy.deepcopy(indexes["selihot_baer_1885"])
-    index["work"] = {"title": "t", **work}
+    index["work"] = {"title": "t", "language": "he", **work}
     index["work_rights"] = {"basis": work_rights, "evidence": "recorded"}
     assert index_exclusion_reasons(index) == expected
 
 
-def test_scan_rights_need_open_licence_or_recorded_reproduction_provenance() -> None:
+def test_a_faithful_reproduction_needs_no_recorded_scan_source() -> None:
+    # Decision 10: the scan source is provenance, recorded where known; it no longer gates.
     indexes, _ = _snapshot()
     nc_scan = copy.deepcopy(indexes["selihot_baer_1885"])
     nc_scan["scan_rights"]["licence"] = "CC-BY-NC-4.0"
     assert index_exclusion_reasons(nc_scan) == ["scan_licence_not_open"]
     unsourced = copy.deepcopy(indexes["bostenay_lehmann_1872"])
     unsourced["scan_rights"]["scan_source"] = None
-    assert index_exclusion_reasons(unsourced) == ["scan_provenance_unrecorded"]
-    unevidenced = copy.deepcopy(indexes["selihot_baer_1885"])
-    unevidenced["scan_rights"]["scan_source"] = {"name": "Open Siddur Project", "evidence": ""}
-    assert index_exclusion_reasons(unevidenced) == ["scan_provenance_unrecorded"]
-    # A bibliographic Commons source field is not scan provenance: Korfu's names the book, not a scanner.
+    assert index_exclusion_reasons(unsourced) == []
     korfu = copy.deepcopy(indexes["korfu_siddur_1885"])
-    assert korfu["commons_file"]["source_field"]
     korfu["work"]["creators"][0].update({"death_year": 1900, "death_year_evidence_url": "u"})
-    korfu["scan_rights"]["digitized_by_google"] = False
-    assert index_exclusion_reasons(korfu) == ["scan_provenance_unrecorded"]
+    korfu["work"]["language"] = "he"
+    assert index_exclusion_reasons(korfu) == []
     no_evidence = copy.deepcopy(indexes["bostenay_lehmann_1872"])
     no_evidence["scan_rights"]["evidence"] = " "
     assert index_exclusion_reasons(no_evidence) == ["scan_rights_evidence_missing"]
@@ -225,9 +250,14 @@ def test_page_gate_skips_low_quality_and_unattributed_quality() -> None:
     no_proofreader = copy.deepcopy(pages[SELIHOT])
     no_proofreader["quality_history"] = [no_proofreader["quality_history"][-1]]
     assert page_exclusion_reason(no_proofreader, indexes, SNAPSHOT_ROOT) == "proofreader_missing"
+    # Decision 12: a partial page is not rejected; it is marked needs_crop for the F8b4 crop.
     partial = copy.deepcopy(pages[HYMAN])
-    partial["transcription_coverage"] = "commentary_only"
-    assert page_exclusion_reason(partial, indexes, SNAPSHOT_ROOT) == "partial_page_transcription"
+    partial["transcription_coverage"] = "partial_page"
+    assert page_exclusion_reason(partial, indexes, SNAPSHOT_ROOT) is None
+    assert page_needs_crop(partial) and not page_needs_crop(pages[HYMAN])
+    unknown = copy.deepcopy(pages[HYMAN])
+    unknown["transcription_coverage"] = "commentary_only"
+    assert page_exclusion_reason(unknown, indexes, SNAPSHOT_ROOT) == "transcription_coverage_unknown"
     unrecorded = copy.deepcopy(pages[HYMAN])
     del unrecorded["transcription_coverage"]
     assert page_exclusion_reason(unrecorded, indexes, SNAPSHOT_ROOT) == "transcription_coverage_unrecorded"
@@ -319,25 +349,94 @@ def test_wikitext_normalisation_rules() -> None:
     )
 
 
+def test_size_templates_keep_their_text_and_are_counted() -> None:
+    conversion = convert_wikitext(
+        "א {{קטן|ב {{ג|ג}}}} {{גדול|1=ד}} {{קטן|קטן=ה = ו}}{{קטן|}} <small>ז</small> <big>ח</big>\n{{גדול|ט\nי}}"
+    )
+    assert conversion.text == "א ב ג ד ה = ו ז ח ט י"
+    assert conversion.size_spans == {"large": 4, "small": 4}
+    assert convert_wikitext("א").size_spans == {}
+    assert wikitext_to_plain_text("{{קטן|1= א }}ב") == "אב"
+
+
+def test_footnotes_render_as_marks_and_notes_at_the_foot() -> None:
+    # Decision 11: {{הערה}} and <ref> become "[n]" marks and "[n] text" lines where <references/> stands
+    # (else after the body); named notes reuse their number; editors' signed notes are dropped and counted.
+    conversion = convert_wikitext(
+        'א{{הערה|ראשונה}} ב<ref name=x>שנייה</ref> ג<ref name=x/> ד{{הערה|ט"ס - ויקיעורך}} ה'
+        "<ref follow=p>המשך מהעמוד הקודם</ref>\n<references/>\nסוף"
+    )
+    assert conversion.text == "א[1] ב[2] ג[2] ד ה\n\nהמשך מהעמוד הקודם\n[1] ראשונה\n[2] שנייה\n\nסוף"
+    assert conversion.features == {"editor_notes_dropped": 1, "footnote_continuations": 1, "footnotes": 2}
+    assert wikitext_to_plain_text("א{{הערה|ב {{קטן|ג}}}}") == "א[1]\n\n[1] ב ג"
+
+
+def test_tables_blocks_and_editor_markup_errors() -> None:
+    assert wikitext_to_plain_text('{|\n|-\n| א || ב\n|-\n| style="x" | ג\n|}\nד') == "א\n\nב\n\nג\n\nד"
+    assert wikitext_to_plain_text("א<div>ב</div>ג<center>ד</center>") == "א\n\nב\n\nג\n\nד"
+    assert wikitext_to_plain_text("<poem>שורה א\nשורה ב</poem>") == "שורה א\nשורה ב"
+    # Broken markup that MediaWiki shows literally is rendered as printed and counted.
+    broken = convert_wikitext("[[א|[[א|ב]]]] ג]] {{{קטן|ד}} {{מ:פסוק|מלכים ב|כה|7}ה {{גדול|{{גדול|:}} ו")
+    assert broken.text == "ב ג ד 7 ה : ו"
+    assert broken.features["malformed_markup"] == 4
+    # The Page view: the ProofreadPage header and footer go; an editor's in-body noinclude stays; includeonly goes.
+    page = "<noinclude>כותרת</noinclude>גוף<noinclude>\nפרק ב\n</noinclude>עוד<includeonly>הכללה</includeonly><noinclude>footer</noinclude>"
+    assert wikitext_to_plain_text(page) == "גוף פרק ב עוד"
+    assert wikitext_to_plain_text("א<nowiki>'''*)'''</nowiki>ב") == "א'''*)'''ב"
+    assert wikitext_to_plain_text("'''מעשה א''''") == "מעשה א'"
+    assert wikitext_to_plain_text("‫==כותרת==\nטקסט") == "כותרת\n\nטקסט"
+
+
 @pytest.mark.parametrize(
-    "wikitext",
+    ("wikitext", "expected"),
     [
-        "טקסט{{תבנית חדשה|א}}",
-        "טקסט<ref>הערה</ref>",
-        "{|\n| תא\n|}",
-        "{{#if:x|y}}",
-        "טקסט {{ק|לא סגור",
-        "<noinclude>חסר סוף",
-        "<nowiki>'''א'''</nowiki>",
-        "טקסט<nowiki/>המשך",
-        "<pre>א</pre>",
-        "{{ק|1=א}}",
-        "{{מרכז| 2 =א|ב}}",
+        ("{{ממ|חולין קלא|א}}", "(חולין קלא, א)"),
+        ('{{מ"מ|אבות|ו|א|עיין שם=ושם}}', "(אבות ו, א ושם)"),
+        ('{{מקור|נידה נו א|נ"ו.}}', '(נ"ו.)'),
+        ("{{צ|ציטוט}} {{צ|מרכאות=לא|בלי}}", '"ציטוט" בלי'),
+        ("{{מצ|דברים כד|יט|כי תקצר}}", '(דברים כד, יט): "כי תקצר"'),
+        ("{{הפניה לפסוקים|תהלים|קכד|ב}}", "(תהלים קכ\"ד, ב')"),
+        ("{{פסוק|והחוט המשולש|קהלת|ד|יב}}", '"והחוט המשולש" (קהלת ד, יב)'),
+        ("{{הפניה-גמ1|שבת|נה|א}}", "(שבת נה.)"),
+        ('{{ב|רחב"פ|רבי חנינא}} {{מונחון|א|ב}}', 'רחב"פ א'),
+        ("{{מ:פסוק|מלכים א|כב|א}}טקסט", "כב א טקסט"),
+        ("{{שדל:דה|ספר=בראשית|פרק=א|פסוק=א||}} {{שדל:דה|בראשית ברא|,}}", "(א) בראשית ברא"),
+        ("{{כו|ספר|כותרת משנה|ספר=1}}", "ספר\n\nספר\n\nכותרת משנה"),
+        ("א{{רווח קשיח|3}}ב{{ססס}}ג", "א ב ג"),
+        ("{{גדול-מודגש|א}}{{גודל גופן|5|ב}}{{הוראה למתפללים|ג}}", "אבג"),
     ],
 )
-def test_wikitext_outside_the_closed_set_is_rejected(wikitext: str) -> None:
-    with pytest.raises(UnsupportedWikitextError):
+def test_template_renderings_follow_mediawiki(wikitext: str, expected: str) -> None:
+    assert wikitext_to_plain_text(wikitext) == expected
+
+
+@pytest.mark.parametrize(
+    ("wikitext", "kind"),
+    [
+        ("{{גדול}}", "template argument"),
+        ("{{קטן|גודל=90|א}}", "template argument"),
+        ("{{הערה|א|קבוצה=ב}}", "footnote"),
+        ("א<ref group=x>ב</ref>", "footnote"),
+        ("א{{הערה|שם=x}}", "footnote"),
+        ("{{#קטע:דף|קטע}}", "template"),
+        ("טקסט{{תבנית חדשה|א}}", "template"),
+        ("{{#if:x|y}}", "template"),
+        ("<pre>א</pre>", "tag"),
+        ("<math>x</math>", "tag"),
+        ("__NOTOC__", "markup"),
+        ("[[Media:x.ogg]]", "link"),
+    ],
+)
+def test_wikitext_outside_the_closed_set_is_rejected(wikitext: str, kind: str) -> None:
+    with pytest.raises(UnsupportedWikitextError) as error:
         wikitext_to_plain_text(wikitext)
+    assert error.value.kind == kind
+
+
+def test_unused_positional_arguments_are_hidden_as_mediawiki_hides_them() -> None:
+    conversion = convert_wikitext("{{קטן|א|ב}}{{גדול|ג|ד}}")
+    assert conversion.text == "אג"
+    assert conversion.features == {"hidden_arguments": 2}
 
 
 # --- adapter -----------------------------------------------------------------------------------------------
@@ -370,7 +469,11 @@ def test_discovery_emits_stable_ids_and_provenance_metadata() -> None:
     assert metadata["scan_rights_basis"] == "explicit_open_licence"
     assert metadata["scan_licence"] == "CC0-1.0"
     assert metadata["source_group_id"] == "wikisource:selihot_baer_1885"
-    assert metadata["text_normalization"] == "wikisource_plain_text.v1"
+    assert metadata["text_normalization"] == "wikisource_plain_text.v2"
+    assert metadata["text_size_spans"] == {"large": 1, "small": 2}
+    assert metadata["work_language"] == "he"
+    assert metadata["transcription_coverage_check"].startswith("Page render compared by eye")
+    assert enriched[BOSTENAY].metadata["text_size_spans"] == {}
     assert enriched[HYMAN].metadata["scan_source_origin"] == "hebrewbooks"
     assert enriched[HYMAN].metadata["wikisource_quality_label"] == "proofread"
     for record in enriched.values():
@@ -384,7 +487,7 @@ def test_enrichment_accepts_anonymous_creators_without_death_year(tmp_path: Path
     indexes_path = config_root / "wikisource_snapshot" / "indexes.json"
     payload = json.loads(indexes_path.read_text(encoding="utf-8"))
     hyman = next(index for index in payload["indexes"] if index["index_key"] == "hyman_toldoth_1910_vol1")
-    hyman["work"] = {"title": "t", "published_year": 1910, "creators": [{"name": "פלוני", "role": "pseudonymous"}]}
+    hyman["work"] = {"title": "t", "published_year": 1910, "language": "he", "creators": [{"name": "פלוני", "role": "pseudonymous"}]}
     hyman["work_rights"] = {"basis": "anonymous_published_by_1955", "evidence": "recorded"}
     indexes_path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     bundle = load_and_validate_bundle(config_root)
@@ -431,9 +534,7 @@ def test_source_health_reports_exclusions_missing_assets_and_text_drift(tmp_path
         "creator_death_year_missing": 1,
         "creator_died_after_1955": 2,
         "excluded_birnbaum_work": 2,
-        "google_digitization_unchecked": 4,
-        "pd_us_only_licence": 3,
-        "scan_provenance_unrecorded": 1,
+        "index_language_unrecorded": 2,
     }
 
     config_root = _copy_snapshot_config(tmp_path)

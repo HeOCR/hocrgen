@@ -4,9 +4,13 @@ Each item is one ``עמוד:`` (Page) page at quality 3 (proofread) or 4 (valida
 its Index's Commons PDF/DjVu file. The adapter reads a pinned snapshot only; it never calls the network and
 never edits Wikisource or Commons.
 
-Admission is per Index, on per-file evidence of both (a) the work being public domain in Israel and (b) clear
-scan rights (maintainer decisions, 2026-11-06). No Commons licence template is enough on its own, files whose
-only PD tag is ``PD-US-*`` are rejected, and the Birnbaum Siddur (1949) and Haggadah (1953) are excluded.
+Admission is per Index, on evidence that the work is public domain in Israel (maintainer decisions, 2026-11-06).
+Decision 10 (F8b3): missing Commons or Wikidata evidence is a data gap to resolve, not a rights problem. A
+faithful reproduction of a PD work needs no recorded scan source or licence template, the Commons tag
+(``PD-US-*``, missing or other) never decides the work's status, and a work published on or before 1855 is
+presumed PD even when no creator death year is found. Real protection still excludes: a creator who died
+after 1955, and the Birnbaum Siddur (1949) and Haggadah (1953). Decision 9: Google-digitized scans are
+admitted; ``digitized_by_google`` is provenance only. The Index must record its language as Hebrew (``he``).
 """
 
 from __future__ import annotations
@@ -33,6 +37,8 @@ from hocrgen.manifests.models import (
 from hocrgen.parsers.wikitext import (
     WIKITEXT_NORMALIZATION_VERSION,
     UnsupportedWikitextError,
+    WikitextConversion,
+    convert_wikitext,
     pagequality_level,
     wikitext_to_plain_text,
 )
@@ -47,10 +53,19 @@ ADMITTED_QUALITY_LEVELS = {3: "proofread", 4: "validated"}
 PD_ISRAEL_DEATH_CUTOFF_YEAR = 1955
 PD_ISRAEL_ANONYMOUS_PUBLICATION_CUTOFF_YEAR = 1955
 PD_ISRAEL_STATE_WORK_CUTOFF_YEAR = 1975
-WORK_RIGHTS_BASES = {"author_died_by_1955", "state_work_by_1975", "anonymous_published_by_1955"}
+# Decision 10: a work published on or before 1855 is presumed PD in Israel even without a creator death year.
+PD_ISRAEL_PRESUMPTION_PUBLICATION_CUTOFF_YEAR = 1855
+WORK_RIGHTS_BASES = {
+    "author_died_by_1955",
+    "state_work_by_1975",
+    "anonymous_published_by_1955",
+    "presumed_pd_by_publication_age",
+}
 SCAN_RIGHTS_BASES = {"faithful_reproduction_of_pd_work", "explicit_open_licence"}
 OPEN_SCAN_LICENCES = {"CC0-1.0", "PDM-1.0", "CC-BY-4.0", "CC-BY-SA-4.0"}
 ANONYMOUS_CREATOR_ROLES = {"anonymous", "pseudonymous"}
+# Team-lead decision (F8b3, 2026-11-06): the source is Hebrew. The Index's recorded language must be ``he``.
+INDEX_LANGUAGE = "he"
 # Page reasons that mean the pinned snapshot itself is broken; source health reports them as errors.
 WIKISOURCE_INTEGRITY_REASONS = {
     "wikitext_missing",
@@ -66,9 +81,11 @@ EXCLUDED_INDEX_FILES = {
     "File:Birnbaum Haggadah.pdf": "excluded_birnbaum_work",
 }
 
-# Team-lead hold (2026-11-06), pending a maintainer rights decision: Google-digitized scans are not admitted.
+# Decision 9 (2026-11-06): Google-digitized scans are admitted; the markers only inform the recorded provenance.
 GOOGLE_DIGITIZATION_MARKERS = ("digitized by google", "google books", "books.google")
 TRANSCRIPTION_COVERAGE_FULL = "full_page"
+TRANSCRIPTION_COVERAGE_PARTIAL = "partial_page"
+TRANSCRIPTION_COVERAGE_VALUES = {TRANSCRIPTION_COVERAGE_FULL, TRANSCRIPTION_COVERAGE_PARTIAL}
 
 _LICENCE_TOKEN = re.compile(r"^(PD|CC|Cc-|GFDL|FAL|OGL|Copyrighted|Attribution)", re.IGNORECASE)
 _BOT_NAME = re.compile(r"bot$", re.IGNORECASE)
@@ -143,14 +160,26 @@ def index_exclusion_reasons(index: dict[str, Any]) -> list[str]:
         reasons.append(excluded)
     if not commons.get("sha1") or not commons.get("file_page_revision_id"):
         reasons.append("commons_file_unpinned")
-    tokens = licence_tokens(index)
-    if not tokens:
-        reasons.append("no_licence_template")
-    elif all(token.upper().startswith("PD-US") for token in tokens):
-        reasons.append("pd_us_only_licence")
+    # Decision 10: the Commons licence template (PD-US-only, missing or other) never decides the work's status.
     reasons.extend(_work_rights_reasons(index))
     reasons.extend(_scan_rights_reasons(index))
+    reasons.extend(_language_reasons(index))
     return reasons
+
+
+def _language_reasons(index: dict[str, Any]) -> list[str]:
+    """The Index must record Hebrew (``he``); another language or none recorded is rejected (F8b3).
+
+    The language is the Index page's own field (``שפה``), else the Commons file's ``language`` field. An English
+    Index such as *She* carries a Hebrew translation typed over an English scan, which is not a transcription.
+    """
+
+    language = (index.get("work") or {}).get("language")
+    if not isinstance(language, str) or not language.strip():
+        return ["index_language_unrecorded"]
+    if language.strip() != INDEX_LANGUAGE:
+        return ["index_language_not_hebrew"]
+    return []
 
 
 def index_exclusion_reason(index: dict[str, Any]) -> str | None:
@@ -177,6 +206,15 @@ def _work_rights_reasons(index: dict[str, Any]) -> list[str]:
                 reasons.append("creator_death_year_missing")
             elif death_year > PD_ISRAEL_DEATH_CUTOFF_YEAR:
                 reasons.append("creator_died_after_1955")
+    elif basis == "presumed_pd_by_publication_age":
+        published = work.get("published_year")
+        if not isinstance(published, int) or not str(work.get("published_year_evidence") or "").strip():
+            reasons.append("publication_year_missing")
+        elif published > PD_ISRAEL_PRESUMPTION_PUBLICATION_CUTOFF_YEAR:
+            reasons.append("published_after_1855")
+        # A creator shown to have died after 1955 is real protection; the presumption never overrides it.
+        if any(isinstance(c.get("death_year"), int) and c["death_year"] > PD_ISRAEL_DEATH_CUTOFF_YEAR for c in creators):
+            reasons.append("creator_died_after_1955")
     elif basis == "state_work_by_1975":
         created = work.get("created_year")
         if not isinstance(created, int) or not work.get("state_body"):
@@ -204,14 +242,13 @@ def _scan_rights_reasons(index: dict[str, Any]) -> list[str]:
         reasons.append("scan_rights_evidence_missing")
     if basis == "explicit_open_licence" and rights.get("licence") not in OPEN_SCAN_LICENCES:
         reasons.append("scan_licence_not_open")
-    if not _scan_source_recorded(rights.get("scan_source")):
-        reasons.append("scan_provenance_unrecorded")
-    reasons.extend(_google_digitization_reasons(index))
+    # Decision 10: a faithful reproduction of a PD work needs no recorded scan source; record it where known.
+    # Decision 9: a Google-digitized scan is admitted; ``digitized_by_google`` stays provenance only.
     return reasons
 
 
-def _scan_source_recorded(scan_source: Any) -> bool:
-    """A scan source is recorded only as a named scanning body plus the evidence naming it.
+def scan_source_recorded(scan_source: Any) -> bool:
+    """A scan source counts as recorded only as a named scanning body plus the evidence naming it (provenance).
 
     A non-empty Commons ``source`` field is not enough: it often repeats the book's title or imprint.
     """
@@ -221,12 +258,8 @@ def _scan_source_recorded(scan_source: Any) -> bool:
     return bool(str(scan_source.get("name") or "").strip()) and bool(str(scan_source.get("evidence") or "").strip())
 
 
-def _google_digitization_reasons(index: dict[str, Any]) -> list[str]:
-    """Hold Google-digitized scans until the maintainer decides on them.
-
-    The stamp is on the page images, not reliably in Commons metadata, so the capture must record
-    ``scan_rights.digitized_by_google`` after looking at the renders. Commons text naming Google also holds the file.
-    """
+def digitized_by_google(index: dict[str, Any]) -> bool | None:
+    """Provenance only (decision 9): True when recorded or when the Commons record names Google; else the record."""
 
     commons = index.get("commons_file") or {}
     rights = index.get("scan_rights") or {}
@@ -242,10 +275,8 @@ def _google_digitization_reasons(index: dict[str, Any]) -> list[str]:
         if value
     ).casefold()
     if rights.get("digitized_by_google") is True or any(marker in haystack for marker in GOOGLE_DIGITIZATION_MARKERS):
-        return ["google_digitized_scan_pending"]
-    if rights.get("digitized_by_google") is not False:
-        return ["google_digitization_unchecked"]
-    return []
+        return True
+    return rights.get("digitized_by_google")
 
 
 # --- Page admission and attestation ------------------------------------------------------------------------
@@ -302,10 +333,17 @@ def page_exclusion_reasons(page: dict[str, Any], indexes: dict[str, dict[str, An
     coverage = page.get("transcription_coverage")
     if coverage is None:
         reasons.append("transcription_coverage_unrecorded")
-    elif coverage != TRANSCRIPTION_COVERAGE_FULL:
-        reasons.append("partial_page_transcription")
+    elif coverage not in TRANSCRIPTION_COVERAGE_VALUES:
+        reasons.append("transcription_coverage_unknown")
+    # Decision 12: a partial_page transcription is not rejected; it is marked needs_crop (see page_needs_crop).
     reasons.extend(_page_text_reasons(page, root))
     return reasons
+
+
+def page_needs_crop(page: dict[str, Any]) -> bool:
+    """Decision 12: a partial-page transcription is paired with the transcribed region only, after a crop (F8b4)."""
+
+    return page.get("transcription_coverage") == TRANSCRIPTION_COVERAGE_PARTIAL
 
 
 def page_exclusion_reason(page: dict[str, Any], indexes: dict[str, dict[str, Any]], root: Path) -> str | None:
@@ -326,6 +364,8 @@ def _page_text_reasons(page: dict[str, Any], root: Path) -> list[str]:
         text = wikitext_to_plain_text(wikitext)
     except UnsupportedWikitextError:
         return ["wikitext_unsupported_markup"]
+    if not text.strip():
+        return ["page_text_empty"]  # a proofread page whose body was left empty: no text to pair
     if _sha256(text) != page.get("text_sha256"):
         return ["page_text_checksum_mismatch"]
     text_path = root / str(page.get("text_path", ""))
@@ -382,14 +422,20 @@ def page_permalink(page: dict[str, Any]) -> str:
     return f"{WIKISOURCE_SITE_URL}/w/index.php?title={title}&oldid={page['revision_id']}"
 
 
+def page_conversion(page: dict[str, Any], root: Path) -> WikitextConversion:
+    """Convert the page's pinned wikitext and check the text against the pinned checksum."""
+
+    wikitext = (root / page["wikitext_path"]).read_text(encoding="utf-8")
+    conversion = convert_wikitext(wikitext)
+    if _sha256(conversion.text) != page["text_sha256"]:
+        raise StageExecutionError(f"Wikisource page text checksum mismatch for {page['source_item_id']}")
+    return conversion
+
+
 def page_plain_text(page: dict[str, Any], root: Path) -> str:
     """Derive the page's plain text from its pinned wikitext and check it against the pinned checksum."""
 
-    wikitext = (root / page["wikitext_path"]).read_text(encoding="utf-8")
-    text = wikitext_to_plain_text(wikitext)
-    if _sha256(text) != page["text_sha256"]:
-        raise StageExecutionError(f"Wikisource page text checksum mismatch for {page['source_item_id']}")
-    return text
+    return page_conversion(page, root).text
 
 
 def _sha256(text: str) -> str:
@@ -465,11 +511,14 @@ class WikisourceProofreadImporter:
                         "text_license": TEXT_LICENSE,
                         "text_attribution": f"Hebrew Wikisource contributors, {page_permalink(page)}",
                         "text_normalization": WIKITEXT_NORMALIZATION_VERSION,
+                        # Typographic size spans (small / large text) in the page body; the text itself is unsized.
+                        "text_size_spans": page_conversion(page, root).size_spans,
                         "page_text_ref": page["text_path"],
                         "page_text_sha256": page["text_sha256"],
                         "raw_wikitext_sha256": page["wikitext_sha256"],
                         "raw_wikitext_revision_sha1": page["revision_sha1"],
                         "work_title": work["title"],
+                        "work_language": work.get("language"),
                         "work_published_year": work.get("published_year"),
                         "work_creators": [
                             {"name": creator.get("name"), "role": creator.get("role"), "death_year": creator.get("death_year")}
@@ -485,6 +534,9 @@ class WikisourceProofreadImporter:
                         "scan_commons_licence_templates": commons["licence_templates"],
                         "scan_page_number": image["rendered_from"]["page"],
                         "transcription_coverage": page["transcription_coverage"],
+                        "transcription_coverage_check": page.get("transcription_coverage_check"),
+                        "needs_crop": page_needs_crop(page),
+                        "scan_digitized_by_google": digitized_by_google(index),
                         "rights_evidence_checked_at": index["evidence_checked_at"],
                         "expected_asset_sha256": image["sha256"],
                     },
@@ -579,6 +631,8 @@ def write_wikisource_reference_pool(source: SourceConfig, bundle: ConfigBundle, 
     skipped: dict[str, int] = {}
     for page in sorted(pages, key=lambda record: record["source_item_id"]):
         reasons = page_exclusion_reasons(page, indexes, root)
+        if not reasons and page_needs_crop(page):
+            reasons = ["needs_crop"]  # the full-page image would not match a partial text until F8b4 crops it
         reason = reasons[0] if reasons else page_attestation(page)["adjudication_ineligible_reason"]
         if reason:
             skipped[reason] = skipped.get(reason, 0) + 1

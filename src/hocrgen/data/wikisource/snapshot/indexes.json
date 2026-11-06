@@ -30,6 +30,8 @@
         "title": "סדר הסליחות כמנהג ליטא ופולין (The Seliḥot for the Entire Year)",
         "published_year": 1885,
         "place": "Rödelheim",
+        "language": "he",
+        "language_evidence": "Index page field שפה=he (Index revision 1423666).",
         "creators": [
           {
             "name": "Seligman Baer",
@@ -89,6 +91,8 @@
         "title": "בוסתנאי",
         "published_year": 1872,
         "place": "Vilnius",
+        "language": "he",
+        "language_evidence": "Commons file page Language field {{language|he}} (file-page revision 1122837453); the Index page has no שפה field.",
         "creators": [
           {
             "name": "Marcus Lehmann",
@@ -152,6 +156,8 @@
         "title": "הסידור השלם",
         "published_year": 1949,
         "place": "New York",
+        "language": "he",
+        "language_evidence": "Index page field שפה=he (Index revision 2904888).",
         "creators": [
           {
             "name": "Philip Birnbaum",
@@ -209,6 +215,8 @@
         "title": "סדר הגדה של פסח",
         "published_year": 1953,
         "place": "New York",
+        "language": "he",
+        "language_evidence": "Index page field שפה=he (Index revision 1412413).",
         "creators": [
           {
             "name": "Philip Birnbaum",
@@ -267,6 +275,8 @@
         "title": "תולדות תנאים ואמוראים א",
         "published_year": 1910,
         "place": "London",
+        "language": "he",
+        "language_evidence": "Commons file page Language field {{language|he}} (file-page revision 1078737272); the Index page has no שפה field.",
         "creators": [
           {
             "name": "Aaron Hyman",
@@ -325,6 +335,8 @@
         "title": "סידור תורה אור",
         "published_year": 1940,
         "place": null,
+        "language": null,
+        "language_evidence": "Neither the Index page (revision 594949) nor the Commons file page records a language.",
         "creators": [
           {
             "name": "Shneur Zalman of Liadi",
@@ -383,6 +395,8 @@
         "title": "סדר תפלות כמנהג ק\"ק ספרדים",
         "published_year": 1885,
         "place": "Corfu",
+        "language": null,
+        "language_evidence": "Neither the Index page (revision 779513) nor the Commons file page records a language.",
         "creators": [
           {
             "name": "Yosef Nachmuli",

@@ -1,4 +1,4 @@
-"""Operator-only inventory of Hebrew Wikisource ProofreadPage Indexes through the F8b gates (F8b2).
+"""Operator-only inventory of Hebrew Wikisource ProofreadPage Indexes through the F8b gates (F8b2, F8b3).
 
 The tool enumerates every ``מפתח:`` (Index) page on he.wikisource.org and its quality-3/4 ``עמוד:`` pages,
 gathers per-Index rights evidence, and runs each Index through the unchanged F8b gate
@@ -11,22 +11,25 @@ Evidence is gathered, never guessed:
 - **Creators** come from the Index page fields (author, translator, editor, illustrator) and the Commons
   ``{{Book}}`` / ``{{Information}}`` fields. Death years come from Wikidata ``P570`` (an upper bound at the
   statement's precision; the latest of several statements) or from the Wikisource author page's Gregorian
-  death year. A creator without either keeps ``death_year: null``, so the gate rejects the Index with
-  ``creator_death_year_missing``. An Index with no recorded creator gets ``creators_missing``.
-- **Anonymous works** take the ``anonymous_published_by_1955`` basis only when every creator field carries an
-  explicit anonymous or unknown-author marker.
-- **State works** are never assigned automatically.
-- **Scan rights** map from the Commons licence templates: an open licence template gives
-  ``explicit_open_licence``; otherwise any public-domain template that is not ``PD-US-*``-only gives
-  ``faithful_reproduction_of_pd_work``. Nothing else gives a basis.
-- **Scan source** is recorded only when a Commons ``source`` / ``institution`` field names a scanning body
-  or repository (a known name or a URL's host) or says the uploader's own work.
-- **Google digitization** is ``true`` when the Commons record or the file's metadata / text layer mentions
-  Google; ``false`` only when a text layer exists and does not; otherwise ``null``
-  (``google_digitization_unchecked``). Page renders are not inspected: F8b's render check stays the bar for
-  fixture admission.
-- **Transcription coverage** is not assessed automatically, so every page stays
-  ``transcription_coverage_unrecorded`` and the report counts pages that pass every other gate.
+  death year, then from cited facts in the recorded evidence file (``--index-evidence``; F8b3) for creators
+  the wikis name only as plain text. A creator without any keeps ``death_year: null``.
+- **Work rights** (decision 10, F8b3): every creator dead by 1955 gives ``author_died_by_1955``; failing that,
+  a work published on or before 1855 gives ``presumed_pd_by_publication_age``, with the year's evidence.
+  Anonymous works take ``anonymous_published_by_1955`` only when every creator field carries an explicit
+  anonymous or unknown-author marker. State works are never assigned automatically.
+- **Scan rights** (decisions 9 and 10): an open licence template gives ``explicit_open_licence``; any other
+  flat scan of a PD work is a ``faithful_reproduction_of_pd_work``, whatever the Commons tag. The scan source
+  (a Commons ``source`` / ``institution`` field naming a scanning body, a URL host or the uploader's own work)
+  and Google digitization (from the Commons record, categories and the file's metadata / text layer) are
+  recorded as provenance and decide nothing.
+- **Language** is the Index page's ``שפה`` field, else the Commons file's ``language`` field, else a recorded
+  fact; the gate admits only ``he`` (F8b3).
+- **Transcription coverage** is not assessed automatically. Render checks recorded per page in a reviewable
+  file (``--page-checks``, committed as ``docs/wikisource_page_checks.json``; F8b3) set a page's
+  ``transcription_coverage`` and per-page Google-stamp fact. Each check names who made it (``checked_by``:
+  ``agent`` or ``human``), the method and the date, and is pinned to the page revision and the Commons file
+  SHA-1; a human check overrides an agent check of the same page. Pages without a current check stay
+  ``transcription_coverage_unrecorded``, and the report counts pages that pass every other gate.
 
 Nothing is edited on Wikisource, Commons or Wikidata. The raw cache, the operator snapshot and the full
 inventory JSON live outside the repo; only the compact per-Index JSON (ids, rights evidence and gate
@@ -54,18 +57,25 @@ from typing import Any
 from hocrgen.config.loader import package_root
 from hocrgen.fetchers.wikisource import (
     ADMITTED_QUALITY_LEVELS,
+    PD_ISRAEL_DEATH_CUTOFF_YEAR,
+    PD_ISRAEL_PRESUMPTION_PUBLICATION_CUTOFF_YEAR,
     GOOGLE_DIGITIZATION_MARKERS,
     OPEN_SCAN_LICENCES,
+    TRANSCRIPTION_COVERAGE_PARTIAL,
+    TRANSCRIPTION_COVERAGE_VALUES,
     index_exclusion_reasons,
     licence_tokens,
     load_wikisource_snapshot,
     page_attestation,
     page_exclusion_reasons,
+    page_needs_crop,
     scan_source_origin,
 )
-from hocrgen.parsers.wikitext import UnsupportedWikitextError, pagequality_level, wikitext_to_plain_text
+from hocrgen.parsers.wikitext import UnsupportedWikitextError, convert_wikitext, pagequality_level, wikitext_to_plain_text
 
 INVENTORY_SCHEMA_VERSION = "wikisource_index_inventory.v1"
+PAGE_CHECKS_SCHEMA_VERSION = "wikisource_page_render_checks.v1"
+PAGE_CHECKERS = ("agent", "human")
 USER_AGENT = "hocrgen-wikisource-inventory/0.1 (https://github.com/HeOCR/hocrgen; operator inventory)"
 WS_API = "https://he.wikisource.org/w/api.php"
 COMMONS_API = "https://commons.wikimedia.org/w/api.php"
@@ -104,6 +114,8 @@ SCAN_SOURCE_NAMES = (
     ("הספריה הלאומית", "National Library of Israel"),
     ("הספרייה הלאומית", "National Library of Israel"),
     ("archive.org", "Internet Archive"),
+    ("{{ia|", "Internet Archive"),
+    ("hebrew national library", "National Library of Israel"),
     ("internet archive", "Internet Archive"),
     ("hathitrust", "HathiTrust"),
     ("chabadlibrary", "Chabad-Lubavitch Library"),
@@ -575,19 +587,35 @@ def _attach_death_year(creator: dict[str, Any], entities: dict[str, dict[str, An
         creator.pop("author_page", None)
 
 
-def work_rights_from_creators(creators: list[dict[str, Any]], published_year: int | None) -> dict[str, Any]:
+def work_rights_from_creators(
+    creators: list[dict[str, Any]], published_year: int | None, published_year_evidence: str | None = None
+) -> dict[str, Any]:
+    """The work-rights basis the evidence supports.
+
+    Every creator dead by 1955 gives ``author_died_by_1955``. When a death year is missing (or no creator is
+    recorded) and the work was published on or before 1855, decision 10's presumption gives
+    ``presumed_pd_by_publication_age``. A creator who died after 1955 always stays on the death-year basis, so the
+    gate rejects it as protected.
+    """
+
     if creators and all(creator["role"] == "anonymous" for creator in creators):
         return {
             "basis": "anonymous_published_by_1955",
             "evidence": f"Every creator field carries an anonymous or unknown-author marker; published {published_year or 'year not recorded'}.",
         }
-    if not creators:
-        return {"basis": "author_died_by_1955", "evidence": "No creator is recorded on the Index page or the Commons file page."}
     parts = []
     for creator in creators:
         died = f"died {creator['death_year']}" if creator.get("death_year") is not None else "death year not evidenced"
         parts.append(f"{creator['name']} ({creator['role']}, {died})")
-    return {"basis": "author_died_by_1955", "evidence": "Creators: " + "; ".join(parts) + "."}
+    listed = ("Creators: " + "; ".join(parts) + ".") if creators else "No creator is recorded on the Index page or the Commons file page."
+    late = any(isinstance(c.get("death_year"), int) and c["death_year"] > PD_ISRAEL_DEATH_CUTOFF_YEAR for c in creators)
+    complete = bool(creators) and all(isinstance(c.get("death_year"), int) for c in creators)
+    if not late and not complete and isinstance(published_year, int) and published_year <= PD_ISRAEL_PRESUMPTION_PUBLICATION_CUTOFF_YEAR and published_year_evidence:
+        return {
+            "basis": "presumed_pd_by_publication_age",
+            "evidence": f"Published {published_year} ({published_year_evidence}), on or before 1855: presumed PD in Israel (decision 10). {listed}",
+        }
+    return {"basis": "author_died_by_1955", "evidence": listed}
 
 
 def scan_rights_from_commons(record: dict[str, Any], *, file_wikitext: str, uploader: str | None) -> dict[str, Any]:
@@ -598,20 +626,18 @@ def scan_rights_from_commons(record: dict[str, Any], *, file_wikitext: str, uplo
         licence = open_licences[0]
         basis: str | None = "explicit_open_licence"
         evidence = f"Commons licence templates {tokens}: explicit open licence {licence}."
-    elif pd_tokens:
+    else:
+        # Decision 10: a flat scan of a printed PD work is a faithful reproduction; the Commons tag does not decide.
         licence = None
         basis = "faithful_reproduction_of_pd_work"
-        evidence = f"Commons licence templates {tokens}: a public-domain tag on a flat scan of a printed work."
-    else:
-        licence = None
-        basis = None
-        evidence = f"Commons licence templates {tokens}: no open-licence or non-US public-domain tag."
+        kind = "a public-domain tag" if pd_tokens else "no non-US public-domain tag" if tokens else "no licence template"
+        evidence = f"Commons licence templates {tokens} ({kind}): a flat scan of a printed work, a faithful reproduction (decision 10)."
     assert licence is None or licence in OPEN_SCAN_LICENCES
     return {"basis": basis, "licence": licence, "scan_source": scan_source_evidence(record, file_wikitext, uploader), "evidence": evidence}
 
 
 def scan_source_evidence(record: dict[str, Any], file_wikitext: str, uploader: str | None) -> dict[str, Any] | None:
-    """A named scanning body from the Commons source/institution fields, or None (``scan_provenance_unrecorded``)."""
+    """A named scanning body from the Commons source/institution fields, or None (provenance only)."""
 
     commons = record.get("commons_file") or {}
     fields = [("source", commons.get("source_field")), ("institution", commons.get("institution_field"))]
@@ -683,7 +709,9 @@ def _text_layer_chars(metadata: Any, *, inside_text: bool = False) -> int:
     return 0
 
 
-def with_render_check(digitized: bool | None, check: str, packaged: dict[str, Any] | None) -> tuple[bool | None, str]:
+def with_render_check(
+    digitized: bool | None, check: str, packaged: dict[str, Any] | None, *, label: str = "F8b packaged snapshot render check"
+) -> tuple[bool | None, str]:
     """Combine the automated check with an operator render check recorded in the packaged F8b snapshot.
 
     Any evidence of Google wins; otherwise the render check, then the automated check.
@@ -692,7 +720,7 @@ def with_render_check(digitized: bool | None, check: str, packaged: dict[str, An
     rendered = (packaged or {}).get("digitized_by_google")
     if rendered is None or digitized is True:
         return digitized, check
-    note = f"F8b packaged snapshot render check ({(packaged or {}).get('evidence_checked_at')}): {(packaged or {}).get('digitization_check')}"
+    note = f"{label} ({(packaged or {}).get('evidence_checked_at')}): {(packaged or {}).get('digitization_check')}"
     return (True, note) if rendered is True else (False, note if digitized is None else f"{note} {check}")
 
 
@@ -714,6 +742,99 @@ def packaged_render_checks(root: Path | None = None) -> dict[str, dict[str, Any]
     return checks
 
 
+# --- Recorded Index evidence (F8b3) ---------------------------------------------------------------------------
+
+INDEX_EVIDENCE_SCHEMA_VERSION = "wikisource_index_evidence.v1"
+RECORDERS = ("agent", "human")
+
+
+def _recorded_problems(entry: dict[str, Any], *fields: str) -> list[str]:
+    problems = [f"missing {field}" for field in ("recorded_by", "recorder", "checked_at", *fields) if entry.get(field) in (None, "", [])]
+    if entry.get("recorded_by") not in RECORDERS:
+        problems.append("recorded_by must be agent or human")
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(entry.get("checked_at") or "")):
+        problems.append("checked_at must be an ISO date")
+    return problems
+
+
+def index_evidence_problems(record: dict[str, Any]) -> list[str]:
+    """Schema problems of one recorded-evidence record; empty when it is well formed."""
+
+    problems = [f"missing {field}" for field in ("index_title", "commons_file_sha1") if not record.get(field)]
+    for creator in record.get("creators") or []:
+        problems += _recorded_problems(creator, "names", "role", "death_year", "evidence_url", "evidence_kind")
+        if not isinstance(creator.get("death_year"), int):
+            problems.append("death_year must be an integer year")
+    if record.get("scan_source"):
+        problems += _recorded_problems(record["scan_source"], "name", "evidence")
+    if record.get("language"):
+        problems += _recorded_problems(record["language"], "value", "evidence")
+    return problems
+
+
+def load_index_evidence(path: Path | None) -> dict[str, dict[str, Any]]:
+    """Recorded per-Index evidence (cited creator death years, scan source, Google render check), keyed by Commons SHA-1."""
+
+    if path is None:
+        return {}
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("schema_version") != INDEX_EVIDENCE_SCHEMA_VERSION:
+        raise ValueError(f"index evidence must be {INDEX_EVIDENCE_SCHEMA_VERSION}")
+    evidence: dict[str, dict[str, Any]] = {}
+    for record in payload.get("records") or []:
+        problems = index_evidence_problems(record)
+        if problems:
+            raise ValueError(f"bad index evidence for {record.get('index_title')}: {', '.join(problems)}")
+        evidence[record["commons_file_sha1"]] = record
+    return evidence
+
+
+def apply_creator_evidence(creators: list[dict[str, Any]], evidence: dict[str, Any] | None) -> None:
+    """Fill a missing death year from a recorded, cited fact whose names match the creator exactly (normalised).
+
+    A recorded fact never replaces a death year the tool found itself, and it never matches on a partial name.
+    """
+
+    for recorded in (evidence or {}).get("creators") or []:
+        names = {_normalise_name(name) for name in recorded["names"]}
+        for creator in creators:
+            if creator.get("death_year") is not None or _normalise_name(creator.get("name") or "") not in names:
+                continue
+            source = {
+                "death_year": recorded["death_year"],
+                "precision": 9,
+                "url": recorded["evidence_url"],
+                "kind": f"recorded_{recorded['evidence_kind']}",
+                "recorded_by": recorded["recorded_by"],
+                "recorder": recorded["recorder"],
+                "checked_at": recorded["checked_at"],
+            }
+            creator["death_year"] = recorded["death_year"]
+            creator["death_year_evidence_url"] = recorded["evidence_url"]
+            creator["death_year_sources"] = [*(creator.get("death_year_sources") or []), source]
+            creator["death_year_recorded_by"] = recorded["recorded_by"]
+            if recorded.get("wikidata") and not creator.get("wikidata"):
+                creator["wikidata"] = recorded["wikidata"]
+
+
+def recorded_scan_source(recorded: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "name": recorded["name"],
+        "url": recorded.get("url"),
+        "evidence": f"{recorded['evidence']} (recorded by {recorded['recorded_by']}, {recorded['checked_at']})",
+    }
+
+
+def apply_language_evidence(record: dict[str, Any], evidence: dict[str, Any] | None) -> None:
+    """Fill an unrecorded Index language from a recorded fact; a language the wikis record is never replaced."""
+
+    recorded = (evidence or {}).get("language")
+    if not recorded or record["work"].get("language"):
+        return
+    record["work"]["language"] = recorded["value"]
+    record["work"]["language_evidence"] = f"{recorded['evidence']} (recorded by {recorded['recorded_by']}, {recorded['checked_at']})"
+
+
 def packaged_creator_mentions(root: Path | None = None) -> dict[str, list[dict[str, Any]]]:
     """Creator Wikidata ids hand-recorded in the packaged F8b snapshot, keyed by Commons file SHA-1.
 
@@ -733,21 +854,80 @@ def packaged_creator_mentions(root: Path | None = None) -> dict[str, list[dict[s
 
 
 def work_language(file_wikitext: str, index_wikitext: str) -> str | None:
-    value = template_field(index_wikitext, "שפה") or ""
-    if not value:
-        commons = template_field(file_wikitext, "language") or ""
-        match = re.search(r"\{\{\s*language\s*\|\s*([a-z-]+)", commons, re.IGNORECASE)
-        value = match.group(1) if match else commons
+    return work_language_evidence(file_wikitext, index_wikitext)[0]
+
+
+def work_language_evidence(file_wikitext: str, index_wikitext: str) -> tuple[str | None, str]:
+    """The recorded language (Index ``שפה`` field, else the Commons ``language`` field) and where it was read."""
+
+    raw = template_field(index_wikitext, "שפה") or ""
+    origin = "Index page field שפה"
+    value = raw
+    if not raw:
+        raw = template_field(file_wikitext, "language") or ""
+        origin = "Commons file page Language field"
+        match = re.search(r"\{\{\s*language\s*\|\s*([a-z-]+)", raw, re.IGNORECASE)
+        value = match.group(1) if match else raw
     value = _plain_name(value).casefold()
-    return {"עברית": "he", "hebrew": "he", "יידיש": "yi", "אנגלית": "en", "english": "en"}.get(value, value or None)
+    language = {"עברית": "he", "hebrew": "he", "יידיש": "yi", "אנגלית": "en", "english": "en"}.get(value, value or None)
+    if not raw.strip():
+        return None, "Neither the Index page nor the Commons file page records a language."
+    return language, f"{origin}: {_snippet(raw, 80)}"
+
+
+HEBREW_LETTER_VALUES = {
+    "א": 1, "ב": 2, "ג": 3, "ד": 4, "ה": 5, "ו": 6, "ז": 7, "ח": 8, "ט": 9, "י": 10, "כ": 20, "ך": 20, "ל": 30,
+    "מ": 40, "ם": 40, "נ": 50, "ן": 50, "ס": 60, "ע": 70, "פ": 80, "ף": 80, "צ": 90, "ץ": 90, "ק": 100, "ר": 200,
+    "ש": 300, "ת": 400,
+}
+_HEBREW_YEAR = re.compile(r"(?<![א-ת])(ה['׳]?)?([א-ת]{1,4}[\"״][א-ת])(?![א-ת])")
+
+
+def hebrew_year_upper_bound(text: str) -> int | None:
+    """Latest Gregorian year of a Hebrew-calendar year written in letters (``תרנ"ג``, ``ה'תקס"ח``), or None.
+
+    Years in the minor era (without thousands) are read in the sixth millennium. A Hebrew year starts in the
+    autumn, so AM year Y ends in Gregorian year Y - 3760: the upper bound used for the 1855 presumption.
+    """
+
+    match = _HEBREW_YEAR.search(_plain_name(text))
+    if not match:
+        return None
+    letters = re.sub(r"[\"״]", "", match.group(2))
+    value = sum(HEBREW_LETTER_VALUES[letter] for letter in letters)
+    if value >= 1000:
+        return None
+    year = 5000 + value - 3760
+    return year if 1450 <= year <= 2100 else None
 
 
 def published_year(file_wikitext: str, index_wikitext: str) -> int | None:
-    for value in (template_field(file_wikitext, "date", "publication date"), template_field(index_wikitext, "שנה")):
-        match = _YEAR.match(value or "")
+    return published_year_evidence(file_wikitext, index_wikitext)[0]
+
+
+def published_year_evidence(file_wikitext: str, index_wikitext: str) -> tuple[int | None, str | None]:
+    """Publication year and where it was read: the latest of the Commons date and the Index ``שנה`` (an upper bound).
+
+    The Index year may be Hebrew-calendar letters; it is converted to its latest Gregorian year.
+    """
+
+    found: list[tuple[int, str]] = []
+    commons = template_field(file_wikitext, "date", "publication date")
+    match = _YEAR.match(_plain_name(commons or ""))
+    if match:
+        found.append((int(match.group(1)), f"Commons date field: {_snippet(commons or '', 60)}"))
+    index_year = template_field(index_wikitext, "שנה")
+    if index_year:
+        match = _YEAR.match(_plain_name(index_year))
+        hebrew = None if match else hebrew_year_upper_bound(index_year)
         if match:
-            return int(match.group(1))
-    return None
+            found.append((int(match.group(1)), f"Index page field שנה: {_snippet(index_year, 60)}"))
+        elif hebrew:
+            found.append((hebrew, f"Index page field שנה: {_snippet(index_year, 60)} (Hebrew year, Gregorian upper bound {hebrew})"))
+    if not found:
+        return None, None
+    year = max(value for value, _ in found)
+    return year, "; ".join(note for _, note in found)
 
 
 # --- Inventory run (operator path) --------------------------------------------------------------------------
@@ -757,7 +937,16 @@ def index_key_for(page_id: int) -> str:
     return f"ws_index_{page_id}"
 
 
-def run_inventory(fetch: FetchJson, *, checked_at: str, snapshot_root: Path, with_pages: bool = True, log: Callable[[str], None] = print) -> dict[str, Any]:
+def run_inventory(
+    fetch: FetchJson,
+    *,
+    checked_at: str,
+    snapshot_root: Path,
+    with_pages: bool = True,
+    page_checks: dict[str, dict[str, Any]] | None = None,
+    index_evidence: dict[str, dict[str, Any]] | None = None,
+    log: Callable[[str], None] = print,
+) -> dict[str, Any]:
     """Enumerate, gather evidence, gate. Returns the full operator inventory (no page text inside)."""
 
     indexes = [page for block in _query_all(fetch, WS_API, {"list": "allpages", "apnamespace": INDEX_NAMESPACE, "aplimit": "max"}) for page in block.get("allpages", [])]
@@ -830,6 +1019,7 @@ def run_inventory(fetch: FetchJson, *, checked_at: str, snapshot_root: Path, wit
             entities=entities,
             checked_at=checked_at,
             render_checks=render_checks,
+            index_evidence=index_evidence,
         )
         member_titles = members.get(title) or []
         record["pages"] = {
@@ -850,6 +1040,7 @@ def run_inventory(fetch: FetchJson, *, checked_at: str, snapshot_root: Path, wit
                 continue
             for page_title in record["_member_titles"]:
                 page = capture_page_record(fetch, page_title, record, snapshot_root)
+                check = apply_page_check(page, record, (page_checks or {}).get(page_title))
                 reasons = page_exclusion_reasons(page, by_key, snapshot_root)
                 attestation = page_attestation(page)
                 page_results.append(
@@ -863,8 +1054,12 @@ def run_inventory(fetch: FetchJson, *, checked_at: str, snapshot_root: Path, wit
                         "adjudication_eligible": attestation["adjudication_eligible"],
                         "adjudication_ineligible_reason": attestation["adjudication_ineligible_reason"],
                         "unsupported_markup": unsupported_markup(page, snapshot_root) if "wikitext_unsupported_markup" in reasons else None,
+                        **page_text_provenance(page, snapshot_root),
                         "proofreader": (attestation["proofreader"] or {}).get("user"),
                         "validator": (attestation["validator"] or {}).get("user"),
+                        "transcription_coverage": page.get("transcription_coverage"),
+                        "needs_crop": page_needs_crop(page),
+                        "render_check": check,
                     }
                 )
         log(f"{len(page_results)} pages of admitted Indexes checked")
@@ -878,6 +1073,88 @@ def run_inventory(fetch: FetchJson, *, checked_at: str, snapshot_root: Path, wit
         "indexes": records,
         "pages": page_results,
     }
+
+
+def page_text_provenance(page: dict[str, Any], root: Path) -> dict[str, Any]:
+    """Size spans and converter features of the page body (provenance only); None when it does not convert."""
+
+    try:
+        conversion = convert_wikitext((root / page["wikitext_path"]).read_text(encoding="utf-8"))
+    except UnsupportedWikitextError:
+        return {"size_spans": None, "text_features": None}
+    return {"size_spans": conversion.size_spans, "text_features": conversion.features}
+
+
+# --- Page render checks (F8b3) --------------------------------------------------------------------------------
+
+
+def page_check_problems(check: dict[str, Any]) -> list[str]:
+    """Schema problems of one render-check record; empty when the record is well formed."""
+
+    problems: list[str] = []
+    for key in ("page_title", "revision_id", "commons_file_sha1", "scan_page", "checked_by", "checker", "checked_at", "method"):
+        if check.get(key) in (None, ""):
+            problems.append(f"missing {key}")
+    if check.get("checked_by") not in PAGE_CHECKERS:
+        problems.append("checked_by must be agent or human")
+    coverage = check.get("transcription_coverage")
+    if coverage not in TRANSCRIPTION_COVERAGE_VALUES:
+        problems.append("transcription_coverage must be full_page or partial_page")
+    if coverage == TRANSCRIPTION_COVERAGE_PARTIAL and not str(check.get("missing") or "").strip():
+        problems.append("a partial_page check must say what is missing")
+    if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", str(check.get("checked_at") or "")):
+        problems.append("checked_at must be an ISO date")
+    return problems
+
+
+def select_page_checks(payload: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    """The check that applies to each page title: a human check overrides an agent check; otherwise the latest."""
+
+    if payload.get("schema_version") != PAGE_CHECKS_SCHEMA_VERSION:
+        raise ValueError(f"page checks must be {PAGE_CHECKS_SCHEMA_VERSION}")
+    selected: dict[str, dict[str, Any]] = {}
+    methods = payload.get("methods") or {}
+    for check in payload.get("checks") or []:
+        check = {**check, "method": methods.get(check.get("method"), check.get("method"))}  # a method id names shared text
+        problems = page_check_problems(check)
+        if problems:
+            raise ValueError(f"bad page check for {check.get('page_title')}: {', '.join(problems)}")
+        current = selected.get(check["page_title"])
+        rank = (check["checked_by"] == "human", check["checked_at"])
+        if current is None or rank >= (current["checked_by"] == "human", current["checked_at"]):
+            selected[check["page_title"]] = check
+    return selected
+
+
+def load_page_checks(path: Path | None) -> dict[str, dict[str, Any]]:
+    if path is None:
+        return {}
+    return select_page_checks(json.loads(path.read_text(encoding="utf-8")))
+
+
+def apply_page_check(page: dict[str, Any], index: dict[str, Any], check: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Set the page's transcription coverage from a render check pinned to this revision and scan.
+
+    A check made on another page revision or another Commons file is stale and is not applied, so the page
+    stays ``transcription_coverage_unrecorded``. Returns the applied check's provenance, or None.
+    """
+
+    if check is None:
+        return None
+    sha1 = (index.get("commons_file") or {}).get("sha1")
+    if check["revision_id"] != page.get("revision_id") or check["commons_file_sha1"] != sha1:
+        return {"applied": False, "reason": "stale_render_check", "checked_by": check["checked_by"], "checked_at": check["checked_at"]}
+    provenance = {
+        "applied": True,
+        "checked_by": check["checked_by"],
+        "checker": check["checker"],
+        "checked_at": check["checked_at"],
+        "method": check["method"],
+        "missing": check.get("missing"),
+    }
+    page["transcription_coverage"] = check["transcription_coverage"]
+    page["transcription_coverage_check"] = provenance
+    return provenance
 
 
 def unsupported_markup(page: dict[str, Any], root: Path) -> str | None:
@@ -902,6 +1179,7 @@ def build_index_record(
     entities: dict[str, dict[str, Any]],
     checked_at: str,
     render_checks: dict[str, dict[str, Any]] | None = None,
+    index_evidence: dict[str, dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
     """One F8b-shaped Index record (fields ``index_exclusion_reasons`` reads), plus inventory extras."""
 
@@ -909,7 +1187,8 @@ def build_index_record(
     file_wikitext = file_page.get("wikitext", "")
     info = file_page.get("imageinfo") or {}
     revision = file_page.get("revision") or {}
-    year = published_year(file_wikitext, index_wikitext)
+    year, year_evidence = published_year_evidence(file_wikitext, index_wikitext)
+    language, language_evidence = work_language_evidence(file_wikitext, index_wikitext)
     creators = resolve_creators(mentions, author_pages=author_pages, wiki_ids=wiki_ids, commons_creators=commons_creators, entities=entities)
     title_field = template_field(index_wikitext, "כותרת")
     record: dict[str, Any] = {
@@ -939,15 +1218,22 @@ def build_index_record(
         "work": {
             "title": _plain_name(title_field or "") or index_title.split(":", 1)[1],
             "published_year": year,
+            "published_year_evidence": year_evidence,
             "place": _plain_name(template_field(file_wikitext, "city") or template_field(index_wikitext, "Address") or "") or None,
             "creators": creators,
             "work_wikidata": file_page.get("work_wikidata"),
-            "language": work_language(file_wikitext, index_wikitext),
+            "language": language,
+            "language_evidence": language_evidence,
         },
         "evidence_checked_at": checked_at,
     }
-    record["work_rights"] = work_rights_from_creators(creators, year)
+    evidence = (index_evidence or {}).get(str(info.get("sha1")))
+    apply_creator_evidence(creators, evidence)
+    apply_language_evidence(record, evidence)
+    record["work_rights"] = work_rights_from_creators(creators, year, year_evidence)
     scan = scan_rights_from_commons(record, file_wikitext=file_wikitext, uploader=info.get("user"))
+    if scan["scan_source"] is None and evidence and evidence.get("scan_source"):
+        scan["scan_source"] = recorded_scan_source(evidence["scan_source"])
     digitized, check = google_check(record, scan["scan_source"], file_page.get("metadata"), file_page.get("extmetadata_categories") or [])
     digitized, check = with_render_check(digitized, check, (render_checks or {}).get(str(info.get("sha1"))))
     scan["digitized_by_google"] = digitized
@@ -1212,7 +1498,9 @@ def compact_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
                 "work": {
                     "title": record["work"]["title"],
                     "published_year": record["work"]["published_year"],
+                    "published_year_evidence": record["work"].get("published_year_evidence"),
                     "language": record["work"].get("language"),
+                    "language_evidence": record["work"].get("language_evidence"),
                     "creators": [
                         {key: creator.get(key) for key in ("name", "role", "wikidata", "death_year", "death_year_evidence_url")}
                         for creator in record["work"]["creators"]
@@ -1230,30 +1518,58 @@ def compact_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
         "schema_version": "wikisource_index_inventory_summary.v1",
         "checked_at": inventory["checked_at"],
         "site": inventory["site"],
-        "gate": "hocrgen.fetchers.wikisource.index_exclusion_reasons / page_exclusion_reasons (F8b), unchanged",
+        "gate": "hocrgen.fetchers.wikisource.index_exclusion_reasons / page_exclusion_reasons (F8b; F8b3: decisions 9-12 and the language gate)",
         "indexes": records,
     }
 
 
 def _page_gate_counts(pages: list[dict[str, Any]]) -> dict[str, Any]:
+    """Page-gate counts for one admitted Index.
+
+    ``eligible`` pages pass every gate with coverage recorded: ``full_page`` pages pair as they are, ``needs_crop``
+    (``partial_page``) pages pair after the F8b4 crop (decision 12). ``pending_coverage_only`` pages fail only
+    because no render check records their coverage. ``reference_eligible_q4`` counts adjudication-eligible
+    quality-4 pages passing every gate but coverage; ``reference_eligible_now_q4`` those eligible as full pages.
+    """
+
     reasons: Counter[str] = Counter()
     markup: Counter[str] = Counter()
     pending = {"3": 0, "4": 0}
-    reference = 0
+    eligible = {"3": 0, "4": 0}
+    needs_crop = {"3": 0, "4": 0}
+    converts = {"3": 0, "4": 0}
+    reference = reference_now = 0
+    checks = {"checked": 0, "full_page": 0, "partial_page": 0, "stale": 0}
     for page in pages:
+        check = page.get("render_check")
+        if check and check.get("applied"):
+            checks["checked"] += 1
+            checks[str(page.get("transcription_coverage"))] += 1
+        elif check:
+            checks["stale"] += 1
+        if "wikitext_unsupported_markup" not in page["reasons"]:
+            converts[str(page["quality"])] += 1
         remaining = [reason for reason in page["reasons"] if reason != COVERAGE_PENDING_REASON]
         if remaining:
             reasons[remaining[0]] += 1
             if page.get("unsupported_markup"):
                 markup[str(page["unsupported_markup"])] += 1
             continue
-        pending[str(page["quality"])] += 1
+        crop = bool(page.get("needs_crop"))
+        group = pending if page["reasons"] else needs_crop if crop else eligible
+        group[str(page["quality"])] += 1
         if page["quality"] == 4 and page["adjudication_eligible"]:
             reference += 1
+            reference_now += int(not page["reasons"] and not crop)
     return {
         "checked": len(pages),
+        "converts": converts,
+        "eligible": eligible,
+        "needs_crop": needs_crop,
         "pending_coverage_only": pending,
         "reference_eligible_q4": reference,
+        "reference_eligible_now_q4": reference_now,
+        "render_checks": checks,
         "rejected_by_first_reason": dict(sorted(reasons.items())),
         "unsupported_markup": dict(sorted(markup.items())),
     }
@@ -1269,18 +1585,12 @@ def _missing_evidence(record: dict[str, Any]) -> str:
     if "creators_missing" in reasons:
         parts.append("no creator recorded")
     missing = [c["name"] for c in record["work"]["creators"] if c.get("death_year") is None]
-    if missing:
-        parts.append("death year for " + ", ".join(str(name) for name in missing))
-    late = [f"{c['name']} ({c['death_year']})" for c in record["work"]["creators"] if isinstance(c.get("death_year"), int) and c["death_year"] > 1955]
-    if late:
-        parts.append("died after 1955: " + ", ".join(late))
-    if "scan_provenance_unrecorded" in reasons:
-        parts.append("scan source")
-    if "google_digitization_unchecked" in reasons:
-        parts.append("Google-digitization check (render)")
-    if "google_digitized_scan_pending" in reasons:
-        parts.append("maintainer decision on Google scans")
-    for reason in ("no_licence_template", "pd_us_only_licence", "scan_rights_basis_unsupported", "commons_file_unpinned", "publication_year_missing", "excluded_birnbaum_work"):
+    if missing and {"creator_death_year_missing", "creators_missing"} & reasons:
+        year = record["work"].get("published_year")
+        parts.append("death year for " + ", ".join(str(name) for name in missing) + (f" (published {year}, after 1855)" if year else " (no publication year)"))
+    if "index_language_unrecorded" in reasons:
+        parts.append("the Index language")
+    for reason in ("commons_file_unpinned", "publication_year_missing", "work_rights_basis_unsupported", "scan_rights_basis_unsupported"):
         if reason in reasons:
             parts.append(reason)
     return "; ".join(parts)
@@ -1290,7 +1600,19 @@ def _cell(text: Any) -> str:
     return str(text).replace("|", "\\|").replace("\n", " ")
 
 
-def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int = 10) -> str:
+# The F8b2 run's funnel (2026-11-06), before the F8b3 converter and decisions 9-12; shown for comparison.
+F8B2_BASELINE = {
+    "indexes_admitted": 29,
+    "pages_admitted": {"3": 624, "4": 27},
+    "pages_converting": {"3": 231, "4": 12},
+    "pages_passing_but_coverage": {"3": 231, "4": 12},
+    "reference_eligible_q4": 4,
+    "pages_full_page": {"3": 0, "4": 0},
+    "pages_needs_crop": {"3": 0, "4": 0},
+}
+
+
+def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int = 15) -> str:
     """Deterministic markdown summary of the compact inventory."""
 
     records = compact["indexes"]
@@ -1310,45 +1632,63 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
             pages_any[reason] += _q(record, "3") + _q(record, "4")
     page_reasons: Counter[str] = Counter()
     markup: Counter[str] = Counter()
-    pending3 = pending4 = reference = checked = 0
+    totals: Counter[str] = Counter()
     for record in admitted:
         gate = record.get("page_gate") or {}
-        checked += int(gate.get("checked", 0))
-        pending3 += int((gate.get("pending_coverage_only") or {}).get("3", 0))
-        pending4 += int((gate.get("pending_coverage_only") or {}).get("4", 0))
-        reference += int(gate.get("reference_eligible_q4", 0))
+        totals["checked"] += int(gate.get("checked", 0))
+        for level in ("3", "4"):
+            for key in ("converts", "pending_coverage_only", "eligible", "needs_crop"):
+                totals[f"{key}{level}"] += int((gate.get(key) or {}).get(level, 0))
+        totals["reference"] += int(gate.get("reference_eligible_q4", 0))
+        totals["reference_now"] += int(gate.get("reference_eligible_now_q4", 0))
+        for key, value in (gate.get("render_checks") or {}).items():
+            totals[f"render_{key}"] += int(value)
         page_reasons.update(gate.get("rejected_by_first_reason") or {})
         markup.update(gate.get("unsupported_markup") or {})
-    only_google = [r for r in records if r["gate"]["reasons"] == ["google_digitization_unchecked"]]
-    not_hebrew = [r for r in admitted if r["work"].get("language") != "he"]
-    english = [r for r in not_hebrew if r["work"].get("language")]
+    passing3 = totals["pending_coverage_only3"] + totals["eligible3"] + totals["needs_crop3"]
+    passing4 = totals["pending_coverage_only4"] + totals["eligible4"] + totals["needs_crop4"]
+    base = F8B2_BASELINE
+
+    def _pair(values: dict[str, int]) -> str:
+        return f"{values['3']} / {values['4']}"
+
+    def _both(record: dict[str, Any], key: str) -> str:
+        values = (record.get("page_gate") or {}).get(key) or {}
+        return f"{values.get('3', 0)} / {values.get('4', 0)}"
 
     lines = [
-        "# Hebrew Wikisource Index inventory (F8b2)",
+        "# Hebrew Wikisource Index inventory (F8b2, F8b3)",
         "",
         f"Generated by `hocrgen.tools.wikisource_inventory` from evidence checked on {compact['checked_at']}; do not edit by hand.",
-        "The per-Index data is in [`wikisource_index_inventory.json`](./wikisource_index_inventory.json).",
-        "Every Index went through the unchanged F8b gate (`index_exclusion_reasons`); pages of admitted Indexes went through",
-        "`page_exclusion_reasons` and `page_attestation`. The full pool, its page text and its raw API responses stay operator-only.",
+        "The per-Index data is in [`wikisource_index_inventory.json`](./wikisource_index_inventory.json). The evidence the run adds to",
+        "what the wikis record is in [`wikisource_index_evidence.json`](./wikisource_index_evidence.json), and the per-page render",
+        "checks in [`wikisource_page_checks.json`](./wikisource_page_checks.json). Every Index went through `index_exclusion_reasons`",
+        "(maintainer decisions 9 and 10 and the F8b3 language gate); pages of admitted Indexes went through `page_exclusion_reasons`",
+        "and `page_attestation`. The full pool, its page text and its raw API responses stay operator-only.",
         "",
-        "## Headline",
+        "## Funnel",
         "",
-        "| Measure | Value |",
-        "| --- | --- |",
-        f"| Indexes | {len(records)} |",
-        f"| Quality-3 / quality-4 pages in all Indexes | {q3} / {q4} |",
-        f"| Indexes admitted by the Index gate | {len(admitted)} |",
-        f"| Quality-3 / quality-4 pages in admitted Indexes | {sum(_q(r, '3') for r in admitted)} / {sum(_q(r, '4') for r in admitted)} |",
-        f"| Pages of admitted Indexes checked by the page gate | {checked} |",
-        f"| Pages passing every page gate except transcription coverage: quality 3 / quality 4 | {pending3} / {pending4} |",
-        f"| Of those, quality-4 pages that are reference-eligible (adjudication-eligible) | {reference} |",
-        f"| Pages eligible now (transcription coverage recorded `full_page`) | 0 |",
-        f"| Admitted Indexes not recorded as `he`: another language / none recorded (Q3 / Q4 pages) | {len(english)} ({sum(_q(r, '3') for r in english)} / {sum(_q(r, '4') for r in english)}) / {len(not_hebrew) - len(english)} ({sum(_q(r, '3') for r in not_hebrew) - sum(_q(r, '3') for r in english)} / {sum(_q(r, '4') for r in not_hebrew) - sum(_q(r, '4') for r in english)}) |",
+        "Quality-3 / quality-4 pages at each stage. The F8b2 column is the run before F8b3 (same date, old gates and converter).",
         "",
-        "No page is eligible yet: transcription coverage is an operator check against the page render, and the inventory",
-        "does not record it, so every page carries `transcription_coverage_unrecorded`. The rows above count pages for which that",
-        "is the only open gate. Google digitization was checked automatically on the file's metadata and text layer only;",
-        "F8b's render inspection is still needed before any page joins a fixture.",
+        "| Stage | F8b2 | F8b3 |",
+        "| --- | ---: | ---: |",
+        f"| Indexes; their quality-3 / quality-4 pages | {len(records)}; {q3} / {q4} | {len(records)}; {q3} / {q4} |",
+        f"| Indexes admitted by the Index gate | {base['indexes_admitted']} | {len(admitted)} |",
+        f"| Pages in admitted Indexes | {_pair(base['pages_admitted'])} | {sum(_q(r, '3') for r in admitted)} / {sum(_q(r, '4') for r in admitted)} |",
+        f"| Pages the converter renders (`wikisource_plain_text`) | {_pair(base['pages_converting'])} | {totals['converts3']} / {totals['converts4']} |",
+        f"| Pages passing every other gate (attestation, checksums) | {_pair(base['pages_passing_but_coverage'])} | {passing3} / {passing4} |",
+        f"| Coverage checked `full_page`: eligible as they are | {_pair(base['pages_full_page'])} | {totals['eligible3']} / {totals['eligible4']} |",
+        f"| Coverage checked `partial_page`: `needs_crop` (F8b4) | {_pair(base['pages_needs_crop'])} | {totals['needs_crop3']} / {totals['needs_crop4']} |",
+        f"| Coverage not yet checked | {_pair(base['pages_passing_but_coverage'])} | {totals['pending_coverage_only3']} / {totals['pending_coverage_only4']} |",
+        f"| Reference-eligible quality-4 pages (adjudication-eligible), every gate but coverage | {base['reference_eligible_q4']} | {totals['reference']} |",
+        f"| Of those, coverage checked `full_page` | 0 | {totals['reference_now']} |",
+        "",
+        "In F8b2 the converter column counts pages that also passed the other page gates; the F8b2 run did not count them apart.",
+        "",
+        "Transcription coverage comes from render checks: a look at the page render against its text, recorded with who",
+        "checked (`agent` or `human`), the method and the date, and pinned to the page revision and Commons file. A human check",
+        "overrides an agent check. A `partial_page` page is kept and marked `needs_crop` (decision 12): F8b4 crops its image to",
+        "the transcribed region. The checks record scope facts only; they never change a quality level or an attestation.",
         "",
         "## Index gate results",
         "",
@@ -1365,81 +1705,108 @@ def render_summary(compact: dict[str, Any], *, top: int = 15, resolve_top: int =
         "",
         "## Page gate results in admitted Indexes",
         "",
-        "| Result | Pages |",
+        "| Result | Quality 3 / quality 4 |",
         "| --- | ---: |",
-        f"| passes every gate except transcription coverage, quality 3 | {pending3} |",
-        f"| passes every gate except transcription coverage, quality 4 | {pending4} |",
-        f"| of which reference-eligible quality 4 | {reference} |",
+        f"| eligible now (`full_page`) | {totals['eligible3']} / {totals['eligible4']} |",
+        f"| eligible after the F8b4 crop (`needs_crop`) | {totals['needs_crop3']} / {totals['needs_crop4']} |",
+        f"| passes every gate but awaits a coverage check | {totals['pending_coverage_only3']} / {totals['pending_coverage_only4']} |",
     ]
     for reason, count in sorted(page_reasons.items(), key=lambda item: (-item[1], item[0])):
         lines.append(f"| rejected: `{reason}` | {count} |")
     if markup:
         lines += [
             "",
-            "Markup outside the closed-world `wikisource_plain_text.v1` converter, by the first construct it rejects on a page:",
+            "Markup outside the closed-world `wikisource_plain_text.v2` converter, by the first construct it rejects on a page:",
             "",
             "| Unsupported construct | Pages |",
             "| --- | ---: |",
         ]
         for message, count in sorted(markup.items(), key=lambda item: (-item[1], item[0])):
             lines.append(f"| {_cell(message.removeprefix('unsupported wikitext '))} | {count} |")
+    checked = [r for r in admitted if ((r.get("page_gate") or {}).get("render_checks") or {}).get("checked")]
     lines += [
         "",
-        f"## Top {top} admitted Indexes by pages pending only the coverage check",
+        "## Page render checks",
         "",
-        "| Index | Language | Scan source | Q3 / Q4 pages | Pending coverage only (Q3 / Q4) | Reference-eligible Q4 |",
-        "| --- | --- | --- | ---: | ---: | ---: |",
+        f"{totals['render_checked']} pages checked: {totals['render_full_page']} `full_page`, {totals['render_partial_page']} `partial_page` (`needs_crop`).",
+        "",
+        "| Index | Pages checked | `full_page` | `partial_page` | Eligible now (Q3 / Q4) | Needs crop (Q3 / Q4) |",
+        "| --- | ---: | ---: | ---: | ---: | ---: |",
     ]
-    def _pending(record: dict[str, Any]) -> int:
-        pending = (record.get("page_gate") or {}).get("pending_coverage_only") or {}
-        return int(pending.get("3", 0)) + int(pending.get("4", 0))
+    for record in sorted(checked, key=lambda r: r["index_title"]):
+        render = (record.get("page_gate") or {}).get("render_checks") or {}
+        lines.append(
+            f"| {_cell(record['index_title'])} | {render.get('checked', 0)} | {render.get('full_page', 0)} | {render.get('partial_page', 0)} "
+            f"| {_both(record, 'eligible')} | {_both(record, 'needs_crop')} |"
+        )
+    if not checked:
+        lines.append("| (none) | | | | | |")
+    if totals["render_stale"]:
+        lines += ["", f"{totals['render_stale']} recorded checks are stale (another page revision or Commons file) and were not applied."]
+    lines += [
+        "",
+        f"## Top {top} admitted Indexes by pages passing every gate but coverage",
+        "",
+        "| Index | Scan source | Q3 / Q4 pages | Eligible now (Q3 / Q4) | Needs crop (Q3 / Q4) | Awaiting a coverage check (Q3 / Q4) | Reference-eligible Q4 |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: |",
+    ]
 
-    ranked = sorted(admitted, key=lambda r: (-_pending(r), -(_q(r, "3") + _q(r, "4")), r["index_title"]))
+    def _passing(record: dict[str, Any]) -> int:
+        gate = record.get("page_gate") or {}
+        return sum(int((gate.get(key) or {}).get(level, 0)) for key in ("eligible", "needs_crop", "pending_coverage_only") for level in ("3", "4"))
+
+    ranked = sorted(admitted, key=lambda r: (-_passing(r), -(_q(r, "3") + _q(r, "4")), r["index_title"]))
     for record in ranked[:top]:
         gate = record.get("page_gate") or {}
-        pending = gate.get("pending_coverage_only") or {}
         lines.append(
-            f"| {_cell(record['index_title'])} | {_cell(record['work'].get('language') or '—')} | {_cell((record['scan_rights'].get('scan_source') or {}).get('name') or '—')} "
-            f"| {_q(record, '3')} / {_q(record, '4')} | {pending.get('3', 0)} / {pending.get('4', 0)} | {gate.get('reference_eligible_q4', 0)} |"
+            f"| {_cell(record['index_title'])} | {_cell((record['scan_rights'].get('scan_source') or {}).get('name') or '—')} "
+            f"| {_q(record, '3')} / {_q(record, '4')} | {_both(record, 'eligible')} | {_both(record, 'needs_crop')} "
+            f"| {_both(record, 'pending_coverage_only')} | {gate.get('reference_eligible_q4', 0)} |"
         )
     if not ranked:
-        lines.append("| (none) | | | | | |")
-    rejected = sorted((r for r in records if not r["gate"]["admitted"] and "excluded_birnbaum_work" not in r["gate"]["reasons"]), key=lambda r: (-(_q(r, "3") + _q(r, "4")), r["index_title"]))
+        lines.append("| (none) | | | | | | |")
+    unresolved = sorted(
+        (r for r in records if not r["gate"]["admitted"] and not {"excluded_birnbaum_work", "creator_died_after_1955", "index_language_not_hebrew"} & set(r["gate"]["reasons"])),
+        key=lambda r: (-(_q(r, "3") + _q(r, "4")), r["index_title"]),
+    )
+    unresolved = [r for r in unresolved if _q(r, "3") + _q(r, "4")]
+    protected = [r for r in records if {"excluded_birnbaum_work", "creator_died_after_1955"} & set(r["gate"]["reasons"])]
+    not_hebrew = [r for r in records if "index_language_not_hebrew" in r["gate"]["reasons"]]
     lines += [
         "",
-        f"## Top {resolve_top} rejected Indexes to resolve",
+        "## Rejected Indexes",
         "",
-        "Highest-yield rejected Indexes (by quality-3/4 pages), with the evidence a human or a later agent would need to",
-        "establish. The Birnbaum works are excluded by maintainer decision and not listed.",
+        f"- Shown to be protected in Israel (a creator died after 1955, or the Birnbaum works): {len(protected)} Indexes,"
+        f" {sum(_q(r, '3') + _q(r, '4') for r in protected)} quality-3/4 pages.",
+        f"- Not Hebrew (`index_language_not_hebrew`): {len(not_hebrew)} Indexes, {sum(_q(r, '3') + _q(r, '4') for r in not_hebrew)} pages.",
+        f"- Unresolved data gaps (decision 10's residual): {len(unresolved)} Indexes with quality-3/4 pages,"
+        f" {sum(_q(r, '3') + _q(r, '4') for r in unresolved)} pages. The highest-yield ones, with what is missing:",
         "",
         "| Index | Q3 / Q4 pages | Gate reasons | What is missing |",
         "| --- | ---: | --- | --- |",
     ]
-    for record in rejected[:resolve_top]:
+    for record in unresolved[:resolve_top]:
         lines.append(
             f"| {_cell(record['index_title'])} | {_q(record, '3')} / {_q(record, '4')} | "
             f"{', '.join(f'`{reason}`' for reason in record['gate']['reasons'])} | {_cell(_missing_evidence(record))} |"
         )
     lines += [
         "",
-        "## Held only on the Google check",
-        "",
-        f"{len(only_google)} Indexes ({sum(_q(r, '3') + _q(r, '4') for r in only_google)} quality-3/4 pages) fail only on",
-        "`google_digitization_unchecked`: their files have no usable text layer, so the automated check could not decide.",
-        "A look at a few page renders would settle each.",
-        "",
         "## Method",
         "",
         "- Creators: Index fields `מחבר`, `מתרגם`, `עורך`, `מאייר` and the Commons `Author`, `Translator`, `Editor`, `Illustrator`",
         "  fields (plus the work's Wikidata `P50`/`P655`/`P98`/`P110` when the Commons file names a work item). Death years come from",
         "  Wikidata `P570` (the latest non-deprecated statement, as an upper bound at its precision) or the Wikisource author page's",
-        "  Gregorian death year, taking the later of the two. A creator without either keeps no death year, so the gate rejects.",
-        "- Anonymous basis only when every creator mention is an explicit anonymous or unknown-author marker. No state-work basis is assigned.",
-        "- Scan basis from the Commons licence templates: an open licence (`CC0`, `PDM`, `CC-BY(-SA)-4.0`) gives `explicit_open_licence`;",
-        "  any other public-domain tag that is not `PD-US-*` gives `faithful_reproduction_of_pd_work`.",
-        "- Scan source only from a Commons `source` or `institution` field naming a scanning body or repository, a URL host, or the uploader's own work.",
-        "- Google digitization: `true` when the Commons record, a file category or the file's metadata / text layer names Google;",
-        "  `false` only when the file has a text layer (500 characters or more) with no such mention; otherwise unchecked.",
+        "  Gregorian death year, taking the later of the two; then from cited facts recorded in the evidence file for creators the",
+        "  wikis name only as plain text. A creator without any keeps no death year.",
+        "- Work rights (decision 10): every creator dead by 1955 gives `author_died_by_1955`; failing that, a work published on or",
+        "  before 1855 (the latest of the Commons date and the Index `שנה`, a Hebrew year read as its latest Gregorian year) gives",
+        "  `presumed_pd_by_publication_age`. A creator who died after 1955 always rejects. Anonymous basis only from explicit markers.",
+        "- Scans (decisions 9 and 10): a flat scan of a PD work is a faithful reproduction. The Commons licence tag, the scan source",
+        "  and Google digitization are recorded as provenance and decide nothing.",
+        "- Language: the Index `שפה` field, else the Commons `language` field, else a fact recorded in the evidence file. Only `he` is",
+        "  admitted; another language gives `index_language_not_hebrew`, none recorded gives `index_language_unrecorded`.",
+        "- Page text: `wikisource_plain_text.v2`, checked against MediaWiki's own rendering (`hocrgen.tools.wikisource_render_check`).",
         "",
     ]
     return "\n".join(lines)
@@ -1456,13 +1823,30 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--summary-md", type=Path, help="Write the markdown summary here (the committed artifact).")
     parser.add_argument("--delay", type=float, default=0.5, help="Seconds between uncached API requests.")
     parser.add_argument("--skip-pages", action="store_true", help="Run the Index gate only.")
+    parser.add_argument(
+        "--page-checks",
+        type=Path,
+        help="Reviewable per-page render checks (wikisource_page_render_checks.v1), e.g. docs/wikisource_page_checks.json.",
+    )
+    parser.add_argument(
+        "--index-evidence",
+        type=Path,
+        help="Recorded per-Index evidence (wikisource_index_evidence.v1), e.g. docs/wikisource_index_evidence.json.",
+    )
     return parser.parse_args(argv)
 
 
 def main(argv: list[str] | None = None) -> int:  # pragma: no cover - live network path
     args = parse_args(argv)
     client = MediaWikiClient(args.work_dir / "raw", delay=args.delay)
-    inventory = run_inventory(client, checked_at=args.checked_at, snapshot_root=args.work_dir / "snapshot", with_pages=not args.skip_pages)
+    inventory = run_inventory(
+        client,
+        checked_at=args.checked_at,
+        snapshot_root=args.work_dir / "snapshot",
+        with_pages=not args.skip_pages,
+        page_checks=load_page_checks(args.page_checks),
+        index_evidence=load_index_evidence(args.index_evidence),
+    )
     args.work_dir.mkdir(parents=True, exist_ok=True)
     (args.work_dir / "wikisource_inventory.json").write_text(json.dumps(inventory, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     compact = compact_inventory(inventory)
