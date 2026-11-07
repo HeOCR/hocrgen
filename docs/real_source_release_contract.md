@@ -9,7 +9,7 @@ It has four parts:
 3. **promotion**, with each source's scope markers and attribution carried into every export;
 4. a **real tranche**: the full promoted pool, materialized outside git from pinned caches, with a committed manifest.
 
-`F8g2` hardens it: size-aware group splits (§2), the Pinkas canvas checks, the crop height floor, `wikisource_plain_text.v3`, and a tranche v2 that grows Reshumot and the Knesset protocols past their fixtures (§4).
+`F8g2` hardens it: size-aware group splits (§2), the Pinkas canvas checks, the crop height floor, `wikisource_plain_text.v3`, and a tranche v2 that grows Reshumot and the Knesset protocols past their fixtures (§4). `F8e2` rebuilds the Reshumot text from the PDF glyph layer and verifies it line by line, in tranche v3 (§4).
 
 The same contract shape is meant for `F7d` (HASH).
 
@@ -149,7 +149,7 @@ The public-beta docs gate requires `docs/NOTICE.md`.
 
 ## 4. The real tranche
 
-The full pool (tranche v2, `f8g2_real_tranche_v2`) is 1,995 pages and 910 MB. It never enters git. `python -m hocrgen.tools.real_tranche` builds it reproducibly in an operator folder:
+The full pool (tranche v3, `f8e2_real_tranche_v3`) is 2,611 pages and 1,033 MB. It never enters git. `python -m hocrgen.tools.real_tranche` builds it reproducibly in an operator folder:
 
 ```bash
 # 1. capture what no operator cache holds yet (network; each file checked against the pin the repo already records)
@@ -157,12 +157,16 @@ PYTHONPATH=src python -m hocrgen.tools.real_tranche capture --cache <cache> \
   [--source yidtaknl|pinkas|reshumot|knesset ...] [--pinkas-manifest-copy <F8d2 copy of the NLI manifest>] \
   [--reshumot-per-query 2] [--knesset-per-term 3]
 # 2. materialize the tree from the caches (offline; the Wikisource API cache is replayed, and any miss fails; poppler)
-PYTHONPATH=src python -m hocrgen.tools.real_tranche materialize --out <tranche>/f8g2_real_tranche_v2 --cache <cache> \
+PYTHONPATH=src python -m hocrgen.tools.real_tranche materialize --out <tranche>/f8e2_real_tranche_v3 --cache <cache> \
   --wikisource-work-dir <F8b7 inventory work dir> --wikisource-renders <renders dir> [--wikisource-renders ...] \
   --created-at 2026-11-07 --manifest-out src/hocrgen/data/real_tranche
 # 3. check every file, and build or export against the tranche (only a tree that matches the committed manifest is accepted)
-PYTHONPATH=src python -m hocrgen.tools.real_tranche verify --tranche <tranche>/f8g2_real_tranche_v2
-PYTHONPATH=src python -m hocrgen export-public-beta --profile profile_open_v1 --dry-run --real-tranche-root <tranche>/f8g2_real_tranche_v2 ...
+PYTHONPATH=src python -m hocrgen.tools.real_tranche verify --tranche <tranche>/f8e2_real_tranche_v3
+PYTHONPATH=src python -m hocrgen export-public-beta --profile profile_open_v1 --dry-run --real-tranche-root <tranche>/f8e2_real_tranche_v3 ...
+# F8e2: tranche v3 is tranche v2 with only the Reshumot snapshot rebuilt (poppler and pdfminer.six: pip install '.[pdf]')
+PYTHONPATH=src python -m hocrgen.tools.real_tranche refresh-reshumot --base <tranche>/f8g2_real_tranche_v2 \
+  --out <tranche>/f8e2_real_tranche_v3 --cache <cache> --created-at 2026-11-07 --government-print-captured-at 2026-11-07 \
+  [--reshumot-glyph-layers <layers extracted before>] [--reshumot-report <pages.jsonl>] --manifest-out src/hocrgen/data/real_tranche
 ```
 
 **What is captured, and how it is checked**
@@ -179,7 +183,7 @@ PYTHONPATH=src python -m hocrgen export-public-beta --profile profile_open_v1 --
 - **Wikisource:** every page the F8b6 inventory passed, rebuilt from its API cache with the committed agent and tool checks. The images are the 960 px Commons renders, unchanged. Each partial page has its crop.
 - **Wikisource text is `wikisource_plain_text.v3` (F8g2, #134).** The version now covers the F8b7 changes (the dropped note-list headings; unprinted notes dropped by reviewed checks), and v3 renders the label of a broken link as the page prints it: a doubled pipe (Hyman I p. 44), an unclosed link (Hyman II p. 239) and two unopened links (Hyman I p. 414, *Sefer Arakhim* p. 11), each checked on the page render and against MediaWiki's own `action=parse` rendering (which shows the fragment literally). Only those 4 of the 1,455 pair texts change. The fifth `|` fragment (Pri Megadim p. 244) is no link: the editor typed the expansion `"הלכות פסח|` where the page prints the abbreviation ה"פ, so that page is `text_not_on_page`. Each item's metadata carries `text_derivation`: the converter version, its repairs, the unprinted notes dropped and the stand-in mappings applied.
 - **YidTakNL and Pinkas:** the upstream images and texts, unchanged. Each Pinkas entry carries `scan.match_check` from `docs/pinkas_canvas_match_checks.json` (below).
-- **Reshumot:** every page of every captured booklet, through the unchanged F8e gate. A page is kept only when its `pdftotext` text passes the logical-order check and its PDF page holds no image; the render is `pdftoppm` 150 dpi gray (`is_scan: false`).
+- **Reshumot (F8e2):** every page of every captured booklet. Each page's text is rebuilt from its glyph layer (`pdf_glyph_geometry_logical.v1`, see `planning/tasks/f8-real-source-map.md`, F8e2 findings), and every line is verified against the page's `pdftoppm` 150 dpi gray render (`is_scan: false`). Lines that cannot be verified are left out, and the pair image is cut to the verified regions (decision 12; `crop.method: pdf_glyph_regions.v1`). The gate re-derives every page from the committed glyph layer (`extraction/*.glyphs.json.gz`), the outline identity table (`glyph_outlines.json`) and the render.
 - **Knesset:** every page of every captured protocol that is one embedded scan, extracted losslessly with `pdfimages`: the 1-bit CCITT scans as PNG, and the colour rescans' JPEG streams byte for byte. Images only.
 - The packaged fixture's admitted Reshumot and Knesset pages are kept as packaged.
 
@@ -196,14 +200,14 @@ PYTHONPATH=src python -m hocrgen export-public-beta --profile profile_open_v1 --
 | `wikisource_he_proofread` | 1,455 (1,214 full pages, 241 crops) | 58 Indexes | 632 MB | 1 page `text_not_on_page` (Pri Megadim p. 244, F8g2) |
 | `yidtaknl_vaybertaytsh_gt` | 123 (121 matched pages, plus the 2 vendored 1781 pages) | 3 works | 164 MB | 33 matched pages whose upstream text file is empty (below) |
 | `pinkas_dataset_bgu` | 30 (24 train, 6 test upstream) | 1 manuscript | 49 MB | none |
-| `reshumot_born_digital` | 182 (180 captured, 2 fixture) | 26 booklets with a kept page | 19 MB | 706 of 886 captured pages fail the F8e gate (below) |
+| `reshumot_born_digital` | 798 (796 captured, 275 of them cropped; 2 fixture) | 84 booklets | 141 MB | 90 of 886 captured pages (below) |
 | `knesset_committee_protocols_pre1976` | 205 (202 captured, 3 fixture) | 20 protocols | 46 MB | none |
 
 NLI keeps its packaged snapshot (10 items); its image server answered HTTP 520 throughout.
 
 **Pass rates of the new captures (F8g2, 2026-11-07)**
 
-- **Reshumot:** 84 booklets, 886 pages (2 more PDFs answered HTTP 500). 180 pages pass (20%): ספר החוקים 153 / 508 (30%), קובץ התקנות 27 / 378 (7%). 594 fail the logical-order check (`extraction_order_not_verified`) and 112 hold an image on the page (`pdf_not_born_digital`). Every passing page is from 2006-2016: **all 314 pages from 2017 on fail**, because their running footer extracts in visual order (reversed words such as `םיקוחה רפס`) and their text carries U+FEFF. That is a converter follow-up for `hocrgen.parsers.pdf_bidi`; the gate is unchanged.
+- **Reshumot:** 84 booklets, 886 pages (2 more PDFs answered HTTP 500). Under F8g2's `pdftotext` method 180 pages passed (20%), and none from 2017 on. Under F8e2's glyph-layer method **796 pass (90%)**: ספר החוקים 479 / 508, קובץ התקנות 317 / 378, and 2017-2026 243 / 272. The 90 left out lack a verifiable anchor (no running footer, an API booklet number, date or title that differs from the print, an anchor line overlapping a stamp), have nothing verifiable to keep, or fail the unchanged order heuristics.
 - **Knesset:** 18 protocols (Knesset 1-8, sessions 1949-06-29 to 1974-12-24, 16 committees), 202 pages, all pass. 23 pages come from three colour rescans (JPEG); the rest are 1-bit CCITT scans.
 
 **YidTakNL pages with empty text.** The 33 matched pages left out have no text upstream; it is not a parsing problem. F8g2 fetched all 33 `.txt` files again from the SURFdrive WebDAV share: each answered HTTP 200 with 0 bytes, and the share lists each with SHA-1 `da39a3ee…` (the SHA-1 of nothing). The share holds no other text format (only `*.jpg` and `txt/*.txt`). An agent looked at their images: 29 are covers, marbled endpapers or blank leaves, and 4 (JB 899 pp. 100, 102, 110, 128) carry only mirrored show-through of the facing print, so the transcribers had nothing to transcribe.
@@ -231,12 +235,12 @@ The tree (v2) is about 910 MB in 5,689 files: JPEG and PNG images, UTF-8 text, P
 
 Both routes carry `NOTICE.md` and the attribution manifest. Share-alike for the Wikisource text, and attribution for Wikisource, YidTakNL and Pinkas, travel with the files.
 
-## Readiness picture (dry runs, 2026-11-07, tranche v2)
+## Readiness picture (dry runs, 2026-11-07, tranche v3)
 
 | Run | Real items shipped | Counted / 80 | Printed (counted / 30) | Handwritten (counted / 25) | `source_depth_composition` |
 | --- | --- | --- | --- | --- | --- |
 | Packaged fixtures (CI) | 21 | 21 | 15 | 4 | blocked: the Wikisource, YidTakNL and Pinkas floors, both modality floors, the total |
-| Real tranche v2 (`--real-tranche-root`) | 2,000 | 105 | 68 | 32 | **pass** |
+| Real tranche v3 (`--real-tranche-root`) | 2,615 | 105 | 68 | 32 | **pass** |
 
 In the tranche run, the payload per source (counted in brackets) and its splits (train / validation / test items, with groups in brackets) are:
 
@@ -246,10 +250,10 @@ In the tranche run, the payload per source (counted in brackets) and its splits 
 | YidTakNL | 123 (15) | 111 (1) | 2 (1) | 10 (1) |
 | BGU Pinkas | 30 (30) | 30 (1) | 0 | 0 |
 | Knesset | 205 (10) | 164 (11) | 21 (4) | 20 (5) |
-| Reshumot | 182 (5, toward the total only) | 147 (18) | 17 (3) | 18 (5) |
+| Reshumot | 797 (5, toward the total only) | 637 (69) | 80 (8) | 80 (7) |
 | NLI | 4 (4) | 4 | 0 | 0 |
 | `pinkas_open` | 1 (1) | 1 | 0 | 0 |
-| **All, with 2 synthetic** | 2,002 | 1,622 (81.0%) | 186 (9.3%) | 194 (9.7%) |
+| **All, with 2 synthetic** | 2,617 | 2,112 (80.7%) | 249 (9.5%) | 256 (9.8%) |
 
 F8g's tranche split was 65 / 34 / 1.5%. The BGU Pinkas manuscript is one group, so it stays whole in train. The 9 Wikisource crops that F8g lost to the height threshold now ship (below); 3 legacy NLI manuscript seeds still fail it with their 256 px fixture images, as before.
 

@@ -1,5 +1,9 @@
 """Logical-order text from born-digital Hebrew PDFs, and checks that the order is right (F8e).
 
+F8e2 supersedes the ``pdftotext`` conversion below for new captures with ``hocrgen.parsers.pdf_geometry``, which
+rebuilds the text from the PDF's glyph layer; the order checks here (``logical_order_issues``) still run on its
+output. This module stays for the F8e entries (``poppler_bidi_logical.v1``), which the gate still re-derives.
+
 ``pdftotext`` (poppler) writes right-to-left lines in a bidi-markup form: each RTL line opens with RLE
 (U+202B) and closes with PDF (U+202C); Hebrew words are already in logical order, but every run of
 digits, Latin letters and the neutral characters next to them is wrapped in LRE (U+202A) ... PDF and
@@ -31,7 +35,8 @@ not become a reference candidate. Reason codes:
 - ``section_number_order``: a line that is only ``.1`` or ``.2א`` instead of ``1.`` or ``2א.``.
 - ``unbalanced_parentheses``: a ``)`` closes before any ``(`` on the page.
 - ``missing_expected_phrase``: a phrase known from independent metadata (the gazette API's table of
-  contents, the booklet number and date) does not occur in the text.
+  contents, the booklet number and date) does not occur in the text, compared by ``phrase_key`` (whitespace,
+  dash and quote variants folded).
 - conversion issues: ``unbalanced_embedding``, ``nested_embedding``, ``hebrew_inside_ltr_embedding``,
   ``latin_run_order_unverified``.
 """
@@ -150,6 +155,20 @@ def _collapse_spaces(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+_PHRASE_FOLD = str.maketrans({"־": "-", "–": "-", "—": "-", "‑": "-", "―": "-", "״": '"', "“": '"', "”": '"', "„": '"', "׳": "'", "‘": "'", "’": "'"})
+
+
+def phrase_key(text: str) -> str:
+    """The form an expected phrase is matched in: no whitespace, one hyphen for every dash, ASCII quotes.
+
+    The gazette API and the print differ in spacing after commas, in the dash and quote code points (the print
+    sets a maqaf, an en dash or a horizontal bar with one glyph) and in stray format characters (the API's titles
+    carry RLMs), never in the order of the characters, which is what the phrase check verifies."""
+
+    folded = "".join(char for char in text.translate(_PHRASE_FOLD) if unicodedata.category(char) != "Cf")
+    return re.sub(r"\s+", "", folded)
+
+
 def logical_order_issues(text: str, expected_phrases: Iterable[str] = ()) -> list[str]:
     """Return the sorted reason codes for which ``text`` is not trustworthy logical-order Hebrew."""
 
@@ -180,8 +199,8 @@ def logical_order_issues(text: str, expected_phrases: Iterable[str] = ()) -> lis
             if depth < 0:
                 issues.add("unbalanced_parentheses")
                 break
-    collapsed = _collapse_spaces(text)
-    if any(_collapse_spaces(phrase) not in collapsed for phrase in expected_phrases):
+    folded = phrase_key(text)
+    if any(phrase_key(phrase) not in folded for phrase in expected_phrases):
         issues.add("missing_expected_phrase")
     return sorted(issues)
 

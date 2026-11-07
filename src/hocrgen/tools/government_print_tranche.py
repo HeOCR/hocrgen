@@ -51,6 +51,17 @@ RESHUMOT_LIMITATIONS = [
     "punctuation code points follow the PDF ToUnicode maps (for example ASCII quote and hyphen where the glyphs look like gershayim and an en dash)",
     "no line, word or block geometry is kept",
 ]
+RESHUMOT_GLYPH_LIMITATIONS = [
+    "reading order is rebuilt from glyph geometry: body lines top to bottom; a narrower block (a side heading, a signature, a table column) is read whole where it starts, side headings before the body line beside them, blocks on one row right to left",
+    "a label set off by a tab or hanging indent (3., 2ג., (א), a footnote number) is joined to the line it labels with one space",
+    "superscript digits next to digits are set off by one space (התשנ\"ה-1995 1); other superscripts are joined to their neighbour",
+    "word spaces come from space glyphs or from gaps of at least 0.1 em; letter-spaced print is read as words",
+    "punctuation code points follow the ToUnicode maps except where the glyph outline table names the character; brackets follow their drawn shape and run direction",
+    "lines whose order or characters cannot be verified are left out and the page image is cropped to the verified regions (decision 12)",
+    "the text keeps no geometry; the committed glyph layer holds every glyph's box",
+]
+RESHUMOT_GLYPH_EXTRACTION_COMMAND = "hocrgen.parsers.pdf_glyphs.extract_glyph_layer(<pdf>, {page})"
+RESHUMOT_OUTLINE_TABLE = "glyph_outlines.json"
 RESHUMOT_RIGHTS_BASIS = "Copyright Act 2007 section 6: no copyright in laws, regulations, Knesset proceedings and judicial decisions"
 
 KNESSET_ODATA = "https://knesset.gov.il/OdataV4/ParliamentInfo/"
@@ -152,6 +163,31 @@ def printed_page_number(logical: str) -> str | None:
         if re.fullmatch(r"\d{3,5}[\x00-\x1f]*", line.strip()):
             return re.sub(r"\D", "", line)
     return None
+
+
+def reshumot_expected_phrases(data: dict[str, Any], page: int, logical: str) -> list[dict[str, str]]:
+    """Phrases the page must contain, from the gazette API: independent anchors for the text's order.
+
+    An inner page carries the running footer (series and booklet number, the Gregorian date) and the titles the API's
+    table of contents places on its printed page. The cover (PDF page 1) has no footer; it carries the series name,
+    the booklet number and the whole table of contents."""
+
+    _, series_he = RESHUMOT_SERIES[str(data["FolderType"])]
+    booklet = str(data["BookletNum"])
+    year, month, day = (int(part) for part in str(data["PublishDate"])[:10].split("-"))
+    titles = docsummary_titles(((data.get("DocSummary") or {}).get("DescriptionHtmlString")) or "")
+    if page == 1:
+        return [
+            {"text": series_he, "source": "gazette API FolderType (cover)"},
+            {"text": booklet, "source": "gazette API BookletNum (cover)"},
+            *({"text": title, "source": "gazette API DocSummary (cover table of contents)"} for title, _ in titles),
+        ]
+    printed = printed_page_number(logical)
+    return [
+        {"text": f"{series_he} {booklet},", "source": "gazette API BookletNum and FolderType"},
+        {"text": f"{day}.{month}.{year}", "source": "gazette API PublishDate"},
+        *({"text": title, "source": "gazette API DocSummary"} for title, title_page in titles if printed and title_page == printed),
+    ]
 
 
 def reshumot_page_entry(
@@ -261,6 +297,117 @@ def reshumot_page_entry(
         },
     }
     return entry, logical, issues
+
+
+def glyph_layer_bytes(layer: dict[str, Any]) -> bytes:
+    """The committed form of a glyph layer: compact JSON, gzip-compressed with no timestamp. The JSON is
+    byte-reproducible; the deflate stream is for one zlib build, so the file is pinned by its own sha256."""
+
+    import gzip
+
+    return gzip.compress(json.dumps(layer, ensure_ascii=False, separators=(",", ":")).encode("utf-8"), compresslevel=9, mtime=0)
+
+
+def reshumot_glyph_page_entry(
+    *,
+    data: dict[str, Any],
+    pdf: dict[str, Any],
+    page: int,
+    page_image_count: int,
+    layer: dict[str, Any],
+    layer_sha256: str,
+    table: dict[str, Any],
+    table_sha256: str,
+    render_file: dict[str, Any],
+    render_image: Any,
+    captured_at: str,
+) -> tuple[dict[str, Any], str, list[str], Any]:
+    """One F8e2 Reshumot page entry from its glyph layer and render: the entry, its text, its order issues and the
+    crop image (None when the whole page is verified).
+
+    The text is re-derived and re-checked by the gate (``hocrgen.fetchers.government_print``), so nothing here is
+    trusted downstream: the builder only records what the pure functions produce.
+    """
+
+    from hocrgen.fetchers.government_print import RESHUMOT_CROP_ROLE, reshumot_crop_record
+    from hocrgen.fetchers.wikisource import crop_image, crop_mask_fill, crop_pixel_box, crop_region_boxes
+    from hocrgen.parsers.pdf_geometry import GEOMETRY_NORMALIZATION_VERSION, verify_glyph_page
+
+    dpi = float(render_file["rendering"]["dpi"])
+    expected_for = {}
+
+    def expected(text: str) -> list[str]:
+        expected_for["phrases"] = reshumot_expected_phrases(data, page, text)
+        return [item["text"] for item in expected_for["phrases"]]
+
+    result = verify_glyph_page(layer, table, render_image, dpi, expected=expected)
+    entry, _, _ = reshumot_page_entry(
+        data=data, pdf=pdf, page=page, page_image_count=page_image_count, raw_text="", poppler_version=render_file["rendering"]["renderer_version"],
+        captured_at=captured_at, image_file=None,
+    )
+    stem = entry["entry_id"]
+    logical = result.text
+    printed = printed_page_number(logical)
+    entry["page"]["printed_page_number"] = printed
+    entry["title"] = entry["title"].rsplit(", page ", 1)[0] + f", page {printed or page}"
+    files = [render_file]
+    cropped = None
+    if result.verdict.regions is not None and result.verdict.regions:
+        crop = reshumot_crop_record(result.verdict.regions, float(layer["page"]["width"]), float(layer["page"]["height"]))
+        crop["box_px"] = list(crop_pixel_box(crop["box_normalized"], *render_image.size))
+        if crop.get("regions_normalized"):
+            crop["regions_px"] = [list(box) for box in crop_region_boxes(crop, *render_image.size)]
+            crop["mask_fill"] = crop_mask_fill(render_image, tuple(crop["box_px"]))
+        crop["units_left_out"] = dict(sorted(result.verdict.dropped.items()))
+        crop["reason"] = "lines whose order, characters or ink could not be verified, page images, or ink no glyph explains"
+        cropped = crop_image(render_image, crop)
+        buffer = io.BytesIO()
+        cropped.save(buffer, format="PNG", optimize=True)
+        content = buffer.getvalue()
+        crop_file = {
+            "bytes": len(content),
+            "height_px": cropped.size[1],
+            "local_path": f"assets/{stem}__crop.png",
+            "mime_type": "image/png",
+            "pixel_sha256": _sha256(cropped.tobytes()),
+            "rendering": {**render_file["rendering"], "crop_of": render_file["local_path"]},
+            "role": RESHUMOT_CROP_ROLE,
+            "sha256": _sha256(content),
+            "width_px": cropped.size[0],
+        }
+        files = [crop_file, render_file]
+        entry["crop"] = crop
+        cropped = (cropped, content)
+    elif result.verdict.dropped:
+        entry["text_units_left_out"] = dict(sorted(result.verdict.dropped.items()))
+    entry["files"] = files
+    entry["pdf"]["page_image_count"] = page_image_count
+    text = entry["text"]
+    text["extraction"] = {
+        "command": RESHUMOT_GLYPH_EXTRACTION_COMMAND.format(page=page),
+        "extractor": "pdfminer.six (hocrgen.parsers.pdf_glyphs)",
+        "extractor_version": layer.get("extractor_version"),
+        "normalization": GEOMETRY_NORMALIZATION_VERSION,
+        "outline_table_path": RESHUMOT_OUTLINE_TABLE,
+        "outline_table_sha256": table_sha256,
+        "raw_local_path": f"extraction/{stem}.glyphs.json.gz",
+        "raw_sha256": layer_sha256,
+    }
+    text["geometry"] = "glyph_layer"
+    text["known_limitations"] = RESHUMOT_GLYPH_LIMITATIONS
+    text["layout_notes"] = (["letter_spaced_run"] if result.conversion.layout.get("letter_spaced_segments") else [])
+    text["order_verification"] = {
+        "expected_phrases": expected_for.get("phrases", []),
+        "issues": result.issues,
+        "method": (
+            "per segment: forward Unicode bidi algorithm reproduces the glyphs' visual order; per glyph: character from "
+            "the outline identity table, ink on the render; per page: no ink outside kept glyphs in the pair image, "
+            "order heuristics and gazette API phrases on the kept text"
+        ),
+        "facts": result.facts(),
+    }
+    text["sha256"] = _sha256(logical.encode("utf-8"))
+    return entry, logical, result.issues, cropped
 
 
 def reshumot_render_file(stem: str, png: bytes, pixel_sha256: str, size: tuple[int, int], *, page: int, poppler_version: str) -> dict[str, Any]:
@@ -661,18 +808,36 @@ def materialize_reshumot(
     source: Any,
     captured_at: str,
     gate: Callable[[dict[str, Any], Any, Path], list[str]],
+    outline_table: Path,
+    layer_cache: Path | None = None,
+    report: Path | None = None,
     log: Callable[[str], None] = print,
-) -> dict[str, Any]:  # pragma: no cover - poppler; exercised by the operator run
-    """Every page of every cached booklet through the unchanged F8e gate; only passing pages are written."""
+) -> dict[str, Any]:  # pragma: no cover - poppler and pdfminer.six; exercised by the operator run
+    """Every page of every cached booklet through the F8e2 method and the gate; only admitted pages are written.
+
+    Each page's glyph layer is extracted with pdfminer.six (``hocrgen.parsers.pdf_glyphs``; ``layer_cache`` may hold
+    layers extracted before, used only when their extractor version is the installed one), rendered with pdftoppm,
+    converted, checked and, where needed, cropped to its verified regions (``reshumot_glyph_page_entry``). The gate
+    then re-derives everything from the written files.
+    """
 
     import yaml
+    from PIL import Image
+
+    from pdfminer import __version__ as pdfminer_version
+
+    from hocrgen.parsers.pdf_glyphs import extract_glyph_layer
 
     root = out_root / "sources" / "reshumot_born_digital" / "snapshot"
     version = poppler_version()
+    table_bytes = outline_table.read_bytes()
+    table = json.loads(table_bytes)
+    _write(root / RESHUMOT_OUTLINE_TABLE, table_bytes)
+    table_sha = _sha256(table_bytes)
     entries: list[dict[str, Any]] = []
     skipped: dict[str, int] = {}
     issues_seen: dict[str, int] = {}
-    pages_checked = 0
+    pages: list[dict[str, Any]] = []
     booklets_path = cache / "reshumot" / "booklets.jsonl"
     rows = [json.loads(line) for line in booklets_path.read_text(encoding="utf-8").splitlines()] if booklets_path.is_file() else []
     booklet_results = []
@@ -683,26 +848,39 @@ def materialize_reshumot(
             raise RuntimeError(f"cached Reshumot PDF {pdf_path.name} does not match its capture checksum")
         passed = 0
         for page in range(1, int(facts["info"].get("Pages", 0)) + 1):
-            pages_checked += 1
             image_count = sum(1 for image_row in facts["image_rows"] if image_row and image_row[0] == str(page) and image_row[2] == "image")
-            raw_text = pdf_page_text(pdf_path, page)
-            entry, logical, issues = reshumot_page_entry(
-                data=row, pdf=facts, page=page, page_image_count=image_count, raw_text=raw_text, poppler_version=version,
-                captured_at=captured_at, image_file=None,
-            )
+            stem = f"{RESHUMOT_SERIES[str(row['FolderType'])][0]}_{row['BookletNum']}__p{page:04d}"
+            cached = layer_cache / f"{stem}.json" if layer_cache else None
+            layer = json.loads(cached.read_text(encoding="utf-8")) if cached and cached.is_file() else None
+            if layer is None or layer.get("extractor_version") != pdfminer_version:
+                layer = extract_glyph_layer(pdf_path, page)
+            layer_bytes = glyph_layer_bytes(layer)
+            png, pixel_sha, size = render_gray_page(pdf_path, page)
+            render_file = reshumot_render_file(stem, png, pixel_sha, size, page=page, poppler_version=version)
+            with Image.open(io.BytesIO(png)) as render_image:
+                render_image.load()
+                entry, logical, issues, cropped = reshumot_glyph_page_entry(
+                    data=row, pdf=facts, page=page, page_image_count=image_count, layer=layer, layer_sha256=_sha256(layer_bytes),
+                    table=table, table_sha256=table_sha, render_file=render_file, render_image=render_image, captured_at=captured_at,
+                )
             for issue in issues:
                 _count(issues_seen, issue)
-            stem = entry["entry_id"]
-            _write(root / entry["text"]["extraction"]["raw_local_path"], raw_text.encode("utf-8"))
-            _write(root / entry["text"]["local_path"], logical.encode("utf-8"))
-            if not issues and image_count == 0:
-                png, pixel_sha, size = render_gray_page(pdf_path, page)
-                _write(root / f"assets/{stem}.png", png)
-                entry["files"] = [reshumot_render_file(stem, png, pixel_sha, size, page=page, poppler_version=version)]
+            written = [entry["text"]["extraction"]["raw_local_path"], entry["text"]["local_path"], render_file["local_path"]]
+            _write(root / written[0], layer_bytes)
+            _write(root / written[1], logical.encode("utf-8"))
+            _write(root / written[2], png)
+            if cropped is not None:
+                written.append(entry["files"][0]["local_path"])
+                _write(root / written[-1], cropped[1])
             reasons = gate(entry, source, root)
+            pages.append({
+                "entry_id": stem, "year": str(row["PublishDate"])[:4], "series": RESHUMOT_SERIES[str(row["FolderType"])][0],
+                "admitted": not reasons, "reasons": reasons, "cropped": "crop" in entry,
+                "units_left_out": (entry.get("crop") or {}).get("units_left_out") or entry.get("text_units_left_out") or {},
+            })
             if reasons:
                 _count(skipped, reasons[0])
-                for relative in (entry["text"]["extraction"]["raw_local_path"], entry["text"]["local_path"], f"assets/{stem}.png"):
+                for relative in written:
                     (root / relative).unlink(missing_ok=True)
                 continue
             entries.append(entry)
@@ -729,23 +907,38 @@ def materialize_reshumot(
             ),
             "scope": "tranche",
             "notes": (
-                "F8g2 tranche. Every page of every captured booklet was run through the unchanged F8e gate; only pages whose "
-                "pdftotext text passes the logical-order check and whose PDF page holds no image are kept. The packaged "
-                "fixture's admitted pages are kept as packaged."
+                "F8e2 tranche. Every page of every captured booklet was converted from its glyph layer (pdf_glyph_geometry_"
+                "logical.v1), checked against its render and cropped to its verified regions where needed; the gate re-derives "
+                "and re-checks each admitted page. The packaged F8e fixture's admitted pages (pdftotext, poppler_bidi_logical.v1) "
+                "are kept as packaged."
             ),
         }
     )
     _write(root / "snapshot.yaml", yaml.safe_dump(snapshot, allow_unicode=True, sort_keys=False).encode())
+    by_year: dict[str, dict[str, int]] = {}
+    for record in pages:
+        counts = by_year.setdefault(record["year"], {"pages": 0, "admitted": 0, "cropped": 0})
+        counts["pages"] += 1
+        counts["admitted"] += record["admitted"]
+        counts["cropped"] += record["admitted"] and record["cropped"]
     result = {
         "item_count": len(entries),
         "booklet_count": len(rows),
-        "pages_checked": pages_checked,
+        "pages_checked": len(pages),
         "pages_passed": len(captured_ids),
+        "pages_cropped": sum(1 for record in pages if record["admitted"] and record["cropped"]),
+        "method": "pdf_glyph_geometry_logical.v1",
         "skipped": skipped,
         "order_issue_counts": issues_seen,
+        "by_year": dict(sorted(by_year.items())),
         "booklets": booklet_results,
     }
-    log(f"reshumot: {len(entries)} entries from {len(rows)} booklets; {len(captured_ids)}/{pages_checked} captured pages pass; skipped {skipped}")
+    if report is not None:
+        _write(report, _json_lines(pages))
+    log(
+        f"reshumot: {len(entries)} entries from {len(rows)} booklets; {len(captured_ids)}/{len(pages)} captured pages pass "
+        f"({result['pages_cropped']} cropped); skipped {skipped}"
+    )
     return result
 
 
@@ -850,3 +1043,97 @@ def hebrew_years_since(start: date, end: date) -> list[int]:
     """Hebrew years whose span (about September to September) overlaps ``start``..``end``."""
 
     return list(range(start.year + 3760, end.year + 3761 + 1))
+
+
+# --- glyph outline identities (F8e2) -------------------------------------------------------------------------------
+
+GLYPH_OUTLINE_SCHEMA = "hocrgen.glyph_outline_identities.v1"
+# Characters one outline may legitimately stand for: mirrored brackets (the ToUnicode text is the logical character,
+# which depends on the run direction) and dashes (one shape set as hyphen, en dash, em dash or maqaf).
+GLYPH_VARIANT_SETS = [["(", ")"], ["[", "]"], ["{", "}"], ["<", ">"], ["-", "‑", "–", "—", "―", "־"]]
+
+
+def glyph_outline_table_bytes(table: dict[str, Any]) -> bytes:
+    """The committed form of the outline table: its header fields, then one outline per line, sorted."""
+
+    header = {key: value for key, value in table.items() if key != "outlines"}
+    lines = ["{"]
+    lines.extend(f" {json.dumps(key)}: {json.dumps(value, ensure_ascii=False)}," for key, value in header.items())
+    lines.append(' "outlines": {')
+    items = sorted(table["outlines"].items())
+    lines.extend(f"  {json.dumps(key)}: {json.dumps(value, ensure_ascii=False, sort_keys=True)}{',' if index < len(items) - 1 else ''}" for index, (key, value) in enumerate(items))
+    lines.extend([" }", "}"])
+    return ("\n".join(lines) + "\n").encode("utf-8")
+
+
+def build_glyph_outline_table(layers: Iterable[dict[str, Any]], checks: dict[str, dict[str, Any]], *, built_from: str) -> dict[str, Any]:
+    """The outline identity table from glyph layers: per outline hash, the ToUnicode characters seen and the
+    character it stands for.
+
+    An outline whose non-whitespace ToUnicode readings are one character, or all inside one variant set, takes them.
+    An outline with conflicting readings (a full stop also read as a space or ``פ``) needs a recorded check in
+    ``checks`` naming its character; without one it is left with no character, so every glyph that uses it is
+    unverified.
+    """
+
+    from hocrgen.parsers.pdf_geometry import _whitespace
+
+    readings: dict[str, dict[str, int]] = {}
+    fonts: dict[str, set[str]] = {}
+    for layer in layers:
+        records = layer.get("fonts") or []
+        for glyph in layer.get("glyphs") or []:
+            font = records[glyph[9]] if glyph[9] < len(records) else {}
+            outline = (font.get("outlines") or {}).get(str(glyph[11]))
+            if not outline:
+                continue
+            counts = readings.setdefault(outline, {})
+            counts[glyph[1]] = counts.get(glyph[1], 0) + 1
+            fonts.setdefault(outline, set()).add(str(font.get("name", "")).split("+")[-1])
+    outlines: dict[str, Any] = {}
+    unresolved = 0
+    for outline in sorted(readings):
+        counts = readings[outline]
+        texts = {text for text in counts if not _whitespace(text)}
+        entry: dict[str, Any] = {"tounicode": dict(sorted(counts.items(), key=lambda item: (-item[1], item[0]))), "typefaces": sorted(fonts[outline])}
+        check = checks.get(outline)
+        group = next((variants for variants in GLYPH_VARIANT_SETS if texts and texts <= set(variants)), None)
+        if check and check.get("shape"):
+            # A bracket: the character follows from the drawn shape and the run direction, not from ToUnicode.
+            entry["char"] = None
+            entry["accept"] = []
+            entry["shape"] = check["shape"]
+            entry["check"] = {key: check[key] for key in ("checked_by", "checked_at", "method", "finding") if key in check}
+        elif check:
+            entry["char"] = check["char"]
+            entry["accept"] = sorted({check["char"], *check.get("accept_also", [])})
+            entry["check"] = {key: check[key] for key in ("checked_by", "checked_at", "method", "finding") if key in check}
+        elif not texts:
+            entry["char"] = None
+            entry["accept"] = sorted(counts)
+        elif len(texts) == 1:
+            (char,) = texts
+            entry["char"] = char
+            entry["accept"] = [char]
+        elif group is not None:
+            entry["char"] = None
+            entry["accept"] = sorted(texts)
+        else:
+            entry["char"] = None
+            entry["accept"] = []
+            unresolved += 1
+        outlines[outline] = entry
+    return {
+        "schema": GLYPH_OUTLINE_SCHEMA,
+        "built_from": built_from,
+        "method": (
+            "Outline = first 16 hex digits of the SHA-256 of the glyph's TrueType glyf bytes (hocrgen.parsers.pdf_glyphs). "
+            "An outline read as one character by every font's ToUnicode map takes it; conflicting readings are settled "
+            "only by a recorded check of the rendered glyphs. A bracket outline records its drawn shape: its character is "
+            "the shape in a left-to-right run and the mirror image in a right-to-left run (UBA L4), whatever ToUnicode says, "
+            "because the subsets disagree on which of the pair they name."
+        ),
+        "variant_sets": GLYPH_VARIANT_SETS,
+        "unresolved": unresolved,
+        "outlines": outlines,
+    }

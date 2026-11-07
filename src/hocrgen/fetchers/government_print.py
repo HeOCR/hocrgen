@@ -5,8 +5,10 @@ Two packaged-static-records adapters over pinned snapshots:
 - ``reshumot``: pages of ספר החוקים and קובץ התקנות booklets from 2006 on (Copyright Act section 6). Each
   page is rendered from the born-digital PDF (``rendering.is_scan`` false, so evaluation never mistakes it
   for a scan) and carries the PDF's embedded text in logical order. The text is admitted only when the
-  committed pdftotext output converts to it exactly and it passes the logical-order checks of
-  ``hocrgen.parsers.pdf_bidi``.
+  committed extraction converts to it exactly and it passes the logical-order checks of
+  ``hocrgen.parsers.pdf_bidi``. F8e entries carry pdftotext output; F8e2 entries carry the page's glyph layer,
+  re-converted by ``hocrgen.parsers.pdf_geometry`` and re-checked against the committed render, and may pair with
+  the render cut to the verified regions (decision 12).
 - ``knesset_committee``: page scans of Knesset committee protocols from sessions on or before
   1975-12-31 (State works, sections 36 and 42). Images only; the upstream OCR is never carried.
 
@@ -28,6 +30,7 @@ from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.manifests.models import AcquiredAsset, AcquiredItemRecord, AssetReference, CandidateRecord, EnrichedCandidateRecord
 from hocrgen.parsers.pdf_bidi import logical_order_issues, poppler_text_to_logical
+from hocrgen.parsers.pdf_geometry import GEOMETRY_NORMALIZATION_VERSION, verify_glyph_page
 from hocrgen.utils.hashing import sha256_file
 from hocrgen.utils.io import copy_file
 
@@ -48,8 +51,26 @@ _DOCUMENT_NAME_DATE = re.compile(r"(\d{2})/(\d{2})/(\d{4})")
 
 # Reasons that mean the packaged fixture itself is broken, not that an entry is out of scope.
 GOVERNMENT_PRINT_INTEGRITY_REASONS = frozenset(
-    {"text_checksum_mismatch", "extraction_checksum_mismatch", "text_not_reproducible_from_extraction", "missing_text_file"}
+    {
+        "text_checksum_mismatch",
+        "extraction_checksum_mismatch",
+        "text_not_reproducible_from_extraction",
+        "missing_text_file",
+        "glyph_outline_table_missing",
+        "glyph_outline_table_checksum_mismatch",
+        "page_render_missing",
+        "page_render_checksum_mismatch",
+        "crop_unrecorded",
+        "crop_not_expected",
+        "crop_geometry_mismatch",
+        "crop_asset_missing",
+        "crop_asset_checksum_mismatch",
+        "crop_pixels_mismatch",
+    }
 )
+RESHUMOT_PAGE_RENDER_ROLE = "page_render"
+RESHUMOT_CROP_ROLE = "page_render_crop"
+RESHUMOT_CROP_METHOD = "pdf_glyph_regions.v1"
 
 
 def government_print_snapshot_root(source: SourceConfig, bundle: ConfigBundle) -> Path:
@@ -67,6 +88,10 @@ def load_government_print_snapshot(root: Path) -> tuple[dict[str, Any], list[dic
 
 
 def government_print_entry_asset(entry: dict[str, Any]) -> dict[str, Any] | None:
+    # A cropped Reshumot page ships its crop, never the full render, whatever the file order (decision 12).
+    if entry.get("crop"):
+        crop = next((file for file in entry.get("files") or [] if file.get("role") == RESHUMOT_CROP_ROLE), None)
+        return crop if crop and crop.get("mime_type") in RASTER_MEDIA_TYPES and crop.get("local_path") and crop.get("sha256") else None
     for file in entry.get("files") or []:
         if file.get("mime_type") in RASTER_MEDIA_TYPES and file.get("local_path") and file.get("sha256"):
             return file
@@ -92,10 +117,11 @@ def _common_exclusion_reasons(entry: dict[str, Any], source: SourceConfig) -> li
 
 
 def reshumot_text_issues(entry: dict[str, Any], root: Path) -> list[str]:
-    """Re-derive the page text from the committed pdftotext output and check its logical order.
+    """Re-derive the page text from the committed extraction and check its logical order.
 
-    Returns integrity reasons (a pinned file is missing or changed) or the order issue codes of
-    ``hocrgen.parsers.pdf_bidi``. An empty list means the text is admitted.
+    Returns integrity reasons (a pinned file is missing or changed) or the order issue codes. An empty list means the
+    text is admitted. F8e entries carry ``pdftotext`` output (``poppler_bidi_logical.v1``); F8e2 entries carry the
+    page's glyph layer (``pdf_glyph_geometry_logical.v1``), re-converted and re-checked against the page render here.
     """
 
     text = entry.get("text") or {}
@@ -109,13 +135,111 @@ def reshumot_text_issues(entry: dict[str, Any], root: Path) -> list[str]:
     if sha256_file(text_path) != text.get("sha256"):
         return ["text_checksum_mismatch"]
     logical = text_path.read_bytes().decode("utf-8")
+    expected = [str(item.get("text", "")) for item in (text.get("order_verification") or {}).get("expected_phrases") or []]
+    if extraction.get("normalization") == GEOMETRY_NORMALIZATION_VERSION:
+        return _glyph_text_issues(entry, root, raw_path, logical, expected)
     converted, conversion_issues = poppler_text_to_logical(raw_path.read_bytes().decode("utf-8"))
     if converted != logical:
         return ["text_not_reproducible_from_extraction"]
-    expected = [str(item.get("text", "")) for item in (text.get("order_verification") or {}).get("expected_phrases") or []]
     if not expected:
         return ["no_expected_phrases"]
     return sorted(set(conversion_issues) | set(logical_order_issues(logical, expected)))
+
+
+def read_glyph_layer_bytes(path: Path) -> bytes:
+    """A committed glyph layer: gzip-compressed JSON (``.json.gz``) or plain JSON."""
+
+    import gzip
+
+    content = path.read_bytes()
+    return gzip.decompress(content) if path.suffix == ".gz" else content
+
+
+def reshumot_page_render(entry: dict[str, Any]) -> dict[str, Any] | None:
+    return next((file for file in entry.get("files") or [] if file.get("role") == RESHUMOT_PAGE_RENDER_ROLE), None)
+
+
+def reshumot_crop_file(entry: dict[str, Any]) -> dict[str, Any] | None:
+    return next((file for file in entry.get("files") or [] if file.get("role") == RESHUMOT_CROP_ROLE), None)
+
+
+def reshumot_crop_record(regions: list[list[float]], page_width: float, page_height: float) -> dict[str, Any]:
+    """The crop geometry of a page cut to its verified regions (points), normalised to the page (decision 12)."""
+
+    from hocrgen.fetchers.wikisource import CROP_RESOLVED
+
+    normalized = [
+        [round(region[0] / page_width, 6), round(region[1] / page_height, 6), round(region[2] / page_width, 6), round(region[3] / page_height, 6)]
+        for region in regions
+    ]
+    box = [min(r[0] for r in normalized), min(r[1] for r in normalized), max(r[2] for r in normalized), max(r[3] for r in normalized)]
+    return {
+        "status": CROP_RESOLVED,
+        "method": RESHUMOT_CROP_METHOD,
+        "checked_by": "tool",
+        "box_normalized": box,
+        **({"regions_normalized": normalized} if len(normalized) > 1 else {}),
+    }
+
+
+def _glyph_text_issues(entry: dict[str, Any], root: Path, raw_path: Path, logical: str, expected: list[str]) -> list[str]:
+    import json
+
+    from PIL import Image
+
+    from hocrgen.fetchers.wikisource import crop_geometry_valid, crop_image, crop_pixel_box, crop_region_boxes
+
+    extraction = (entry.get("text") or {}).get("extraction") or {}
+    table_path = root / str(extraction.get("outline_table_path", ""))
+    if not extraction.get("outline_table_path") or not table_path.is_file():
+        return ["glyph_outline_table_missing"]
+    if sha256_file(table_path) != extraction.get("outline_table_sha256"):
+        return ["glyph_outline_table_checksum_mismatch"]
+    render = reshumot_page_render(entry)
+    render_path = root / str((render or {}).get("local_path", ""))
+    if render is None or not render_path.is_file():
+        return ["page_render_missing"]
+    if sha256_file(render_path) != render.get("sha256"):
+        return ["page_render_checksum_mismatch"]
+    if not expected:
+        return ["no_expected_phrases"]
+    layer = json.loads(read_glyph_layer_bytes(raw_path))
+    table = json.loads(table_path.read_text(encoding="utf-8"))
+    dpi = float((render.get("rendering") or {}).get("dpi") or 0)
+    with Image.open(render_path) as page_image:
+        page_image.load()
+        result = verify_glyph_page(layer, table, page_image, dpi, expected)
+        if result.text != logical:
+            return ["text_not_reproducible_from_extraction"]
+        if not result.text:
+            return result.issues
+        crop = entry.get("crop")
+        regions = result.verdict.regions
+        if regions is None:
+            if crop or reshumot_crop_file(entry):
+                return ["crop_not_expected"]
+        else:
+            if not isinstance(crop, dict) or not crop_geometry_valid(crop):
+                return ["crop_unrecorded"]
+            recorded = {key: crop.get(key) for key in ("box_normalized", "regions_normalized")}
+            derived = reshumot_crop_record(regions, float(layer["page"]["width"]), float(layer["page"]["height"]))
+            if recorded != {key: derived.get(key) for key in ("box_normalized", "regions_normalized")}:
+                return ["crop_geometry_mismatch"]
+            if list(crop_pixel_box(crop["box_normalized"], *page_image.size)) != list(crop.get("box_px") or []):
+                return ["crop_geometry_mismatch"]
+            if crop.get("regions_normalized") and [list(box) for box in crop_region_boxes(crop, *page_image.size)] != crop.get("regions_px"):
+                return ["crop_geometry_mismatch"]
+            asset = reshumot_crop_file(entry)
+            asset_path = root / str((asset or {}).get("local_path", ""))
+            if asset is None or not asset_path.is_file():
+                return ["crop_asset_missing"]
+            if sha256_file(asset_path) != asset.get("sha256"):
+                return ["crop_asset_checksum_mismatch"]
+            expected_image = crop_image(page_image, crop)
+            with Image.open(asset_path) as cropped:
+                if cropped.convert("RGB").tobytes() != expected_image.tobytes() or cropped.size != expected_image.size:
+                    return ["crop_pixels_mismatch"]
+    return result.issues
 
 
 def reshumot_entry_exclusion_reasons(entry: dict[str, Any], source: SourceConfig, root: Path) -> list[str]:
@@ -135,7 +259,15 @@ def reshumot_entry_exclusion_reasons(entry: dict[str, Any], source: SourceConfig
     if published < RESHUMOT_BORN_DIGITAL_FROM:
         return ["before_born_digital_era"]
     pdf = entry.get("pdf") or {}
-    if pdf.get("born_digital") is not True or pdf.get("page_image_count") != 0 or not pdf.get("embedded_fonts") or not pdf.get("sha256"):
+    text_record = entry.get("text") or {}
+    glyph_entry = (text_record.get("extraction") or {}).get("normalization") == GEOMETRY_NORMALIZATION_VERSION
+    # An F8e2 page may hold a page image (a masthead emblem, an added stamp) only when the pair is cropped: the text
+    # check below re-derives the crop, whose regions never touch an image's inked area, so the pair shows
+    # born-digital text only. Without a crop the page is out, as in F8e.
+    images_cropped_out = glyph_entry and bool(entry.get("crop"))
+    if pdf.get("born_digital") is not True or not pdf.get("embedded_fonts") or not pdf.get("sha256"):
+        return ["pdf_not_born_digital"]
+    if pdf.get("page_image_count") != 0 and not images_cropped_out:
         return ["pdf_not_born_digital"]
     if not booklet.get("booklet_number"):
         return ["missing_booklet_number"]
@@ -152,11 +284,12 @@ def reshumot_entry_exclusion_reasons(entry: dict[str, Any], source: SourceConfig
     asset = government_print_entry_asset(entry)
     if asset is None:
         return ["no_raster_asset"]
-    rendering = asset.get("rendering") or {}
-    if rendering.get("is_scan") is not False or rendering.get("image_origin") != "rendered_from_born_digital_pdf":
-        return ["rendering_provenance_unrecorded"]
-    if not rendering.get("renderer") or not rendering.get("renderer_version") or not rendering.get("dpi"):
-        return ["rendering_provenance_unrecorded"]
+    for file in [asset, *([reshumot_page_render(entry)] if glyph_entry else [])]:
+        rendering = (file or {}).get("rendering") or {}
+        if rendering.get("is_scan") is not False or rendering.get("image_origin") != "rendered_from_born_digital_pdf":
+            return ["rendering_provenance_unrecorded"]
+        if not rendering.get("renderer") or not rendering.get("renderer_version") or not rendering.get("dpi"):
+            return ["rendering_provenance_unrecorded"]
     return []
 
 
@@ -342,6 +475,11 @@ class ReshumotImporter(_GovernmentPrintImporter):
             "text_extractor_version": (text.get("extraction") or {}).get("extractor_version"),
             "text_order_verified": True,
             "text_layout_notes": list(text.get("layout_notes") or []),
+            # F8e2: a page whose unverified lines were left out pairs with its render cut to the verified regions.
+            "cropped": bool(entry.get("crop")),
+            "crop_method": (entry.get("crop") or {}).get("method"),
+            "crop_box_normalized": (entry.get("crop") or {}).get("box_normalized"),
+            "crop_regions_normalized": (entry.get("crop") or {}).get("regions_normalized"),
             "heocr_attestation": text.get("heocr_attestation"),
             "adjudication_status": text["adjudication_status"],
             "reference_eligible": text["reference_eligible"],

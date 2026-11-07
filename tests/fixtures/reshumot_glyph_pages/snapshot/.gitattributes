@@ -1,0 +1,5 @@
+# Pinned by sha256 (text, extraction and outline table); never normalize them.
+text/*.txt -text
+extraction/*.gz binary
+*.json -text
+entries.jsonl -text
