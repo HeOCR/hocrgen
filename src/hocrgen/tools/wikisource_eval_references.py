@@ -182,7 +182,7 @@ def adjudicated_reference(page: Mapping[str, Any], root: Path, *, source_id: str
             raise StageExecutionError(f"{record.item_id}: reference audit corrections on a page with excluded spans "
                                       "are not supported (the spans would need re-pinning)")
         record = reference_record_from_text(source_id, dict(page), audit["text"], attestation, revision_id)
-        humans = sorted({entry["reviewer"] for entry in audit["applied_decisions"]})
+        humans = sorted({reviewer for entry in audit["applied_decisions"] for reviewer in entry["reviewers"]})
         reviewers = reviewers + [f"heocr:{handle}" for handle in humans]
         reason += (f"; corrected by human reference-audit decisions {', '.join(provenance['applied_decisions'])} "
                    f"({provenance['audit_id']}; base text {provenance['base_text_sha256'][:12]}, "
@@ -224,8 +224,11 @@ def adjudicated_reference(page: Mapping[str, Any], root: Path, *, source_id: str
         adjudication["reference_audit"] = {
             "state": audit["state"], "audit_pending": audit["audit_pending"],
             "pending_proposals": len(audit["pending_proposals"]),
+            "conflicting_proposals": len(audit["conflicting_proposals"]),
+            "min_reviewers": audit["min_reviewers"],
             "provenance": audit["provenance"],
-            "applied_decisions": [{key: entry[key] for key in ("decision_id", "proposal_id", "decision", "reviewer", "decided_at")}
+            "applied_decisions": [{key: entry[key] for key in ("proposal_id", "decision", "decision_ids", "reviewers",
+                                                               "reviewer_count", "decided_at")}
                                   for entry in audit["applied_decisions"]],
             "rule": ("E2d4 maintainer decision (2026-11-07): an agent proposes reference corrections and only a human "
                      "decision applies one; an agent proposal is never attestation"),
@@ -250,7 +253,7 @@ def write_eval_reference_set(
     root: Path, output_dir: Path, *, source_id: str = SOURCE_ID, reference_manifest_id: str,
     held_out: Mapping[str, str] | None = None, release_splits: Mapping[str, Mapping[str, Any]] | None = None,
     include: set[str] | None = None, validated_revisions: Path | None = None, validated_text_checks: Path | None = None,
-    audit_proposals: Path | None = None, audit_decisions: Path | None = None,
+    audit_proposals: Path | None = None, audit_decisions: Path | None = None, audit_min_reviewers: int = 1,
 ) -> dict[str, Any]:
     """Write the adjudicated printed reference manifest, the single-reviewer texts and the asset index.
 
@@ -262,7 +265,8 @@ def write_eval_reference_set(
         raise StageExecutionError("--validated-revisions and --validated-text-checks go together")
     if audit_decisions is not None and audit_proposals is None:
         raise StageExecutionError("--audit-decisions needs --audit-proposals")
-    audit = ReferenceAudit.from_files(audit_proposals, audit_decisions) if audit_proposals is not None else None
+    audit = (ReferenceAudit.from_files(audit_proposals, audit_decisions, min_reviewers=audit_min_reviewers)
+             if audit_proposals is not None else None)
     revisions = load_validated_revisions(validated_revisions) if validated_revisions is not None else None
     checks = load_validated_text_checks(validated_text_checks) if validated_text_checks is not None else {}
     _, indexes, pages = load_wikisource_snapshot(root)
@@ -336,6 +340,7 @@ def write_eval_reference_set(
                 entry["reference_audit_state"] = page_audit["state"]
                 entry["audit_pending"] = page_audit["audit_pending"]
                 entry["audit_pending_proposals"] = len(page_audit["pending_proposals"])
+                entry["audit_conflicting_proposals"] = len(page_audit["conflicting_proposals"])
                 entry["human_attestation"] = (HUMAN_CORRECTED_ATTESTATION if page_audit["provenance"] is not None
                                               else "two_editor_validated")
                 if page_audit["provenance"] is not None:
@@ -422,9 +427,11 @@ def write_eval_reference_set(
         summary["counts"]["human_corrected"] = sum(1 for entry in items if "reference_audit_provenance" in entry)
         summary["reference_audit"] = {
             "audit_id": audit.audit_id,
+            "min_reviewers": audit.min_reviewers,
             "states": {state: states.count(state) for state in sorted(set(states))},
             "audited_items_not_scored": sorted(audit.item_ids() - audited),
-            "rule": "only human-accepted or human-edited corrections are applied; agent proposals alone change nothing",
+            "rule": ("only human-accepted or human-edited corrections are applied, when at least min_reviewers "
+                     "reviewers decided and all agree; agent proposals alone change nothing"),
         }
     if considered:
         summary["counts"]["adjudicated_validating_revision"] = sum(
@@ -454,6 +461,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--audit-decisions", type=Path, default=None,
                         help="E2d4: reference_audit_decisions.v1 (docs/reference_audit_decisions.json); applies only "
                              "human-accepted or human-edited corrections")
+    parser.add_argument("--audit-min-reviewers", type=int, default=1,
+                        help="E2d4: agreeing human reviewers a proposal needs before it applies (default 1)")
     parser.add_argument("--split-manifest", type=Path, default=None,
                         help="A release split_manifest.json: record each page's release split (F8g group-whole splits)")
     return parser.parse_args(argv)
@@ -468,7 +477,8 @@ def main(argv: list[str] | None = None) -> int:
                                        held_out=held_out, release_splits=splits, include=include,
                                        validated_revisions=args.validated_revisions,
                                        validated_text_checks=args.validated_text_checks,
-                                       audit_proposals=args.audit_proposals, audit_decisions=args.audit_decisions)
+                                       audit_proposals=args.audit_proposals, audit_decisions=args.audit_decisions,
+                                       audit_min_reviewers=args.audit_min_reviewers)
     print(json.dumps({"counts": summary["counts"], "release_split_counts": summary["release_split_counts"]},
                      indent=2))  # counts only, never text
     return 0

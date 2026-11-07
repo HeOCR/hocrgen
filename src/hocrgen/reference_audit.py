@@ -5,17 +5,21 @@ place where the reference text disagrees with the print as a **proposal** (``ref
 ``docs/reference_audit_proposals.json``). A proposal is never attestation and never changes a reference by itself
 (maintainer decision, 2026-11-07): ``status`` is always ``agent_proposed`` and ``checked_by`` always ``agent``.
 
-A human reviewer then records one **decision** per proposal (``reference_audit_decisions.v1``,
-``docs/reference_audit_decisions.json``): ``accepted`` (the proposed text), ``rejected`` (no change) or ``edited``
-(the reviewer's own text for the same span). A decision names the reviewer by a pseudonymous handle (lower-case
-letters, digits and hyphens, as ``qa-1`` or ``reviewer-2``; never a real name unless the reviewer consents to it as
-the handle, and never an agent) and the date.
+Human reviewers then record **decisions** (``reference_audit_decisions.v1``, ``docs/reference_audit_decisions.json``):
+``accepted`` (the proposed text), ``rejected`` (no change) or ``edited`` (the reviewer's own text for the same span).
+Each decision names its reviewer by a pseudonymous id, ``rv_`` and 8 lower-case letters or digits (``rv_3f9a01bc``),
+so no real name is ever recorded, and the date. Several reviewers may decide one proposal (one decision each), so a
+stricter rule can come later: a proposal's outcome takes effect when at least ``min_reviewers`` reviewers decided it
+and all of them agree (the same decision, and for ``edited`` the same text). Reviewers who disagree leave it
+``conflict``. The default is ``min_reviewers=1``: one human accept suffices while there is a single reviewer. Every
+outcome records its ``reviewer_count``.
 
-``apply_reference_audit`` is the only place a correction takes effect. It applies the accepted and edited decisions
-of a page, and nothing else, to the exact text the proposals were made on (pinned by ``base_text_sha256``), and
-returns the corrected text with its provenance: the base revision, the applied decision ids in text order, and the
-new ``text_sha256``. Proposals without a decision are reported as pending (``audit_pending``) and leave the text as
-it is. A stale or inconsistent proposal fails closed.
+``apply_reference_audit`` is the only place a correction takes effect. It applies the agreed accepted and edited
+outcomes of a page, and nothing else, to the exact text the proposals were made on (pinned by ``base_text_sha256``),
+and returns the corrected text with its provenance: the base revision, the applied decision ids in text order, and
+the new ``text_sha256``. Proposals without an agreed outcome (undecided, short of ``min_reviewers``, or in conflict)
+are reported as pending (``audit_pending``) and leave the text as it is. A stale or inconsistent proposal fails
+closed.
 """
 from __future__ import annotations
 
@@ -41,8 +45,8 @@ PROPOSAL_STATUS = "agent_proposed"
 HUMAN_CORRECTED_ATTESTATION = "two_editor_validated_human_corrected"
 AUDIT_PENDING = "audit_pending"
 REFERENCE_AUDIT_STATES = ("not_audited", "audited_no_findings", AUDIT_PENDING, "human_corrected", "human_reviewed_unchanged")
-REVIEWER_HANDLE = re.compile(r"^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$")
-_AGENT_HANDLE = re.compile(r"(?:^|-)(?:agent|claude|bot|tool|llm|gpt|model|auto|automatic|system)(?:-|$)")
+REVIEWER_ID = re.compile(r"^rv_[0-9a-z]{8}$")
+DEFAULT_MIN_REVIEWERS = 1
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 _SHA256 = re.compile(r"^[0-9a-f]{64}$")
 _FOOTNOTE_MARK = re.compile(r"\[(\d+)\]")
@@ -189,13 +193,11 @@ def _valid_date(value: str) -> bool:
     return True
 
 
-def reviewer_handle_problems(handle: Any) -> list[str]:
-    """A decision's reviewer must be a pseudonymous human handle (``qa-1``, ``reviewer-2``), never an agent."""
+def reviewer_id_problems(reviewer: Any) -> list[str]:
+    """A decision's reviewer is a pseudonymous id: ``rv_`` and 8 lower-case letters or digits (never a real name)."""
 
-    if not (isinstance(handle, str) and REVIEWER_HANDLE.match(handle) and len(handle) <= 40):
-        return ["reviewer must be a pseudonymous handle: lower-case letters, digits and single hyphens (e.g. reviewer-1)"]
-    if _AGENT_HANDLE.search(handle):
-        return ["reviewer must be a human; an agent never decides"]
+    if not (isinstance(reviewer, str) and REVIEWER_ID.match(reviewer)):
+        return ["reviewer must be a pseudonymous id: rv_ and 8 lower-case letters or digits (e.g. rv_3f9a01bc)"]
     return []
 
 
@@ -208,7 +210,7 @@ def reference_audit_decisions_problems(payload: Mapping[str, Any], proposals: Ma
     if payload.get("audit_id") != proposals.get("audit_id"):
         problems.append("audit_id must match the proposals' audit_id")
     known = {proposal["proposal_id"]: proposal for proposal in proposals.get("proposals") or []}
-    decided: set[str] = set()
+    decided: set[tuple[str, Any]] = set()
     ids: set[str] = set()
     decisions = payload.get("decisions")
     if not isinstance(decisions, list):
@@ -224,10 +226,10 @@ def reference_audit_decisions_problems(payload: Mapping[str, Any], proposals: Ma
         pid = decision.get("proposal_id")
         if pid not in known:
             problems.append(f"{label}: proposal_id {pid!r} is not a proposal of {proposals.get('audit_id')}")
-        elif pid in decided:
-            problems.append(f"{label}: a second decision for {pid}; record one decision per proposal")
+        elif (pid, decision.get("reviewer")) in decided:
+            problems.append(f"{label}: a second decision by {decision.get('reviewer')} for {pid}; one per reviewer")
         else:
-            decided.add(pid)
+            decided.add((pid, decision.get("reviewer")))
             if decision.get("item_id") not in (None, known[pid]["item_id"]):
                 problems.append(f"{label}: item_id does not match the proposal's")
         value = decision.get("decision")
@@ -242,7 +244,7 @@ def reference_audit_decisions_problems(payload: Mapping[str, Any], proposals: Ma
             problems.append(f"{label}: only an edited decision carries text")
         if decision.get("checked_by") != "human":
             problems.append(f"{label}: checked_by must be human; an agent proposal is never a decision")
-        problems.extend(f"{label}: {problem}" for problem in reviewer_handle_problems(decision.get("reviewer")))
+        problems.extend(f"{label}: {problem}" for problem in reviewer_id_problems(decision.get("reviewer")))
         if not (isinstance(decision.get("decided_at"), str) and _valid_date(decision["decided_at"])):
             problems.append(f"{label}: decided_at must be a YYYY-MM-DD date")
         note = decision.get("note")
@@ -277,7 +279,11 @@ def load_reference_audit_decisions(path: Path, proposals: Mapping[str, Any]) -> 
 class ReferenceAudit:
     """Validated proposals plus (optionally) validated human decisions, indexed by page."""
 
-    def __init__(self, proposals: Mapping[str, Any], decisions: Mapping[str, Any] | None = None) -> None:
+    def __init__(self, proposals: Mapping[str, Any], decisions: Mapping[str, Any] | None = None, *,
+                 min_reviewers: int = DEFAULT_MIN_REVIEWERS) -> None:
+        if not (_is_int(min_reviewers) and min_reviewers >= 1):
+            raise StageExecutionError("min_reviewers must be 1 or more")
+        self.min_reviewers = min_reviewers
         problems = reference_audit_proposals_problems(proposals)
         if problems:
             raise StageExecutionError(f"invalid {PROPOSALS_SCHEMA}: " + "; ".join(problems[:10]))
@@ -292,13 +298,37 @@ class ReferenceAudit:
             self.proposals.setdefault(proposal["item_id"], []).append(proposal)
         for found in self.proposals.values():
             found.sort(key=lambda p: (p["start"], p["end"]))
-        self.decisions = {d["proposal_id"]: d for d in (decisions or {}).get("decisions") or []}
+        self.decisions: dict[str, list[Mapping[str, Any]]] = {}
+        for decision in (decisions or {}).get("decisions") or []:
+            self.decisions.setdefault(decision["proposal_id"], []).append(decision)
+        for found in self.decisions.values():
+            found.sort(key=lambda d: (d["reviewer"], d["decision_id"]))
 
     @classmethod
-    def from_files(cls, proposals_path: Path, decisions_path: Path | None = None) -> "ReferenceAudit":
+    def from_files(cls, proposals_path: Path, decisions_path: Path | None = None, *,
+                   min_reviewers: int = DEFAULT_MIN_REVIEWERS) -> "ReferenceAudit":
         proposals = load_reference_audit_proposals(proposals_path)
         decisions = load_reference_audit_decisions(decisions_path, proposals) if decisions_path is not None else None
-        return cls(proposals, decisions)
+        return cls(proposals, decisions, min_reviewers=min_reviewers)
+
+    def outcome(self, proposal: Mapping[str, Any]) -> dict[str, Any]:
+        """A proposal's outcome from its decisions: ``undecided``, ``awaiting_reviewers`` (agreeing but fewer than
+        ``min_reviewers``), ``conflict`` (reviewers disagree), or the agreed ``accepted``/``rejected``/``edited``
+        with its ``replacement``; always with ``reviewer_count``, ``reviewers`` and ``decision_ids``."""
+
+        found = self.decisions.get(proposal["proposal_id"], [])
+        base = {"reviewer_count": len(found), "reviewers": [d["reviewer"] for d in found],
+                "decision_ids": [d["decision_id"] for d in found], "replacement": None}
+        if not found:
+            return {**base, "outcome": "undecided"}
+        keys = {(d["decision"], d.get("text")) for d in found}
+        if len(keys) > 1:
+            return {**base, "outcome": "conflict"}
+        if len(found) < self.min_reviewers:
+            return {**base, "outcome": "awaiting_reviewers"}
+        value, text = keys.pop()
+        replacement = proposal["proposed"] if value == "accepted" else text if value == "edited" else None
+        return {**base, "outcome": value, "replacement": replacement}
 
     def item_ids(self) -> set[str]:
         return set(self.pages)
@@ -320,17 +350,19 @@ def apply_text_corrections(text: str, corrections: Iterable[tuple[int, int, str]
 
 def apply_reference_audit(audit: ReferenceAudit | None, item_id: str, text: str,
                           base_revision_id: int | None = None) -> dict[str, Any]:
-    """Apply a page's human-accepted and human-edited corrections, and only those, to its reference ``text``.
+    """Apply a page's agreed human-accepted and human-edited corrections, and only those, to its reference ``text``.
 
-    Returns ``{"text", "state", "audit_pending", "pending_proposals", "applied_decisions", "rejected_decisions",
-    "provenance"}``. ``state`` is one of ``REFERENCE_AUDIT_STATES``. ``provenance`` is ``None`` unless a correction
+    Returns ``{"text", "state", "audit_pending", "pending_proposals", "conflicting_proposals", "applied_decisions",
+    "rejected_decisions", "min_reviewers", "provenance"}``; each ``applied_decisions`` entry records its
+    ``reviewer_count``. ``state`` is one of ``REFERENCE_AUDIT_STATES``. ``provenance`` is ``None`` unless a correction
     was applied; then it records the base revision and text checksum, the applied decision ids in text order and
     the corrected text's ``text_sha256``. Agent proposals alone never change the text. A page whose text is not
     the one the proposals were made on fails closed, as does a proposal whose span no longer matches.
     """
 
-    unchanged = {"text": text, "audit_pending": False, "pending_proposals": [], "applied_decisions": [],
-                 "rejected_decisions": [], "provenance": None}
+    unchanged = {"text": text, "audit_pending": False, "pending_proposals": [], "conflicting_proposals": [],
+                 "applied_decisions": [], "rejected_decisions": [], "provenance": None,
+                 "min_reviewers": audit.min_reviewers if audit is not None else DEFAULT_MIN_REVIEWERS}
     if audit is None or item_id not in audit.pages:
         return {**unchanged, "state": "not_audited"}
     page = audit.pages[item_id]
@@ -343,29 +375,31 @@ def apply_reference_audit(audit: ReferenceAudit | None, item_id: str, text: str,
     found = audit.proposals.get(item_id, [])
     if not found:
         return {**unchanged, "state": "audited_no_findings"}
-    corrections, applied, rejected, pending = [], [], [], []
+    corrections, applied, rejected, pending, conflicting = [], [], [], [], []
     for proposal in found:
         problems = proposal_text_problems(proposal, text)
         if problems:
             raise StageExecutionError("; ".join(problems))
-        decision = audit.decisions.get(proposal["proposal_id"])
-        if decision is None:
+        outcome = audit.outcome(proposal)
+        if outcome["outcome"] in ("undecided", "awaiting_reviewers", "conflict"):
             pending.append(proposal["proposal_id"])
-        elif decision["decision"] == "rejected":
-            rejected.append(decision["decision_id"])
+            if outcome["outcome"] == "conflict":
+                conflicting.append(proposal["proposal_id"])
+        elif outcome["outcome"] == "rejected":
+            rejected.extend(outcome["decision_ids"])
         else:
-            replacement = proposal["proposed"] if decision["decision"] == "accepted" else decision["text"]
-            corrections.append((proposal["start"], proposal["end"], replacement))
-            applied.append({"decision_id": decision["decision_id"], "proposal_id": proposal["proposal_id"],
-                            "decision": decision["decision"], "reviewer": decision["reviewer"],
-                            "decided_at": decision["decided_at"], "start": proposal["start"], "end": proposal["end"],
-                            "replacement": replacement})
+            corrections.append((proposal["start"], proposal["end"], outcome["replacement"]))
+            dates = [d["decided_at"] for d in audit.decisions[proposal["proposal_id"]]]
+            applied.append({"proposal_id": proposal["proposal_id"], "decision": outcome["outcome"],
+                            "decision_ids": outcome["decision_ids"], "reviewers": outcome["reviewers"],
+                            "reviewer_count": outcome["reviewer_count"], "decided_at": max(dates),
+                            "start": proposal["start"], "end": proposal["end"], "replacement": outcome["replacement"]})
     corrected = apply_text_corrections(text, corrections)
     provenance = None
     if applied:
         provenance = {"audit_id": audit.audit_id, "base_revision_id": page["base_revision_id"],
-                      "base_text_sha256": page["base_text_sha256"],
-                      "applied_decisions": [entry["decision_id"] for entry in applied],
+                      "base_text_sha256": page["base_text_sha256"], "min_reviewers": audit.min_reviewers,
+                      "applied_decisions": [did for entry in applied for did in entry["decision_ids"]],
                       "text_sha256": text_sha256(corrected)}
     if pending:
         state = AUDIT_PENDING
@@ -374,7 +408,8 @@ def apply_reference_audit(audit: ReferenceAudit | None, item_id: str, text: str,
     else:
         state = "human_reviewed_unchanged"
     return {"text": corrected, "state": state, "audit_pending": bool(pending), "pending_proposals": pending,
-            "applied_decisions": applied, "rejected_decisions": rejected, "provenance": provenance}
+            "conflicting_proposals": conflicting, "applied_decisions": applied, "rejected_decisions": rejected,
+            "min_reviewers": audit.min_reviewers, "provenance": provenance}
 
 
 def footnote_marks(text: str) -> list[str]:

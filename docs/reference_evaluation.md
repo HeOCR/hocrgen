@@ -203,8 +203,8 @@ The view is heuristic near the marks, appears only when a scored item declares t
 - A snapshot whose pages carry `validated_revision` and `validated_text_check` (tranche v5, `real_tranche refresh-wikisource`, E2d3e) is read without the two flags, with byte-identical output. Which pages are scored, and on which text, is `fetchers.wikisource.scored_page_reference`. The release split weighs exactly those pages (`size_aware_group_split.v2`).
 
 **Reference audit (`E2d4`).** `--audit-proposals docs/reference_audit_proposals.json --audit-decisions docs/reference_audit_decisions.json` applies the human decisions on an agent's reference audit (`hocrgen.reference_audit`).
-- Only `accepted` and `edited` decisions change a reference; agent proposals alone change nothing, and the output is then byte-identical apart from the audit fields.
-- A corrected reference records `reference_audit_provenance`: the base revision and text checksum, the applied decision ids, and the new `text_sha256`. Its attestation is `two_editor_validated_human_corrected`, and its reviewers add `heocr:<handle>`.
+- Only `accepted` and `edited` outcomes change a reference, once `--audit-min-reviewers` (default 1) pseudonymous `rv_` reviewers decided and all agree; each applied outcome records its `reviewer_count`; agent proposals alone change nothing, and the output is then byte-identical apart from the audit fields.
+- A corrected reference records `reference_audit_provenance`: the base revision and text checksum, the applied decision ids, and the new `text_sha256`. Its attestation is `two_editor_validated_human_corrected`, and its reviewers add `heocr:<rv id>`.
 - A page with undecided proposals stays scored on its current text and is flagged `audit_pending`; `counts.audit_pending` gives the total.
 - `python -m hocrgen.tools.reference_audit` validates both files. See [`e2d4_reference_audit.md`](./e2d4_reference_audit.md).
 

@@ -55,26 +55,31 @@ against the pinned scans.
 **The decisions: [`reference_audit_decisions.json`](./reference_audit_decisions.json)**
 (`reference_audit_decisions.v1`). The file is empty until a human reviews. Each decision records:
 
-- `decision_id`, `proposal_id` and `item_id`;
+- `decision_id` (`decision:<proposal_id>:<reviewer>`), `proposal_id` and `item_id`;
 - `decision`, plus `text` for `edited`;
-- `reviewer`: a pseudonymous handle in the repo's reviewer-id style (`qa-1`, `reviewer-2`). It allows lower-case
-  letters, digits and hyphens. It is never a real name unless the reviewer consents to that as the handle, and never
-  an agent;
+- `reviewer`: a pseudonymous id, `rv_` and 8 lower-case letters or digits (`rv_3f9a01bc`), so no real name is ever
+  recorded;
 - `decided_at` (a date) and `checked_by: human`.
 
-There is one decision per proposal. The validator refuses agent-like handles, `checked_by` other than `human`, an
-edit equal to the current text, and stale proposal ids.
+**Several reviewers.** Several reviewers may decide one proposal, one decision each. A proposal applies when at least
+`min_reviewers` reviewers decided it and all of them agree: the same decision, and for `edited` the same text.
+Reviewers who disagree leave it in `conflict`, and it is not applied. For now `min_reviewers` is 1, so one human
+accept suffices while there is a single reviewer. Every applied outcome records its `reviewer_count` and reviewers,
+so a two-reviewer rule (`--audit-min-reviewers 2`) can come later without changing the files.
+
+The validator refuses a reviewer that is not an `rv_` id, `checked_by` other than `human`, two decisions by one
+reviewer on one proposal, an edit equal to the current text, and stale proposal ids.
 
 **Applying them (`hocrgen.reference_audit`).** `wikisource_eval_references --audit-proposals P --audit-decisions D`
 passes the audit to `scored_page_reference`, the one rule the evaluation and the split stage share.
 
-- **Only human decisions change text.** Only `accepted` and `edited` decisions are applied, to the exact text the
+- **Only human decisions change text.** Only agreed `accepted` and `edited` outcomes are applied, to the exact text the
   proposals were made on. A changed base text or revision, a moved span, or overlapping proposals fail closed.
   Without decisions, every reference file and the manifest are byte-identical to a run without the audit (tested).
 - **Provenance.** A corrected reference records its provenance: `reference_audit_provenance` on the item and
   `reference_audit` in its adjudication record. The provenance holds the base revision and text checksum, the applied
   decision ids in text order, and the new `text_sha256`.
-- **The corrected reference.** Its reviewers add `heocr:<handle>` to the two Wikisource editors, and its
+- **The corrected reference.** Its reviewers add `heocr:<rv id>` to the two Wikisource editors, and its
   `change_reason` lists the decisions. Its attestation is `two_editor_validated_human_corrected` (the uncorrected
   state is `two_editor_validated`). Footnote facts follow the corrected text when a human adds or removes `[n]`
   marks. A page with excluded spans refuses corrections.
@@ -83,8 +88,19 @@ passes the audit to `scored_page_reference`, the one rule the evaluation and the
   totals.
 - **The split weight is unchanged.** The split stage calls `scored_page_reference` without an audit.
 
-`python -m hocrgen.tools.reference_audit` validates both files and prints counts only. With `--snapshot-root` it
-also checks every span against the current scored text.
+`python -m hocrgen.tools.reference_audit` validates both files and prints counts only, including reviewers and
+proposals by reviewer count. With `--snapshot-root` it also checks every span against the current scored text.
+
+**Import bundle for a review app.** `--export-dir OUT --page-images DIR` writes three things, for example for the
+online review app `HeOCR/heocr-review`, which reads these proposals and writes these decisions:
+
+- `OUT/proposals.json`: the proposals, byte for byte;
+- `OUT/crops/<proposal_id>.jpg`: the enlarged, outlined crop of each proposal, cut from any page-frame render of the
+  pinned scan;
+- `OUT/crops.json` (`reference_audit_crops.v1`): each crop's file, SHA-256 and size, the source image's SHA-256, and
+  the crop box.
+
+The bundle holds scan crops, so it stays outside git.
 
 ## Results
 
@@ -184,6 +200,8 @@ The packet is operator-only and outside git:
   is.
 - **Controls.** Accept, reject and edit, with keyboard shortcuts that work in any keyboard layout. Progress is kept
   in the browser.
+- **Reviewer id.** It makes a random `rv_` id on first use and keeps it in the browser. Decisions by other
+  reviewers in an imported file are kept on export.
 - **Output.** It exports `reference_audit_decisions.json` in exactly the committed format, and was checked against
   the validator. Replace `docs/reference_audit_decisions.json` with the export, then rebuild the references with
   `--audit-proposals` and `--audit-decisions`.
@@ -209,3 +227,6 @@ The operator scripts live in `intermediates/e2d4/scripts/`:
 - `e2d4_packet.py`: the packet;
 - `e2d4_packet_check.py`: a headless offline check of the packet's export;
 - `e2d4_hypothetical.py`: the table above.
+
+The app import bundle was written with `--export-dir intermediates/e2d4/app_bundle --page-images intermediates/e2d4/hires`
+(519 crops).
