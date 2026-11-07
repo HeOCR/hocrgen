@@ -1018,3 +1018,4 @@ def test_e2d_real_scan_evaluation_direction_is_recorded_without_changing_scoring
     evaluation = Path("docs/e2d3b_validated_revision_evaluation.md").read_text(encoding="utf-8")
     assert "## E2d3e: a reference constraint on the test split" in evaluation
     assert "validation + test is a labelled diagnostic, never a headline" in stub
+    assert "Real-data validation is too small to tune on" in stub and "Tuning stays on synthetic validation" in stub

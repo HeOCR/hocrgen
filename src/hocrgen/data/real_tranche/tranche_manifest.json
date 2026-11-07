@@ -1,6 +1,6 @@
 {
  "created_at": "2026-11-07",
- "file_count": 7803,
+ "file_count": 7828,
  "hosting": "not published; see docs/real_source_release_contract.md (hosting proposal, maintainer decision)",
  "inputs": {
   "knesset_capture": {
@@ -33,6 +33,13 @@
    "docs/wikisource_page_tool_checks.json": "711160616839e9e350344b69f881d7f73931542ef76fc931b9fd7170e4833f44"
   },
   "wikisource_renders": "960 px Commons renders of the pinned files (wikisource_coverage --capture), unchanged",
+  "wikisource_validated_revisions": {
+   "pages_carrying_them": 25,
+   "sha256": "67ef020fd7954d953952ac214a343060f6cbee58d54ccf8a6bafca3592b0a529"
+  },
+  "wikisource_validated_text_checks": {
+   "docs/wikisource_validated_text_checks.json": "fb3e9a4a59471bcc183dc309063db5931f163a6060a1508ae4d1fb764ae5543a"
+  },
   "yidtaknl_matched_pages_sha256": "8341fd13b71bb54daf2c87844cfbd3e2ec59af65e46a945d0682042ff23ff0e8",
   "yidtaknl_share": "https://surfdrive.surf.nl/files/index.php/s/mov7H4wDaog4zkF"
  },
@@ -40,7 +47,7 @@
  "items_path": "tranche_items.jsonl",
  "planning_notation": "E2d3e",
  "schema": "hocrgen_real_tranche_manifest.v1",
- "sha256sums_sha256": "ececd65b9bf153abb1c6ef24d608b3e5afa27e503abc2b6c73bc99047d06a1c6",
+ "sha256sums_sha256": "6d96271985ca8294bd430e55b80593bf2509d90f9fae9fd64d224031b5985952",
  "sources": {
   "knesset_committee_protocols_pre1976": {
    "item_count": 205,
@@ -91,11 +98,11 @@
     "text_not_on_page": 4
    },
    "snapshot": "sources/wikisource_he_proofread/snapshot",
-   "snapshot_bytes": 630917045,
-   "snapshot_file_count": 4608,
+   "snapshot_bytes": 631026943,
+   "snapshot_file_count": 4633,
    "snapshot_files": {
     "sources/wikisource_he_proofread/snapshot/indexes.json": "2cd2c240492ac35ccdc639fdd42809af614cd21c069a9fa763e4fca99bc4d0ab",
-    "sources/wikisource_he_proofread/snapshot/pages.jsonl": "b90110c7cd7c0fee9d3be88ff87273031731126b992629fffa42098b15077815",
+    "sources/wikisource_he_proofread/snapshot/pages.jsonl": "a3769e1ca133bb01b3b26e44acc01b36b8c423765225be683db52963249deccd",
     "sources/wikisource_he_proofread/snapshot/snapshot.yaml": "9f9be9fbb7e34526ed3c2919df19eed9d5094a48e2fba01fda9922d93fc88bf4"
    }
   },
@@ -113,6 +120,6 @@
    }
   }
  },
- "total_bytes": 1032395247,
+ "total_bytes": 1032509512,
  "tranche_id": "e2d3e_real_tranche_v5"
 }

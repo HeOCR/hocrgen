@@ -547,7 +547,8 @@ def test_refresh_wikisource_drops_only_pages_a_newer_check_excludes(tmp_path: Pa
     checks.write_text(json.dumps({"schema_version": "wikisource_page_render_checks.v1", "checks": [check, stale]}), encoding="utf-8")
     out = tmp_path / "v-next"
     result = tranche_tool.refresh_wikisource(base=base, out=out, page_check_paths=[checks], created_at="2026-11-07")
-    assert result == {"item_count": len(lines) - 1, "dropped": [{"source_item_id": page["source_item_id"], "reasons": ["text_not_on_page"]}]}
+    assert result == {"item_count": len(lines) - 1, "validated_revisions_carried": 0,
+                      "dropped": [{"source_item_id": page["source_item_id"], "reasons": ["text_not_on_page"]}]}
     refreshed = out / "sources" / "wikisource_he_proofread" / "snapshot"
     assert (refreshed / "pages.jsonl").read_text(encoding="utf-8") == "".join(line + "\n" for n, line in enumerate(lines) if n != position)
     assert not (refreshed / page["text_path"]).exists() and not (refreshed / page["image"]["path"]).exists()

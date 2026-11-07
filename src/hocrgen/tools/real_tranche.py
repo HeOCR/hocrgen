@@ -874,29 +874,43 @@ def _wikisource_page_files(page: dict[str, Any]) -> set[str]:
     """The snapshot files a Wikisource page record owns: its image, its crop asset, its wikitext and its pair text."""
 
     crop = page.get("crop") or {}
-    paths = {page["image"]["path"], page.get("wikitext_path"), page.get("text_path"), (crop.get("asset") or {}).get("path")}
+    validated = page.get("validated_revision") or {}
+    paths = {page["image"]["path"], page.get("wikitext_path"), page.get("text_path"), (crop.get("asset") or {}).get("path"),
+             validated.get("wikitext_path")}
     return {path for path in paths if path}
 
 
-def refresh_wikisource(*, base: Path, out: Path, page_check_paths: list[Path], created_at: str) -> dict[str, Any]:
+def refresh_wikisource(*, base: Path, out: Path, page_check_paths: list[Path], created_at: str,
+                       validated_revisions: Path | None = None, validated_text_checks: Path | None = None) -> dict[str, Any]:
     """A new tranche tree from ``base`` with the committed page checks' page-level verdicts re-applied to Wikisource (E2d3e).
 
     Every other source's snapshot is copied byte for byte, with its descriptor entry. A Wikisource page whose current
     winning check (pinned to the page revision and the Commons file) records ``text_not_on_page`` takes it, and the
     unchanged fetcher gates decide: a page they now reject is dropped with the files only it owns. Every other page
-    record (its ``pages.jsonl`` line) and file is copied unchanged, so the refresh changes nothing but the pages a
-    newer check excludes. The descriptor and ``SHA256SUMS`` are rewritten under this tranche id.
+    record (its ``pages.jsonl`` line) and file is copied unchanged.
+
+    With ``validated_revisions`` (a ``wikisource_validated_revisions`` output, E2d3b) and ``validated_text_checks``
+    (``docs/wikisource_validated_text_checks.json``), every kept page with a pinned validating revision carries it
+    (``validated_revision``, its wikitext copied into the snapshot) and its committed check (``validated_text_check``),
+    so the fetcher scores and weighs exactly the pages the evaluation scores (``scored_page_reference``). The
+    descriptor and ``SHA256SUMS`` are rewritten under this tranche id.
     """
 
     import shutil
 
+    from hocrgen.fetchers.wikisource import VALIDATED_REVISION_FIELD, VALIDATED_TEXT_CHECK_FIELD, load_validated_text_checks
     from hocrgen.tools.wikisource_inventory import load_page_checks
+    from hocrgen.tools.wikisource_validated_revisions import load_validated_revisions
 
+    if (validated_revisions is None) != (validated_text_checks is None):
+        raise SystemExit("--validated-revisions and --validated-text-checks go together")
     problems = verify_tranche_files(base)
     if problems:
         raise SystemExit(f"{base} does not match its SHA256SUMS: {problems[:5]}")
     if out.exists() and any(out.iterdir()):
         raise SystemExit(f"{out} is not empty")
+    revisions = load_validated_revisions(validated_revisions) if validated_revisions is not None else {}
+    text_checks = load_validated_text_checks(validated_text_checks) if validated_text_checks is not None else {}
     descriptor = json.loads((base / TRANCHE_DESCRIPTOR).read_text(encoding="utf-8"))
     for source_id, entry in descriptor["sources"].items():
         shutil.copytree(base / entry["snapshot"], out / entry["snapshot"])
@@ -906,6 +920,7 @@ def refresh_wikisource(*, base: Path, out: Path, page_check_paths: list[Path], c
     lines = (root / "pages.jsonl").read_text(encoding="utf-8").splitlines()
     kept: list[str] = []
     dropped: list[dict[str, Any]] = []
+    validated_count = 0
     for line in lines:
         page = json.loads(line)
         check = checks.get(page["page_title"]) or {}
@@ -915,8 +930,23 @@ def refresh_wikisource(*, base: Path, out: Path, page_check_paths: list[Path], c
         reasons = page_exclusion_reasons(flagged, indexes, root)
         if reasons:
             dropped.append({"page": page, "reasons": reasons})
-        else:
+            continue
+        record = revisions.get(f"{SOURCE_WIKISOURCE}:{page['source_item_id']}")
+        if record is None:
             kept.append(line)
+            continue
+        target = f"wikitext/{page['source_item_id']}.validated.wikitext.txt"
+        _write(root / target, record["wikitext"].encode("utf-8"))
+        page[VALIDATED_REVISION_FIELD] = {
+            "validating_revision_id": record["validating_revision_id"], "wikitext_path": target,
+            "wikitext_sha256": record["wikitext_sha256"], "converted_text_sha256": record["converted_text_sha256"],
+            "text_changing_edits_after_validation": record["text_changing_edits_after_validation"],
+        }
+        check = text_checks.get(page["page_title"])
+        if check is not None:
+            page[VALIDATED_TEXT_CHECK_FIELD] = check
+        kept.append(json.dumps(page, ensure_ascii=False, sort_keys=True))
+        validated_count += 1
     kept_files = set().union(*(_wikisource_page_files(json.loads(line)) for line in kept))
     for entry in dropped:
         for relative in sorted(_wikisource_page_files(entry["page"]) - kept_files):
@@ -938,10 +968,14 @@ def refresh_wikisource(*, base: Path, out: Path, page_check_paths: list[Path], c
         results[SOURCE_WIKISOURCE]["index_count"] -= len(emptied)
     inputs = dict(descriptor["inputs"])
     inputs["wikisource_page_checks"] = {path.as_posix(): sha256_path(path) for path in page_check_paths}
+    if validated_revisions is not None and validated_text_checks is not None:
+        inputs["wikisource_validated_revisions"] = {"sha256": sha256_path(validated_revisions / "validated_revisions.json"),
+                                                    "pages_carrying_them": validated_count}
+        inputs["wikisource_validated_text_checks"] = {validated_text_checks.as_posix(): sha256_path(validated_text_checks)}
     inputs["refreshed_from"] = {"tranche_id": descriptor["tranche_id"], "sha256sums_sha256": sha256_path(base / TRANCHE_CHECKSUMS)}
     write_descriptor(out, created_at=created_at, results=results, inputs=inputs)
-    return {"item_count": len(kept), "dropped": [{"source_item_id": entry["page"]["source_item_id"], "reasons": entry["reasons"]}
-                                                for entry in dropped]}
+    return {"item_count": len(kept), "validated_revisions_carried": validated_count,
+            "dropped": [{"source_item_id": entry["page"]["source_item_id"], "reasons": entry["reasons"]} for entry in dropped]}
 
 
 def write_manifest(tranche_root: Path, out_dir: Path) -> dict[str, Any]:
@@ -994,6 +1028,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     refresh_ws.add_argument("--base", type=Path, required=True, help="The materialized tranche tree to start from.")
     refresh_ws.add_argument("--out", type=Path, required=True, help="Empty folder outside the repo for the new tree.")
     refresh_ws.add_argument("--page-checks", type=Path, action="append", default=None)
+    refresh_ws.add_argument("--validated-revisions", type=Path, default=None, help="A wikisource_validated_revisions output (E2d3b) to carry on the pages.")
+    refresh_ws.add_argument("--validated-text-checks", type=Path, default=None, help="docs/wikisource_validated_text_checks.json")
     refresh_ws.add_argument("--created-at", required=True)
     refresh_ws.add_argument("--manifest-out", type=Path, default=None)
     manifest = commands.add_parser("manifest", help="Write the committed manifest for a materialized tree.")
@@ -1086,8 +1122,9 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - operator e
         return 0
     if args.command == "refresh-wikisource":
         page_checks = args.page_checks or [Path(path) for path in DEFAULT_PAGE_CHECKS]
-        print(json.dumps(refresh_wikisource(base=args.base, out=args.out, page_check_paths=page_checks, created_at=args.created_at),
-                         ensure_ascii=False))
+        print(json.dumps(refresh_wikisource(base=args.base, out=args.out, page_check_paths=page_checks, created_at=args.created_at,
+                                            validated_revisions=args.validated_revisions,
+                                            validated_text_checks=args.validated_text_checks), ensure_ascii=False))
         if args.manifest_out:
             manifest = write_manifest(args.out, args.manifest_out)
             print(json.dumps({key: manifest[key] for key in ("tranche_id", "item_count", "total_bytes", "file_count")}))

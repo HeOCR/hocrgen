@@ -93,13 +93,16 @@ The report is `manifests/public_beta_source_depth_composition_report.json`, sche
   4. The other components are visited in seeded order, ascending `sha256(seed + "\0" + component id)` (seed `hocrgen-split-v1`). The order of one component does not depend on the others.
   5. A component of `n` items enters a holdout only if it fits, `count + n ≤ target + 0.5` (the target rounded to the nearest item); among the holdouts it fits, it takes the one with the largest share still open. Otherwise it goes to train.
 - Consequences: a group never splits, and a group larger than a holdout's target never goes there, so a one-group stratum (the BGU Pinkas manuscript) stays in train; a stratum too small for half an item in a holdout puts nothing there; with many small groups each holdout is met to within one item. A pool change moves only components visited after it whose fit changes: on the Wikisource pool (58 Indexes, 1,455 pages), dropping one Index moves 13 of the other pages at the median and 3% on average.
-- **Reference constraints (`size_aware_group_split.v2`, E2d3e, team-lead decision 2026-11-07).** Item counts alone left the release `test` split holding a single book's adjudicated Wikisource pages (three pages after E2d3d). So each component now carries a **reference weight**: the characters of its `adjudication_eligible` items (`page_text_characters`; maintainer decision 2). In a stratum with any reference weight, `test` must hold:
+- **Reference constraints (`size_aware_group_split.v2`, E2d3e, team-lead decision 2026-11-07).** Item counts alone left the release `test` split holding a single book's adjudicated Wikisource pages (three pages after E2d3d). So each component now carries a **reference weight**: the characters of exactly the pages the real printed evaluation scores, on the text it scores (`scored_reference_characters`). Those are adjudication-eligible quality-4 pages and pages scored on their validating-revision text (E2d3b/E2d3c), after every page gate. The fetcher and `wikisource_eval_references` both call `fetchers.wikisource.scored_page_reference`, and a test checks that the two page sets are equal. In a stratum with any reference weight, `test` must hold:
   - at least **2** weighted components (`min_groups`): a held-out result from one book is a one-book result, and the book bootstrap needs two clusters;
   - at least **10%** of the stratum's reference weight (`min_share`), the test ratio of the split policy;
   - no single component above **50%** of the test split's reference weight (`max_group_share`): no book holds a majority of test's adjudicated text.
 
-  When `test` fails, every weighted component keeps the split it was placed in. Test then takes one more weighted component from train, one that would not itself exceed the cap. Every eligible component is tried, and the free (unweighted) components refill around it. The algorithm prefers a component whose move alone satisfies the constraint, then the fewest items, then the smallest weight, then the seeded order. This repeats until the constraint holds; a constraint that cannot be met is reported, never forced. Moved items record `split_constraint: reference_constraint`. A stratum without reference weight is placed exactly as in v1. `validation` is not constrained: on the current pool a validation constraint would move a 91- or 210-page book into it.
-  - **On tranche v5.** Test held Hebrewbooks 19784 (78% of its weight), *Sefer ha-Mispar* and Hebrewbooks 38168, and failed only the cap. After the move, Hebrewbooks 19784 holds 47.9% of it. Of the train books, *Dorot ha-Rishonim* I (10 pages) is the smallest whose move alone satisfies the constraint. *Agadat ha-Melekh Artush* (7 pages) and *Hut ha-Meshulash* (11) would leave a book above 50% of test's weight. *Masa ba-Arav* (34 pages) would also satisfy it, but its reference text is known to be noisy (team lead), and the rule does not reach it.
+  When `test` fails, every weighted component keeps the split it was placed in. Test then takes one more weighted component from train, one that would not itself exceed the cap. Every eligible component is tried, and the free (unweighted) components refill around it. The algorithm prefers a component whose move alone satisfies the constraint, then the fewest items, then the smallest weight, then the seeded order. This repeats until the constraint holds; a constraint that cannot be met is reported, never forced. Moved items record `split_constraint: reference_constraint`. A stratum without reference weight is placed exactly as in v1. `validation` is not constrained (team-lead decision): it is too small to tune on, so tuning stays on synthetic validation, and it is reported only as a labelled diagnostic, together with test.
+  - **On tranche v5.** Test held Hebrewbooks 19784, *Sefer ha-Mispar* and Hebrewbooks 38168: 8.6% of the scored characters, with Hebrewbooks 19784 at 78% of them. It failed `min_share` and the cap.
+  - *Dorot ha-Rishonim* I, *Hut ha-Meshulash*, *Masa ba-Arav* and Hyman I would each hold more than 50% of test by themselves, so none is eligible.
+  - *Artush* and Hyman III would leave Hebrewbooks 19784 above 50%.
+  - ***The Selihot for the Entire Year*** (59 pages) is the eligible book whose move clears the constraint. Afterwards test holds 15.4% of the weight, and its largest book 43.8%.
 - The leakage report's `split_assignment` block gives the algorithm, seed, policy and per-stratum item and group counts. For a weighted stratum, it also gives each split's reference weight and largest component, the constraint moves and any unmet constraint. The function is pure (`SplitGroup` in, split per group out), so other tools can place their own groups the same way: the E2d2 real printed reference pool, for example, can call it on its Indexes.
 - The leakage report adds `work_group_leaks` and `synthetic_training_overlap`. A leak of either kind fails the split stage, as before.
 
@@ -171,10 +174,12 @@ PYTHONPATH=src python -m hocrgen.tools.real_tranche materialize --out <tranche>/
 # 3. check every file, and build or export against the tranche (only a tree that matches the committed manifest is accepted)
 PYTHONPATH=src python -m hocrgen.tools.real_tranche verify --tranche <tranche>/f8e3_real_tranche_v4
 PYTHONPATH=src python -m hocrgen export-public-beta --profile profile_open_v1 --dry-run --real-tranche-root <tranche>/f8e3_real_tranche_v4 ...
-# E2d3e: a tranche with the committed Wikisource page checks re-applied (offline; only pages a newer check excludes
-# are dropped, every other file is copied byte for byte). Tranche v5 is v4 refreshed this way.
+# E2d3e: a tranche with the committed Wikisource page checks re-applied, and each page's pinned validating revision
+# and committed validated-text check carried (offline; only pages a newer check excludes are dropped). Tranche v5 is
+# v4 refreshed this way.
 PYTHONPATH=src python -m hocrgen.tools.real_tranche refresh-wikisource --base <tranche>/f8e3_real_tranche_v4 \
-  --out <tranche>/e2d3e_real_tranche_v5 --created-at 2026-11-07 --manifest-out src/hocrgen/data/real_tranche
+  --out <tranche>/e2d3e_real_tranche_v5 --created-at 2026-11-07 --validated-revisions <wikisource_validated_revisions output> \
+  --validated-text-checks docs/wikisource_validated_text_checks.json --manifest-out src/hocrgen/data/real_tranche
 # F8e2 / F8e3: a tranche with only the Reshumot snapshot rebuilt (poppler and pdfminer.six: pip install '.[pdf]').
 # Tranche v3 was v2 refreshed (F8e2); tranche v4 is v3 refreshed (F8e3).
 PYTHONPATH=src python -m hocrgen.tools.real_tranche refresh-reshumot --base <tranche>/f8e2_real_tranche_v3 \
@@ -262,7 +267,7 @@ In the tranche run, the payload per source (counted in brackets) and its splits 
 
 | Source | Payload (counted) | Train | Validation | Test |
 | --- | --- | --- | --- | --- |
-| Wikisource | 1,452 (40) | 1,162 (22) | 145 (19) | 145 (17) |
+| Wikisource | 1,452 (40) | 1,162 (27) | 145 (17) | 145 (14) |
 | YidTakNL | 123 (15) | 111 (1) | 2 (1) | 10 (1) |
 | BGU Pinkas | 30 (30) | 30 (1) | 0 | 0 |
 | Knesset | 205 (10) | 164 (11) | 21 (4) | 20 (5) |

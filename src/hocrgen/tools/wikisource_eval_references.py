@@ -39,6 +39,10 @@ check. A page whose validated and latest texts differ only in line or paragraph 
 check's verdict (E2d3c): a paragraph break is layout, not text. Every other adjudicated item records
 ``reference_text_revision: latest``.
 
+Which pages are scored, and on which text, is ``hocrgen.fetchers.wikisource.scored_page_reference`` (E2d3e): the release
+split's reference weight uses the same function, so the two count the same pages. A snapshot whose pages carry
+``validated_revision`` and ``validated_text_check`` (tranche v5) needs neither flag.
+
 ``bootstrap_clusters.json`` (``hocrgen_bootstrap_clusters.v1``, E2d3) maps every written item to its Wikisource Index,
 the book-level unit (and the release split group), for ``evaluate-references --bootstrap-clusters``.
 Everything this writes holds CC BY-SA 4.0 Wikisource text and stays operator-only. ``benchmark_v1`` is untouched.
@@ -52,16 +56,11 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from hocrgen.core.errors import StageExecutionError
-from hocrgen.evaluation import levenshtein_distance
 from hocrgen.fetchers.wikisource import (
+    _FROM_PAGE,
     TEXT_LICENSE,
-    VALIDATED_TEXT_DISAGREES_WITH_SCAN,
-    VALIDATED_TEXT_MATCHES_SCAN,
-    derive_validated_page_text,
-    layout_only_difference,
+    scored_page_reference,
     load_validated_text_checks,
-    page_text,
-    page_transclusions,
     reference_record_from_text,
     validated_revision_attestation,
     load_wikisource_snapshot,
@@ -75,7 +74,7 @@ from hocrgen.fetchers.wikisource import (
     reference_normalization,
 )
 from hocrgen.manifests.models import BenchmarkReferenceManifestRecord, BenchmarkTranscriptionReferenceRecord
-from hocrgen.parsers.wikitext import WIKITEXT_NORMALIZATION_VERSION, UnsupportedWikitextError, convert_wikitext
+from hocrgen.parsers.wikitext import WIKITEXT_NORMALIZATION_VERSION
 from hocrgen.reference_runs import BOOTSTRAP_CLUSTERS_SCHEMA
 from hocrgen.tools.wikisource_validated_revisions import load_validated_revisions
 
@@ -200,18 +199,6 @@ def adjudicated_reference(page: Mapping[str, Any], root: Path, *, source_id: str
     return adjudicated, adjudication
 
 
-def validated_text(page: Mapping[str, Any], root: Path, record: Mapping[str, Any], check: Mapping[str, Any]) -> dict[str, Any]:
-    """The page's pair text at its validating revision, its conversion, and its difference from the latest text."""
-
-    derived = derive_validated_page_text(record["wikitext"], page_transclusions(dict(page), root), dict(page), dict(check))
-    latest = page_text(dict(page), root).text
-    diff = {"character_edits": levenshtein_distance(derived.text, latest), "latest_characters": len(latest),
-            "reference_characters": len(derived.text),
-            "text_changing_edits_after_validation": record["text_changing_edits_after_validation"],
-            "layout_only": layout_only_difference(derived.text, latest)}
-    return {"text": derived.text, "conversion": derived.conversion, "record": record, "check": check, "diff": diff}
-
-
 def load_release_splits(path: Path) -> dict[str, dict[str, Any]]:
     """Item id -> ``{split, split_group_id, split_constraint}`` from a release ``split_manifest.json``."""
 
@@ -251,6 +238,7 @@ def write_eval_reference_set(
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest_items, single_reviewer, asset_index, items, skipped, excluded = [], [], [], [], {}, []
     validated_excluded: list[dict[str, Any]] = []
+    considered = revisions is not None
     masked_spans = 0
     for page in sorted(pages, key=lambda record: record["source_item_id"]):
         item_id = f"{source_id}:{page['source_item_id']}"
@@ -260,17 +248,19 @@ def write_eval_reference_set(
         if reasons:
             skipped[reasons[0]] = skipped.get(reasons[0], 0) + 1
             continue
-        attestation = page_attestation(page)
         validated = None
-        if page["quality"] == 4 and not attestation["adjudication_eligible"]:
-            reason = attestation["adjudication_ineligible_reason"]
-            if revisions is not None and reason == "text_changed_after_validation":
-                validated, reason = _validated_or_reason(page, root, revisions.get(item_id), checks.get(page["page_title"]))
-                if validated is None:
-                    validated_excluded.append({"item_id": item_id, "reason": reason})
-            if validated is None:
-                skipped[reason] = skipped.get(reason, 0) + 1
+        if page["quality"] == 4:
+            # E2d3e: the same rule as the split stage's reference weight (``scored_page_reference``).
+            supplied = (revisions.get(item_id), checks.get(page["page_title"])) if revisions is not None else _FROM_PAGE
+            scored = scored_page_reference(page, root, validation=supplied)
+            if scored["validation_considered"]:
+                considered = True
+            if not scored["scored"]:
+                if scored["validation_considered"]:
+                    validated_excluded.append({"item_id": item_id, "reason": scored["reason"]})
+                skipped[scored["reason"]] = skipped.get(scored["reason"], 0) + 1
                 continue
+            validated = scored["validated"]
         stratum = "adjudicated" if page["quality"] == 4 else "single_reviewer"
         if item_id in held_out:
             excluded.append({"item_id": item_id, "stratum": stratum, "reason": held_out[item_id]})
@@ -372,42 +362,12 @@ def write_eval_reference_set(
         "held_out": excluded,
         "items": items,
     }
-    if revisions is not None:
+    if considered:
         summary["counts"]["adjudicated_validating_revision"] = sum(
             1 for entry in items if entry.get("reference_text_revision") == "validating")
         summary["validated_text_excluded"] = validated_excluded
     (output_dir / "eval_set.json").write_text(_dump(summary), encoding="utf-8")
     return summary
-
-
-def _validated_or_reason(page: Mapping[str, Any], root: Path, record: Mapping[str, Any] | None,
-                         check: Mapping[str, Any] | None) -> tuple[dict[str, Any] | None, str]:
-    """The validating-revision text of a page, or the reason it is not used (fail closed)."""
-
-    if not validated_revision_attestation(dict(page))["adjudication_eligible"]:
-        return None, "text_changed_after_validation"
-    if record is None:
-        return None, "validated_revision_missing"
-    if (check is None or check["validating_revision_id"] != record["validating_revision_id"]
-            or check["latest_revision_id"] != page["revision_id"]
-            or check.get("validated_wikitext_sha256") != record["wikitext_sha256"]):
-        return None, "validated_text_not_checked"
-    matches = check["verdict"] == VALIDATED_TEXT_MATCHES_SCAN
-    faithful = convert_wikitext(record["wikitext"], page_transclusions(dict(page), root)).text
-    if _sha256(faithful) != record["converted_text_sha256"] or record["converted_text_sha256"] != page.get("quality_set_text_sha256"):
-        return None, "validated_revision_text_mismatch"
-    try:
-        validated = validated_text(page, root, record, check)
-    except ValueError as exc:
-        return None, str(exc) if matches else VALIDATED_TEXT_DISAGREES_WITH_SCAN
-    except UnsupportedWikitextError:
-        return None, "wikitext_unsupported_markup" if matches else VALIDATED_TEXT_DISAGREES_WITH_SCAN
-    # E2d3c: a difference limited to line and paragraph whitespace is layout, not text; it never disqualifies.
-    if matches:
-        return {**validated, "accepted_by": "check_verdict"}, VALIDATED_TEXT_MATCHES_SCAN
-    if validated["diff"]["layout_only"]:
-        return {**validated, "accepted_by": "layout_only_difference"}, VALIDATED_TEXT_MATCHES_SCAN
-    return None, VALIDATED_TEXT_DISAGREES_WITH_SCAN
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

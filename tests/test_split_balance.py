@@ -302,7 +302,7 @@ def test_split_stage_weights_adjudication_eligible_items_and_marks_constraint_mo
         for page in range(group.size):
             item = _curated(f"wikisource_he_proofread:{group.group_id}__p{page}", "wikisource_he_proofread", source_group_id=group.group_id)
             if group.reference_weight and page == 0:
-                item.metadata.update({"adjudication_eligible": True, "page_text_characters": group.reference_weight})
+                item.metadata.update({"scored_reference_characters": group.reference_weight})
             items.append(item)
     assert item_reference_weight(items[-60]) == 15000
     assert item_reference_weight(_curated("x:y", "x")) == 0

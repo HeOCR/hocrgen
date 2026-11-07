@@ -200,6 +200,7 @@ The view is heuristic near the marks, appears only when a scored item declares t
 - `FILE` is `docs/wikisource_validated_text_checks.json`. Only a page whose check found the validated text agrees with the scan is used.
 - Such an item records `reference_text_revision: validating` and `diff_vs_latest`. Every other adjudicated item records `reference_text_revision: latest`.
 - A validated text that differs from the latest text only in line or paragraph whitespace is used whatever its check's verdict (`E2d3c`): a paragraph break is layout, not text. The item records `diff_vs_latest.layout_only` and `validated_text_accepted_by`.
+- A snapshot whose pages carry `validated_revision` and `validated_text_check` (tranche v5, `real_tranche refresh-wikisource`, E2d3e) is read without the two flags, with byte-identical output. Which pages are scored, and on which text, is `fetchers.wikisource.scored_page_reference`. The release split weighs exactly those pages (`size_aware_group_split.v2`).
 
 The text is the post-F8b7 pair text. F8b7 `illegible_on_scan` spans are honoured: an adjudicated reference carries them as `illegible` / `exclude_primary` spans, which `reference_text` excludes, and a single-reviewer text has them removed. `--items` limits the conversion to listed pages, and `--split-manifest` records each page's release split (`benchmark_split` on adjudicated items).
 

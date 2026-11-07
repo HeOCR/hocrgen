@@ -32,7 +32,7 @@ Consequences, by design:
 **Reference constraints (``size_aware_group_split.v2``, E2d3e).** Item counts alone can leave a holdout with almost
 no human-adjudicated reference text: on the F8g2 Wikisource pool the release ``test`` split held one book's adjudicated
 pages, and after E2d3d only three of them. A group may therefore carry a ``reference_weight`` (the characters of its
-adjudicated reference text; the split stage counts adjudication-eligible items). In a stratum with any reference
+adjudicated reference text; the split stage counts exactly the pages the real printed evaluation scores). In a stratum with any reference
 weight, each holdout's ``ReferenceHoldoutConstraint`` must hold:
 
 - ``min_groups``: at least this many groups with reference weight;

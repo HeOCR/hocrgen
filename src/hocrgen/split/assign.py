@@ -177,17 +177,17 @@ def item_split_stratum(item: CuratedItemRecord) -> str:
 
 
 def item_reference_weight(item: CuratedItemRecord) -> int:
-    """The characters of an item's human-adjudicable reference text (E2d3e), for the split's reference constraints.
+    """The characters of the text the real printed evaluation scores for an item (E2d3e): its split reference weight.
 
-    An item counts when its metadata marks it ``adjudication_eligible`` (a Wikisource quality-4 page validated by a
-    second named editor, its text unchanged since; maintainer decision 2) and records ``page_text_characters``.
+    The source decides which pages are scored and on which text, with the same function the evaluation uses
+    (Wikisource: ``hocrgen.fetchers.wikisource.scored_page_reference``: adjudication-eligible quality-4 pages, and
+    pages scored on their validating-revision text, after every page gate), and records the count as
+    ``scored_reference_characters``. An item without it weighs 0.
     """
 
     metadata = item.metadata if isinstance(item.metadata, dict) else {}
-    if metadata.get("adjudication_eligible") is not True:
-        return 0
-    characters = metadata.get("page_text_characters")
-    return characters if isinstance(characters, int) and characters > 0 else 0
+    characters = metadata.get("scored_reference_characters")
+    return characters if isinstance(characters, int) and not isinstance(characters, bool) and characters > 0 else 0
 
 
 def split_groups_for_components(
