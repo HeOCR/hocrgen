@@ -1,6 +1,6 @@
 # E2d — Real-scan evaluation with separate printed and handwritten tracks
 
-Status: **`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c`, `E2d3d`, `E2d3e` and `E2d4` implemented on the current ref (2026-11-07); `E2d5` planned.** `E2d4`'s human review has begun: 103 proposals accepted, and `E2d4b`'s rule resolves 13 more; 403 are undecided. Until the release splits change again, validation + test is a labelled diagnostic, never a headline (team-lead decision, 2026-11-07). Synthetic gold stays the headline scored set: no synthetic score, profile, view or report changed. Parent milestone: E2, Baselines and evaluation utilities. Decision record: [`planning/decisions/2026-11-06-real-scan-evaluation-direction.md`](../decisions/2026-11-06-real-scan-evaluation-direction.md). Results: [`docs/e2d3b_validated_revision_evaluation.md`](../../docs/e2d3b_validated_revision_evaluation.md) for all pages, and [`docs/e2d3_real_printed_evaluation.md`](../../docs/e2d3_real_printed_evaluation.md) for the release validation + test pages; E2d3 supersedes the release-split and interval sections of [`docs/e2d2_real_printed_evaluation.md`](../../docs/e2d2_real_printed_evaluation.md).
+Status: **`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c`, `E2d3d`, `E2d3e`, `E2d4` and `E2d6` implemented on the current ref (2026-11-07); `E2d5` planned.** `E2d4`'s human review has begun: 103 proposals accepted, and `E2d4b`'s rule resolves 13 more; 403 are undecided. `E2d6`'s first line-verification batch is built and its human review is pending. Until the release splits change again, validation + test is a labelled diagnostic, never a headline (team-lead decision, 2026-11-07). Synthetic gold stays the headline scored set: no synthetic score, profile, view or report changed. Parent milestone: E2, Baselines and evaluation utilities. Decision record: [`planning/decisions/2026-11-06-real-scan-evaluation-direction.md`](../decisions/2026-11-06-real-scan-evaluation-direction.md). Results: [`docs/e2d3b_validated_revision_evaluation.md`](../../docs/e2d3b_validated_revision_evaluation.md) for all pages, and [`docs/e2d3_real_printed_evaluation.md`](../../docs/e2d3_real_printed_evaluation.md) for the release validation + test pages; E2d3 supersedes the release-split and interval sections of [`docs/e2d2_real_printed_evaluation.md`](../../docs/e2d2_real_printed_evaluation.md).
 
 ## Direction
 
@@ -23,6 +23,7 @@ Status: **`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c`, `E2d3d`, `E2d3e` and `E2d4` 
 | `E2d3e` | A reference constraint in the group-whole split (`size_aware_group_split.v2`), weighted by exactly the pages the evaluation scores: `test` must hold 2 or more such books, 10% or more of their characters, and no book above 50% of them. Applied in tranche v5, then the pool is re-scored on the new splits. Validation + test is a labelled diagnostic only, and tuning stays on synthetic validation. | completed |
 | `E2d4` | Audit the 38 scored reference pages against their scans (maintainer decision 2026-11-07): an agent proposes corrections (`reference_audit_proposals.v1`), a human decides each one (`reference_audit_decisions.v1`), and the reference build applies only human-accepted or human-edited corrections, with provenance; pages with undecided proposals are flagged `audit_pending`. | completed (human review pending) |
 | `E2d4b` | Apply the maintainer's always-on `space_before_punctuation.v1` rule (decision 2026-11-07) to every Wikisource evaluation reference, after the audit decisions, with per-item provenance; proposals it makes exactly get rule decisions (`checked_by: rule`), never counted as human review. | completed |
+| `E2d6` | Single-line verification (maintainer decision 2026-11-07): a human verifies one printed line against a candidate typed by a different human (Wikisource quality 3, or PBY aligned to NLI free-use scans), hardest lines first plus a random stratum. `hocrgen.tools.line_verify` exports `line_verify_items.v1` bundles and ingests `line_verify_decisions.v1` into line references; a verified line counts as adjudicated, like quality 4. | completed (human review pending) |
 | `E2d5` | Retire synthetic text from the scored eval set once both tracks meet cutover criteria the maintainer sets. | planned |
 
 ## E2d1 — Modality-track contract
@@ -167,6 +168,32 @@ Status: **`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c`, `E2d3d`, `E2d3e` and `E2d4` 
   - It resolves 13 of the 416 undecided proposals by rule decision (`reference_audit_decisions.v2`, `checked_by: rule`, no reviewer, page state `rule_corrected`), so 403 remain. The app bundle skips decided proposals.
   - On the 38 scored pages, Tesseract goes from 0.2365 to 0.2321 (human decisions and rule), R3h + R4d + A1 stays at 0.8985, and validation + test barely moves.
 - **Review packet** (operator-only, outside git). An offline HTML file under `intermediates/e2d4/review_packet/`, with a Hebrew README. It exports the decisions file. Details, and the full results, are in [`docs/e2d4_reference_audit.md`](../../docs/e2d4_reference_audit.md).
+
+## E2d6 — Single-line verification (typist + verifier, like quality 4)
+
+- **Why.** The real printed scored set is small: 38 pages, with only 8 in `test`. Auditing near-perfect quality-4 text mostly finds trivia. Human effort goes instead to hard, informative lines that add evaluation data.
+- **What the human sees.** One printed line on a real scan, and a candidate transcription typed by a *different* human:
+  - a Wikisource quality-3 proofreader's text;
+  - or a Project Ben-Yehuda text aligned to an NLI `public-domain-free-use` scan (F8f).
+
+  The human decides `exact`, `edited`, `unreadable` or `misaligned`. The app is `HeOCR/heocr-review`, under the line verification contract (v1, 2026-11-07).
+- **Tool.** `hocrgen.tools.line_verify` (operator-only):
+  - `export` builds the bundle. It localizes lines with the F8f aligner on cached Tesseract boxes; OCR is used only for geometry, difficulty and attention spans, and no OCR text is written. It drops weakly aligned lines (line score ≥ 0.80, page score ≥ 0.85, and the span must tile with its neighbours). The candidate is the human text after the `E2d4b` rule (`hocrgen.reference_rules.fix_space_before_punctuation`). It scores difficulty from engine disagreement, Tesseract confidence, niqqud and small type. It selects about 80% `hard` and 20% `random` lines, with a 10% cap per book and a cap of 8 hard lines per page, ranked with a random line every 5th place.
+  - `ingest` validates the decisions and writes `docs/line_verify_references.json` (`line_verify_references.v1`), with full provenance, and the operator line reference set. A decision whose `candidate_sha256` does not match the item's current candidate is `stale`: it is counted and never applied.
+  - `validate` and `stats` check the files and report counts.
+- **Attestation (maintainer decision 2026-11-07, "Yes, like quality 4").** A line typed by one human and verified by a second (`exact` or `edited`) is adjudicated and `reference_eligible: true`.
+  - The policy is set in one place: `ATTESTATION_POLICY`, with `single_human_verified` kept as the one-line fallback.
+  - `unreadable` and `misaligned` lines are excluded.
+  - An `edited` line uses the reviewer's text and keeps the candidate as provenance.
+  - The verifier is always a different person from the typist.
+  - Each line keeps its book's release split, so `train` lines are not held out.
+  - Record: [`planning/decisions/2026-11-07-line-verification-attestation.md`](../decisions/2026-11-07-line-verification-attestation.md).
+- **First batch (`line_verify_v1`).** It holds 1,500 lines on 707 pages from 39 books, drawn from 34,969 eligible lines. It is outside git and the human review is pending.
+  - By source: 1,394 Wikisource and 106 PBY.
+  - By stratum: 1,200 hard and 300 random.
+  - By release split: 1,066 `train`, 75 `validation`, 253 `test`, and 106 with no split.
+  - An agent spot check of 30 rendered items found box and candidate on the same line, with the right boundaries, in all 30.
+  - Details are in [`docs/e2d6_line_verification.md`](../../docs/e2d6_line_verification.md).
 
 ## What it depends on
 

@@ -996,7 +996,7 @@ def test_e2d_real_scan_evaluation_direction_is_recorded_without_changing_scoring
     assert "## E2d — Real-scan evaluation direction" in roadmap
     assert "### 3.7 Evaluation moves to real scans (direction, 2026-11-06)" in roadmap
     assert "E2d" not in _roadmap_table_rows(roadmap)
-    assert "`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c`, `E2d3d`, `E2d3e` and `E2d4` implemented on the current ref (2026-11-07); `E2d5` planned." in stub
+    assert "`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c`, `E2d3d`, `E2d3e`, `E2d4` and `E2d6` implemented on the current ref (2026-11-07); `E2d5` planned." in stub
     assert "no synthetic score, profile, view or report changed" in stub
     for text in (stub, decision):
         assert "no synthetic text" in text
@@ -1023,7 +1023,13 @@ def test_e2d_real_scan_evaluation_direction_is_recorded_without_changing_scoring
     assert "## E2d4 — Reference audit (agent proposes, human decides)" in stub
     assert "**An agent proposal is never attestation and never changes a reference by itself**" in stub
     assert "| `E2d5` | Retire synthetic text from the scored eval set" in stub
-    assert "`E2d4` implemented on the current ref, `E2d5` planned." in roadmap
+    assert "`E2d4` and `E2d6` implemented on the current ref, `E2d5` planned." in roadmap
+    assert "## E2d6 — Single-line verification (typist + verifier, like quality 4)" in stub
+    assert "| `E2d6` | Single-line verification" in stub and "`E2d6` is implemented" in agent_plan
+    line_doc = Path("docs/e2d6_line_verification.md").read_text(encoding="utf-8")
+    assert "\"Yes, like quality 4\"" in line_doc and "### Spot check of the alignment" in line_doc
+    assert Path("planning/decisions/2026-11-07-line-verification-attestation.md").exists()
+    assert Path("docs/line_verify_references.json").exists()
     audit_doc = Path("docs/e2d4_reference_audit.md").read_text(encoding="utf-8")
     assert "## Hypothetical impact (diagnostic only)" in audit_doc and "still **hypothetical**" in audit_doc
     assert Path("docs/reference_audit_proposals.json").exists() and Path("docs/reference_audit_decisions.json").exists()
