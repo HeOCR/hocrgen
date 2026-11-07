@@ -20,6 +20,7 @@ from hocrgen.config.loader import default_config_root, load_and_validate_bundle,
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.government_print import (
     ReshumotImporter,
+    government_print_entry_asset,
     load_government_print_snapshot,
     read_glyph_layer_bytes,
     reshumot_crop_file,
@@ -484,3 +485,11 @@ def test_truetype_outlines_and_units_are_read_from_the_font_program() -> None:
         outlines = truetype_glyph_outlines(font)
         assert outlines == [b"", glyph, glyph + b"\0\0"] and truetype_units_per_em(font) == 2048
     assert truetype_glyph_outlines((0x00010000).to_bytes(4, "big") + b"\0" * 8) is None  # no glyf table: no outlines
+
+
+def test_cropped_page_ships_its_crop_whatever_the_file_order(entries) -> None:
+    cover = json.loads(json.dumps(entries[COVER]))
+    cover["files"] = list(reversed(cover["files"]))
+    assert government_print_entry_asset(cover)["role"] == "page_render_crop"
+    cover["files"] = [reshumot_page_render(cover)]
+    assert government_print_entry_asset(cover) is None

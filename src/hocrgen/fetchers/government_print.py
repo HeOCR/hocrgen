@@ -88,6 +88,10 @@ def load_government_print_snapshot(root: Path) -> tuple[dict[str, Any], list[dic
 
 
 def government_print_entry_asset(entry: dict[str, Any]) -> dict[str, Any] | None:
+    # A cropped Reshumot page ships its crop, never the full render, whatever the file order (decision 12).
+    if entry.get("crop"):
+        crop = next((file for file in entry.get("files") or [] if file.get("role") == RESHUMOT_CROP_ROLE), None)
+        return crop if crop and crop.get("mime_type") in RASTER_MEDIA_TYPES and crop.get("local_path") and crop.get("sha256") else None
     for file in entry.get("files") or []:
         if file.get("mime_type") in RASTER_MEDIA_TYPES and file.get("local_path") and file.get("sha256"):
             return file
