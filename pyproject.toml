@@ -23,6 +23,13 @@ dependencies = [
 dev = [
   "coverage[toml]>=7.6,<8",
   "pytest>=8.2,<9",
+  "numpy>=1.26,<3",
+  "scipy>=1.11,<2",
+]
+# Operator-only: harvesting printed glyph images from real scans (hocrgen.tools.glyph_harvest, S16).
+glyphs = [
+  "numpy>=1.26,<3",
+  "scipy>=1.11,<2",
 ]
 # Operator-only: extracting a born-digital PDF page's glyph layer (hocrgen.parsers.pdf_glyphs, F8e2). Nothing in CI needs it.
 pdf = [
