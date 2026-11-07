@@ -799,6 +799,101 @@ def page_attestation(page: dict[str, Any]) -> dict[str, Any]:
     }
 
 
+# --- E2d3b: the text as of the validating revision ---------------------------------------------------------
+
+VALIDATED_TEXT_CHECKS_SCHEMA = "wikisource_validated_text_checks.v1"
+VALIDATED_TEXT_MATCHES_SCAN = "validated_text_matches_scan"
+VALIDATED_TEXT_DISAGREES_WITH_SCAN = "validated_text_disagrees_with_scan"
+VALIDATED_TEXT_VERDICTS = {VALIDATED_TEXT_MATCHES_SCAN, VALIDATED_TEXT_DISAGREES_WITH_SCAN}
+
+
+def validating_revision(page: dict[str, Any]) -> dict[str, Any] | None:
+    """The quality-history entry at which the second editor set quality 4 (the validating revision), or None."""
+
+    history = page.get("quality_history") or []
+    if page.get("quality") != 4 or not history or history[-1].get("level") != 4:
+        return None
+    return history[-1]
+
+
+def validated_revision_attestation(page: dict[str, Any]) -> dict[str, Any]:
+    """Attestation of a quality-4 page's text *as of its validating revision* (team-lead decision, E2d3b).
+
+    A page that ``page_attestation`` rejects only because its text changed after validation still has a text that
+    both named editors attested: the one at the validating revision. Later edits are unvalidated and are not used.
+    The result is ``page_attestation``'s, with ``adjudication_eligible`` for that text and
+    ``reference_text_revision: validating``; any other page is not eligible here.
+    """
+
+    attestation = page_attestation(page)
+    validator = validating_revision(page)
+    eligible = (attestation["adjudication_ineligible_reason"] == "text_changed_after_validation"
+                and validator is not None and attestation["proofreader"] is not None
+                and attestation["validator"] is not None)
+    return {
+        **attestation,
+        "adjudication_eligible": eligible,
+        "adjudication_ineligible_reason": None if eligible else (attestation["adjudication_ineligible_reason"] or "not_changed_after_validation"),
+        "reference_text_revision": "validating",
+        "validating_revision_id": validator["revision_id"] if validator else None,
+    }
+
+
+def validated_text_check_problems(check: dict[str, Any]) -> list[str]:
+    """Schema problems of one ``wikisource_validated_text_checks.v1`` entry; empty when it is well formed."""
+
+    problems = [f"missing {key}" for key in ("page_title", "validating_revision_id", "latest_revision_id", "verdict",
+                                              "checked_by", "checker", "checked_at", "method", "detail")
+                if check.get(key) in (None, "")]
+    if check.get("verdict") and check["verdict"] not in VALIDATED_TEXT_VERDICTS:
+        problems.append(f"verdict must be one of {', '.join(sorted(VALIDATED_TEXT_VERDICTS))}")
+    if check.get("checked_by") and check["checked_by"] not in {"agent", "human"}:
+        problems.append("checked_by must be agent or human")
+    notes = check.get("unprinted_notes")
+    if notes is not None and not (isinstance(notes, list) and all(isinstance(n, int) and n > 0 for n in notes)):
+        problems.append("unprinted_notes must be a list of footnote numbers of the validated text")
+    return problems
+
+
+def load_validated_text_checks(path: Path) -> dict[str, dict[str, Any]]:
+    """Page title -> check, from a ``wikisource_validated_text_checks.v1`` file; a malformed entry raises."""
+
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    if payload.get("schema_version") != VALIDATED_TEXT_CHECKS_SCHEMA:
+        raise StageExecutionError(f"{path.name} must be {VALIDATED_TEXT_CHECKS_SCHEMA}")
+    checks: dict[str, dict[str, Any]] = {}
+    for check in payload.get("checks") or []:
+        problems = validated_text_check_problems(check)
+        if problems:
+            raise StageExecutionError(f"bad validated-text check for {check.get('page_title')}: {', '.join(problems)}")
+        if check["page_title"] in checks:
+            raise StageExecutionError(f"two validated-text checks for {check['page_title']}")
+        checks[check["page_title"]] = check
+    return checks
+
+
+def derive_validated_page_text(wikitext: str, transclusions: dict[str, str], page: dict[str, Any],
+                               check: dict[str, Any]) -> PageText:
+    """The pair text of the validating revision's wikitext, with the page's F8b7 steps re-applied (E2d3b).
+
+    Stand-in mappings are keyed by the Index file and re-apply as they are. Unprinted footnotes are numbered by
+    the conversion, so a page that has them needs the check to list the validated text's own (``unprinted_notes``,
+    possibly empty). A page with excluded spans needs the check to re-pin them to the validated text
+    (``excluded_spans``). Missing either raises ``ValueError`` rather than reusing the latest text's facts.
+    """
+
+    if page.get("unprinted_notes") and "unprinted_notes" not in check:
+        raise ValueError("validated_text_unprinted_notes_unchecked")
+    if page.get("excluded_spans") and "excluded_spans" not in check:
+        raise ValueError("validated_text_excluded_spans_unmapped")
+    notes = [{"note": number} for number in check.get("unprinted_notes") or []]
+    derived = derive_page_text(wikitext, transclusions, {**page, "unprinted_notes": notes})
+    spans = {"excluded_spans": check["excluded_spans"]} if check.get("excluded_spans") else {}
+    if spans and excluded_span_problems(spans, derived.text):
+        raise ValueError("validated_text_excluded_spans_invalid")
+    return derived
+
+
 def _editor_record(entry: dict[str, Any] | None) -> dict[str, Any] | None:
     if entry is None:
         return None
@@ -1046,7 +1141,14 @@ def page_reference_record(source_id: str, page: dict[str, Any], root: Path) -> B
         raise StageExecutionError(
             f"Wikisource page {page['source_item_id']} is not adjudication-eligible: {attestation['adjudication_ineligible_reason']}"
         )
-    text = page_plain_text(page, root)
+    return reference_record_from_text(source_id, page, page_plain_text(page, root), attestation, page["revision_id"])
+
+
+def reference_record_from_text(source_id: str, page: dict[str, Any], text: str, attestation: dict[str, Any],
+                               revision_id: int) -> BenchmarkTranscriptionReferenceRecord:
+    """A ``benchmark_transcription_reference.v1`` record (``review.status: reviewed``) of ``text``, the page's
+    pair text at ``revision_id``; ``page["excluded_spans"]`` must be pinned to that text."""
+
     paragraphs = [paragraph for paragraph in text.split("\n") if paragraph.strip()]
     spans = reference_spans(page, text)
     reviewers = [f"wikisource:{attestation['proofreader']['user']}", f"wikisource:{attestation['validator']['user']}"]
@@ -1078,7 +1180,7 @@ def page_reference_record(source_id: str, page: dict[str, Any], root: Path) -> B
             "correction_of": None,
             "superseded_by": None,
             "change_reason": (
-                f"Wikisource quality 4 at revision {page['revision_id']}: proofread by {reviewers[0]}, "
+                f"Wikisource quality 4 at revision {revision_id}: proofread by {reviewers[0]}, "
                 f"validated by {reviewers[1]}; {WIKITEXT_NORMALIZATION_VERSION}; lines are rendered paragraphs"
             ),
         },

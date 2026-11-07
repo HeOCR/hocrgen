@@ -983,7 +983,7 @@ def test_e2d_real_scan_evaluation_direction_is_recorded_without_changing_scoring
     assert "## E2d — Real-scan evaluation direction" in roadmap
     assert "### 3.7 Evaluation moves to real scans (direction, 2026-11-06)" in roadmap
     assert "E2d" not in _roadmap_table_rows(roadmap)
-    assert "`E2d1`, `E2d2` and `E2d3` implemented on the current ref (2026-11-07); `E2d4` planned." in stub
+    assert "`E2d1`, `E2d2`, `E2d3` and `E2d3b` implemented on the current ref (2026-11-07); `E2d4` planned." in stub
     assert "no synthetic score, profile, view or report changed" in stub
     for text in (stub, decision):
         assert "no synthetic text" in text
@@ -995,3 +995,5 @@ def test_e2d_real_scan_evaluation_direction_is_recorded_without_changing_scoring
     assert "`E2d3` is implemented" in agent_plan
     assert Path("docs/e2d2_real_printed_evaluation.md").exists()
     assert Path("docs/e2d3_real_printed_evaluation.md").exists()
+    assert "`E2d3b` is implemented" in agent_plan
+    assert Path("docs/e2d3b_validated_revision_evaluation.md").exists()

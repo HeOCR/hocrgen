@@ -1,5 +1,7 @@
 # E2d3: real printed evaluation, refreshed on tranche v2
 
+> **All-pages results superseded by [E2d3b](./e2d3b_validated_revision_evaluation.md).** E2d3b adds 4 quality-4 pages, scored on their validating-revision text, for 39 pages; Tesseract is 0.216 there. It also records why the other 22 pages edited after validation stay out. The validation + test results below are unchanged.
+
 Date: 2026-11-07, on the F8g2 tranche v2 (#135: `size_aware_group_split.v1`, tranche `f8g2_real_tranche_v2`, converter `wikisource_plain_text.v3`). Plan: [`planning/tasks/e2d-real-scan-evaluation.md`](../planning/tasks/e2d-real-scan-evaluation.md).
 
 This document **supersedes the release-split and interval sections of [E2d2](./e2d2_real_printed_evaluation.md)**. E2d2's method, engine settings, synthetic comparison and private tender results still hold; they are not repeated here.

@@ -28,6 +28,15 @@ the release split its page belongs to (``train``, ``validation``, ``test`` or ``
 adjudicated manifest items carry it as ``benchmark_split``. A page in the release ``train`` split ships as training
 data, so it must never be presented as held-out evaluation.
 
+**Validated-revision text (E2d3b).** With ``--validated-revisions`` (a ``wikisource_validated_revisions`` output) and
+``--validated-text-checks``, a quality-4 page rejected only because its text changed after validation is scored on its
+text *as of the validating revision*: exactly what the two editors attested; later, unvalidated edits are not used.
+The page's F8b7 steps are re-applied to that text (stand-ins; unprinted notes and excluded spans as the check re-pins
+them), and the item records ``reference_text_revision: validating`` and its difference from the latest text. A page
+is used only when an agent or human check of the scan found the validated text agrees with it; a page whose later
+edits fixed a real transcription error is ``validated_text_disagrees_with_scan`` and is left out, as is a page with no
+check. Every other adjudicated item records ``reference_text_revision: latest``.
+
 ``bootstrap_clusters.json`` (``hocrgen_bootstrap_clusters.v1``, E2d3) maps every written item to its Wikisource Index,
 the book-level unit (and the release split group), for ``evaluate-references --bootstrap-clusters``.
 Everything this writes holds CC BY-SA 4.0 Wikisource text and stays operator-only. ``benchmark_v1`` is untouched.
@@ -41,8 +50,17 @@ from pathlib import Path
 from typing import Any, Mapping
 
 from hocrgen.core.errors import StageExecutionError
+from hocrgen.evaluation import levenshtein_distance
 from hocrgen.fetchers.wikisource import (
     TEXT_LICENSE,
+    VALIDATED_TEXT_DISAGREES_WITH_SCAN,
+    VALIDATED_TEXT_MATCHES_SCAN,
+    derive_validated_page_text,
+    load_validated_text_checks,
+    page_text,
+    page_transclusions,
+    reference_record_from_text,
+    validated_revision_attestation,
     load_wikisource_snapshot,
     page_attestation,
     page_conversion,
@@ -54,8 +72,9 @@ from hocrgen.fetchers.wikisource import (
     reference_normalization,
 )
 from hocrgen.manifests.models import BenchmarkReferenceManifestRecord, BenchmarkTranscriptionReferenceRecord
-from hocrgen.parsers.wikitext import WIKITEXT_NORMALIZATION_VERSION
+from hocrgen.parsers.wikitext import WIKITEXT_NORMALIZATION_VERSION, UnsupportedWikitextError, convert_wikitext
 from hocrgen.reference_runs import BOOTSTRAP_CLUSTERS_SCHEMA
+from hocrgen.tools.wikisource_validated_revisions import load_validated_revisions
 
 SOURCE_ID = "wikisource_he_proofread"
 ADJUDICATION_RECORD_SCHEMA = "wikisource_adjudication_record.v1"
@@ -115,15 +134,33 @@ def _manifest_facts(facts: Mapping[str, Any]) -> dict[str, Any]:
     return {"footnote_marker_style": facts["footnote_marker_style"], "footnote_count": facts["footnote_count"]}
 
 
-def adjudicated_reference(page: Mapping[str, Any], root: Path, *, source_id: str = SOURCE_ID
+def adjudicated_reference(page: Mapping[str, Any], root: Path, *, source_id: str = SOURCE_ID,
+                          validated: Mapping[str, Any] | None = None,
                           ) -> tuple[BenchmarkTranscriptionReferenceRecord, dict[str, Any]]:
-    """One quality-4 page as an adjudicated reference plus its adjudication record (two named Wikisource editors)."""
+    """One quality-4 page as an adjudicated reference plus its adjudication record (two named Wikisource editors).
 
-    record = page_reference_record(source_id, dict(page), root)  # raises unless adjudication-eligible
-    attestation = page_attestation(dict(page))
+    With ``validated`` (``{"text", "record", "check", "diff"}``, E2d3b) the reference is the page's text as of its
+    validating revision instead of the latest one.
+    """
+
+    if validated is None:
+        record = page_reference_record(source_id, dict(page), root)  # raises unless adjudication-eligible
+        attestation = page_attestation(dict(page))
+        revision_id, text_sha256 = page["revision_id"], page["text_sha256"]
+        basis = f"Wikisource quality 4 at revision {revision_id}"
+    else:
+        attestation = validated_revision_attestation(dict(page))
+        if not attestation["adjudication_eligible"]:
+            raise StageExecutionError(f"{page['source_item_id']} has no attested validating-revision text")
+        revision_id = validated["record"]["validating_revision_id"]
+        spans = (validated["check"].get("excluded_spans") or None)
+        record = reference_record_from_text(source_id, {**page, "excluded_spans": spans}, validated["text"], attestation, revision_id)
+        text_sha256 = _sha256(validated["text"])
+        basis = (f"Wikisource quality 4, text as of the validating revision {revision_id} (latest {page['revision_id']}; "
+                 f"{validated['diff']['text_changing_edits_after_validation']} later text-changing edits not used)")
     proofreader, validator = attestation["proofreader"], attestation["validator"]
     reviewers = [f"wikisource:{proofreader['user']}", f"wikisource:{validator['user']}"]
-    reason = (f"Wikisource quality 4 at revision {page['revision_id']}: proofread by {reviewers[0]} "
+    reason = (f"{basis}: proofread by {reviewers[0]} "
               f"(revision {proofreader['revision_id']}), validated by {reviewers[1]} (revision {validator['revision_id']}); "
               f"adjudicated under maintainer decision 2; {WIKITEXT_NORMALIZATION_VERSION}; lines are rendered paragraphs")
     adjudicated = record.model_copy(update={"review": record.review.model_copy(update={
@@ -134,9 +171,9 @@ def adjudicated_reference(page: Mapping[str, Any], root: Path, *, source_id: str
         "schema_version": ADJUDICATION_RECORD_SCHEMA,
         "item_id": record.item_id,
         "page_title": page["page_title"],
-        "page_permalink": page_permalink(dict(page)),
-        "page_revision_id": page["revision_id"],
-        "text_sha256": page["text_sha256"],
+        "page_permalink": page_permalink({**page, "revision_id": revision_id}),
+        "page_revision_id": revision_id,
+        "text_sha256": text_sha256,
         "quality": 4,
         "rule": ADJUDICATION_RULE,
         "attesting_humans": [
@@ -149,7 +186,25 @@ def adjudicated_reference(page: Mapping[str, Any], root: Path, *, source_id: str
                        "note": "a mechanical conversion of the pinned revision; the converter attests nothing"},
         "text_license": TEXT_LICENSE,
     }
+    if validated is not None:
+        check = validated["check"]
+        adjudication["reference_text_revision"] = "validating"
+        adjudication["latest_revision_id"] = page["revision_id"]
+        adjudication["validated_wikitext_sha256"] = validated["record"]["wikitext_sha256"]
+        adjudication["diff_vs_latest"] = dict(validated["diff"])
+        adjudication["validated_text_check"] = {key: check[key] for key in ("verdict", "checked_by", "checker", "checked_at", "method")}
     return adjudicated, adjudication
+
+
+def validated_text(page: Mapping[str, Any], root: Path, record: Mapping[str, Any], check: Mapping[str, Any]) -> dict[str, Any]:
+    """The page's pair text at its validating revision, its conversion, and its difference from the latest text."""
+
+    derived = derive_validated_page_text(record["wikitext"], page_transclusions(dict(page), root), dict(page), dict(check))
+    latest = page_text(dict(page), root).text
+    diff = {"character_edits": levenshtein_distance(derived.text, latest), "latest_characters": len(latest),
+            "reference_characters": len(derived.text),
+            "text_changing_edits_after_validation": record["text_changing_edits_after_validation"]}
+    return {"text": derived.text, "conversion": derived.conversion, "record": record, "check": check, "diff": diff}
 
 
 def load_release_splits(path: Path) -> dict[str, dict[str, Any]]:
@@ -168,7 +223,7 @@ def load_release_splits(path: Path) -> dict[str, dict[str, Any]]:
 def write_eval_reference_set(
     root: Path, output_dir: Path, *, source_id: str = SOURCE_ID, reference_manifest_id: str,
     held_out: Mapping[str, str] | None = None, release_splits: Mapping[str, Mapping[str, Any]] | None = None,
-    include: set[str] | None = None,
+    include: set[str] | None = None, validated_revisions: Path | None = None, validated_text_checks: Path | None = None,
 ) -> dict[str, Any]:
     """Write the adjudicated printed reference manifest, the single-reviewer texts and the asset index.
 
@@ -176,6 +231,10 @@ def write_eval_reference_set(
     written. Returns the ``wikisource_eval_reference_set.v1`` summary, also written as ``eval_set.json``.
     """
 
+    if (validated_revisions is None) != (validated_text_checks is None):
+        raise StageExecutionError("--validated-revisions and --validated-text-checks go together")
+    revisions = load_validated_revisions(validated_revisions) if validated_revisions is not None else None
+    checks = load_validated_text_checks(validated_text_checks) if validated_text_checks is not None else {}
     _, indexes, pages = load_wikisource_snapshot(root)
     held_out = dict(held_out or {})
     known = {f"{source_id}:{page['source_item_id']}" for page in pages}
@@ -186,6 +245,7 @@ def write_eval_reference_set(
         raise StageExecutionError(f"{output_dir.name} must be new or empty")
     output_dir.mkdir(parents=True, exist_ok=True)
     manifest_items, single_reviewer, asset_index, items, skipped, excluded = [], [], [], [], {}, []
+    validated_excluded: list[dict[str, Any]] = []
     masked_spans = 0
     for page in sorted(pages, key=lambda record: record["source_item_id"]):
         item_id = f"{source_id}:{page['source_item_id']}"
@@ -196,16 +256,26 @@ def write_eval_reference_set(
             skipped[reasons[0]] = skipped.get(reasons[0], 0) + 1
             continue
         attestation = page_attestation(page)
+        validated = None
         if page["quality"] == 4 and not attestation["adjudication_eligible"]:
             reason = attestation["adjudication_ineligible_reason"]
-            skipped[reason] = skipped.get(reason, 0) + 1
-            continue
+            if revisions is not None and reason == "text_changed_after_validation":
+                validated, reason = _validated_or_reason(page, root, revisions.get(item_id), checks.get(page["page_title"]))
+                if validated is None:
+                    validated_excluded.append({"item_id": item_id, "reason": reason})
+            if validated is None:
+                skipped[reason] = skipped.get(reason, 0) + 1
+                continue
         stratum = "adjudicated" if page["quality"] == 4 else "single_reviewer"
         if item_id in held_out:
             excluded.append({"item_id": item_id, "stratum": stratum, "reason": held_out[item_id]})
             continue
         image = scored_image(page)
-        facts = reference_normalization(page_conversion(page, root), page)
+        if validated is None:
+            facts = reference_normalization(page_conversion(page, root), page)
+        else:
+            spans = validated["check"].get("excluded_spans")
+            facts = reference_normalization(validated["conversion"], {**page, "excluded_spans": spans})
         entry = {"item_id": item_id, "stratum": stratum, "index_key": page["index_key"], "quality": page["quality"],
                  "page_title": page["page_title"], "page_revision_id": page["revision_id"],
                  "transcription_coverage": page["transcription_coverage"], "image": image,
@@ -218,7 +288,12 @@ def write_eval_reference_set(
             entry["release_split_group_id"] = assigned.get("split_group_id") if assigned else None
             entry["release_split_constraint"] = assigned.get("split_constraint") if assigned else None
         if stratum == "adjudicated":
-            record, adjudication = adjudicated_reference(page, root, source_id=source_id)
+            entry["reference_text_revision"] = "latest" if validated is None else "validating"
+            if validated is not None:
+                entry["reference_text_revision_id"] = validated["record"]["validating_revision_id"]
+                entry["latest_revision_id"] = page["revision_id"]
+                entry["diff_vs_latest"] = dict(validated["diff"])
+            record, adjudication = adjudicated_reference(page, root, source_id=source_id, validated=validated)
             base = f"references/{page['source_item_id']}"
             payload = _dump(record.model_dump(mode="json"))
             (output_dir / base).mkdir(parents=True)
@@ -291,8 +366,37 @@ def write_eval_reference_set(
         "held_out": excluded,
         "items": items,
     }
+    if revisions is not None:
+        summary["counts"]["adjudicated_validating_revision"] = sum(
+            1 for entry in items if entry.get("reference_text_revision") == "validating")
+        summary["validated_text_excluded"] = validated_excluded
     (output_dir / "eval_set.json").write_text(_dump(summary), encoding="utf-8")
     return summary
+
+
+def _validated_or_reason(page: Mapping[str, Any], root: Path, record: Mapping[str, Any] | None,
+                         check: Mapping[str, Any] | None) -> tuple[dict[str, Any] | None, str]:
+    """The validating-revision text of a page, or the reason it is not used (fail closed)."""
+
+    if not validated_revision_attestation(dict(page))["adjudication_eligible"]:
+        return None, "text_changed_after_validation"
+    if record is None:
+        return None, "validated_revision_missing"
+    if (check is None or check["validating_revision_id"] != record["validating_revision_id"]
+            or check["latest_revision_id"] != page["revision_id"]
+            or check.get("validated_wikitext_sha256") != record["wikitext_sha256"]):
+        return None, "validated_text_not_checked"
+    if check["verdict"] != VALIDATED_TEXT_MATCHES_SCAN:
+        return None, VALIDATED_TEXT_DISAGREES_WITH_SCAN
+    faithful = convert_wikitext(record["wikitext"], page_transclusions(dict(page), root)).text
+    if _sha256(faithful) != record["converted_text_sha256"] or record["converted_text_sha256"] != page.get("quality_set_text_sha256"):
+        return None, "validated_revision_text_mismatch"
+    try:
+        return validated_text(page, root, record, check), VALIDATED_TEXT_MATCHES_SCAN
+    except ValueError as exc:
+        return None, str(exc)
+    except UnsupportedWikitextError:
+        return None, "wikitext_unsupported_markup"
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
@@ -304,6 +408,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                         help="JSON {item_id: reason} of pages to leave out (for example training-text overlap)")
     parser.add_argument("--items", type=Path, default=None,
                         help="JSON list of item ids to convert (default: every page that passes the gates)")
+    parser.add_argument("--validated-revisions", type=Path, default=None,
+                        help="E2d3b: a wikisource_validated_revisions output; score quality-4 pages changed after "
+                             "validation on their validating-revision text (needs --validated-text-checks)")
+    parser.add_argument("--validated-text-checks", type=Path, default=None,
+                        help="E2d3b: wikisource_validated_text_checks.v1 (docs/wikisource_validated_text_checks.json)")
     parser.add_argument("--split-manifest", type=Path, default=None,
                         help="A release split_manifest.json: record each page's release split (F8g group-whole splits)")
     return parser.parse_args(argv)
@@ -315,7 +424,9 @@ def main(argv: list[str] | None = None) -> int:
     splits = load_release_splits(args.split_manifest) if args.split_manifest else None
     include = set(json.loads(args.items.read_text(encoding="utf-8"))) if args.items else None
     summary = write_eval_reference_set(args.snapshot_root, args.output_dir, reference_manifest_id=args.reference_manifest_id,
-                                       held_out=held_out, release_splits=splits, include=include)
+                                       held_out=held_out, release_splits=splits, include=include,
+                                       validated_revisions=args.validated_revisions,
+                                       validated_text_checks=args.validated_text_checks)
     print(json.dumps({"counts": summary["counts"], "release_split_counts": summary["release_split_counts"]},
                      indent=2))  # counts only, never text
     return 0
