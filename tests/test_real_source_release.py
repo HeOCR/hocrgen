@@ -260,12 +260,19 @@ def test_benchmark_leakage_covers_work_groups_and_synthetic_training_works() -> 
     assert artifact["status"] == "blocked"
 
 
-def test_synthetic_training_registry_is_packaged_empty_and_validated() -> None:
+def test_synthetic_training_registry_is_packaged_and_validated() -> None:
     registry = load_and_validate_bundle().synthetic_training_works
     assert registry.registry_id == "synthetic_training_works.v1"
-    assert {producer.producer for producer in registry.producers} == {"HeOCR/hocrsyngen", "HeOCR/hletterscriptgen"}
-    assert registry.works == [] and registry.match_keys() == {}
-    base = registry.model_dump(mode="json")
+    assert {producer.producer for producer in registry.producers} == {
+        "HeOCR/hocrsyngen",
+        "HeOCR/hletterscriptgen",
+        "hocrgen.tools.glyph_harvest",
+    }
+    # Only the S16 glyph bank has registered works so far: one per scanned book it cut glyphs from.
+    assert registry.works and {work.producer for work in registry.works} == {"hocrgen.tools.glyph_harvest"}
+    assert all(work.corpus_build == "pgb-v1" for work in registry.works)
+    assert {key.partition(":")[0] for key in registry.match_keys()} <= {"commons_file", "nli_record"}
+    base = {**registry.model_dump(mode="json"), "works": []}
     work = {"work_id": "pby:1", "producer": "HeOCR/hocrsyngen", "match_keys": ["nli_record:9"], "recorded_by": "agent", "recorded_at": "2026-11-06"}
     assert SyntheticTrainingWorkRegistry.model_validate({**base, "works": [work]}).match_keys() == {"nli_record:9": ["pby:1"]}
     with pytest.raises(ValidationError, match="unregistered producers"):

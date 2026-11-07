@@ -16,6 +16,217 @@ producers:
       recorded here when F7d promotes a HASH tranche.
     status: planned
     exclusion_list: null
-# No corpus build exists yet, so no work is registered. The F8f pilot's PBY-to-NLI edition matches are the first
-# candidates: when S15a builds its corpus, each PBY work in it is recorded with the nli_record keys F8f matched.
-works: []
+  - producer: hocrgen.tools.glyph_harvest
+    plan: >-
+      S16 (HeOCR/hocrgen, HeOCR/hocrsyngen S16): printed glyph images cut from real train-split scans into
+      printed_glyph_bank.v1, which hocrsyngen composes into synthetic book pages. Every book a bank draws glyphs from
+      is listed below, so real pages of the same scan stay in train.
+    status: active
+    exclusion_list: null
+# S15a has no corpus build yet. The F8f pilot's PBY-to-NLI edition matches are its first candidates: when S15a
+# builds its corpus, each PBY work in it is recorded with the nli_record keys F8f matched.
+# S16 bank pgb-v1 (2026-11-07): the books its glyphs come from.
+works:
+  - work_id: glyphs:nli-990018546440205171
+    producer: hocrgen.tools.glyph_harvest
+    title: benyehuda_nli_free_use 990018546440205171
+    match_keys: [nli_record:990018546440205171]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:nli-990020250940205171
+    producer: hocrgen.tools.glyph_harvest
+    title: benyehuda_nli_free_use 990020250940205171
+    match_keys: [nli_record:990020250940205171]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-1711486
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_1711486
+    match_keys: [commons_file:0f72c9120352145291ce7c19996d5c71d7079d46]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-1725211
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_1725211
+    match_keys: [commons_file:bee80a61985d8597995f46cd592149fa2cc86ab0]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-1725257
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_1725257
+    match_keys: [commons_file:83c57f83d6aa324559c89ab40f39c7342659bd9d]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-1734574
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_1734574
+    match_keys: [commons_file:67fbf0b82929075111b76859c86708c65027aeac]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-1735654
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_1735654
+    match_keys: [commons_file:ebe8a9db1913c3386c5d5b85653e1da10a2e3938]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-1745039
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_1745039
+    match_keys: [commons_file:b0fa96ba044a4b2d70bfd8bc268161e57cdad096]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-223060
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_223060
+    match_keys: [commons_file:d0dbfc38e757ec3564f42015af5dfd938aa8a3a4]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-255445
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_255445
+    match_keys: [commons_file:9e08274fb7aa718f8ed7510c21f2833dd8a3cb13]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-260883
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_260883
+    match_keys: [commons_file:9a012cb43f163e217f90361e26c7ef77fed34722]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-286280
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_286280
+    match_keys: [commons_file:3f22332c734784f898f1351d4f6ab75acd6c19b1]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-288180
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_288180
+    match_keys: [commons_file:6bb9bfef67ec211d3d161879cd4e54853df552a3]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-288182
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_288182
+    match_keys: [commons_file:1a8c482e06145cc4c6416eb84037dd71c845aa40]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-288767
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_288767
+    match_keys: [commons_file:8c1368e810604747c99efaba87c37db13efb6753]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-328113
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_328113
+    match_keys: [commons_file:e22f11a36abf5b02f5d70c795a55e62f892eeb43]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-328114
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_328114
+    match_keys: [commons_file:618dc722179c623007c78dbf57a4f0a6e035e68f]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-328115
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_328115
+    match_keys: [commons_file:eb6ef337b5e3a00f766909bfdaed161a82971d85]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-331268
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_331268
+    match_keys: [commons_file:c55f57ca6b9bfac930343a0bf73560fe5a0d7056]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-332590
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_332590
+    match_keys: [commons_file:6c059f95c587e53b97f0c70707e421a4dd127a90]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-332868
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_332868
+    match_keys: [commons_file:a00cf3f24bfebe95b6465096a042b92dad2b1109]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-336412
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_336412
+    match_keys: [commons_file:00ead8b3b6fcc9d862e54bb871710134f48b6d23]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-336448
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_336448
+    match_keys: [commons_file:a4ce497ca6b61a4f492d14bf0d0b0d4dc4c9a57d]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-336509
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_336509
+    match_keys: [commons_file:0201e986832312b34ff73849542a37cdc99e7b1c]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-336538
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_336538
+    match_keys: [commons_file:b8537c2e19b470d747a6fdc04c6f8e8d8fa881b9]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-376147
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_376147
+    match_keys: [commons_file:96904e1554523bacf2fa4ff7f0f9e6e79728ebb0]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-381649
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_381649
+    match_keys: [commons_file:584bc5171675ee70679f42aaa0ebe4688c26f039]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-398674
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_398674
+    match_keys: [commons_file:019260668395ff6faff8ba8e772c3f40f837f806]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
+  - work_id: glyphs:ws-468593
+    producer: hocrgen.tools.glyph_harvest
+    title: wikisource_he_proofread ws_index_468593
+    match_keys: [commons_file:ff0ff5d7b63b197de6db7115c9273b9cc786bc45]
+    corpus_build: pgb-v1
+    recorded_by: hocrgen.tools.glyph_harvest S16
+    recorded_at: 2026-11-07
