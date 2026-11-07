@@ -1025,5 +1025,11 @@ def test_e2d_real_scan_evaluation_direction_is_recorded_without_changing_scoring
     assert "| `E2d5` | Retire synthetic text from the scored eval set" in stub
     assert "`E2d4` implemented on the current ref, `E2d5` planned." in roadmap
     audit_doc = Path("docs/e2d4_reference_audit.md").read_text(encoding="utf-8")
-    assert "## Hypothetical impact (diagnostic only)" in audit_doc and "no reference text has changed" in audit_doc
+    assert "## Hypothetical impact (diagnostic only)" in audit_doc and "still **hypothetical**" in audit_doc
     assert Path("docs/reference_audit_proposals.json").exists() and Path("docs/reference_audit_decisions.json").exists()
+    # E2d4b: the maintainer's always-on space-before-punctuation rule
+    rule = Path("planning/decisions/2026-11-07-space-before-punctuation-rule.md").read_text(encoding="utf-8")
+    assert "**Status:** accepted" in rule and "`space_before_punctuation.v1`" in rule
+    assert "בעברית אין רווחים לפני נקודות פיסוק" in rule and "Rare wrong fixes are accepted" in rule
+    assert "## E2d4b: the space-before-punctuation rule" in audit_doc and "never as human review" in audit_doc
+    assert "`E2d4b`" in stub and "`E2d4b`" in roadmap and "`E2d4b` is implemented" in agent_plan
