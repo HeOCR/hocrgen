@@ -240,3 +240,10 @@ def test_hebrewbooks_19784_p24_is_text_not_on_page_in_the_committed_checks() -> 
     check = inv.load_page_checks(COMMITTED_PAGE_CHECKS)[title]
     assert check["checked_by"] == "agent" and "Rashi" in check["text_not_on_page"]
     assert load_validated_text_checks(COMMITTED_CHECKS)[title]["verdict"] == "validated_text_disagrees_with_scan"
+
+
+def test_e2d3d_hebrewbooks_19784_scored_pages_with_editors_text_are_text_not_on_page() -> None:
+    checks = inv.load_page_checks(COMMITTED_PAGE_CHECKS)
+    flagged = {n for n in (1, 2, 8, 18, 24, 25) if checks[f"עמוד:Hebrewbooks org 19784.pdf/{n}"].get("text_not_on_page")}
+    assert flagged == {8, 24, 25}
+    assert "E2d3d agent check" in checks["עמוד:Hebrewbooks org 19784.pdf/25"]["text_not_on_page"]

@@ -421,7 +421,8 @@
    "checked_at": "2026-11-06",
    "method": "agent_render_compare_900px",
    "render_url": "https://thumb.wikimedia.org/wikisource/he/thumb/8/86/Hebrewbooks_org_19784.pdf/page8-960px-Hebrewbooks_org_19784.pdf.jpg?utm_source=he.wikisource.org&utm_campaign=imageinfo&utm_content=thumbnail",
-   "render_sha256": "5ae3d0a71c16e74120f518bbf94ae351ee50d2cec61d02d7130fc5624d8c9e4b"
+   "render_sha256": "5ae3d0a71c16e74120f518bbf94ae351ee50d2cec61d02d7130fc5624d8c9e4b",
+   "text_not_on_page": "an editors' section heading 'הערות' above the notes, which the page does not print (it prints only a rule above them). Found by the E2d3d agent check (Claude Code (claude-opus-5-5), 2026-11-07) of the pinned 960 px render, zoomed, against the page text"
   },
   {
    "page_title": "עמוד:Hebrewbooks org 19784.pdf/18",
@@ -476,7 +477,8 @@
    "checked_at": "2026-11-06",
    "method": "agent_render_compare_900px",
    "render_url": "https://thumb.wikimedia.org/wikisource/he/thumb/8/86/Hebrewbooks_org_19784.pdf/page25-960px-Hebrewbooks_org_19784.pdf.jpg?utm_source=he.wikisource.org&utm_campaign=imageinfo&utm_content=thumbnail",
-   "render_sha256": "be2f293dccad541b7c37d74751e8df43481427fb4988ee5bd6522a53c3a23be8"
+   "render_sha256": "be2f293dccad541b7c37d74751e8df43481427fb4988ee5bd6522a53c3a23be8",
+   "text_not_on_page": "editors' additions throughout: bracketed source citations the page does not print (מגילה כד, ב; במדבר לא, יז; שיר השירים ב, ט; ישעיה נא, ד), expansions of printed abbreviations (פירוש for פי', מה שכתוב for מ\"ש, נוקבא for נוק'), added quotation marks, a running head the page does not print (מגיד דבריו ליעקב for the printed לקוטי אמרים), and section letters ג-ו where the page prints ד-ו (the editors open a section the page runs on). Found by the E2d3d agent check (Claude Code (claude-opus-5-5), 2026-11-07) of the pinned 960 px render, zoomed, against the page text"
   },
   {
    "page_title": "עמוד:The Seliḥot for the Entire Year.pdf/3",

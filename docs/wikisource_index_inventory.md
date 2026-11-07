@@ -18,8 +18,8 @@ Quality-3 / quality-4 pages at each stage. Each column is the run before the nex
 | Indexes admitted by the Index gate | 29 | 68 | 68 | 72 | 77 | 77 |
 | Pages in admitted Indexes | 624 / 27 | 1184 / 48 | 1184 / 48 | 1190 / 48 | 1411 / 62 | 1411 / 62 |
 | Pages the converter renders (`wikisource_plain_text`) | 231 / 12 | 1171 / 48 | 1184 / 48 | 1190 / 48 | 1411 / 62 | 1411 / 62 |
-| Pages passing every other gate (attestation, checksums) | 231 / 12 | 1154 / 48 | 1167 / 48 | 1188 / 48 | 1397 / 61 | 1395 / 60 |
-| **Eligible as full pages** (`full_page`) | 0 / 0 | 82 / 43 | 837 / 43 | 946 / 43 | 1161 / 56 | 1158 / 56 |
+| Pages passing every other gate (attestation, checksums) | 231 / 12 | 1154 / 48 | 1167 / 48 | 1188 / 48 | 1397 / 61 | 1395 / 58 |
+| **Eligible as full pages** (`full_page`) | 0 / 0 | 82 / 43 | 837 / 43 | 946 / 43 | 1161 / 56 | 1158 / 54 |
 | **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | 0 / 0 | 196 / 4 | 241 / 5 | 235 / 5 | 236 / 4 |
 | Of those, crop placed or confirmed by an agent or human | — | — | 25 / 4 | 96 / 2 | 90 / 2 | 92 / 2 |
 | Of those, multi-region crop (rest of the box masked) | — | — | 0 / 0 | 29 / 0 | 26 / 0 | 26 / 0 |
@@ -29,10 +29,10 @@ Quality-3 / quality-4 pages at each stage. Each column is the run before the nex
 | Pairs with text excluded from scoring as not visible on the scan (`illegible_on_scan`, F8b7) | — | — | — | — | — | 2 / 0 |
 | `partial_page` without a resolved crop (`crop_unresolved`, listed below) | 0 / 0 | 25 / 5 | 60 / 1 | 0 / 0 | 0 / 0 | 0 / 0 |
 | Coverage not decided (no check; of them, tool alignment too poor) | 231 / 12; — | 1047 / 0; — | 74 / 0; 74 / 0 | 1 / 0; 1 / 0 | 1 / 0; 1 / 0 | 1 / 0; 1 / 0 |
-| Not a pair: words in the text the page does not show (`text_not_on_page`, listed below) | — | — | — | — | 12 / 1 | 14 / 2 |
+| Not a pair: words in the text the page does not show (`text_not_on_page`, listed below) | — | — | — | — | 12 / 1 | 14 / 4 |
 | Not a pair yet: a footnote the tool did not find on the page, not reviewed (`footnote_not_located`, F8b7) | — | — | — | — | — | 0 |
-| Reference-eligible quality-4 pages (adjudication-eligible), every gate but coverage | 4 | 29 | 29 | 29 | 35 | 35 |
-| Of those, eligible now (full page or cropped) | 0 | 25 | 28 | 29 | 35 | 35 |
+| Reference-eligible quality-4 pages (adjudication-eligible), every gate but coverage | 4 | 29 | 29 | 29 | 35 | 33 |
+| Of those, eligible now (full page or cropped) | 0 | 25 | 28 | 29 | 35 | 33 |
 
 In F8b2 the converter column counts pages that also passed the other page gates; the F8b2 run did not count them apart.
 In F8b3 every `partial_page` page was `needs_crop`: no crop existed yet. In F8b4 the reviewed crops are the tool's crops
@@ -75,11 +75,11 @@ Pages are quality-3 plus quality-4 pages.
 
 | Result | Quality 3 / quality 4 |
 | --- | ---: |
-| eligible as full pages (`full_page`) | 1158 / 56 |
+| eligible as full pages (`full_page`) | 1158 / 54 |
 | eligible as cropped pages (`partial_page`, resolved crop) | 236 / 4 |
 | `crop_unresolved` (`partial_page`, no crop placed) | 0 / 0 |
 | passes every gate but its coverage is not decided | 1 / 0 |
-| rejected: `text_not_on_page` | 16 |
+| rejected: `text_not_on_page` | 18 |
 | rejected: `page_text_empty` | 2 |
 
 ## Page render checks
@@ -102,7 +102,7 @@ Pages are quality-3 plus quality-4 pages.
 | מפתח:Eden Ha-Yeladim.pdf | 3 | 2 | 1 | 2 / 0 | 1 / 0 |
 | מפתח:Falaquera Sefer ha-Mevaqqesh Warsaw 1924.pdf | 1 | 1 | 0 | 1 / 0 | 0 / 0 |
 | מפתח:Hanokh-B.pdf | 1 | 1 | 0 | 1 / 0 | 0 / 0 |
-| מפתח:Hebrewbooks org 19784.pdf | 11 | 10 | 1 | 5 / 5 | 0 / 0 |
+| מפתח:Hebrewbooks org 19784.pdf | 11 | 10 | 1 | 5 / 3 | 0 / 0 |
 | מפתח:Hebrewbooks org 38168.djvu | 7 | 6 | 1 | 4 / 2 | 1 / 0 |
 | מפתח:Hebrewbooks org 9418.pdf | 2 | 2 | 0 | 2 / 0 | 0 / 0 |
 | מפתח:Hut ameshulash basheharim.pdf | 11 | 10 | 1 | 6 / 4 | 0 / 1 |
@@ -171,6 +171,8 @@ so they are not pairs. They stay listed.
 | Page | Quality | What is not on the page |
 | --- | ---: | --- |
 | עמוד:Hebrewbooks org 19784.pdf/24 | 4 | editors' additions throughout the two transcribed columns: bracketed source citations the crop does not print (Rashi on Genesis 1:1 at the end of section א, more in sections ב and ג), the expansion 'אמר רבי יצחק' where the page prints the abbreviation 'אר"י', added quotation marks and vocalised verse words; the latest text also drops the printed section letter ג. Found by the E2d3c agent check (Claude Code (claude-opus-5-5), 2026-11-07) of the pinned 960 px crop, zoomed, against the latest and the validating-revision text |
+| עמוד:Hebrewbooks org 19784.pdf/25 | 4 | editors' additions throughout: bracketed source citations the page does not print (מגילה כד, ב; במדבר לא, יז; שיר השירים ב, ט; ישעיה נא, ד), expansions of printed abbreviations (פירוש for פי', מה שכתוב for מ"ש, נוקבא for נוק'), added quotation marks, a running head the page does not print (מגיד דבריו ליעקב for the printed לקוטי אמרים), and section letters ג-ו where the page prints ד-ו (the editors open a section the page runs on). Found by the E2d3d agent check (Claude Code (claude-opus-5-5), 2026-11-07) of the pinned 960 px render, zoomed, against the page text |
+| עמוד:Hebrewbooks org 19784.pdf/8 | 4 | an editors' section heading 'הערות' above the notes, which the page does not print (it prints only a rule above them). Found by the E2d3d agent check (Claude Code (claude-opus-5-5), 2026-11-07) of the pinned 960 px render, zoomed, against the page text |
 | עמוד:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf/156 | 3 | the editors expanded the printed abbreviation of the two-word refrain to its full words on fifteen lines |
 | עמוד:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf/18 | 3 | an editor's emendation: the text gives Scripture's divine name where the print has the Tetragrammaton (the editor's note says so) |
 | עמוד:Seder Tefilot K'Minhag K.K. Sefaradim (Yosef Nachmuli, Korfu 1885).pdf/182 | 3 | an editor's emendation: the text corrects a word the print misprints (the editor's note says so) |
