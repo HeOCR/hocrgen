@@ -495,12 +495,12 @@ def test_committed_tranche_manifest_is_coherent_and_holds_no_page_text() -> None
     assert {source_id: source["item_count"] for source_id, source in manifest["sources"].items()} == {
         "knesset_committee_protocols_pre1976": 205,
         "pinkas_dataset_bgu": 30,
-        "reshumot_born_digital": 182,
+        "reshumot_born_digital": 798,
         "wikisource_he_proofread": 1455,
         "yidtaknl_vaybertaytsh_gt": 123,
     }
     assert manifest["sources"]["pinkas_dataset_bgu"]["canvas_match_verified"] == 6
-    assert manifest["sources"]["reshumot_born_digital"]["pages_passed"] == 180
+    assert manifest["sources"]["reshumot_born_digital"]["pages_passed"] == 796
     assert "not published" in manifest["hosting"]
 
 

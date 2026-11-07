@@ -1,6 +1,6 @@
 {
  "created_at": "2026-11-07",
- "file_count": 5689,
+ "file_count": 7813,
  "hosting": "not published; see docs/real_source_release_contract.md (hosting proposal, maintainer decision)",
  "inputs": {
   "knesset_capture": {
@@ -14,10 +14,18 @@
   "pinkas_manifest_sha256": "a25ce383746dbd9780e22ffad8b0a01c14a017b2c6a29ead119c6e5b91958f46",
   "pinkas_zip": "https://zenodo.org/api/records/3569694/files/pinkas_dataset.zip/content",
   "pinkas_zip_md5": "802f14fbdb400efab9cb0808c3620be8",
+  "refreshed_from": {
+   "sha256sums_sha256": "3232f52147fcbca16bbbd5098f4a645eb85b5edde80e1eceb1519f12a8f21e9a",
+   "tranche_id": "f8g2_real_tranche_v2"
+  },
   "reshumot_capture": {
    "captured_at": "2026-11-07",
    "listing_sha256": "431c44a01c8a0138cb71c3068b0e989bba9152a418f8ec93390f56a834fbaf68",
    "seed": "f8g2-tranche-v2"
+  },
+  "reshumot_method": {
+   "glyph_outline_table_sha256": "9287b1059ab3f1b1b0099b098bcb1b17dcc053f1c83cfcf3384313d4e7fb31d0",
+   "normalization": "pdf_glyph_geometry_logical.v1"
   },
   "wikisource_inventory_checked_at": "2026-11-06",
   "wikisource_page_checks": {
@@ -28,11 +36,11 @@
   "yidtaknl_matched_pages_sha256": "8341fd13b71bb54daf2c87844cfbd3e2ec59af65e46a945d0682042ff23ff0e8",
   "yidtaknl_share": "https://surfdrive.surf.nl/files/index.php/s/mov7H4wDaog4zkF"
  },
- "item_count": 1995,
+ "item_count": 2611,
  "items_path": "tranche_items.jsonl",
- "planning_notation": "F8g2",
+ "planning_notation": "F8e2",
  "schema": "hocrgen_real_tranche_manifest.v1",
- "sha256sums_sha256": "3232f52147fcbca16bbbd5098f4a645eb85b5edde80e1eceb1519f12a8f21e9a",
+ "sha256sums_sha256": "d2a1618550523f1700696aa3bee69f9c1a5483f04c6e35c7701178ed23892439",
  "sources": {
   "knesset_committee_protocols_pre1976": {
    "item_count": 205,
@@ -63,19 +71,18 @@
    }
   },
   "reshumot_born_digital": {
-   "item_count": 182,
+   "item_count": 798,
    "pages_checked": 886,
-   "pages_passed": 180,
+   "pages_passed": 796,
    "skipped": {
-    "extraction_order_not_verified": 594,
-    "pdf_not_born_digital": 112
+    "extraction_order_not_verified": 90
    },
    "snapshot": "sources/reshumot_born_digital/snapshot",
-   "snapshot_bytes": 18942225,
-   "snapshot_file_count": 548,
+   "snapshot_bytes": 141225863,
+   "snapshot_file_count": 2672,
    "snapshot_files": {
-    "sources/reshumot_born_digital/snapshot/entries.jsonl": "54ffdfa474df8050306f3f85802368bca94ba70df15bbb3cef6c0fcb627d06da",
-    "sources/reshumot_born_digital/snapshot/snapshot.yaml": "ecee0a9e4763e5465b6f6d7b2674525c59508287cf7798ff748f317ec26e0a8d"
+    "sources/reshumot_born_digital/snapshot/entries.jsonl": "87b0ecfa09c223b1cf6525825a8bbb358ceda3ad62db4189e87fd9b078389a1c",
+    "sources/reshumot_born_digital/snapshot/snapshot.yaml": "7cf4b28dc921c0044e59bf981d2e8388beea3c4d697eaf46f57577632c54ad32"
    }
   },
   "wikisource_he_proofread": {
@@ -106,6 +113,6 @@
    }
   }
  },
- "total_bytes": 910383408,
- "tranche_id": "f8g2_real_tranche_v2"
+ "total_bytes": 1032984854,
+ "tranche_id": "f8e2_real_tranche_v3"
 }

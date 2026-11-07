@@ -69,7 +69,8 @@ from hocrgen.real_tranche import (
     verify_tranche_files,
 )
 
-TRANCHE_ID = "f8g2_real_tranche_v2"
+TRANCHE_ID = "f8e2_real_tranche_v3"
+TRANCHE_NOTATION = "F8e2"
 CAPTURE_SEED = "f8g2-tranche-v2"
 USER_AGENT = "hocrgen-real-tranche/0.1 (https://github.com/HeOCR/hocrgen; operator capture)"
 SURFDRIVE_WEBDAV = "https://surfdrive.surf.nl/public.php/webdav/"
@@ -766,7 +767,7 @@ def _government_print_items(root: Path, *, source_id: str) -> list[dict[str, Any
                     "height": asset["height_px"],
                 },
                 "text": {"path": text["local_path"], "sha256": text["sha256"]} if text.get("local_path") else None,
-                "cropped": False,
+                "cropped": bool(entry.get("crop")),
                 "provenance": provenance,
             }
         )
@@ -805,7 +806,7 @@ def build_manifest(tranche_root: Path) -> tuple[dict[str, Any], list[dict[str, A
         "schema": TRANCHE_MANIFEST_SCHEMA,
         "tranche_id": descriptor["tranche_id"],
         "created_at": descriptor["created_at"],
-        "planning_notation": "F8g2",
+        "planning_notation": TRANCHE_NOTATION,
         "inputs": descriptor["inputs"],
         "item_count": len(items),
         "total_bytes": sum(path.stat().st_size for path in tranche_root.rglob("*") if path.is_file()),
@@ -816,6 +817,52 @@ def build_manifest(tranche_root: Path) -> tuple[dict[str, Any], list[dict[str, A
         "hosting": "not published; see docs/real_source_release_contract.md (hosting proposal, maintainer decision)",
     }
     return manifest, items
+
+
+def refresh_reshumot(
+    *,
+    base: Path,
+    out: Path,
+    cache: Path,
+    created_at: str,
+    captured_at: str,
+    layer_cache: Path | None = None,
+    report: Path | None = None,
+) -> dict[str, Any]:  # pragma: no cover - operator entry point (poppler, pdfminer.six)
+    """A new tranche tree from ``base`` with only the Reshumot snapshot rebuilt (F8e2).
+
+    Every other source's snapshot is copied byte for byte, with its descriptor entry; the Reshumot snapshot is
+    materialized again from the cache, and the descriptor and SHA256SUMS are rewritten under this tranche id.
+    """
+
+    import shutil
+
+    problems = verify_tranche_files(base)
+    if problems:
+        raise SystemExit(f"{base} does not match its SHA256SUMS: {problems[:5]}")
+    if out.exists() and any(out.iterdir()):
+        raise SystemExit(f"{out} is not empty")
+    descriptor = json.loads((base / TRANCHE_DESCRIPTOR).read_text(encoding="utf-8"))
+    for source_id, entry in descriptor["sources"].items():
+        if source_id != SOURCE_RESHUMOT:
+            shutil.copytree(base / entry["snapshot"], out / entry["snapshot"])
+    bundle = load_and_validate_bundle()
+    sources = {source.id: source for source in bundle.source_registry.sources}
+    results = {source_id: {key: value for key, value in entry.items() if key != "snapshot"} for source_id, entry in descriptor["sources"].items()}
+    results[SOURCE_RESHUMOT] = government_print_tranche.materialize_reshumot(
+        cache=cache, out_root=out, packaged_root=_data("reshumot/snapshot"), source=sources[SOURCE_RESHUMOT], captured_at=captured_at,
+        gate=reshumot_entry_exclusion_reasons, outline_table=_data("reshumot/glyph_outlines.json"), layer_cache=layer_cache, report=report,
+    )
+    inputs = dict(descriptor["inputs"])
+    listing = cache / "reshumot" / "booklets.jsonl"
+    inputs["reshumot_capture"] = {"listing_sha256": sha256_path(listing), "captured_at": captured_at, "seed": CAPTURE_SEED}
+    inputs["reshumot_method"] = {
+        "normalization": results[SOURCE_RESHUMOT]["method"],
+        "glyph_outline_table_sha256": sha256_path(_data("reshumot/glyph_outlines.json")),
+    }
+    inputs["refreshed_from"] = {"tranche_id": descriptor["tranche_id"], "sha256sums_sha256": sha256_path(base / TRANCHE_CHECKSUMS)}
+    write_descriptor(out, created_at=created_at, results=results, inputs=inputs)
+    return results[SOURCE_RESHUMOT]
 
 
 def write_manifest(tranche_root: Path, out_dir: Path) -> dict[str, Any]:
@@ -853,6 +900,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     materialize.add_argument("--manifest-out", type=Path, default=None, help="Also write the committed manifest here.")
     materialize.add_argument("--pinkas-checks", type=Path, default=Path(DEFAULT_PINKAS_CHECKS))
     materialize.add_argument("--government-print-captured-at", default=None, help="Capture date of the Reshumot / Knesset caches.")
+    materialize.add_argument("--reshumot-glyph-layers", type=Path, default=None, help="Folder of glyph layers extracted before (<entry id>.json), reused when the pdfminer.six version matches.")
+    materialize.add_argument("--reshumot-report", type=Path, default=None, help="Write one JSON line per captured Reshumot page (admitted, reasons, cropped) here.")
+    refresh = commands.add_parser("refresh-reshumot", help="Copy a tranche tree with only its Reshumot snapshot rebuilt (offline; poppler, pdfminer.six).")
+    refresh.add_argument("--base", type=Path, required=True, help="The materialized tranche tree to start from.")
+    refresh.add_argument("--out", type=Path, required=True, help="Empty folder outside the repo for the new tree.")
+    refresh.add_argument("--cache", type=Path, required=True)
+    refresh.add_argument("--created-at", required=True)
+    refresh.add_argument("--government-print-captured-at", required=True)
+    refresh.add_argument("--reshumot-glyph-layers", type=Path, default=None)
+    refresh.add_argument("--reshumot-report", type=Path, default=None)
+    refresh.add_argument("--manifest-out", type=Path, default=None)
     manifest = commands.add_parser("manifest", help="Write the committed manifest for a materialized tree.")
     manifest.add_argument("--tranche", type=Path, required=True)
     manifest.add_argument("--out", type=Path, default=Path("src/hocrgen/data/real_tranche"))
@@ -899,7 +957,8 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - operator e
         if (args.cache / "reshumot" / "booklets.jsonl").is_file():
             results[SOURCE_RESHUMOT] = government_print_tranche.materialize_reshumot(
                 cache=args.cache, out_root=args.out, packaged_root=_data("reshumot/snapshot"), source=sources[SOURCE_RESHUMOT],
-                captured_at=captured_at, gate=reshumot_entry_exclusion_reasons,
+                captured_at=captured_at, gate=reshumot_entry_exclusion_reasons, outline_table=_data("reshumot/glyph_outlines.json"),
+                layer_cache=args.reshumot_glyph_layers, report=args.reshumot_report,
             )
         if (args.cache / "knesset" / "documents.jsonl").is_file():
             results[SOURCE_KNESSET] = government_print_tranche.materialize_knesset(
@@ -921,7 +980,21 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - operator e
             if source_id in results:
                 listing = args.cache / name / ("booklets.jsonl" if name == "reshumot" else "documents.jsonl")
                 inputs[f"{name}_capture"] = {"listing_sha256": sha256_path(listing), "captured_at": captured_at, "seed": CAPTURE_SEED}
+        if SOURCE_RESHUMOT in results:
+            inputs["reshumot_method"] = {
+                "normalization": results[SOURCE_RESHUMOT].get("method"),
+                "glyph_outline_table_sha256": sha256_path(_data("reshumot/glyph_outlines.json")),
+            }
         write_descriptor(args.out, created_at=args.created_at, results=results, inputs=inputs)
+        if args.manifest_out:
+            manifest = write_manifest(args.out, args.manifest_out)
+            print(json.dumps({key: manifest[key] for key in ("tranche_id", "item_count", "total_bytes", "file_count")}))
+        return 0
+    if args.command == "refresh-reshumot":
+        print(json.dumps({key: value for key, value in refresh_reshumot(
+            base=args.base, out=args.out, cache=args.cache, created_at=args.created_at, captured_at=args.government_print_captured_at,
+            layer_cache=args.reshumot_glyph_layers, report=args.reshumot_report,
+        ).items() if key != "booklets"}, ensure_ascii=False))
         if args.manifest_out:
             manifest = write_manifest(args.out, args.manifest_out)
             print(json.dumps({key: manifest[key] for key in ("tranche_id", "item_count", "total_bytes", "file_count")}))

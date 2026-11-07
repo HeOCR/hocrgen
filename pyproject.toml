@@ -24,6 +24,10 @@ dev = [
   "coverage[toml]>=7.6,<8",
   "pytest>=8.2,<9",
 ]
+# Operator-only: extracting a born-digital PDF page's glyph layer (hocrgen.parsers.pdf_glyphs, F8e2). Nothing in CI needs it.
+pdf = [
+  "pdfminer.six==20250506",
+]
 
 [project.scripts]
 hocrgen = "hocrgen.cli:main"

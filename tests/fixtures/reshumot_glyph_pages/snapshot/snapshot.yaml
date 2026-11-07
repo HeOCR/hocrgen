@@ -1,0 +1,26 @@
+version: 1
+dataset: Reshumot born-digital gazette (ספר החוקים, קובץ התקנות)
+operator: Ministry of Justice, Reshumot unit (gov.il)
+landing_url: https://www.gov.il/he/departments/official_gazette
+collector_url: https://www.gov.il/he/Departments/DynamicCollectors/gazette-official
+api_search_url: https://pub-justice.openapi.gov.il/pub/moj/portal/rest/searchpredefinedapi/v1/SearchPredefinedApi/Reshumot/Search
+api_access_note: Undocumented JSON search API behind the gov.il gazette collector,
+  called with the public x-client-id embedded in that page. Automated access allowed
+  by the maintainer (F8 decision 4). Document URLs are opaque tokens, so booklet number,
+  series and date are the stable keys.
+rights_basis: 'Copyright Act 2007 section 6: no copyright in laws and regulations.
+  Admitted series: ספר החוקים (FolderType 1) and קובץ התקנות (FolderType 3). ילקוט
+  הפרסומים, bills and other series are not section-6 material and are never admitted.'
+born_digital_from: '2006-01-01'
+born_digital_note: Samples from 2006 (booklet 2061) on are Adobe InDesign PDFs; samples
+  up to 2005 are bitonal scans with an OCR layer (verification note, Source 3). The
+  exact switch booklet is unverified, so the gate also requires per-PDF born-digital
+  evidence.
+captured_at: '2026-11-07'
+capture: Pages of the F8g2 operator capture (hocrgen.tools.real_tranche capture --source
+  reshumot); raw PDFs stay in the operator cache, each entry pins the PDF sha256.
+entries_path: entries.jsonl
+scope: test_fixture
+notes: 'F8e2 test fixture: ten real pages, each exercising one rule of the glyph-layer
+  method (pdf_glyph_geometry_logical.v1); two are rejected. Not a source snapshot
+  of any profile.'

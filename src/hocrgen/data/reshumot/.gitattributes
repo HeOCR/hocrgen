@@ -1,0 +1,2 @@
+# The outline identity table is pinned by sha256 in every F8e2 entry; never normalize it.
+glyph_outlines.json -text
