@@ -20,6 +20,16 @@ and returns the corrected text with its provenance: the base revision, the appli
 the new ``text_sha256``. Proposals without an agreed outcome (undecided, short of ``min_reviewers``, or in conflict)
 are reported as pending (``audit_pending``) and leave the text as it is. A stale or inconsistent proposal fails
 closed.
+
+**Rule decisions (E2d4b, ``reference_audit_decisions.v2``).** A proposal that a maintainer-approved reference rule
+(``hocrgen.reference_rules``, e.g. ``space_before_punctuation.v1``) makes exactly may be resolved by that rule: a
+decision with ``checked_by: rule``, the ``rule`` name, its ``decision_record`` and the deterministic id
+``rule:<rule>:<proposal_id>``, and no reviewer. It counts as decided for the page state, but it is never human review:
+it adds no reviewer, never makes a reference ``human_corrected`` on its own (``rule_corrected``, or
+``human_and_rule_corrected`` beside human corrections), and is listed apart (``rule_decisions``,
+``applied_rule_decisions``). ``apply_reference_audit`` re-checks on the page text that the rule really makes the
+proposed change and fails closed otherwise. A proposal decided by a human takes no rule decision. ``v1`` files
+(human decisions only, as the review app exports them) stay valid.
 """
 from __future__ import annotations
 
@@ -31,9 +41,12 @@ from pathlib import Path
 from typing import Any, Iterable, Mapping
 
 from hocrgen.core.errors import StageExecutionError
+from hocrgen.reference_rules import REFERENCE_RULES, RULE_DECISION_RECORDS, rule_covers
 
 PROPOSALS_SCHEMA = "reference_audit_proposals.v1"
-DECISIONS_SCHEMA = "reference_audit_decisions.v1"
+DECISIONS_SCHEMA_V1 = "reference_audit_decisions.v1"  # human decisions only (the review app's export)
+DECISIONS_SCHEMA = "reference_audit_decisions.v2"  # v1 plus rule decisions (checked_by: rule)
+DECISIONS_SCHEMAS = (DECISIONS_SCHEMA_V1, DECISIONS_SCHEMA)
 CATEGORIES = ("letter_confusion", "word_join_split", "punctuation", "spacing", "missing_text", "extra_text",
               "unprinted_editors_text")
 CONFIDENCES = ("high", "medium", "low")
@@ -44,7 +57,8 @@ PROPOSAL_STATUS = "agent_proposed"
 # the uncorrected state ``two_editor_validated``).
 HUMAN_CORRECTED_ATTESTATION = "two_editor_validated_human_corrected"
 AUDIT_PENDING = "audit_pending"
-REFERENCE_AUDIT_STATES = ("not_audited", "audited_no_findings", AUDIT_PENDING, "human_corrected", "human_reviewed_unchanged")
+REFERENCE_AUDIT_STATES = ("not_audited", "audited_no_findings", AUDIT_PENDING, "human_corrected", "human_reviewed_unchanged",
+                          "rule_corrected", "human_and_rule_corrected")
 REVIEWER_ID = re.compile(r"^rv_[0-9a-z]{8}$")
 DEFAULT_MIN_REVIEWERS = 1
 _DATE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
@@ -201,16 +215,41 @@ def reviewer_id_problems(reviewer: Any) -> list[str]:
     return []
 
 
-def reference_audit_decisions_problems(payload: Mapping[str, Any], proposals: Mapping[str, Any]) -> list[str]:
-    """Every problem with a ``reference_audit_decisions.v1`` payload, checked against its (valid) proposals."""
+def rule_decision_id(rule: str, proposal_id: str) -> str:
+    return f"rule:{rule}:{proposal_id}"
 
-    if payload.get("schema_version") != DECISIONS_SCHEMA:
-        return [f"schema_version must be {DECISIONS_SCHEMA}"]
+
+def _rule_decision_problems(label: str, decision: Mapping[str, Any], version: str) -> list[str]:
+    if version != DECISIONS_SCHEMA:
+        return [f"{label}: checked_by must be human; rule decisions need {DECISIONS_SCHEMA}"]
+    problems = []
+    rule = decision.get("rule")
+    if rule not in REFERENCE_RULES:
+        return [f"{label}: rule must be one of {', '.join(REFERENCE_RULES)}"]
+    if decision.get("decision_record") != RULE_DECISION_RECORDS[rule]:
+        problems.append(f"{label}: decision_record must be {RULE_DECISION_RECORDS[rule]}")
+    if decision.get("decision_id") != rule_decision_id(rule, str(decision.get("proposal_id"))):
+        problems.append(f"{label}: a rule decision's id must be rule:<rule>:<proposal_id>")
+    if decision.get("decision") != "accepted":
+        problems.append(f"{label}: a rule decision can only be accepted")
+    if "reviewer" in decision:
+        problems.append(f"{label}: a rule decision names no reviewer; it is not human review")
+    return problems
+
+
+def reference_audit_decisions_problems(payload: Mapping[str, Any], proposals: Mapping[str, Any]) -> list[str]:
+    """Every problem with a ``reference_audit_decisions.v1``/``v2`` payload, checked against its (valid) proposals."""
+
+    version = payload.get("schema_version")
+    if version not in DECISIONS_SCHEMAS:
+        return [f"schema_version must be {' or '.join(DECISIONS_SCHEMAS)}"]
     problems = []
     if payload.get("audit_id") != proposals.get("audit_id"):
         problems.append("audit_id must match the proposals' audit_id")
     known = {proposal["proposal_id"]: proposal for proposal in proposals.get("proposals") or []}
     decided: set[tuple[str, Any]] = set()
+    by_human: set[str] = set()
+    by_rule: set[str] = set()
     ids: set[str] = set()
     decisions = payload.get("decisions")
     if not isinstance(decisions, list):
@@ -224,12 +263,15 @@ def reference_audit_decisions_problems(payload: Mapping[str, Any], proposals: Ma
             problems.append(f"{label}: decision_id listed twice")
         ids.add(did)
         pid = decision.get("proposal_id")
+        is_rule = decision.get("checked_by") == "rule"
+        who = f"rule:{decision.get('rule')}" if is_rule else decision.get("reviewer")
         if pid not in known:
             problems.append(f"{label}: proposal_id {pid!r} is not a proposal of {proposals.get('audit_id')}")
-        elif (pid, decision.get("reviewer")) in decided:
-            problems.append(f"{label}: a second decision by {decision.get('reviewer')} for {pid}; one per reviewer")
+        elif (pid, who) in decided:
+            problems.append(f"{label}: a second decision by {who} for {pid}; one per reviewer")
         else:
-            decided.add((pid, decision.get("reviewer")))
+            decided.add((pid, who))
+            (by_rule if is_rule else by_human).add(pid)
             if decision.get("item_id") not in (None, known[pid]["item_id"]):
                 problems.append(f"{label}: item_id does not match the proposal's")
         value = decision.get("decision")
@@ -242,14 +284,19 @@ def reference_audit_decisions_problems(payload: Mapping[str, Any], proposals: Ma
                 problems.append(f"{label}: an edit equal to the current text is a rejection; record rejected")
         elif "text" in decision:
             problems.append(f"{label}: only an edited decision carries text")
-        if decision.get("checked_by") != "human":
-            problems.append(f"{label}: checked_by must be human; an agent proposal is never a decision")
-        problems.extend(f"{label}: {problem}" for problem in reviewer_id_problems(decision.get("reviewer")))
+        if is_rule:
+            problems.extend(_rule_decision_problems(label, decision, version))
+        elif decision.get("checked_by") != "human":
+            problems.append(f"{label}: checked_by must be human or rule; an agent proposal is never a decision")
+        else:
+            problems.extend(f"{label}: {problem}" for problem in reviewer_id_problems(decision.get("reviewer")))
         if not (isinstance(decision.get("decided_at"), str) and _valid_date(decision["decided_at"])):
             problems.append(f"{label}: decided_at must be a YYYY-MM-DD date")
         note = decision.get("note")
         if note is not None and not isinstance(note, str):
             problems.append(f"{label}: note must be a string")
+    for pid in sorted(by_rule & by_human):
+        problems.append(f"{pid}: decided by a human and by a rule; a human decision takes no rule decision")
     return problems
 
 
@@ -302,7 +349,7 @@ class ReferenceAudit:
         for decision in (decisions or {}).get("decisions") or []:
             self.decisions.setdefault(decision["proposal_id"], []).append(decision)
         for found in self.decisions.values():
-            found.sort(key=lambda d: (d["reviewer"], d["decision_id"]))
+            found.sort(key=lambda d: (d.get("reviewer") or "", d["decision_id"]))
 
     @classmethod
     def from_files(cls, proposals_path: Path, decisions_path: Path | None = None, *,
@@ -314,10 +361,17 @@ class ReferenceAudit:
     def outcome(self, proposal: Mapping[str, Any]) -> dict[str, Any]:
         """A proposal's outcome from its decisions: ``undecided``, ``awaiting_reviewers`` (agreeing but fewer than
         ``min_reviewers``), ``conflict`` (reviewers disagree), or the agreed ``accepted``/``rejected``/``edited``
-        with its ``replacement``; always with ``reviewer_count``, ``reviewers`` and ``decision_ids``."""
+        with its ``replacement``; always with ``checked_by`` (``human`` or ``rule``), ``reviewer_count``,
+        ``reviewers`` and ``decision_ids``. A rule decision is ``accepted`` with no reviewer (``reviewer_count`` 0);
+        ``min_reviewers`` counts human reviewers only and does not apply to it."""
 
         found = self.decisions.get(proposal["proposal_id"], [])
-        base = {"reviewer_count": len(found), "reviewers": [d["reviewer"] for d in found],
+        rules = [d for d in found if d["checked_by"] == "rule"]
+        if rules:
+            (decision,) = rules  # the validator allows one rule decision per rule and none beside a human one
+            return {"checked_by": "rule", "rule": decision["rule"], "reviewer_count": 0, "reviewers": [],
+                    "decision_ids": [decision["decision_id"]], "outcome": "accepted", "replacement": proposal["proposed"]}
+        base = {"checked_by": "human", "reviewer_count": len(found), "reviewers": [d["reviewer"] for d in found],
                 "decision_ids": [d["decision_id"] for d in found], "replacement": None}
         if not found:
             return {**base, "outcome": "undecided"}
@@ -353,15 +407,21 @@ def apply_reference_audit(audit: ReferenceAudit | None, item_id: str, text: str,
     """Apply a page's agreed human-accepted and human-edited corrections, and only those, to its reference ``text``.
 
     Returns ``{"text", "state", "audit_pending", "pending_proposals", "conflicting_proposals", "applied_decisions",
-    "rejected_decisions", "min_reviewers", "provenance"}``; each ``applied_decisions`` entry records its
-    ``reviewer_count``. ``state`` is one of ``REFERENCE_AUDIT_STATES``. ``provenance`` is ``None`` unless a correction
-    was applied; then it records the base revision and text checksum, the applied decision ids in text order and
-    the corrected text's ``text_sha256``. Agent proposals alone never change the text. A page whose text is not
-    the one the proposals were made on fails closed, as does a proposal whose span no longer matches.
+    "rule_decisions", "rejected_decisions", "human_decided_spans", "min_reviewers", "provenance"}``; each
+    ``applied_decisions`` entry (human decisions only) records its ``reviewer_count``; ``rule_decisions`` lists the
+    applied rule decisions apart. ``state`` is one of ``REFERENCE_AUDIT_STATES``. ``provenance`` is ``None`` unless a
+    correction was applied; then it records the base revision and text checksum, the applied human decision ids in
+    text order (``applied_decisions``), any applied rule decision ids (``applied_rule_decisions``) and the corrected
+    text's ``text_sha256``. ``human_decided_spans`` are the ``[start, end)`` spans, in the corrected text, of every
+    proposal any human decided (applied, rejected, in conflict or awaiting more reviewers), so a later reference rule
+    leaves them as the human left them. Agent proposals alone never change the text. A page whose text is not the one the proposals
+    were made on fails closed, as does a proposal whose span no longer matches, or a rule decision the rule does not
+    make on this text.
     """
 
     unchanged = {"text": text, "audit_pending": False, "pending_proposals": [], "conflicting_proposals": [],
-                 "applied_decisions": [], "rejected_decisions": [], "provenance": None,
+                 "applied_decisions": [], "rule_decisions": [], "rejected_decisions": [], "human_decided_spans": [],
+                 "provenance": None,
                  "min_reviewers": audit.min_reviewers if audit is not None else DEFAULT_MIN_REVIEWERS}
     if audit is None or item_id not in audit.pages:
         return {**unchanged, "state": "not_audited"}
@@ -375,41 +435,117 @@ def apply_reference_audit(audit: ReferenceAudit | None, item_id: str, text: str,
     found = audit.proposals.get(item_id, [])
     if not found:
         return {**unchanged, "state": "audited_no_findings"}
-    corrections, applied, rejected, pending, conflicting = [], [], [], [], []
+    corrections, applied, by_rule, rejected, pending, conflicting = [], [], [], [], [], []
+    human_spans, shift = [], 0  # spans a human decided, in corrected-text offsets
     for proposal in found:
         problems = proposal_text_problems(proposal, text)
         if problems:
             raise StageExecutionError("; ".join(problems))
         outcome = audit.outcome(proposal)
+        start, end = proposal["start"] + shift, proposal["end"] + shift
         if outcome["outcome"] in ("undecided", "awaiting_reviewers", "conflict"):
             pending.append(proposal["proposal_id"])
             if outcome["outcome"] == "conflict":
                 conflicting.append(proposal["proposal_id"])
+            if outcome["reviewer_count"]:
+                human_spans.append([start, end])
         elif outcome["outcome"] == "rejected":
             rejected.extend(outcome["decision_ids"])
+            human_spans.append([start, end])
         else:
-            corrections.append((proposal["start"], proposal["end"], outcome["replacement"]))
+            replacement = outcome["replacement"]
+            corrections.append((proposal["start"], proposal["end"], replacement))
+            shift += len(replacement) - (proposal["end"] - proposal["start"])
             dates = [d["decided_at"] for d in audit.decisions[proposal["proposal_id"]]]
-            applied.append({"proposal_id": proposal["proposal_id"], "decision": outcome["outcome"],
-                            "decision_ids": outcome["decision_ids"], "reviewers": outcome["reviewers"],
-                            "reviewer_count": outcome["reviewer_count"], "decided_at": max(dates),
-                            "start": proposal["start"], "end": proposal["end"], "replacement": outcome["replacement"]})
+            entry = {"proposal_id": proposal["proposal_id"], "decision": outcome["outcome"],
+                     "decision_ids": outcome["decision_ids"], "reviewers": outcome["reviewers"],
+                     "reviewer_count": outcome["reviewer_count"], "decided_at": max(dates),
+                     "start": proposal["start"], "end": proposal["end"], "replacement": replacement}
+            if outcome["checked_by"] == "rule":
+                if not rule_covers(outcome["rule"], text, proposal["start"], proposal["end"], proposal["proposed"]):
+                    raise StageExecutionError(f"{proposal['proposal_id']}: decided by rule {outcome['rule']}, but the "
+                                              "rule does not make the proposed change on this text")
+                by_rule.append({**entry, "checked_by": "rule", "rule": outcome["rule"]})
+            else:
+                applied.append(entry)
+                human_spans.append([start, start + len(replacement)])
     corrected = apply_text_corrections(text, corrections)
     provenance = None
-    if applied:
+    if applied or by_rule:
         provenance = {"audit_id": audit.audit_id, "base_revision_id": page["base_revision_id"],
                       "base_text_sha256": page["base_text_sha256"], "min_reviewers": audit.min_reviewers,
                       "applied_decisions": [did for entry in applied for did in entry["decision_ids"]],
+                      **({"applied_rule_decisions": [did for entry in by_rule for did in entry["decision_ids"]]}
+                         if by_rule else {}),
                       "text_sha256": text_sha256(corrected)}
     if pending:
         state = AUDIT_PENDING
+    elif applied and by_rule:
+        state = "human_and_rule_corrected"
     elif applied:
         state = "human_corrected"
+    elif by_rule:
+        state = "rule_corrected"
     else:
         state = "human_reviewed_unchanged"
     return {"text": corrected, "state": state, "audit_pending": bool(pending), "pending_proposals": pending,
-            "conflicting_proposals": conflicting, "applied_decisions": applied, "rejected_decisions": rejected,
+            "conflicting_proposals": conflicting, "applied_decisions": applied, "rule_decisions": by_rule,
+            "rejected_decisions": rejected, "human_decided_spans": human_spans,
             "min_reviewers": audit.min_reviewers, "provenance": provenance}
+
+
+def rule_coverage(audit: ReferenceAudit, texts: Mapping[str, str], rules: Iterable[str] = REFERENCE_RULES,
+                  ) -> dict[str, list[Mapping[str, Any]]]:
+    """Per rule, the proposals still without any decision that the rule makes exactly on their page's text
+    (``texts``: item id -> the audited base text). Proposals a human or a rule already decided are left out."""
+
+    covered: dict[str, list[Mapping[str, Any]]] = {rule: [] for rule in rules}
+    for item_id, found in sorted(audit.proposals.items()):
+        if item_id not in texts:
+            continue
+        text = texts[item_id]
+        if text_sha256(text) != audit.pages[item_id]["base_text_sha256"]:
+            raise StageExecutionError(f"{item_id}: the text is not the one {audit.audit_id} audited")
+        for proposal in found:
+            if audit.decisions.get(proposal["proposal_id"]):
+                continue
+            for rule in covered:
+                if rule_covers(rule, text, proposal["start"], proposal["end"], proposal["proposed"]):
+                    covered[rule].append(proposal)
+                    break
+    return covered
+
+
+def rule_decisions_for(proposals: Iterable[Mapping[str, Any]], rule: str, decided_at: str) -> list[dict[str, Any]]:
+    """Deterministic rule decisions (``checked_by: rule``) for proposals a rule covers."""
+
+    return [{"decision_id": rule_decision_id(rule, proposal["proposal_id"]), "proposal_id": proposal["proposal_id"],
+             "item_id": proposal["item_id"], "decision": "accepted", "checked_by": "rule", "rule": rule,
+             "decision_record": RULE_DECISION_RECORDS[rule], "decided_at": decided_at}
+            for proposal in proposals]
+
+
+def merge_decisions(base: Mapping[str, Any], incoming: Mapping[str, Any], proposals: Mapping[str, Any]) -> dict[str, Any]:
+    """``base`` (v1 or v2) plus every decision of ``incoming`` (e.g. a review-app v1 export) it does not hold yet,
+    as ``reference_audit_decisions.v2``, sorted by decision id and validated. A decision id held with a different
+    content fails closed."""
+
+    if incoming.get("audit_id") != base.get("audit_id"):
+        raise StageExecutionError("the decisions to add are for another audit_id")
+    for payload in (base, incoming):
+        problems = reference_audit_decisions_problems(payload, proposals)
+        if problems:
+            raise StageExecutionError("invalid decisions: " + "; ".join(problems[:10]))
+    held = {d["decision_id"]: d for d in base["decisions"]}
+    for decision in incoming["decisions"]:
+        if decision["decision_id"] in held and held[decision["decision_id"]] != decision:
+            raise StageExecutionError(f"{decision['decision_id']}: already recorded with a different content")
+        held.setdefault(decision["decision_id"], dict(decision))
+    merged = {**base, "schema_version": DECISIONS_SCHEMA, "decisions": [held[key] for key in sorted(held)]}
+    problems = reference_audit_decisions_problems(merged, proposals)
+    if problems:
+        raise StageExecutionError("merged decisions are invalid: " + "; ".join(problems[:10]))
+    return merged
 
 
 def footnote_marks(text: str) -> list[str]:

@@ -13,6 +13,7 @@ from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.wikisource import page_plain_text, scored_page_reference
 from hocrgen.manifests.models import BenchmarkTranscriptionReferenceRecord
 from hocrgen.reference_audit import (
+    DECISIONS_SCHEMA,
     HUMAN_CORRECTED_ATTESTATION,
     ReferenceAudit,
     apply_reference_audit,
@@ -20,11 +21,15 @@ from hocrgen.reference_audit import (
     corrected_footnote_facts,
     load_reference_audit_decisions,
     load_reference_audit_proposals,
+    merge_decisions,
     reference_audit_decisions_problems,
     reference_audit_proposals_problems,
     reviewer_id_problems,
+    rule_coverage,
+    rule_decisions_for,
     text_sha256,
 )
+from hocrgen.reference_rules import RULE_DECISION_RECORDS, SPACE_BEFORE_PUNCTUATION_RULE
 from hocrgen.tools import reference_audit as audit_tool
 from hocrgen.tools.wikisource_eval_references import main as eval_refs_main
 from hocrgen.tools.wikisource_eval_references import write_eval_reference_set
@@ -96,8 +101,17 @@ def test_committed_proposals_are_agent_proposals_over_the_38_scored_pages() -> N
     assert no_findings and all(p["proposal_count"] == 0 for p in no_findings)
     assert sum(p["proposal_count"] for p in proposals["pages"]) == len(proposals["proposals"])
     decisions = load_reference_audit_decisions(DOCS / "reference_audit_decisions.json", proposals)
-    assert decisions["audit_id"] == proposals["audit_id"]
-    assert all(d["checked_by"] == "human" for d in decisions["decisions"])
+    assert decisions["audit_id"] == proposals["audit_id"] and decisions["schema_version"] == DECISIONS_SCHEMA
+    assert {d["checked_by"] for d in decisions["decisions"]} == {"human", "rule"}
+    human = [d for d in decisions["decisions"] if d["checked_by"] == "human"]
+    rule = [d for d in decisions["decisions"] if d["checked_by"] == "rule"]
+    assert all(reviewer_id_problems(d["reviewer"]) == [] for d in human)
+    # E2d4b: the maintainer's 103 accepted spacing proposals, and 13 more the rule resolves; never a reviewer on a rule
+    assert len(human) == 103 and {d["decision"] for d in human} == {"accepted"}
+    assert len(rule) == 13 and all("reviewer" not in d and d["rule"] == SPACE_BEFORE_PUNCTUATION_RULE for d in rule)
+    assert {d["decision_record"] for d in rule} == {RULE_DECISION_RECORDS[SPACE_BEFORE_PUNCTUATION_RULE]}
+    assert (DOCS.parent / RULE_DECISION_RECORDS[SPACE_BEFORE_PUNCTUATION_RULE]).is_file()
+    assert [d["decision_id"] for d in decisions["decisions"]] == sorted(d["decision_id"] for d in decisions["decisions"])
     text = json.dumps(proposals, ensure_ascii=False)
     assert "/Users/" not in text and "intermediates" not in text  # no operator paths, no crops
 
@@ -259,7 +273,9 @@ def test_scored_page_reference_applies_decisions_only_when_given_an_audit(seliho
 def test_audit_tool_validates_and_checks_spans_against_a_snapshot(tmp_path: Path, selihot_proposals: dict, capsys) -> None:
     assert audit_tool.main([]) == 0
     summary = json.loads(capsys.readouterr().out)
-    assert summary["pages"] == 38 and summary["undecided_proposals"] == summary["proposals"]
+    assert summary["pages"] == 38 and summary["decisions"] == {"accepted": 103} and summary["reviewers"] == 1
+    assert summary["rule_decisions"] == {SPACE_BEFORE_PUNCTUATION_RULE: 13} and summary["human_decided_proposals"] == 103
+    assert summary["undecided_proposals"] == summary["proposals"] - 103 - 13
     proposals = _write(tmp_path, "proposals.json", selihot_proposals)
     decisions = _write(tmp_path, "decisions.json", _decisions(_decision("p-1", "rejected")))
     assert audit_tool.main(["--proposals", str(proposals), "--decisions", str(decisions), "--snapshot-root", str(SNAPSHOT)]) == 0
@@ -313,3 +329,301 @@ def test_crop_export_bundle_for_a_review_app(tmp_path: Path, selihot_proposals: 
         audit_tool.main(["--proposals", str(proposals), "--export-dir", str(out), "--page-images", str(images)])
     with pytest.raises(StageExecutionError, match="no page image"):
         audit_tool.main(["--proposals", str(proposals), "--export-dir", str(tmp_path / "y"), "--page-images", str(tmp_path)])
+
+
+# --- E2d4b: rule decisions and the always-on reference rule ---------------------------------------------------------
+
+RULE = SPACE_BEFORE_PUNCTUATION_RULE
+RULE_RECORD = RULE_DECISION_RECORDS[RULE]
+RULE_TEXT = "ודונג ,אם בעיר .ובשנת ועוד מלה אחת"
+RULE_ITEM = "wikisource_he_proofread:rule_test__p0001"
+
+
+def _rule_proposals() -> dict:
+    """r-1 (' ,' -> ', ') is what the rule does; r-2 (' .' -> ', ', the print has a comma) and r-3 are not."""
+
+    def one(pid: str, needle: str, proposed: str, category: str = "spacing") -> dict:
+        start = RULE_TEXT.index(needle)
+        end = start + len(needle)
+        return {"proposal_id": pid, "item_id": RULE_ITEM, "start": start, "end": end, "current": needle,
+                "proposed": proposed, "context_before": RULE_TEXT[max(0, start - 4):start],
+                "context_after": RULE_TEXT[end:end + 4], "category": category, "confidence": "high",
+                "region": {"coordinate_frame": "page", "box_normalized": [0.1, 0.2, 0.5, 0.3]}, "note": "n",
+                "status": "agent_proposed", "checked_by": "agent"}
+
+    proposals = [one("r-1", " ,", ", "), one("r-2", " .", ", ", "punctuation"), one("r-3", "מלה", "מילה", "letter_confusion")]
+    return {"schema_version": "reference_audit_proposals.v1", "audit_id": "e2d4_test", "checked_by": "agent",
+            "checker": "test agent", "proposed_at": "2026-11-07",
+            "pages": [{"item_id": RULE_ITEM, "page_title": "t", "reference_text_revision": "latest", "base_revision_id": 1,
+                       "base_text_sha256": text_sha256(RULE_TEXT), "image_sha256": "0" * 64,
+                       "audit_status": "audited_with_findings", "proposal_count": 3, "text_not_on_page_candidate": None}],
+            "proposals": proposals}
+
+
+def _rule_decision(pid: str, item_id: str = RULE_ITEM, **extra) -> dict:
+    return {**rule_decisions_for([{"proposal_id": pid, "item_id": item_id}], RULE, "2026-11-07")[0], **extra}
+
+
+def _v2(*decisions: dict) -> dict:
+    return {**_decisions(*decisions), "schema_version": DECISIONS_SCHEMA}
+
+
+def test_rule_decisions_are_v2_deterministic_and_never_human_review() -> None:
+    proposals = _rule_proposals()
+    good = _rule_decision("r-1")
+    assert good == {"decision_id": f"rule:{RULE}:r-1", "proposal_id": "r-1", "item_id": RULE_ITEM, "decision": "accepted",
+                    "checked_by": "rule", "rule": RULE, "decision_record": RULE_RECORD, "decided_at": "2026-11-07"}
+    assert reference_audit_decisions_problems(_v2(good), proposals) == []
+    assert reference_audit_decisions_problems(_v2(good, {**_decision("r-2", "rejected"), "item_id": RULE_ITEM}), proposals) == []
+    assert any("rule decisions need reference_audit_decisions.v2" in problem
+               for problem in reference_audit_decisions_problems(_decisions(good), proposals))  # v1 is human-only
+    cases = [
+        ({**good, "rule": "nope.v1"}, "rule must be one of"),
+        ({**good, "decision_record": "planning/decisions/other.md"}, "decision_record must be"),
+        ({**good, "decision_id": "rule:r-1"}, "rule:<rule>:<proposal_id>"),
+        ({**good, "decision": "rejected"}, "can only be accepted"),
+        ({**good, "reviewer": RV1}, "names no reviewer"),
+        ({**good, "checked_by": "agent"}, "checked_by must be human or rule"),
+    ]
+    for decision, message in cases:
+        assert any(message in problem for problem in reference_audit_decisions_problems(_v2(decision), proposals)), message
+    both = _v2(good, {**_decision("r-1", "accepted"), "item_id": RULE_ITEM})
+    assert any("decided by a human and by a rule" in problem for problem in reference_audit_decisions_problems(both, proposals))
+    assert any("one per reviewer" in problem for problem in reference_audit_decisions_problems(
+        _v2(good, {**good, "decision_id": "x"}), proposals))
+
+
+def test_a_rule_decision_applies_counts_as_decided_and_stays_apart_from_human_review() -> None:
+    proposals = _rule_proposals()
+    human = lambda pid, value: {**_decision(pid, value), "item_id": RULE_ITEM}  # noqa: E731
+    only_rule = apply_reference_audit(ReferenceAudit(proposals, _v2(_rule_decision("r-1"))), RULE_ITEM, RULE_TEXT)
+    assert only_rule["text"] == RULE_TEXT.replace(" ,", ", ", 1)
+    assert only_rule["state"] == "audit_pending" and only_rule["pending_proposals"] == ["r-2", "r-3"]
+    assert only_rule["applied_decisions"] == [] and [e["proposal_id"] for e in only_rule["rule_decisions"]] == ["r-1"]
+    assert only_rule["rule_decisions"][0]["reviewer_count"] == 0 and only_rule["rule_decisions"][0]["checked_by"] == "rule"
+    assert only_rule["provenance"]["applied_decisions"] == []
+    assert only_rule["provenance"]["applied_rule_decisions"] == [f"rule:{RULE}:r-1"]
+
+    rule_and_rejections = _v2(_rule_decision("r-1"), human("r-2", "rejected"), human("r-3", "rejected"))
+    applied = apply_reference_audit(ReferenceAudit(proposals, rule_and_rejections), RULE_ITEM, RULE_TEXT)
+    assert applied["state"] == "rule_corrected" and not applied["audit_pending"]  # not human_corrected
+    # human-decided spans, in the corrected text: the rule leaves them as the human left them
+    assert [applied["text"][a:b] for a, b in applied["human_decided_spans"]] == [" .", "מלה"]
+
+    both = _v2(_rule_decision("r-1"), human("r-2", "rejected"), human("r-3", "accepted"))
+    applied = apply_reference_audit(ReferenceAudit(proposals, both, min_reviewers=2), RULE_ITEM, RULE_TEXT)
+    assert applied["state"] == "audit_pending" and applied["pending_proposals"] == ["r-2", "r-3"]  # humans only
+    assert [e["proposal_id"] for e in applied["rule_decisions"]] == ["r-1"]  # min_reviewers does not hold a rule back
+    applied = apply_reference_audit(ReferenceAudit(proposals, both), RULE_ITEM, RULE_TEXT)
+    assert applied["state"] == "human_and_rule_corrected"
+    assert applied["text"] == "ודונג, אם בעיר .ובשנת ועוד מילה אחת"
+    assert [a["reviewers"] for a in applied["applied_decisions"]] == [[RV1]]
+    assert [applied["text"][a:b] for a, b in applied["human_decided_spans"]] == [" .", "מילה"]
+    # a rule decision the rule does not make on this text fails closed
+    with pytest.raises(StageExecutionError, match="does not make the proposed change"):
+        apply_reference_audit(ReferenceAudit(proposals, _v2(_rule_decision("r-2"))), RULE_ITEM, RULE_TEXT)
+
+
+def test_rule_coverage_lists_only_undecided_proposals_the_rule_makes() -> None:
+    proposals = _rule_proposals()
+    covered = rule_coverage(ReferenceAudit(proposals), {RULE_ITEM: RULE_TEXT})
+    assert [p["proposal_id"] for p in covered[RULE]] == ["r-1"]
+    decided = ReferenceAudit(proposals, _decisions({**_decision("r-1", "rejected"), "item_id": RULE_ITEM}))
+    assert rule_coverage(decided, {RULE_ITEM: RULE_TEXT}) == {RULE: []}
+    with pytest.raises(StageExecutionError, match="not the one"):
+        rule_coverage(ReferenceAudit(proposals), {RULE_ITEM: RULE_TEXT + " "})
+
+
+def test_merging_a_review_app_export_is_validated_and_idempotent() -> None:
+    proposals = _rule_proposals()
+    base = _v2(_rule_decision("r-1"))
+    export = _decisions({**_decision("r-2", "rejected"), "item_id": RULE_ITEM})
+    merged = merge_decisions(base, export, proposals)
+    assert merged["schema_version"] == DECISIONS_SCHEMA
+    assert [d["decision_id"] for d in merged["decisions"]] == [f"decision:r-2:{RV1}", f"rule:{RULE}:r-1"]
+    assert merge_decisions(merged, export, proposals) == merged
+    changed = _decisions({**_decision("r-2", "accepted"), "item_id": RULE_ITEM})
+    with pytest.raises(StageExecutionError, match="different content"):
+        merge_decisions(merged, changed, proposals)
+    with pytest.raises(StageExecutionError, match="decided by a human and by a rule"):
+        merge_decisions(base, _decisions({**_decision("r-1", "accepted"), "item_id": RULE_ITEM}), proposals)
+    with pytest.raises(StageExecutionError, match="another audit_id"):
+        merge_decisions(base, {**export, "audit_id": "other"}, proposals)
+
+
+def test_audit_tool_merges_exports_and_writes_rule_decisions(tmp_path: Path, selihot_proposals: dict, capsys) -> None:
+    proposals = _write(tmp_path, "proposals.json", selihot_proposals)
+    decisions = _write(tmp_path, "decisions.json", _decisions())
+    export = _write(tmp_path, "export.json", _decisions(_decision("p-1", "accepted")))
+    assert audit_tool.main(["--proposals", str(proposals), "--decisions", str(decisions), "--add-decisions", str(export)]) == 0
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["decisions_added"] == 1 and summary["human_decided_proposals"] == 1 and summary["undecided_proposals"] == 2
+    written = json.loads(decisions.read_text(encoding="utf-8"))
+    assert written["schema_version"] == DECISIONS_SCHEMA and len(written["decisions"]) == 1
+    assert audit_tool.main(["--proposals", str(proposals), "--decisions", str(decisions), "--rule-coverage",
+                            "--write-rule-decisions", "--snapshot-root", str(SNAPSHOT)]) == 0
+    summary = json.loads(capsys.readouterr().out)
+    assert summary["rule_coverage"] == {RULE: {"proposals": 0, "proposal_ids": [], "by_category": {}}}  # nothing to fix
+    assert summary["rule_decisions_written"] == 0
+    with pytest.raises(StageExecutionError, match="needs --snapshot-root"):
+        audit_tool.main(["--proposals", str(proposals), "--rule-coverage"])
+    with pytest.raises(StageExecutionError, match="needs --rule-coverage"):
+        audit_tool.main(["--proposals", str(proposals), "--write-rule-decisions"])
+    with pytest.raises(StageExecutionError, match="needs --decisions"):
+        audit_tool.main(["--proposals", str(proposals), "--add-decisions", str(export)])
+
+
+def test_the_app_bundle_skips_proposals_a_human_or_the_rule_decided(tmp_path: Path, selihot_proposals: dict) -> None:
+    page = _selihot()
+    images = tmp_path / "images"
+    images.mkdir()
+    (images / f"{page['source_item_id']}.jpg").write_bytes((SNAPSHOT / page["image"]["path"]).read_bytes())
+    proposals = _write(tmp_path, "proposals.json", selihot_proposals)
+    decisions = _write(tmp_path, "decisions.json", _v2(_decision("p-1", "rejected"), _rule_decision("p-2", SELIHOT)))
+    out = tmp_path / "bundle"
+    assert audit_tool.main(["--proposals", str(proposals), "--decisions", str(decisions), "--export-dir", str(out),
+                            "--page-images", str(images)]) == 0
+    index = json.loads((out / "crops.json").read_text(encoding="utf-8"))
+    assert [c["proposal_id"] for c in index["crops"]] == ["p-3"] and index["skipped_decided"] == {"human": 1, "rule": 1}
+    bundled = load_reference_audit_proposals(out / "proposals.json")
+    assert [p["proposal_id"] for p in bundled["proposals"]] == ["p-3"] and bundled["pages"][0]["proposal_count"] == 1
+    assert index["source_proposals_sha256"] == hashlib.sha256(proposals.read_bytes()).hexdigest()
+
+
+def _snapshot_with_stray_spaces(tmp_path: Path) -> tuple[Path, dict[str, tuple[str, str]]]:
+    """A copy of the packaged snapshot with a stray space before a mark on the Selihot page (quality 4) and on the
+    Toldoth page (quality 3), every pin recomputed; returns the root and item -> (edited text, original text)."""
+    import shutil
+
+    from hocrgen.fetchers.wikisource import derive_page_text, page_transclusions
+
+    root = tmp_path / "snapshot"
+    shutil.copytree(SNAPSHOT, root)
+    edits = {"selihot_baer_1885__p0034": ("לָמוֹ. וְעֵינֵיהֶם", "לָמוֹ .וְעֵינֵיהֶם"),
+             "hyman_toldoth_1910_vol1__p0041": ("בשבת, אך", "בשבת ,אך")}
+    pages = [json.loads(line) for line in (root / "pages.jsonl").read_text(encoding="utf-8").splitlines()]
+    texts = {}
+    for page in pages:
+        if page["source_item_id"] not in edits:
+            continue
+        original = page_plain_text(page, root)
+        old, new = edits[page["source_item_id"]]
+        path = root / page["wikitext_path"]
+        wikitext = path.read_text(encoding="utf-8")
+        assert wikitext.count(old) == 1
+        wikitext = wikitext.replace(old, new)
+        path.write_text(wikitext, encoding="utf-8")
+        derived = derive_page_text(wikitext, page_transclusions(page, root), page)
+        page["wikitext_sha256"] = hashlib.sha256(wikitext.encode("utf-8")).hexdigest()
+        page["text_sha256"] = text_sha256(derived.text)
+        page["text_adjustments"] = derived.adjustments
+        if page.get("quality_set_text_sha256"):
+            page["quality_set_text_sha256"] = (derived.adjustments or {}).get("converted_text_sha256") or page["text_sha256"]
+        (root / page["text_path"]).write_text(derived.text + "\n", encoding="utf-8")
+        texts[f"{SOURCE}:{page['source_item_id']}"] = (derived.text, original)
+    (root / "pages.jsonl").write_text("".join(json.dumps(page, ensure_ascii=False) + "\n" for page in pages), encoding="utf-8")
+    return root, texts
+
+
+def test_eval_references_apply_the_rule_on_both_strata_after_the_audit(tmp_path: Path) -> None:
+    root, texts = _snapshot_with_stray_spaces(tmp_path)
+    hyman = f"{SOURCE}:hyman_toldoth_1910_vol1__p0041"
+    selihot_text, selihot_original = texts[SELIHOT]
+    summary = write_eval_reference_set(root, tmp_path / "rules", reference_manifest_id="e2d4b_test")
+    assert summary["counts"]["reference_rule_fixes"] == {"adjudicated": 1, "single_reviewer": 1}
+    assert summary["reference_rules"]["rules"] == [RULE] and summary["reference_rules"]["items_changed"] == 2
+    record = BenchmarkTranscriptionReferenceRecord.model_validate_json(
+        (tmp_path / "rules/references/selihot_baer_1885__p0034/transcription.json").read_text(encoding="utf-8"))
+    assert record.pages[0].text == selihot_original  # the rule restores what the print has
+    assert record.review.reviewers == ["wikisource:Neriah", "wikisource:Nahum"]  # a rule adds no reviewer
+    assert "mechanical reference rules" in record.review.change_reason
+    adjudication = json.loads((tmp_path / "rules/references/selihot_baer_1885__p0034/adjudication.json").read_text("utf-8"))
+    assert adjudication["reference_rules"]["applied"] == [{"rule": RULE, "fixes": 1}]
+    assert adjudication["reference_rules"]["decision_records"] == [RULE_RECORD]
+    assert adjudication["reference_rules"]["text_sha256_before"] == text_sha256(selihot_text)
+    assert adjudication["text_sha256"] == text_sha256(selihot_original)
+    (entry,) = [item for item in summary["items"] if item["item_id"] == SELIHOT]
+    assert entry["reference_rules_applied"] == [{"rule": RULE, "fixes": 1}]
+    lines = {json.loads(line)["item_id"]: json.loads(line)
+             for line in (tmp_path / "rules/single_reviewer_texts.jsonl").read_text("utf-8").splitlines()}
+    assert lines[hyman]["text"] == texts[hyman][1] and lines[hyman]["reference_rules_applied"] == [{"rule": RULE, "fixes": 1}]
+    off = write_eval_reference_set(root, tmp_path / "off", reference_manifest_id="e2d4b_test", reference_rules=())
+    assert "reference_rule_fixes" not in off["counts"] and "reference_rules" not in off
+    record = BenchmarkTranscriptionReferenceRecord.model_validate_json(
+        (tmp_path / "off/references/selihot_baer_1885__p0034/transcription.json").read_text(encoding="utf-8"))
+    assert record.pages[0].text == selihot_text
+    assert eval_refs_main([str(root), str(tmp_path / "cli"), "--no-reference-rules"]) == 0
+
+    # The audit: proposal offsets are on the unnormalized text; the audit applies first, then the rule.
+    page = next(json.loads(line) for line in (root / "pages.jsonl").read_text(encoding="utf-8").splitlines()
+                if json.loads(line)["source_item_id"] == "selihot_baer_1885__p0034")
+    payload = {"schema_version": "reference_audit_proposals.v1", "audit_id": "e2d4_test", "checked_by": "agent",
+               "checker": "test agent", "proposed_at": "2026-11-07",
+               "pages": [{"item_id": SELIHOT, "page_title": page["page_title"], "reference_text_revision": "latest",
+                          "base_revision_id": page["revision_id"], "base_text_sha256": text_sha256(selihot_text),
+                          "image_sha256": page["image"]["sha256"], "audit_status": "audited_with_findings",
+                          "proposal_count": 2, "text_not_on_page_candidate": None}],
+               "proposals": [_proposal(selihot_text, "s-1", " .", ". ", category="spacing"),
+                             _proposal(selihot_text, "p-1", "מוּסָר", "מוּסָר,")]}
+    proposals = _write(tmp_path, "rule_proposals.json", payload)
+
+    def build(name: str, decisions: dict) -> tuple[dict, dict, str]:
+        out = write_eval_reference_set(root, tmp_path / name, reference_manifest_id="e2d4b_test", audit_proposals=proposals,
+                                       audit_decisions=_write(tmp_path, f"{name}.json", decisions), include={SELIHOT})
+        (item,) = out["items"]
+        text = BenchmarkTranscriptionReferenceRecord.model_validate_json(
+            (tmp_path / name / "references/selihot_baer_1885__p0034/transcription.json").read_text("utf-8")).pages[0].text
+        return out, item, text
+
+    # a rule decision on s-1 and a human accept on p-1: both decided, but only p-1 is human review
+    out, item, text = build("ruled", _v2(_rule_decision("s-1", SELIHOT), _decision("p-1", "accepted")))
+    assert item["reference_audit_state"] == "human_and_rule_corrected" and not item["audit_pending"]
+    assert item["audit_rule_decided_proposals"] == 1 and item["human_attestation"] == HUMAN_CORRECTED_ATTESTATION
+    assert item["reference_rules_applied"] == [{"rule": RULE, "fixes": 0}]  # the rule decision already fixed it
+    assert text == selihot_original.replace("מוּסָר", "מוּסָר,", 1)
+    assert out["counts"]["human_corrected"] == 1 and out["counts"]["audit_rule_decided_proposals"] == 1
+    # only the rule decision: decided, corrected, but not human-corrected and no heocr reviewer
+    out, item, text = build("rule_only", _v2(_rule_decision("s-1", SELIHOT), _decision("p-1", "rejected")))
+    assert item["reference_audit_state"] == "rule_corrected" and item["human_attestation"] == "two_editor_validated"
+    assert out["counts"]["human_corrected"] == 0 and text == selihot_original
+    assert item["reference_audit_provenance"]["applied_rule_decisions"] == [f"rule:{RULE}:s-1"]
+    adjudication = json.loads((tmp_path / "rule_only/references/selihot_baer_1885__p0034/adjudication.json").read_text("utf-8"))
+    assert adjudication["reference_audit"]["rule_decisions"][0]["rule"] == RULE
+    record = BenchmarkTranscriptionReferenceRecord.model_validate_json(
+        (tmp_path / "rule_only/references/selihot_baer_1885__p0034/transcription.json").read_text("utf-8"))
+    assert record.review.reviewers == ["wikisource:Neriah", "wikisource:Nahum"]  # no heocr: reviewer for a rule
+    assert "rule decisions (not human review)" in record.review.change_reason
+    # a human rejection of the very fix: the always-on rule leaves the span as the human left it
+    out, item, text = build("rejected", _decisions(_decision("s-1", "rejected"), _decision("p-1", "rejected")))
+    assert item["reference_audit_state"] == "human_reviewed_unchanged" and text == selihot_text
+    assert item["reference_rules_applied"] == [{"rule": RULE, "fixes": 0, "skipped_protected": 1}]
+    # undecided: the rule still fixes it, and the proposal stays pending
+    out, item, text = build("pending", _decisions())
+    assert item["reference_audit_state"] == "audit_pending" and text == selihot_original
+    assert item["reference_rules_applied"] == [{"rule": RULE, "fixes": 1}]
+
+
+def test_the_rule_keeps_excluded_spans_on_their_words(tmp_path: Path) -> None:
+    from hocrgen.reference_evaluation import reference_text
+
+    root, texts = _snapshot_with_stray_spaces(tmp_path)
+    text = texts[SELIHOT][0]
+    lines = (root / "pages.jsonl").read_text(encoding="utf-8").splitlines()
+    pages = [json.loads(line) for line in lines]
+    word = "תְּחִנָּה"
+    for page in pages:
+        if f"{SOURCE}:{page['source_item_id']}" == SELIHOT:
+            start = text.index(word)
+            page["excluded_spans"] = {"text_sha256": page["text_sha256"], "spans": [{
+                "kind": "illegible_on_scan", "start": start, "end": start + len(word),
+                "regions_normalized": [[0.2, 0.3, 0.6, 0.35]], "detail": "an ink blot covers the word",
+                "checked_by": "agent", "checker": "a", "checked_at": "2026-11-06"}]}
+    (root / "pages.jsonl").write_text("".join(json.dumps(page, ensure_ascii=False) + "\n" for page in pages), encoding="utf-8")
+    summary = write_eval_reference_set(root, tmp_path / "set", reference_manifest_id="e2d4b_test", include={SELIHOT})
+    assert summary["counts"]["reference_rule_fixes"]["adjudicated"] == 1
+    record = BenchmarkTranscriptionReferenceRecord.model_validate_json(
+        (tmp_path / "set/references/selihot_baer_1885__p0034/transcription.json").read_text(encoding="utf-8"))
+    (span,) = record.spans
+    line = next(line for line in record.lines if line.line_id == span.line_id)
+    assert line.text[span.start:span.end] == word  # moved with the fix before it
+    assert reference_text(record).count(word) == text.count(word) - 1  # and still excluded from scoring
