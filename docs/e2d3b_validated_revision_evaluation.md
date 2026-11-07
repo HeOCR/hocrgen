@@ -4,7 +4,7 @@ Date: 2026-11-07, on the F8g2 tranche v2. Plan: [`planning/tasks/e2d-real-scan-e
 
 This document **supersedes the all-pages results of [E2d3](./e2d3_real_printed_evaluation.md)**. E2d3's validation + test results are unchanged, because no new page falls in those splits. Everything else in E2d3 still holds: the method, the book (cluster) bootstrap, the release splits and the quality-3 stratum.
 
-> **[E2d3c](#e2d3c-two-pool-corrections) corrects the pool to 40 pages** (one paragraph-break page admitted; Hebrewbooks 19784 p. 24 is `text_not_on_page`). Its numbers supersede the all-pages headline below; validation + test is unchanged.
+> **[E2d3c](#e2d3c-two-pool-corrections) corrects the pool to 40 pages** (one paragraph-break page admitted; Hebrewbooks 19784 p. 24 is `text_not_on_page`). **[E2d3d](#e2d3d-the-hebrewbooks-19784-pages) then removes two more Hebrewbooks 19784 pages: 38 pages, validation + test 8.** The E2d3d numbers supersede both earlier headlines.
 
 All numbers are aggregates. No page text appears here. The references, the pinned validating-revision wikitext and the predictions stay operator-only.
 
@@ -182,3 +182,86 @@ Hebrewbooks 19784 holds 81% of the validation + test characters. Part of every e
 - **Manifest.** `e2d3c_wikisource_printed_v4`: sha256 `1e2344a0…`, children `7de3dfa5…`. The 39 E2d3b child references are byte-identical.
 - **Predictions.** They are E2d3b's, plus E2d3b's runs on p. 12 from `predictions_new/`. Nothing was re-run. The prediction sets are Tesseract `617d3d2c…`, R3d `4e683a01…`, R3g `e6808361…`, R3h `9314cbcb…` and R3h + blla `6677a6bf…`.
 - **Leakage.** It was re-run over the 183 texts: 0 pages excluded and 0 flagged; the largest 3-gram share is 0.9%.
+
+## E2d3d: the Hebrewbooks 19784 pages
+
+Date: 2026-11-07, at the team lead's request. It follows up the E2d3c finding.
+
+### The check
+
+Each of the 5 scored pages of Hebrewbooks 19784 was checked. Every scored page of this book is in the release `test` split.
+
+- **Method.** The pinned 960 px render was read in enlarged column crops against the page's reference text. This is the same check as for p. 24.
+- **The question.** Does the text hold editors' text that the page does not print?
+  - bracketed citations;
+  - expanded abbreviations;
+  - added quotation marks or vowel points;
+  - a section letter or heading that differs from the print.
+- **The rule.** Decision #130.1: such a page becomes `text_not_on_page` in `docs/wikisource_page_checks.json` and leaves the pool.
+- **Not done.** No reference text was edited or corrected. Plain misreadings seen in passing are left to the reference audit, which awaits maintainer approval.
+
+| Page | Content | Verdict | Reason |
+| --- | --- | --- | --- |
+| p. 1 | title page | stays | The text follows the print line by line. The publisher's logo and the digitization stamp are not transcribed, and both are outside the body. |
+| p. 2 | contents and copyright | stays | The text follows the print. Its bracketed (מהוריי"צ) and the telephone numbers are printed. |
+| p. 8 | end of the publishers' note, with two notes | **`text_not_on_page`** | The text adds a heading, הערות, above the notes. The page prints only a rule there. |
+| p. 18 | the book's introduction | stays | The text follows the print. Abbreviations stay as printed (ע"י, מוהר"ר, ית', ח"ו), with no citations and no added quotation marks. |
+| p. 25 | *Likutei Amarim*, sections ד–ו | **`text_not_on_page`** | See below. |
+
+On p. 25 the editors' text runs through the whole page:
+- bracketed citations the page does not print, such as (מגילה כד, ב) three times, (במדבר לא, יז), (שיר השירים ב, ט) and (ישעיה נא, ד);
+- expansions of printed abbreviations: פירוש for פי', מה שכתוב for מ"ש, and נוקבא for נוק';
+- added quotation marks;
+- a running head the page does not print (מגיד דבריו ליעקב for the printed לקוטי אמרים);
+- section letters ג–ו where the page prints ד–ו, with the editors opening a section that the page runs on.
+
+### A systematic convention
+
+The book's text follows one convention in the *Likutei Amarim* body and another in the front matter.
+
+- **The body (pp. 24 and 25).** The editors produce a modern annotated text: source citations in brackets, expanded abbreviations, quotation marks around quoted passages, vocalised verses, and their own section numbering and running head. Every body page of this book is likely to carry it.
+- **The front matter (pp. 1, 2, 8 and 18).** It follows the print, apart from p. 8's heading.
+- **What was built for it.** Nothing.
+- **What was not checked.** The book's three quality-3 pages in the diagnostic stratum (pp. 3, 16 and 20) are not scored, and they were not checked.
+
+### In the tranche
+
+The committed tranche is now v4 (F8e3), and its Wikisource snapshot is v3's byte for byte. Applying the committed checks to those page records rejects exactly pp. 8, 24 and 25 (`text_not_on_page`), and no other page. The tranche still lists them; the next build of its Wikisource snapshot drops them.
+
+The eval snapshot predates the check. So the run holds out pp. 8 and 25 by item id, with the reason, through the existing `--hold-out`; leakage held out nothing.
+
+### Results (`primary.v1` CER, 95% intervals, 2,000 resamples, seed 20261106)
+
+| Engine | E2d3c, 40 pages | **E2d3d, 38 pages (14 books)** | Page | Book | E2d3c val + test, 10 pages | **E2d3d val + test, 8 pages** | Page | Book |
+| --- | ---: | ---: | --- | --- | ---: | ---: | --- | --- |
+| Tesseract 5.5.3 `heb`, psm 3 | 0.231 | **0.237** | [0.173, 0.300] | [0.149, 0.364] | 0.212 | **0.257** | [0.121, 0.508] | [0.178, 0.325] |
+| R3d + R4d + A1 | 0.891 | **0.901** | [0.870, 0.938] | [0.855, 0.957] | 0.777 | **0.808** | [0.774, 0.869] | [0.764, 0.873] |
+| R3g + R4d + A1 | 0.886 | **0.896** | [0.863, 0.933] | [0.846, 0.956] | 0.761 | **0.783** | [0.743, 0.837] | [0.697, 0.855] |
+| R3h + R4d + A1 | 0.889 | **0.898** | [0.866, 0.935] | [0.847, 0.958] | 0.759 | **0.779** | [0.741, 0.829] | [0.721, 0.852] |
+| R3h + blla (diagnostic) | 0.583 | **0.578** | [0.500, 0.642] | [0.401, 0.671] | 0.637 | **0.613** | [0.519, 0.671] | [0.477, 0.654] |
+
+- **The pool.**
+  - It is 38 pages with 50,399 reference characters. Hyman I holds 34%.
+  - The splits are 30 `train` / 5 `validation` / **3 `test`**.
+  - Validation + test is 8 pages from 5 books, with 4,839 characters. Hebrewbooks 19784 holds 70% of those characters.
+- **Why CER rises.** The two removed pages were easy for Tesseract (p. 8 0.114, p. 25 0.145), even with the added text. The remaining three pages are harder: p. 1 0.492, p. 2 0.599 (with an English block) and p. 18 0.082.
+- **No conclusion changes.**
+  - R3h − Tesseract is +0.662: page [+0.605, +0.720], book [+0.548, +0.753]. R3h is worse on 38 of 38 pages.
+  - R3h − R3d is −0.003: page [−0.008, +0.002].
+  - R3g − R3d is −0.005: page [−0.010, −0.000], book [−0.011, +0.001].
+  - R3h + blla − R3h + R4d + A1 is −0.321: page [−0.392, −0.261], book [−0.488, −0.222].
+
+### The validation + test set is now too small
+
+- **The `test` split.** It is 3 pages of one book: a title page, a contents and copyright page, and one introduction page (3,372 characters).
+- **Validation + test.** It is 8 pages from 5 books. Its page interval for Tesseract spans [0.121, 0.508].
+- **What it supports.** Neither split can carry a held-out result for a model trained on the release. They are reported here as a diagnostic.
+- **The splits.** They were not rebalanced. Any change is a release-split decision, proposed to the team lead.
+
+### Reproduction
+
+- **Operator scripts.** They are in `tasks/real-source-mapping/intermediates/e2d3d/scripts/`. They are E2d3c's with paths and counts updated, plus `e2d3d_strips.py` (the review crops) and `e2d3d_tranche_check.py`.
+- **References.** The command is E2d3c's, with `--hold-out hold_out.json` naming pp. 8 and 25 and `--reference-manifest-id e2d3d_wikisource_printed_v5`.
+- **Manifest.** sha256 `c0682e82…`, children `5a13400f…`. The 38 child references are byte-identical to E2d3c's.
+- **Predictions.** They are E2d3c's, unchanged; the prediction set checksums are the same.
+- **Leakage.** It was re-run over the 181 texts: 0 excluded and 0 flagged.
