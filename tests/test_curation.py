@@ -265,7 +265,7 @@ def test_size_aware_split_reaches_the_holdouts_in_a_stratum_of_singletons() -> N
 
     splits = [item.split for item in outputs.retained_items]
     assert (splits.count("train"), splits.count("validation"), splits.count("test")) == (8, 1, 1)
-    assert outputs.leakage_report["split_assignment"]["algorithm"] == "size_aware_group_split.v1"
+    assert outputs.leakage_report["split_assignment"]["algorithm"] == "size_aware_group_split.v2"
 
 
 def test_validate_leakage_skips_items_without_split_metadata() -> None:

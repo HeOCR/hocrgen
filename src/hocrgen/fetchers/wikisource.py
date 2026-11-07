@@ -905,6 +905,109 @@ def derive_validated_page_text(wikitext: str, transclusions: dict[str, str], pag
     return derived
 
 
+# --- E2d3e: the page set the E2d3 printed evaluation scores, shared by the evaluation and the split stage -----
+
+VALIDATED_REVISION_FIELD = "validated_revision"
+VALIDATED_TEXT_CHECK_FIELD = "validated_text_check"
+
+
+def _validated_wikitext(record: dict[str, Any], root: Path) -> str | None:
+    """A pinned validating-revision wikitext: inline (``wikitext``) or a snapshot file (``wikitext_path``, checked)."""
+
+    if "wikitext" in record:
+        return str(record["wikitext"])
+    path = root / str(record.get("wikitext_path", ""))
+    if not record.get("wikitext_path") or not path.is_file():
+        return None
+    wikitext = path.read_text(encoding="utf-8")
+    return wikitext if _sha256(wikitext) == record.get("wikitext_sha256") else None
+
+
+def validated_page_reference(page: dict[str, Any], root: Path, record: dict[str, Any] | None,
+                             check: dict[str, Any] | None) -> tuple[dict[str, Any] | None, str]:
+    """A quality-4 page's text as of its validating revision (E2d3b/E2d3c), or the reason it is not used (fail closed).
+
+    ``record`` pins the validating revision's wikitext (``wikisource_validated_revisions.v1``); ``check`` is the
+    page's ``wikisource_validated_text_checks.v1`` entry. The text is used when the check is fresh and finds it agrees
+    with the scan, or when it differs from the latest text only in line or paragraph whitespace (E2d3c), and when
+    the pinned wikitext reproduces the checksum the inventory recorded for the validating revision.
+    """
+
+    if not validated_revision_attestation(page)["adjudication_eligible"]:
+        return None, "text_changed_after_validation"
+    if record is None:
+        return None, "validated_revision_missing"
+    if (check is None or check.get("validating_revision_id") != record["validating_revision_id"]
+            or check.get("latest_revision_id") != page["revision_id"]
+            or check.get("validated_wikitext_sha256") != record["wikitext_sha256"]):
+        return None, "validated_text_not_checked"
+    matches = check["verdict"] == VALIDATED_TEXT_MATCHES_SCAN
+    wikitext = _validated_wikitext(record, root)
+    transclusions = page_transclusions(page, root)
+    if wikitext is None:
+        return None, "validated_revision_text_mismatch"
+    faithful = convert_wikitext(wikitext, transclusions).text
+    if _sha256(faithful) != record["converted_text_sha256"] or record["converted_text_sha256"] != page.get("quality_set_text_sha256"):
+        return None, "validated_revision_text_mismatch"
+    try:
+        derived = derive_validated_page_text(wikitext, transclusions, page, check)
+    except ValueError as exc:
+        return None, str(exc) if matches else VALIDATED_TEXT_DISAGREES_WITH_SCAN
+    except UnsupportedWikitextError:
+        return None, "wikitext_unsupported_markup" if matches else VALIDATED_TEXT_DISAGREES_WITH_SCAN
+    from hocrgen.evaluation import levenshtein_distance
+
+    latest = page_text(page, root).text
+    diff = {"character_edits": levenshtein_distance(derived.text, latest), "latest_characters": len(latest),
+            "reference_characters": len(derived.text),
+            "text_changing_edits_after_validation": record["text_changing_edits_after_validation"],
+            "layout_only": layout_only_difference(derived.text, latest)}
+    validated = {"text": derived.text, "conversion": derived.conversion, "record": record, "check": check, "diff": diff}
+    # E2d3c: a difference limited to line and paragraph whitespace is layout, not text; it never disqualifies.
+    if matches:
+        return {**validated, "accepted_by": "check_verdict"}, VALIDATED_TEXT_MATCHES_SCAN
+    if diff["layout_only"]:
+        return {**validated, "accepted_by": "layout_only_difference"}, VALIDATED_TEXT_MATCHES_SCAN
+    return None, VALIDATED_TEXT_DISAGREES_WITH_SCAN
+
+
+_FROM_PAGE = object()
+
+
+def scored_page_reference(page: dict[str, Any], root: Path, *, validation: Any = _FROM_PAGE) -> dict[str, Any]:
+    """Whether the E2d3 printed evaluation scores a page, and on which text (E2d3e; one rule for every consumer).
+
+    For a page that passed ``page_exclusion_reasons`` (so ``text_not_on_page`` and every other page gate already
+    apply). A quality-4 page that is adjudication-eligible is scored on its latest pair text. One rejected only
+    because its text changed after validation is scored on its validating-revision text when
+    ``validated_page_reference`` accepts it. Quality-3 pages are never scored (a single-reviewer diagnostic).
+
+    ``validation`` is ``(record, check)`` supplied by the caller (the evaluation's ``--validated-revisions`` and
+    ``--validated-text-checks``); by default the page's own ``validated_revision`` and ``validated_text_check``
+    fields are read (a tranche built with them, E2d3e). Returns ``{"scored", "reason", "reference_text_revision",
+    "text", "validated", "validation_considered"}``.
+    """
+
+    base = {"scored": False, "reference_text_revision": None, "text": None, "validated": None, "validation_considered": False}
+    if page.get("quality") != 4:
+        return {**base, "reason": "quality_3_single_reviewer"}
+    attestation = page_attestation(page)
+    if attestation["adjudication_eligible"]:
+        return {**base, "scored": True, "reason": None, "reference_text_revision": "latest", "text": page_text(page, root).text}
+    reason = attestation["adjudication_ineligible_reason"]
+    if validation is _FROM_PAGE:
+        if VALIDATED_REVISION_FIELD not in page and VALIDATED_TEXT_CHECK_FIELD not in page:
+            return {**base, "reason": reason}
+        validation = (page.get(VALIDATED_REVISION_FIELD), page.get(VALIDATED_TEXT_CHECK_FIELD))
+    if validation is None or reason != "text_changed_after_validation":
+        return {**base, "reason": reason}
+    validated, reason = validated_page_reference(page, root, *validation)
+    if validated is None:
+        return {**base, "reason": reason, "validation_considered": True}
+    return {**base, "scored": True, "reason": None, "reference_text_revision": "validating", "text": validated["text"],
+            "validated": validated, "validation_considered": True}
+
+
 def _editor_record(entry: dict[str, Any] | None) -> dict[str, Any] | None:
     if entry is None:
         return None
@@ -993,6 +1096,12 @@ def _sha256(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _scored_reference_metadata(page: dict[str, Any], root: Path) -> dict[str, Any]:
+    scored = scored_page_reference(page, root)
+    return {"scored_reference_characters": len(scored["text"]) if scored["scored"] else 0,
+            "scored_reference_text_revision": scored["reference_text_revision"]}
+
+
 class WikisourceProofreadImporter:
     """Packaged-static-records adapter over a pinned Hebrew Wikisource ProofreadPage snapshot."""
 
@@ -1073,6 +1182,9 @@ class WikisourceProofreadImporter:
                         "reference_normalization": reference_normalization(conversion, page),
                         "page_text_ref": page["text_path"],
                         "page_text_sha256": page["text_sha256"],
+                        # E2d3e: the characters of the text the E2d3 evaluation scores for this page (0 when it scores
+                        # none), the page's reference weight in the split's reference constraints.
+                        **_scored_reference_metadata(page, root),
                         # F8b7: the faithful MediaWiki rendering's checksum, and what was changed to reach the pair text
                         # (footnotes found not printed, editors' stand-ins mapped to the printed character).
                         "converted_text_sha256": page_text_sha256_converted(page),

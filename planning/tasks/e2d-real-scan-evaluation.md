@@ -1,6 +1,6 @@
 # E2d — Real-scan evaluation with separate printed and handwritten tracks
 
-Status: **`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c` and `E2d3d` implemented on the current ref (2026-11-07); `E2d4` planned.** Synthetic gold stays the headline scored set: no synthetic score, profile, view or report changed. Parent milestone: E2, Baselines and evaluation utilities. Decision record: [`planning/decisions/2026-11-06-real-scan-evaluation-direction.md`](../decisions/2026-11-06-real-scan-evaluation-direction.md). Results: [`docs/e2d3b_validated_revision_evaluation.md`](../../docs/e2d3b_validated_revision_evaluation.md) for all pages, and [`docs/e2d3_real_printed_evaluation.md`](../../docs/e2d3_real_printed_evaluation.md) for the release validation + test pages; E2d3 supersedes the release-split and interval sections of [`docs/e2d2_real_printed_evaluation.md`](../../docs/e2d2_real_printed_evaluation.md).
+Status: **`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c`, `E2d3d` and `E2d3e` implemented on the current ref (2026-11-07); `E2d4` planned.** Until the release splits change again, validation + test is a labelled diagnostic, never a headline (team-lead decision, 2026-11-07). Synthetic gold stays the headline scored set: no synthetic score, profile, view or report changed. Parent milestone: E2, Baselines and evaluation utilities. Decision record: [`planning/decisions/2026-11-06-real-scan-evaluation-direction.md`](../decisions/2026-11-06-real-scan-evaluation-direction.md). Results: [`docs/e2d3b_validated_revision_evaluation.md`](../../docs/e2d3b_validated_revision_evaluation.md) for all pages, and [`docs/e2d3_real_printed_evaluation.md`](../../docs/e2d3_real_printed_evaluation.md) for the release validation + test pages; E2d3 supersedes the release-split and interval sections of [`docs/e2d2_real_printed_evaluation.md`](../../docs/e2d2_real_printed_evaluation.md).
 
 ## Direction
 
@@ -20,6 +20,7 @@ Status: **`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c` and `E2d3d` implemented on th
 | `E2d3b` | Score quality-4 pages edited after validation on their text as of the validating revision (team-lead decision 2026-11-07), after a visual check of the scan; pages where a later edit fixed a real transcription error are excluded (`validated_text_disagrees_with_scan`). | completed |
 | `E2d3c` | Two corrections to the `E2d3b` pool (team-lead decisions 2026-11-07): a validated text that differs from the latest text only in line or paragraph whitespace is never disqualified (a general rule); Hebrewbooks 19784 p. 24 is `text_not_on_page`. The pool is re-scored. | completed |
 | `E2d3d` | Check every scored Hebrewbooks 19784 page against its scan for editors' text the page does not print; such pages become `text_not_on_page` (decision #130.1) and leave the pool. No reference text is edited. The pool is re-scored. | completed |
+| `E2d3e` | A reference constraint in the group-whole split (`size_aware_group_split.v2`), weighted by exactly the pages the evaluation scores: `test` must hold 2 or more such books, 10% or more of their characters, and no book above 50% of them. Applied in tranche v5, then the pool is re-scored on the new splits. Validation + test is a labelled diagnostic only, and tuning stays on synthetic validation. | completed |
 | `E2d4` | Retire synthetic text from the scored eval set once both tracks meet cutover criteria the maintainer sets. | planned |
 
 ## E2d1 — Modality-track contract
@@ -120,6 +121,28 @@ Status: **`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c` and `E2d3d` implemented on th
 - **Outcome.** The pool is 38 pages: 30 `train` / 5 `validation` / 3 `test`. Tesseract scores 0.237 and R3h + R4d + A1 0.898. Validation + test is 8 pages, with Tesseract 0.257 and R3h 0.779.
 - **The split question.** The `test` split is now 3 pages of one book, too small to carry a held-out result. The splits were not rebalanced; a proposal goes to the team lead.
 - **Results.** They are in the E2d3d section of [`docs/e2d3b_validated_revision_evaluation.md`](../../docs/e2d3b_validated_revision_evaluation.md#e2d3d-the-hebrewbooks-19784-pages).
+
+## E2d3e — Test-split reference constraint
+
+- **Decisions (team lead, 2026-11-07).**
+  - Validation + test is a labelled diagnostic, never a headline, until the splits change.
+  - The test split gets a general, tested constraint rather than a hand-pinned book, with values that are not tuned to pick a particular book.
+  - The split weight counts exactly the pages the evaluation scores.
+  - Validation gets no constraint.
+- **Validation and tuning.** Real-data validation is too small to tune on: on the current splits it is 2 pages (511 characters). Tuning stays on synthetic validation for now, and real validation is reported only as a labelled diagnostic, together with test.
+- **Constraint.** `size_aware_group_split.v2` adds a per-group reference weight and a `test` constraint: `min_groups` 2, `min_share` 10%, `max_group_share` 50%.
+  - The weight is the characters the evaluation scores, from the shared `scored_page_reference`. That covers adjudication-eligible pages and validating-revision pages, after every page gate.
+  - The repair moves the smallest eligible train book that clears the constraint; the other weighted books keep their splits.
+- **Applied.**
+  - Tranche v5 (`refresh-wikisource`: Hebrewbooks 19784 pp. 8, 24 and 25 leave, and 25 pages carry their validating revision and check) moves ***The Selihot for the Entire Year*** (59 pages) to `test`.
+  - *Dorot ha-Rishonim* I would hold 54.6% of test by itself once its validating-revision page counts, so it is not eligible.
+  - The R3 recognition, R4d and A1 models were trained on synthetic pages only, so no model has seen the moved pages.
+- **Outcome.**
+  - The pool is 38 pages: 28 `train` / 2 `validation` / 8 `test`.
+  - By the evaluation's characters, test is *Selihot* 44.1%, Hebrewbooks 19784 43.6%, *Sefer ha-Mispar* 9.0% and Hebrewbooks 38168 3.3%.
+  - The all-pages headline is unchanged (Tesseract 0.237, R3h + R4d + A1 0.898).
+  - The validation + test diagnostic is 10 pages (Tesseract 0.385, R3h 0.853).
+- **Results.** They are in the E2d3e section of [`docs/e2d3b_validated_revision_evaluation.md`](../../docs/e2d3b_validated_revision_evaluation.md#e2d3e-a-reference-constraint-on-the-test-split).
 
 ## What it depends on
 

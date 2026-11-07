@@ -20,6 +20,9 @@ from hocrgen.fetchers.wikisource import (
 )
 from hocrgen.parsers.wikitext import convert_wikitext
 from hocrgen.reference_runs import load_adjudicated_references
+from hocrgen.fetchers.base import StageOptions
+from hocrgen.fetchers.wikisource import WikisourceProofreadImporter, scored_page_reference
+from hocrgen.tools import real_tranche as tranche_tool
 from hocrgen.tools import wikisource_inventory as inv
 from hocrgen.tools import wikisource_validated_revisions as wvr
 from hocrgen.tools.wikisource_eval_references import main as eval_refs_main
@@ -247,3 +250,49 @@ def test_e2d3d_hebrewbooks_19784_scored_pages_with_editors_text_are_text_not_on_
     flagged = {n for n in (1, 2, 8, 18, 24, 25) if checks[f"עמוד:Hebrewbooks org 19784.pdf/{n}"].get("text_not_on_page")}
     assert flagged == {8, 24, 25}
     assert "E2d3d agent check" in checks["עמוד:Hebrewbooks org 19784.pdf/25"]["text_not_on_page"]
+
+
+def test_the_split_weight_scores_exactly_the_evaluation_pool(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """E2d3e: the split stage's reference weight and the evaluation count the same pages, on the same text."""
+
+    root, page, validated = _snapshot(tmp_path)
+    [record] = wvr.write_validated_revisions(root, tmp_path / "out", _revisions(page, validated))["items"]
+    checks = _checks(tmp_path / "checks.json", page, record, "validated_text_matches_scan")
+    # Carry the pinned revision and its check into a tranche, as the tranche build does.
+    base = tmp_path / "base"
+    shutil.copytree(root, base / "sources" / SOURCE / "snapshot")
+    tranche_tool.write_descriptor(base, created_at="2026-11-07", results={SOURCE: {"item_count": 5}}, inputs={})
+    no_page_checks = tmp_path / "page_checks.json"
+    no_page_checks.write_text(json.dumps({"schema_version": "wikisource_page_render_checks.v1", "checks": []}), encoding="utf-8")
+    result = tranche_tool.refresh_wikisource(base=base, out=tmp_path / "next", page_check_paths=[no_page_checks], created_at="2026-11-07",
+                                             validated_revisions=tmp_path / "out", validated_text_checks=checks)
+    assert result["validated_revisions_carried"] == 1
+    carried = tmp_path / "next" / "sources" / SOURCE / "snapshot"
+
+    # The split weight: the fetcher's scored_reference_characters on every discovered page.
+    monkeypatch.setattr("hocrgen.fetchers.wikisource.wikisource_snapshot_root", lambda source, bundle: carried)
+    from hocrgen.config.loader import load_and_validate_bundle
+
+    bundle = load_and_validate_bundle()
+    source = next(source for source in bundle.source_registry.sources if source.id == SOURCE)
+    importer = WikisourceProofreadImporter()
+    enriched = importer.fetch_candidate_metadata(source, bundle, importer.discover_candidates(source, bundle, StageOptions()), StageOptions())
+    weights = {f"{SOURCE}:{record.source_item_id}": record.metadata["scored_reference_characters"] for record in enriched}
+    weighted = {item_id for item_id, weight in weights.items() if weight > 0}
+
+    # The evaluation pool, from the carried fields, and from the operator flags on the original snapshot.
+    for snapshot, flags in ((carried, {}), (root, {"validated_revisions": tmp_path / "out", "validated_text_checks": checks})):
+        pool = write_eval_reference_set(snapshot, tmp_path / f"set-{snapshot.parent.name}", reference_manifest_id="x", **flags)
+        scored = {entry["item_id"] for entry in pool["items"] if entry["stratum"] == "adjudicated"}
+        assert scored == weighted
+        assert pool["counts"]["adjudicated_validating_revision"] == 1
+        loaded = load_adjudicated_references(tmp_path / f"set-{snapshot.parent.name}" / "reference_manifest.json", modality="printed")
+        for item_id in scored:
+            assert weights[item_id] == len(loaded["references"][item_id].pages[0].text)
+    assert f"{SOURCE}:{BOSTENAY}" in weighted  # scored on its validating-revision text
+    carried_page = next(record for record in (json.loads(line) for line in (carried / "pages.jsonl").read_text(encoding="utf-8").splitlines())
+                        if record["source_item_id"] == BOSTENAY)
+    assert scored_page_reference(carried_page, carried)["reference_text_revision"] == "validating"
+    # Without its check the page is scored by neither (fail closed).
+    unchecked = scored_page_reference({**carried_page, "validated_text_check": None}, carried)
+    assert unchecked["scored"] is False and unchecked["reason"] == "validated_text_not_checked"

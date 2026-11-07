@@ -160,6 +160,7 @@ The team lead's decisions on `F8e2`'s three open questions. The contract is [`do
   - The outline identity table moves into the snapshot (`snapshot/glyph_outlines.json`), where entries name it.
   - Nothing needs `poppler_bidi_logical.v1` any more, so the gate's `pdftotext` path, `poppler_text_to_logical` and its tests, and the F8e builder are removed. The gate refuses any other normalization (`unsupported_text_normalization`). `hocrgen.parsers.pdf_bidi` keeps only the order checks, which still run on the glyph text.
 - **Tranche v4** (`f8e3_real_tranche_v4`) is `refresh-reshumot` from v3. Its pass rate is unchanged: 796 of 886, 275 cropped.
+- **Tranche v5** (`e2d3e_real_tranche_v5`, E2d3e) is `refresh-wikisource` from v4. It re-applies the committed Wikisource page checks, so Hebrewbooks 19784 pp. 8, 24 and 25 (`text_not_on_page`, E2d3c/E2d3d) leave: Wikisource has 1,452 pages, and the tranche 2,608. The 25 pages with a pinned validating revision carry it and their committed check, so the release split weighs exactly the pages the evaluation scores. Release splits use `size_aware_group_split.v2` (the E2d3e reference constraint on `test`).
   - The 796 captured entries differ from v3 only in `reading_order_verified` and one added known limitation.
   - The 2 packaged pages now carry their glyph layers.
   - 9 files differ from v3, all in the Reshumot snapshot or `tranche.json`. The tranche holds 2,611 pages, 1,033 MB and 7,813 files, and `verify` is ok.

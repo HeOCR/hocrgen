@@ -143,7 +143,7 @@ class SplitAssignmentRecord(ManifestModel):
     near_duplicate_cluster_id: str | None = None
     source_group_id: str | None = None
     work_group_ids: list[str] = Field(default_factory=list)
-    split_constraint: Literal["synthetic_training_overlap"] | None = None
+    split_constraint: Literal["synthetic_training_overlap", "reference_constraint"] | None = None
 
 
 class ClassifiedItemRecord(CuratedItemRecord):

@@ -518,6 +518,11 @@ def test_discovery_emits_stable_ids_and_provenance_metadata() -> None:
     assert metadata["wikisource_quality_label"] == "validated"
     assert metadata["validator"]["user"] == "Nahum"
     assert metadata["adjudication_eligible"] is True
+    # E2d3e: the characters the E2d3 evaluation scores for the page, its reference weight in the split constraints.
+    assert metadata["scored_reference_characters"] == len(page_plain_text(selihot.raw_metadata["page"], Path(selihot.raw_metadata["snapshot_root"])))
+    assert metadata["scored_reference_text_revision"] == "latest"
+    quality_3 = next(record for record in enriched.values() if record.metadata["wikisource_quality_level"] == 3)
+    assert quality_3.metadata["scored_reference_characters"] == 0 and quality_3.metadata["scored_reference_text_revision"] is None
     assert metadata["scan_commons_file_sha1"] == "962def078054dac4adb630f76fc78db982d82617"
     assert metadata["scan_rights_basis"] == "explicit_open_licence"
     assert metadata["scan_licence"] == "CC0-1.0"

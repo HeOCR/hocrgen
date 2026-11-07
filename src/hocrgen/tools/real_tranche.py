@@ -18,6 +18,8 @@ too large for git. This tool builds it reproducibly outside the repository:
     item, and the checksums of each snapshot's descriptor files. No page text.
 ``verify``
     Check every file of a materialized tree against its ``SHA256SUMS``.
+``refresh-reshumot`` / ``refresh-wikisource``
+    A new tree from an earlier one with one source refreshed (F8e2, E2d3e); every other source is copied byte for byte.
 
 Nothing here publishes or uploads anything; hosting the tree is the maintainer's decision.
 """
@@ -54,6 +56,7 @@ from hocrgen.fetchers.wikisource import (
     crop_mask_fill,
     crop_pixel_box,
     crop_region_boxes,
+    load_wikisource_snapshot,
     page_exclusion_reasons,
     page_needs_crop,
 )
@@ -69,8 +72,8 @@ from hocrgen.real_tranche import (
     verify_tranche_files,
 )
 
-TRANCHE_ID = "f8e3_real_tranche_v4"
-TRANCHE_NOTATION = "F8e3"
+TRANCHE_ID = "e2d3e_real_tranche_v5"
+TRANCHE_NOTATION = "E2d3e"
 CAPTURE_SEED = "f8g2-tranche-v2"
 USER_AGENT = "hocrgen-real-tranche/0.1 (https://github.com/HeOCR/hocrgen; operator capture)"
 SURFDRIVE_WEBDAV = "https://surfdrive.surf.nl/public.php/webdav/"
@@ -867,6 +870,114 @@ def refresh_reshumot(
     return results[SOURCE_RESHUMOT]
 
 
+def _wikisource_page_files(page: dict[str, Any]) -> set[str]:
+    """The snapshot files a Wikisource page record owns: its image, its crop asset, its wikitext and its pair text."""
+
+    crop = page.get("crop") or {}
+    validated = page.get("validated_revision") or {}
+    paths = {page["image"]["path"], page.get("wikitext_path"), page.get("text_path"), (crop.get("asset") or {}).get("path"),
+             validated.get("wikitext_path")}
+    return {path for path in paths if path}
+
+
+def refresh_wikisource(*, base: Path, out: Path, page_check_paths: list[Path], created_at: str,
+                       validated_revisions: Path | None = None, validated_text_checks: Path | None = None) -> dict[str, Any]:
+    """A new tranche tree from ``base`` with the committed page checks' page-level verdicts re-applied to Wikisource (E2d3e).
+
+    Every other source's snapshot is copied byte for byte, with its descriptor entry. A Wikisource page whose current
+    winning check (pinned to the page revision and the Commons file) records ``text_not_on_page`` takes it, and the
+    unchanged fetcher gates decide: a page they now reject is dropped with the files only it owns. Every other page
+    record (its ``pages.jsonl`` line) and file is copied unchanged.
+
+    With ``validated_revisions`` (a ``wikisource_validated_revisions`` output, E2d3b) and ``validated_text_checks``
+    (``docs/wikisource_validated_text_checks.json``), every kept page with a pinned validating revision carries it
+    (``validated_revision``, its wikitext copied into the snapshot) and its committed check (``validated_text_check``),
+    so the fetcher scores and weighs exactly the pages the evaluation scores (``scored_page_reference``). The
+    descriptor and ``SHA256SUMS`` are rewritten under this tranche id.
+    """
+
+    import shutil
+
+    from hocrgen.fetchers.wikisource import VALIDATED_REVISION_FIELD, VALIDATED_TEXT_CHECK_FIELD, load_validated_text_checks
+    from hocrgen.tools.wikisource_inventory import load_page_checks
+    from hocrgen.tools.wikisource_validated_revisions import load_validated_revisions
+
+    if (validated_revisions is None) != (validated_text_checks is None):
+        raise SystemExit("--validated-revisions and --validated-text-checks go together")
+    problems = verify_tranche_files(base)
+    if problems:
+        raise SystemExit(f"{base} does not match its SHA256SUMS: {problems[:5]}")
+    if out.exists() and any(out.iterdir()):
+        raise SystemExit(f"{out} is not empty")
+    revisions = load_validated_revisions(validated_revisions) if validated_revisions is not None else {}
+    text_checks = load_validated_text_checks(validated_text_checks) if validated_text_checks is not None else {}
+    descriptor = json.loads((base / TRANCHE_DESCRIPTOR).read_text(encoding="utf-8"))
+    for source_id, entry in descriptor["sources"].items():
+        shutil.copytree(base / entry["snapshot"], out / entry["snapshot"])
+    root = out / descriptor["sources"][SOURCE_WIKISOURCE]["snapshot"]
+    _, indexes, _ = load_wikisource_snapshot(root)
+    checks = load_page_checks(page_check_paths)
+    lines = (root / "pages.jsonl").read_text(encoding="utf-8").splitlines()
+    kept: list[str] = []
+    dropped: list[dict[str, Any]] = []
+    validated_count = 0
+    for line in lines:
+        page = json.loads(line)
+        check = checks.get(page["page_title"]) or {}
+        current = (check.get("revision_id") == page.get("revision_id")
+                   and check.get("commons_file_sha1") == indexes[page["index_key"]]["commons_file"]["sha1"])
+        flagged = {**page, "text_not_on_page": check["text_not_on_page"]} if current and check.get("text_not_on_page") else page
+        reasons = page_exclusion_reasons(flagged, indexes, root)
+        if reasons:
+            dropped.append({"page": page, "reasons": reasons})
+            continue
+        record = revisions.get(f"{SOURCE_WIKISOURCE}:{page['source_item_id']}")
+        if record is None:
+            kept.append(line)
+            continue
+        target = f"wikitext/{page['source_item_id']}.validated.wikitext.txt"
+        _write(root / target, record["wikitext"].encode("utf-8"))
+        page[VALIDATED_REVISION_FIELD] = {
+            "validating_revision_id": record["validating_revision_id"], "wikitext_path": target,
+            "wikitext_sha256": record["wikitext_sha256"], "converted_text_sha256": record["converted_text_sha256"],
+            "text_changing_edits_after_validation": record["text_changing_edits_after_validation"],
+        }
+        check = text_checks.get(page["page_title"])
+        if check is not None:
+            page[VALIDATED_TEXT_CHECK_FIELD] = check
+        kept.append(json.dumps(page, ensure_ascii=False, sort_keys=True))
+        validated_count += 1
+    kept_files = set().union(*(_wikisource_page_files(json.loads(line)) for line in kept))
+    for entry in dropped:
+        for relative in sorted(_wikisource_page_files(entry["page"]) - kept_files):
+            (root / relative).unlink()
+    used = {json.loads(line)["index_key"] for line in kept}
+    emptied = {json.loads(line)["index_key"] for line in lines} - used
+    if emptied:
+        # An Index that lost every page leaves the snapshot's Index list, written as materialize writes it.
+        records = json.loads((root / "indexes.json").read_text(encoding="utf-8"))["indexes"]
+        kept_records = [record for record in records if record["index_key"] not in emptied]
+        _write(root / "indexes.json", (json.dumps({"indexes": kept_records}, ensure_ascii=False, indent=1, sort_keys=True) + "\n").encode())
+    _write(root / "pages.jsonl", "".join(line + "\n" for line in kept).encode())
+    results = {source_id: {key: value for key, value in entry.items() if key != "snapshot"} for source_id, entry in descriptor["sources"].items()}
+    skipped = dict(results[SOURCE_WIKISOURCE].get("skipped") or {})
+    for entry in dropped:
+        skipped[entry["reasons"][0]] = skipped.get(entry["reasons"][0], 0) + 1
+    results[SOURCE_WIKISOURCE] = {**results[SOURCE_WIKISOURCE], "item_count": len(kept), "skipped": dict(sorted(skipped.items()))}
+    if "index_count" in results[SOURCE_WIKISOURCE]:
+        results[SOURCE_WIKISOURCE]["index_count"] -= len(emptied)
+    inputs = dict(descriptor["inputs"])
+    inputs["wikisource_page_checks"] = {path.as_posix(): sha256_path(path) for path in page_check_paths}
+    if validated_revisions is not None and validated_text_checks is not None:
+        inputs["wikisource_validated_revisions"] = {"sha256": sha256_path(validated_revisions / "validated_revisions.json"),
+                                                    "pages_carrying_them": validated_count}
+        inputs["wikisource_validated_text_checks"] = {validated_text_checks.as_posix(): sha256_path(validated_text_checks)}
+    inputs["refreshed_from"] = {"tranche_id": descriptor["tranche_id"], "sha256sums_sha256": sha256_path(base / TRANCHE_CHECKSUMS)}
+    write_descriptor(out, created_at=created_at, results=results, inputs=inputs)
+    return {"item_count": len(kept), "validated_revisions_carried": validated_count,
+            "dropped": [{"source_item_id": entry["page"]["source_item_id"], "reasons": entry["reasons"]} for entry in dropped]}
+
+
 def write_manifest(tranche_root: Path, out_dir: Path) -> dict[str, Any]:
     manifest, items = build_manifest(tranche_root)
     _write(out_dir / "tranche_manifest.json", (json.dumps(manifest, ensure_ascii=False, indent=1, sort_keys=True) + "\n").encode())
@@ -913,6 +1024,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     refresh.add_argument("--reshumot-glyph-layers", type=Path, default=None)
     refresh.add_argument("--reshumot-report", type=Path, default=None)
     refresh.add_argument("--manifest-out", type=Path, default=None)
+    refresh_ws = commands.add_parser("refresh-wikisource", help="Copy a tranche tree with the committed Wikisource page checks re-applied (offline).")
+    refresh_ws.add_argument("--base", type=Path, required=True, help="The materialized tranche tree to start from.")
+    refresh_ws.add_argument("--out", type=Path, required=True, help="Empty folder outside the repo for the new tree.")
+    refresh_ws.add_argument("--page-checks", type=Path, action="append", default=None)
+    refresh_ws.add_argument("--validated-revisions", type=Path, default=None, help="A wikisource_validated_revisions output (E2d3b) to carry on the pages.")
+    refresh_ws.add_argument("--validated-text-checks", type=Path, default=None, help="docs/wikisource_validated_text_checks.json")
+    refresh_ws.add_argument("--created-at", required=True)
+    refresh_ws.add_argument("--manifest-out", type=Path, default=None)
     manifest = commands.add_parser("manifest", help="Write the committed manifest for a materialized tree.")
     manifest.add_argument("--tranche", type=Path, required=True)
     manifest.add_argument("--out", type=Path, default=Path("src/hocrgen/data/real_tranche"))
@@ -997,6 +1116,15 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - operator e
             base=args.base, out=args.out, cache=args.cache, created_at=args.created_at, captured_at=args.government_print_captured_at,
             layer_cache=args.reshumot_glyph_layers, report=args.reshumot_report,
         ).items() if key != "booklets"}, ensure_ascii=False))
+        if args.manifest_out:
+            manifest = write_manifest(args.out, args.manifest_out)
+            print(json.dumps({key: manifest[key] for key in ("tranche_id", "item_count", "total_bytes", "file_count")}))
+        return 0
+    if args.command == "refresh-wikisource":
+        page_checks = args.page_checks or [Path(path) for path in DEFAULT_PAGE_CHECKS]
+        print(json.dumps(refresh_wikisource(base=args.base, out=args.out, page_check_paths=page_checks, created_at=args.created_at,
+                                            validated_revisions=args.validated_revisions,
+                                            validated_text_checks=args.validated_text_checks), ensure_ascii=False))
         if args.manifest_out:
             manifest = write_manifest(args.out, args.manifest_out)
             print(json.dumps({key: manifest[key] for key in ("tranche_id", "item_count", "total_bytes", "file_count")}))

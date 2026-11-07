@@ -1,4 +1,4 @@
-"""F8g2: size-aware assignment of whole groups to splits (``size_aware_group_split.v1``)."""
+"""F8g2 / E2d3e: size-aware assignment of whole groups to splits (``size_aware_group_split.v2``)."""
 
 from __future__ import annotations
 
@@ -12,12 +12,16 @@ from hocrgen.config.loader import load_and_validate_bundle
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.manifests.models import CuratedItemRecord
 from hocrgen.pipeline import _committed_benchmark_splits
-from hocrgen.split.assign import assign_splits, item_split_stratum
+from hocrgen.split.assign import assign_splits, item_reference_weight, item_split_stratum
 from hocrgen.split.balance import (
+    DEFAULT_REFERENCE_CONSTRAINTS,
     SPLIT_ASSIGNMENT_ALGORITHM,
+    ReferenceHoldoutConstraint,
     SplitGroup,
     _order_key,
     assign_group_splits,
+    assign_group_splits_with_moves,
+    reference_constraint_problems,
     split_balance_report,
     split_ratios,
 )
@@ -200,3 +204,112 @@ def test_split_stage_reads_the_committed_benchmark_splits(tmp_path: Path, monkey
     (broken / "config.json").write_text("{}", encoding="utf-8")
     with pytest.raises(StageExecutionError, match="benchmark config validation failed"):
         _committed_benchmark_splits(SimpleNamespace(config_root=tmp_path / "broken" / "config"))
+
+
+# --- E2d3e: reference constraints (size_aware_group_split.v2) ----------------------------------------------------
+
+
+def _reference_pool() -> list[SplitGroup]:
+    """Forty unweighted books, one heavily weighted book that lands in test, and four weighted books in train.
+
+    The heavy book's place depends on the seeded order; the helper finds a seed that puts it in test alone.
+    """
+    groups = [SplitGroup(group_id=f"q3-{n:02d}", size=1 + n % 5, stratum="ws") for n in range(40)]
+    groups += [
+        SplitGroup(group_id="heavy", size=3, stratum="ws", reference_weight=2700),
+        SplitGroup(group_id="small-light", size=7, stratum="ws", reference_weight=2250),
+        SplitGroup(group_id="small-even", size=10, stratum="ws", reference_weight=2700),
+        SplitGroup(group_id="mid-even", size=11, stratum="ws", reference_weight=4500),
+        SplitGroup(group_id="huge", size=60, stratum="ws", reference_weight=15000),
+    ]
+    return groups
+
+
+def _seed_with_heavy_alone_in_test(groups: list[SplitGroup]) -> str:
+    for n in range(500):
+        seed = f"s{n}"
+        v1 = assign_group_splits(groups, POLICY, seed=seed, reference_constraints={})
+        weighted_in_test = [g.group_id for g in groups if g.reference_weight and v1[g.group_id] == "test"]
+        if weighted_in_test == ["heavy"]:
+            return seed
+    raise AssertionError("no seed puts the heavy book alone in test")
+
+
+def test_without_reference_weight_v2_places_exactly_as_v1() -> None:
+    groups = _lumpy_pool()
+    assert assign_group_splits(groups, POLICY) == assign_group_splits(groups, POLICY, reference_constraints={})
+    report = split_balance_report(groups, assign_group_splits(groups, POLICY), POLICY)
+    assert "reference" not in report["strata"]["wikisource:printed"]
+    assert report["reference_constraints"]["test"] == vars(DEFAULT_REFERENCE_CONSTRAINTS["test"])
+
+
+def test_the_constraint_moves_the_fewest_item_group_that_clears_it_and_nothing_else_weighted() -> None:
+    groups = _reference_pool()
+    seed = _seed_with_heavy_alone_in_test(groups)
+    v1 = assign_group_splits(groups, POLICY, seed=seed, reference_constraints={})
+    v2, moves = assign_group_splits_with_moves(groups, POLICY, seed=seed)
+    # small-light (7 items) does not clear the 50% cap beside heavy; small-even (10 items) does.
+    assert [move["group_id"] for move in moves["ws"]] == ["small-even"]
+    assert moves["ws"][0]["clears"] is True and "max_group_share" in moves["ws"][0]["failed"]
+    assert v2["small-even"] == "test" and v2["heavy"] == "test"
+    # Every other weighted group keeps its split; only unweighted groups refill around the move.
+    for group in groups:
+        if group.reference_weight and group.group_id != "small-even":
+            assert v2[group.group_id] == v1[group.group_id]
+    assert reference_constraint_problems(groups, v2, DEFAULT_REFERENCE_CONSTRAINTS) == {}
+    counts = _items(groups, v2)
+    total = sum(counts.values())
+    assert counts["test"] <= 0.1 * total + 0.5 + 10  # the move may overshoot the item target by its own size
+    report = split_balance_report(groups, v2, POLICY, seed=seed)["strata"]["ws"]["reference"]
+    assert report["constraint_moves"][0]["group_id"] == "small-even" and report["unmet"] == {}
+    assert report["splits"]["test"]["groups"] == 2 and report["splits"]["test"]["largest_group_share"] == 0.5
+
+
+def test_each_reference_constraint_is_checked() -> None:
+    groups = [SplitGroup("a", 1, "s", reference_weight=60), SplitGroup("b", 1, "s", reference_weight=40),
+              SplitGroup("c", 1, "s", reference_weight=900)]
+    in_test = {"a": "test", "b": "test", "c": "train"}
+    assert reference_constraint_problems(groups, in_test, {"test": ReferenceHoldoutConstraint(min_groups=3)}) == {"test": ["min_groups"]}
+    assert reference_constraint_problems(groups, in_test, {"test": ReferenceHoldoutConstraint(min_share=0.2)}) == {"test": ["min_share"]}
+    assert reference_constraint_problems(groups, in_test, {"test": ReferenceHoldoutConstraint(max_group_share=0.5)}) == {"test": ["max_group_share"]}
+    assert reference_constraint_problems(groups, in_test, {"test": ReferenceHoldoutConstraint(min_groups=2, max_group_share=0.6)}) == {}
+    assert reference_constraint_problems([SplitGroup("z", 1, "s")], {"z": "test"}, DEFAULT_REFERENCE_CONSTRAINTS) == {}
+
+
+def test_a_group_that_would_dominate_the_holdout_is_never_moved_and_an_unmet_constraint_is_reported() -> None:
+    groups = [SplitGroup(f"u{n}", 1, "s") for n in range(18)] + [SplitGroup("huge", 2, "s", reference_weight=1000)]
+    assignment, moves = assign_group_splits_with_moves(groups, POLICY)
+    assert assignment["huge"] == "train" and moves == {}
+    report = split_balance_report(groups, assignment, POLICY)["strata"]["s"]["reference"]
+    assert report["unmet"] == {"test": ["min_groups", "min_share"]}
+
+
+def test_v2_is_deterministic_and_order_independent() -> None:
+    groups = _reference_pool()
+    seed = _seed_with_heavy_alone_in_test(groups)
+    first = assign_group_splits(groups, POLICY, seed=seed)
+    assert assign_group_splits(list(reversed(groups)), POLICY, seed=seed) == first
+    with pytest.raises(ValueError, match="negative"):
+        assign_group_splits([SplitGroup("a", 1, "s", reference_weight=-1)], POLICY)
+
+
+def test_split_stage_weights_adjudication_eligible_items_and_marks_constraint_moves() -> None:
+    policy = load_and_validate_bundle().profiles["profile_open_v1"].split_policy
+    pool = _reference_pool()
+    seed = _seed_with_heavy_alone_in_test(pool)
+    items = []
+    for group in pool:
+        for page in range(group.size):
+            item = _curated(f"wikisource_he_proofread:{group.group_id}__p{page}", "wikisource_he_proofread", source_group_id=group.group_id)
+            if group.reference_weight and page == 0:
+                item.metadata.update({"scored_reference_characters": group.reference_weight})
+            items.append(item)
+    assert item_reference_weight(items[-60]) == 15000
+    assert item_reference_weight(_curated("x:y", "x")) == 0
+    outputs = assign_splits(items, [], policy, seed=seed)
+    by_group = {item.split_group_id: item for item in outputs.assignments}
+    moved = [record for record in outputs.assignments if record.split_constraint == "reference_constraint"]
+    assert {record.split_group_id for record in moved} == {"small-even"} and all(record.split == "test" for record in moved)
+    assert by_group["heavy"].split == "test" and by_group["heavy"].split_constraint is None
+    stratum = outputs.leakage_report["split_assignment"]["strata"]["wikisource_he_proofread:printed_historical"]
+    assert stratum["reference"]["unmet"] == {}
