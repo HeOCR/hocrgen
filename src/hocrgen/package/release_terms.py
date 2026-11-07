@@ -26,7 +26,7 @@ from hocrgen.config.models import (
     RealSourcePromotion,
 )
 from hocrgen.core.errors import StageExecutionError
-from hocrgen.manifests.models import ExportedTextRecord, ItemReleaseTermsRecord
+from hocrgen.manifests.models import PAGE_READING_ORDER_EVALUATION, ExportedTextRecord, ItemReleaseTermsRecord
 
 ATTRIBUTION_MANIFEST_SCHEMA = "hocrgen_attribution_manifest.v1"
 CHARACTER_LEVEL_EXCLUSIONS = {"word_level", "language_level_hebrew"}
@@ -65,7 +65,11 @@ def item_release_terms(item: Any, contract: RealSourceContract | None) -> ItemRe
         "rendered_not_scan": metadata.get("is_scan") is False,
         "scope_decision": usage_scope.get("decision"),
         "contract_id": contract.contract_id if entry is not None else None,
+        "reading_order_verified": metadata.get("reading_order_verified"),
     }
+    if terms["reading_order_verified"] == "within_line" and PAGE_READING_ORDER_EVALUATION not in terms["excluded_evaluations"]:
+        # F8e3: line text is verified, its order across the page is not, so page-order scoring is excluded.
+        terms["excluded_evaluations"].append(PAGE_READING_ORDER_EVALUATION)
     if entry is not None:
         terms = _apply_contract_terms(item, entry, terms)
     return ItemReleaseTermsRecord.model_validate(terms)
@@ -97,6 +101,8 @@ def _apply_contract_terms(item: Any, entry: RealSourceContractEntry, terms: dict
         terms["evaluation_scope"] = terms["evaluation_scope"] or "images_only"
     if expected.rendered_not_scan and not terms["rendered_not_scan"]:
         problems.append("rendered_not_scan_flag_missing")
+    if expected.reading_order_verified is not None and terms["reading_order_verified"] != expected.reading_order_verified:
+        problems.append("reading_order_scope_missing")
     if problems:
         raise StageExecutionError(
             f"release terms of {item.item_id} do not satisfy the {entry.source_id} contract terms: {', '.join(problems)}"

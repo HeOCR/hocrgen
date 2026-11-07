@@ -14,21 +14,17 @@ from hocrgen.config.loader import default_config_root, load_and_validate_bundle,
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.fetchers.government_print import (
+    RESHUMOT_READING_ORDER_VERIFIED,
     KnessetCommitteeImporter,
     ReshumotImporter,
     knesset_entry_exclusion_reasons,
     load_government_print_snapshot,
     reshumot_entry_exclusion_reasons,
+    reshumot_page_render,
 )
 from hocrgen.manifests.models import CuratedItemRecord, ItemRecord
-from hocrgen.parsers.pdf_bidi import (
-    BIDI_CONTROL_CHARACTERS,
-    layout_notes,
-    logical_order_issues,
-    poppler_line_to_logical,
-    poppler_text_to_logical,
-    strip_bidi_controls,
-)
+from hocrgen.parsers.pdf_bidi import logical_order_issues
+from hocrgen.parsers.pdf_geometry import GEOMETRY_NORMALIZATION_VERSION
 from hocrgen.source_ops import _inspect_source
 from hocrgen.utils.hashing import sha256_file
 
@@ -38,14 +34,12 @@ RESHUMOT_ROOT = package_root() / "data" / "reshumot" / "snapshot"
 KNESSET_ROOT = package_root() / "data" / "knesset_committees" / "snapshot"
 SH_P2 = "sefer_hachukim_2580__p0002"
 SH_P4 = "sefer_hachukim_2580__p0004"
-KT_P2 = "kovetz_hatakanot_7712__p0002"
+SH_P8 = "sefer_hachukim_2580__p0008"
 K1952_P2 = "knesset_committee_399388__p0002"
 K1952_P3 = "knesset_committee_399388__p0003"
 K1975_P2 = "knesset_committee_430997__p0002"
 K1976 = "knesset_committee_430999__p0001"
 K_BACKGROUND = "knesset_committee_304940__p0001"
-
-LRE, RLE, POP, RLM = "‪", "‫", "‬", "‏"
 
 
 def _bundle_and_source(source_id: str, config_root: Path | None = None):
@@ -120,38 +114,6 @@ def test_f8e_sources_are_promoted_into_the_public_profile(source_id: str, fetche
 # --- logical-order conversion and checks -------------------------------------------------------------
 
 
-def test_poppler_bidi_markup_converts_to_logical_order() -> None:
-    # Lines as pdftotext writes them: LTR runs (digits and their neutrals) in visual order inside LRE ... PDF.
-    title = f"{RLE}חוק חובת המכרזים (תיקון מס' {LRE} ,)25{POP}התשע\"ו{LRE}*2016-{POP}{POP}"
-    assert poppler_line_to_logical(title) == "חוק חובת המכרזים (תיקון מס' 25), התשע\"ו-2016*"
-    assert poppler_line_to_logical(f"{RLE}{LRE}.1{POP}{POP}") == "1."
-    assert poppler_line_to_logical(f"{RLE}תיקון סעיף {LRE}2{POP}א{POP}") == "תיקון סעיף 2א"
-    footer = f"{RLE}ספר החוקים {LRE} ,2580{POP}י\"ב באב התשע\"ו{LRE}16.8.2016 ,{POP}{POP}"
-    assert poppler_line_to_logical(footer) == "ספר החוקים 2580, י\"ב באב התשע\"ו, 16.8.2016"
-    # A bidi mark between a number and a superscript footnote marker becomes one space.
-    footnote = f"{RLE}בחוק{LRE} ,{POP}התשנ\"ב{LRE}1992-{POP}{RLM}{LRE}( 1{POP}להלן{POP}"
-    assert poppler_line_to_logical(footnote) == "בחוק, התשנ\"ב-1992 1 (להלן"
-    text, issues = poppler_text_to_logical(f"{title}\n\n{footer}\n\f")
-    assert issues == []
-    assert text.endswith("16.8.2016\n")
-    assert not any(char in BIDI_CONTROL_CHARACTERS for char in text)
-
-
-def test_conversion_reports_markup_it_cannot_invert() -> None:
-    issues: set[str] = set()
-    assert poppler_line_to_logical(f"{RLE}המחיר {LRE}ISSN 0334-3030{POP}{POP}", issues) == "המחיר ISSN 0334-3030"
-    assert issues == {"latin_run_order_unverified"}
-    for line, code in [
-        (f"{RLE}טקסט{POP}{POP}", "unbalanced_embedding"),
-        (f"{RLE}טקסט {LRE}12", "unbalanced_embedding"),
-        (f"{RLE}טקסט {LRE}1{RLE}2{POP}{POP}{POP}", "nested_embedding"),
-        (f"{RLE}טקסט {LRE}12 אב{POP}{POP}", "hebrew_inside_ltr_embedding"),
-    ]:
-        found: set[str] = set()
-        poppler_line_to_logical(line, found)
-        assert code in found, line
-
-
 @pytest.mark.parametrize(
     ("text", "code"),
     [
@@ -175,24 +137,28 @@ def test_logical_order_checks_pass_clean_text_and_require_expected_phrases() -> 
     assert logical_order_issues(clean) == []
     assert logical_order_issues(clean, ["ספר החוקים 2580,", "16.8.2016"]) == []
     assert logical_order_issues(clean, ["2016.8.16"]) == ["missing_expected_phrase"]
-    assert layout_notes("ב ני מ י ן נ ת ני ה ו") == ["letter_spaced_run"]
-    assert layout_notes('ס"ח התשנ"ב, עמ\' 114; (א) (ב) (ג)') == []
 
 
 # --- Reshumot fixture --------------------------------------------------------------------------------
 
 
-def test_reshumot_admitted_pages_are_reproducible_and_pass_the_order_check() -> None:
+def test_reshumot_admitted_pages_carry_the_glyph_method_and_pass_the_gate() -> None:
+    # F8e3: the packaged fixture uses the one remaining extraction method (the F8e2 glyph layer).
+    _, source = _bundle_and_source(RESHUMOT_ID)
     entries = _entries(RESHUMOT_ROOT)
-    assert set(entries) == {SH_P2, SH_P4, KT_P2}
+    assert set(entries) == {SH_P2, SH_P4, SH_P8}
+    assert {entry["text"]["extraction"]["normalization"] for entry in entries.values()} == {GEOMETRY_NORMALIZATION_VERSION}
     for entry_id in (SH_P2, SH_P4):
         entry = entries[entry_id]
         text = entry["text"]
-        raw = (RESHUMOT_ROOT / text["extraction"]["raw_local_path"]).read_bytes().decode("utf-8")
         logical = (RESHUMOT_ROOT / text["local_path"]).read_bytes().decode("utf-8")
         assert sha256_file(RESHUMOT_ROOT / text["local_path"]) == text["sha256"]
         assert sha256_file(RESHUMOT_ROOT / text["extraction"]["raw_local_path"]) == text["extraction"]["raw_sha256"]
-        assert poppler_text_to_logical(raw) == (logical, [])
+        assert text["extraction"]["raw_local_path"].endswith(".glyphs.json.gz")
+        assert sha256_file(RESHUMOT_ROOT / text["extraction"]["outline_table_path"]) == text["extraction"]["outline_table_sha256"]
+        # Line text is verified; the order of lines and blocks across the page is not (F8e3).
+        assert text["reading_order_verified"] == RESHUMOT_READING_ORDER_VERIFIED == "within_line"
+        assert any("within_line" in limitation for limitation in text["known_limitations"])
         expected = [phrase["text"] for phrase in text["order_verification"]["expected_phrases"]]
         # Booklet number, date and the law's title come from the gazette API, independently of the PDF text.
         assert {phrase["source"] for phrase in text["order_verification"]["expected_phrases"]} == {
@@ -201,9 +167,8 @@ def test_reshumot_admitted_pages_are_reproducible_and_pass_the_order_check() -> 
             "gazette API DocSummary",
         }
         assert logical_order_issues(logical, expected) == [] == text["order_verification"]["issues"]
-        # The naive extraction (control characters stripped, visual runs kept) is caught by the same checks.
-        naive_issues = logical_order_issues(strip_bidi_controls(raw), expected)
-        assert {"hebrew_year_gregorian_order", "section_number_order", "missing_expected_phrase"} <= set(naive_issues)
+        assert reshumot_entry_exclusion_reasons(entry, source, RESHUMOT_ROOT) == []
+        assert "crop" not in entry
         assert text["text_provenance"] == "born_digital_pdf_text"
         assert text["text_tier"] == 2
         assert (text["adjudication_status"], text["reference_eligible"], text["heocr_attestation"]) == ("not_adjudicated", False, "none")
@@ -216,7 +181,8 @@ def test_reshumot_admitted_pages_are_reproducible_and_pass_the_order_check() -> 
 def test_reshumot_rendered_pages_record_rendering_provenance_and_pins() -> None:
     for entry_id in (SH_P2, SH_P4):
         entry = _entries(RESHUMOT_ROOT)[entry_id]
-        asset = entry["files"][0]
+        asset = reshumot_page_render(entry)
+        assert entry["files"] == [asset]
         rendering = asset["rendering"]
         # Rendered from a born-digital PDF: never a scan.
         assert rendering["is_scan"] is False
@@ -232,12 +198,12 @@ def test_reshumot_rendered_pages_record_rendering_provenance_and_pins() -> None:
             assert hashlib.sha256(image.tobytes()).hexdigest() == asset["pixel_sha256"]
 
 
-def test_reshumot_page_with_wrong_extraction_order_is_rejected() -> None:
+def test_reshumot_page_without_an_anchor_is_rejected() -> None:
+    # The colophon has no running footer, so the booklet number and date cannot anchor its order.
     _, source = _bundle_and_source(RESHUMOT_ID)
-    entry = _entries(RESHUMOT_ROOT)[KT_P2]
-    assert entry["files"] == []
+    entry = _entries(RESHUMOT_ROOT)[SH_P8]
     reasons = reshumot_entry_exclusion_reasons(entry, source, RESHUMOT_ROOT)
-    assert reasons == ["extraction_order_not_verified", "control_characters_present", "footnote_marker_merged_into_year"]
+    assert reasons == ["extraction_order_not_verified", "missing_expected_phrase"]
     assert entry["text"]["order_verification"]["issues"] == reasons[1:]
 
 
@@ -268,7 +234,11 @@ def test_reshumot_series_era_and_provenance_gates() -> None:
     assert reasons(lambda e: e["text"].update(adjudication_status="adjudicated")) == ["unsupported_reference_status"]
     assert reasons(lambda e: e["files"][0]["rendering"].update(is_scan=True)) == ["rendering_provenance_unrecorded"]
     assert reasons(lambda e: e["files"][0]["rendering"].pop("renderer_version")) == ["rendering_provenance_unrecorded"]
-    assert reasons(lambda e: e.update(files=[])) == ["no_raster_asset"]
+    assert reasons(lambda e: e.update(files=[])) == ["page_render_missing"]
+    # F8e3: one extraction method, and the entry must claim exactly the reading order the method verifies.
+    assert reasons(lambda e: e["text"]["extraction"].update(normalization="poppler_bidi_logical.v1")) == ["unsupported_text_normalization"]
+    assert reasons(lambda e: e["text"].update(reading_order_verified="page")) == ["reading_order_scope_mismatch"]
+    assert reasons(lambda e: e["text"].pop("reading_order_verified")) == ["reading_order_scope_mismatch"]
     assert reasons(lambda e: e["text"]["order_verification"].update(expected_phrases=[])) == [
         "extraction_order_not_verified",
         "no_expected_phrases",
@@ -288,7 +258,7 @@ def test_reshumot_text_must_be_reproducible_from_the_committed_extraction(tmp_pa
     _, source = _bundle_and_source(RESHUMOT_ID)
     entry = _entries(root)[SH_P2]
     text_path = root / entry["text"]["local_path"]
-    # An edited text with an updated pin still fails: it no longer follows from the pdftotext output.
+    # An edited text with an updated pin still fails: it no longer follows from the committed glyph layer.
     text_path.write_bytes(text_path.read_bytes().replace("חובת".encode(), "חובות".encode(), 1))
     entry["text"]["sha256"] = sha256_file(text_path)
     assert reshumot_entry_exclusion_reasons(entry, source, root) == ["text_not_reproducible_from_extraction"]
@@ -387,6 +357,7 @@ def test_discovery_emits_stable_ids_and_provenance_metadata() -> None:
     assert (metadata["content_type"], metadata["period"], metadata["created"]) == ("printed_modern", "modern", "2016-08-16")
     assert metadata["is_scan"] is False and metadata["image_origin"] == "rendered_from_born_digital_pdf"
     assert metadata["text_order_verified"] is True
+    assert metadata["reading_order_verified"] == "within_line"
     assert (metadata["text_provenance"], metadata["text_tier"], metadata["reference_eligible"]) == ("born_digital_pdf_text", 2, False)
     assert metadata["source_group_id"] == "reshumot:sefer_hachukim:2580"
     assert metadata["printed_page_number"] == "1226"

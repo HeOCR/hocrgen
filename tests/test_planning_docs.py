@@ -890,7 +890,7 @@ def test_f8_real_source_map_is_planning_only_and_gate_preserving() -> None:
     roadmap_rows = _roadmap_table_rows(roadmap)
 
     assert roadmap_rows["F8"][1] == "Real-source map and paired-text source intake"
-    assert roadmap_rows["F8"][2].split(", ") == ["F8a", "F8b", "F8b2", "F8b3", "F8b4", "F8b5", "F8b6", "F8b7", "F8c", "F8c2", "F8d", "F8d2", "F8d3", "F8d3b", "F8e", "F8e2", "F8f", "F8g", "F8g2"]
+    assert roadmap_rows["F8"][2].split(", ") == ["F8a", "F8b", "F8b2", "F8b3", "F8b4", "F8b5", "F8b6", "F8b7", "F8c", "F8c2", "F8d", "F8d2", "F8d3", "F8d3b", "F8e", "F8e2", "F8e3", "F8f", "F8g", "F8g2"]
     # F8g promoted the real sources under real_source_composition.v2; nothing is published.
     assert roadmap_rows["F8g"][1] == "F8"
     assert roadmap_rows["F8g"][4] == "completed"
@@ -938,6 +938,13 @@ def test_f8_real_source_map_is_planning_only_and_gate_preserving() -> None:
     assert "pdf_glyph_geometry_logical.v1" in roadmap_rows["F8e2"][5]
     assert "`F8e2` (completed)" in plan
     assert "`F8e2` now rebuilds the Reshumot text" in agent_plan
+    # F8e3 makes the Reshumot reading-order status explicit, scores it line-matched and retires the pdftotext method.
+    assert roadmap_rows["F8e3"][1] == "F8"
+    assert roadmap_rows["F8e3"][4] == "completed"
+    assert "reading_order_verified: within_line" in roadmap_rows["F8e3"][5]
+    assert "line_matched.v1" in roadmap_rows["F8e3"][5]
+    assert "`F8e3` (completed)" in plan
+    assert "`F8e3` now records that Reshumot line text is verified" in agent_plan
     # F8c landed slug-keyed NLI rights with exploratory printed-book seeds.
     assert roadmap_rows["F8c"][4] == "completed"
     # F8f is an operator-only PBY-to-NLI alignment pilot: silver pairs only, no source or profile change.

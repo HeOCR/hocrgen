@@ -1,13 +1,13 @@
 """Operator-only F8g2 capture and materialization of Reshumot and Knesset committee pages for the real tranche.
 
-The F8e fixtures hold 2 Reshumot and 3 Knesset pages. This module grows both sources in the operator tranche with
-the F8e method, unchanged:
+The packaged fixtures hold 3 Reshumot and 5 Knesset entries. This module grows both sources in the operator tranche:
 
 - **Reshumot** (``reshumot_born_digital``): ספר החוקים and קובץ התקנות booklets published on or after 2006-01-01,
   found through the gazette search API (one query per series and Hebrew year), sampled by a seeded hash. Each page is
-  rendered with ``pdftoppm`` at 150 dpi, 8-bit gray (``is_scan: false``), and carries the ``pdftotext`` text in
-  logical order (``hocrgen.parsers.pdf_bidi``). The unchanged F8e gate decides each page: a page whose text fails the
-  logical-order check, or whose PDF has an image on that page, is left out and counted by reason.
+  rendered with ``pdftoppm`` at 150 dpi, 8-bit gray (``is_scan: false``), and carries the text rebuilt from its glyph
+  layer (F8e2, ``pdf_glyph_geometry_logical.v1``), with ``reading_order_verified: within_line`` (F8e3). The gate
+  decides each page: a page whose text cannot be verified, or that holds an image the crop cannot leave out, is
+  left out and counted by reason. F8e's ``pdftotext`` method is retired (F8e3).
 - **Knesset** (``knesset_committee_protocols_pre1976``): committee protocols (group type 23) of open sessions on or
   before 1975-12-31, from the Knesset OData service, sampled by a seeded hash per Knesset term. Each page is the
   PDF's embedded scan, extracted losslessly with ``pdfimages``: a 1-bit CCITT scan re-encoded as PNG, or a colour
@@ -36,7 +36,6 @@ from typing import Any
 from PIL import Image
 from PIL import __version__ as PIL_VERSION
 
-from hocrgen.parsers.pdf_bidi import PDF_BIDI_NORMALIZATION_VERSION, layout_notes, logical_order_issues, poppler_text_to_logical
 
 USER_AGENT = "hocrgen-real-tranche/0.2 (https://github.com/HeOCR/hocrgen; operator capture, throttled)"
 RESHUMOT_SEARCH_URL = "https://pub-justice.openapi.gov.il/pub/moj/portal/rest/searchpredefinedapi/v1/SearchPredefinedApi/Reshumot/Search"
@@ -45,14 +44,9 @@ RESHUMOT_CLIENT_ID = "149a5bad-edde-49a6-9fb9-188bd17d4788"
 RESHUMOT_SERIES = {"1": ("sefer_hachukim", "ספר החוקים"), "3": ("kovetz_hatakanot", "קובץ התקנות")}
 RESHUMOT_BORN_DIGITAL_FROM = "2006-01-01"
 RESHUMOT_HEBREW_YEAR_OFFSET = 5692  # BookletYear = Hebrew year - 5692 (verification note: 17 = 1949, 94 = 2026)
-RESHUMOT_LIMITATIONS = [
-    "block order follows poppler's physical layout analysis: side headings and section numbers come out as separate blocks before the body text",
-    "superscript footnote markers are plain digits; an RLM between a marker and a preceding number becomes one space",
-    "punctuation code points follow the PDF ToUnicode maps (for example ASCII quote and hyphen where the glyphs look like gershayim and an en dash)",
-    "no line, word or block geometry is kept",
-]
 RESHUMOT_GLYPH_LIMITATIONS = [
     "reading order is rebuilt from glyph geometry: body lines top to bottom; a narrower block (a side heading, a signature, a table column) is read whole where it starts, side headings before the body line beside them, blocks on one row right to left",
+    "only each line's text is verified (reading_order_verified: within_line): the order of lines and blocks across the page is the convention above, and a side heading level with a body line may be joined to it or read after it, and table cells read row by row or column by column",
     "a label set off by a tab or hanging indent (3., 2ג., (א), a footnote number) is joined to the line it labels with one space",
     "superscript digits next to digits are set off by one space (התשנ\"ה-1995 1); other superscripts are joined to their neighbour",
     "word spaces come from space glyphs or from gaps of at least 0.1 em; letter-spaced print is read as words",
@@ -190,40 +184,27 @@ def reshumot_expected_phrases(data: dict[str, Any], page: int, logical: str) -> 
     ]
 
 
-def reshumot_page_entry(
+def reshumot_entry_skeleton(
     *,
     data: dict[str, Any],
     pdf: dict[str, Any],
     page: int,
     page_image_count: int,
-    raw_text: str,
-    poppler_version: str,
     captured_at: str,
-    image_file: dict[str, Any] | None,
-) -> tuple[dict[str, Any], str, list[str]]:
-    """One Reshumot page entry in the F8e snapshot format, its logical text and its order issues.
+) -> dict[str, Any]:
+    """The booklet, PDF, rights and upstream parts of one Reshumot page entry; ``reshumot_glyph_page_entry`` adds
+    the text, its verification, the files and the crop.
 
-    ``pdf`` holds the PDF facts (``sha256``, ``bytes``, ``info`` from pdfinfo, ``fonts``); ``image_file`` is the page
-    render's file record, or None when the page is not rendered.
+    ``pdf`` holds the PDF facts (``sha256``, ``bytes``, ``info`` from pdfinfo, ``fonts``).
     """
 
     series_key, series_he = RESHUMOT_SERIES[str(data["FolderType"])]
     booklet = str(data["BookletNum"])
     publish_date = str(data["PublishDate"])[:10]
     year, month, day = (int(part) for part in publish_date.split("-"))
-    stem = f"{series_key}_{booklet}__p{page:04d}"
-    logical, conversion_issues = poppler_text_to_logical(raw_text)
-    printed = printed_page_number(logical)
-    expected = [
-        {"text": f"{series_he} {booklet},", "source": "gazette API BookletNum and FolderType"},
-        {"text": f"{day}.{month}.{year}", "source": "gazette API PublishDate"},
-    ]
-    titles = docsummary_titles(((data.get("DocSummary") or {}).get("DescriptionHtmlString")) or "")
-    expected += [{"text": title, "source": "gazette API DocSummary"} for title, title_page in titles if printed and title_page == printed]
-    issues = sorted(set(conversion_issues) | set(logical_order_issues(logical, [item["text"] for item in expected])))
     info = pdf["info"]
     document = data["Document"][0]
-    entry = {
+    return {
         "booklet": {
             "booklet_number": booklet,
             "booklet_year_index": str(data.get("BookletYear")),
@@ -237,10 +218,10 @@ def reshumot_page_entry(
         },
         "content_type": "printed_modern",
         "direction": "rtl",
-        "entry_id": stem,
-        "files": [image_file] if image_file else [],
+        "entry_id": f"{series_key}_{booklet}__p{page:04d}",
+        "files": [],
         "languages": ["he"],
-        "page": {"pdf_page_index": page, "printed_page_number": printed},
+        "page": {"pdf_page_index": page, "printed_page_number": None},
         "pdf": {
             "born_digital": "InDesign" in str(info.get("Creator", "")) and bool(pdf["fonts"]),
             "born_digital_evidence": (
@@ -267,28 +248,15 @@ def reshumot_page_entry(
         "script": "Hebr",
         "text": {
             "adjudication_status": "not_adjudicated",
-            "extraction": {
-                "command": f"pdftotext -f {page} -l {page} -enc UTF-8 <pdf> <out>",
-                "extractor": "pdftotext (poppler)",
-                "extractor_version": poppler_version,
-                "normalization": PDF_BIDI_NORMALIZATION_VERSION,
-                "raw_local_path": f"extraction/{stem}.pdftotext.txt",
-                "raw_sha256": _sha256(raw_text.encode("utf-8")),
-            },
-            "geometry": "none",
             "granularity": "page",
             "heocr_attestation": "none",
-            "known_limitations": RESHUMOT_LIMITATIONS,
-            "layout_notes": layout_notes(logical),
-            "local_path": f"text/{stem}.txt",
-            "order_verification": {"expected_phrases": expected, "issues": issues},
+            "local_path": f"text/{series_key}_{booklet}__p{page:04d}.txt",
             "reference_eligible": False,
-            "sha256": _sha256(logical.encode("utf-8")),
             "text_provenance": "born_digital_pdf_text",
             "text_tier": 2,
             "unicode": "NFC",
         },
-        "title": f"{series_he} {booklet} ({day}.{month}.{year}), page {printed or page}",
+        "title": f"{series_he} {booklet} ({day}.{month}.{year}), page {page}",
         "upstream": {
             "api_search_body": {"BookletYear": str(data.get("BookletYear")), "FolderType": str(data["FolderType"]), "skip": 0},
             "api_search_url": RESHUMOT_SEARCH_URL,
@@ -296,7 +264,6 @@ def reshumot_page_entry(
             "modify_date": data.get("ModifyDate"),
         },
     }
-    return entry, logical, issues
 
 
 def glyph_layer_bytes(layer: dict[str, Any]) -> bytes:
@@ -329,7 +296,7 @@ def reshumot_glyph_page_entry(
     trusted downstream: the builder only records what the pure functions produce.
     """
 
-    from hocrgen.fetchers.government_print import RESHUMOT_CROP_ROLE, reshumot_crop_record
+    from hocrgen.fetchers.government_print import RESHUMOT_CROP_ROLE, RESHUMOT_READING_ORDER_VERIFIED, reshumot_crop_record
     from hocrgen.fetchers.wikisource import crop_image, crop_mask_fill, crop_pixel_box, crop_region_boxes
     from hocrgen.parsers.pdf_geometry import GEOMETRY_NORMALIZATION_VERSION, verify_glyph_page
 
@@ -341,10 +308,7 @@ def reshumot_glyph_page_entry(
         return [item["text"] for item in expected_for["phrases"]]
 
     result = verify_glyph_page(layer, table, render_image, dpi, expected=expected)
-    entry, _, _ = reshumot_page_entry(
-        data=data, pdf=pdf, page=page, page_image_count=page_image_count, raw_text="", poppler_version=render_file["rendering"]["renderer_version"],
-        captured_at=captured_at, image_file=None,
-    )
+    entry = reshumot_entry_skeleton(data=data, pdf=pdf, page=page, page_image_count=page_image_count, captured_at=captured_at)
     stem = entry["entry_id"]
     logical = result.text
     printed = printed_page_number(logical)
@@ -406,6 +370,8 @@ def reshumot_glyph_page_entry(
         ),
         "facts": result.facts(),
     }
+    # F8e3: the method verifies each line's text, never the order of lines and blocks across the page.
+    text["reading_order_verified"] = RESHUMOT_READING_ORDER_VERIFIED
     text["sha256"] = _sha256(logical.encode("utf-8"))
     return entry, logical, result.issues, cropped
 
@@ -578,13 +544,6 @@ def pdf_facts(path: Path) -> dict[str, Any]:  # pragma: no cover - poppler
     rows = [line.split() for line in _run(["pdfimages", "-list", str(path)]).splitlines()[2:]]
     content = path.read_bytes()
     return {"info": info, "fonts": fonts, "image_rows": rows, "sha256": _sha256(content), "bytes": len(content)}
-
-
-def pdf_page_text(path: Path, page: int) -> str:  # pragma: no cover - poppler
-    with tempfile.TemporaryDirectory() as tmp:
-        out = Path(tmp) / "page.txt"
-        subprocess.run(["pdftotext", "-f", str(page), "-l", str(page), "-enc", "UTF-8", str(path), str(out)], check=True)
-        return out.read_text(encoding="utf-8")
 
 
 def render_gray_page(path: Path, page: int) -> tuple[bytes, str, tuple[int, int]]:  # pragma: no cover - poppler
@@ -909,8 +868,8 @@ def materialize_reshumot(
             "notes": (
                 "F8e2 tranche. Every page of every captured booklet was converted from its glyph layer (pdf_glyph_geometry_"
                 "logical.v1), checked against its render and cropped to its verified regions where needed; the gate re-derives "
-                "and re-checks each admitted page. The packaged F8e fixture's admitted pages (pdftotext, poppler_bidi_logical.v1) "
-                "are kept as packaged."
+                "and re-checks each admitted page. Each line's text is verified, not the order of lines and blocks across "
+                "the page (reading_order_verified: within_line). The packaged fixture's admitted pages are kept as packaged."
             ),
         }
     )

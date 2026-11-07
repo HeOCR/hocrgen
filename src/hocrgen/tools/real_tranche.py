@@ -69,8 +69,8 @@ from hocrgen.real_tranche import (
     verify_tranche_files,
 )
 
-TRANCHE_ID = "f8e2_real_tranche_v3"
-TRANCHE_NOTATION = "F8e2"
+TRANCHE_ID = "f8e3_real_tranche_v4"
+TRANCHE_NOTATION = "F8e3"
 CAPTURE_SEED = "f8g2-tranche-v2"
 USER_AGENT = "hocrgen-real-tranche/0.1 (https://github.com/HeOCR/hocrgen; operator capture)"
 SURFDRIVE_WEBDAV = "https://surfdrive.surf.nl/public.php/webdav/"
@@ -769,6 +769,8 @@ def _government_print_items(root: Path, *, source_id: str) -> list[dict[str, Any
                 "text": {"path": text["local_path"], "sha256": text["sha256"]} if text.get("local_path") else None,
                 "cropped": bool(entry.get("crop")),
                 "provenance": provenance,
+                # F8e3: Reshumot line text is verified, its order across the page is not (``within_line``).
+                **({"reading_order_verified": text["reading_order_verified"]} if text.get("reading_order_verified") else {}),
             }
         )
     return items
@@ -829,7 +831,7 @@ def refresh_reshumot(
     layer_cache: Path | None = None,
     report: Path | None = None,
 ) -> dict[str, Any]:  # pragma: no cover - operator entry point (poppler, pdfminer.six)
-    """A new tranche tree from ``base`` with only the Reshumot snapshot rebuilt (F8e2).
+    """A new tranche tree from ``base`` with only the Reshumot snapshot rebuilt (F8e2; F8e3 rebuilt it again).
 
     Every other source's snapshot is copied byte for byte, with its descriptor entry; the Reshumot snapshot is
     materialized again from the cache, and the descriptor and SHA256SUMS are rewritten under this tranche id.
@@ -851,14 +853,14 @@ def refresh_reshumot(
     results = {source_id: {key: value for key, value in entry.items() if key != "snapshot"} for source_id, entry in descriptor["sources"].items()}
     results[SOURCE_RESHUMOT] = government_print_tranche.materialize_reshumot(
         cache=cache, out_root=out, packaged_root=_data("reshumot/snapshot"), source=sources[SOURCE_RESHUMOT], captured_at=captured_at,
-        gate=reshumot_entry_exclusion_reasons, outline_table=_data("reshumot/glyph_outlines.json"), layer_cache=layer_cache, report=report,
+        gate=reshumot_entry_exclusion_reasons, outline_table=_data("reshumot/snapshot/glyph_outlines.json"), layer_cache=layer_cache, report=report,
     )
     inputs = dict(descriptor["inputs"])
     listing = cache / "reshumot" / "booklets.jsonl"
     inputs["reshumot_capture"] = {"listing_sha256": sha256_path(listing), "captured_at": captured_at, "seed": CAPTURE_SEED}
     inputs["reshumot_method"] = {
         "normalization": results[SOURCE_RESHUMOT]["method"],
-        "glyph_outline_table_sha256": sha256_path(_data("reshumot/glyph_outlines.json")),
+        "glyph_outline_table_sha256": sha256_path(_data("reshumot/snapshot/glyph_outlines.json")),
     }
     inputs["refreshed_from"] = {"tranche_id": descriptor["tranche_id"], "sha256sums_sha256": sha256_path(base / TRANCHE_CHECKSUMS)}
     write_descriptor(out, created_at=created_at, results=results, inputs=inputs)
@@ -957,7 +959,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - operator e
         if (args.cache / "reshumot" / "booklets.jsonl").is_file():
             results[SOURCE_RESHUMOT] = government_print_tranche.materialize_reshumot(
                 cache=args.cache, out_root=args.out, packaged_root=_data("reshumot/snapshot"), source=sources[SOURCE_RESHUMOT],
-                captured_at=captured_at, gate=reshumot_entry_exclusion_reasons, outline_table=_data("reshumot/glyph_outlines.json"),
+                captured_at=captured_at, gate=reshumot_entry_exclusion_reasons, outline_table=_data("reshumot/snapshot/glyph_outlines.json"),
                 layer_cache=args.reshumot_glyph_layers, report=args.reshumot_report,
             )
         if (args.cache / "knesset" / "documents.jsonl").is_file():
@@ -983,7 +985,7 @@ def main(argv: list[str] | None = None) -> int:  # pragma: no cover - operator e
         if SOURCE_RESHUMOT in results:
             inputs["reshumot_method"] = {
                 "normalization": results[SOURCE_RESHUMOT].get("method"),
-                "glyph_outline_table_sha256": sha256_path(_data("reshumot/glyph_outlines.json")),
+                "glyph_outline_table_sha256": sha256_path(_data("reshumot/snapshot/glyph_outlines.json")),
             }
         write_descriptor(args.out, created_at=args.created_at, results=results, inputs=inputs)
         if args.manifest_out:

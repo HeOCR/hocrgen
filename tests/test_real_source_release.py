@@ -312,10 +312,13 @@ def test_release_terms_carry_each_promoted_source_scope_marker() -> None:
     )
     assert pinkas.line_scope_summary == {"line_count": 3} and pinkas.paired_text == "page_xml"
     reshumot = item_release_terms(
-        _export_item("reshumot_born_digital", licence="PD-IL", classification="open", metadata={"is_scan": False, "text_reference": "t"}),
+        _export_item("reshumot_born_digital", licence="PD-IL", classification="open", metadata={"is_scan": False, "text_reference": "t", "reading_order_verified": "within_line"}),
         contract,
     )
     assert reshumot.rendered_not_scan is True and reshumot.text_licence == "PD-IL"
+    # F8e3: line text verified, page order not: the item says so and excludes page-order evaluation.
+    assert reshumot.reading_order_verified == "within_line" and reshumot.excluded_evaluations == ["page_reading_order"]
+    assert "reading_order_verified" not in ws.model_dump() and ws.excluded_evaluations == []
 
 
 @pytest.mark.parametrize(
@@ -325,7 +328,9 @@ def test_release_terms_carry_each_promoted_source_scope_marker() -> None:
         ("yidtaknl_vaybertaytsh_gt", "CC-BY-4.0", "open_with_attribution", {"attribution_text": "a"}, "character_level_only_scope_missing"),
         ("yidtaknl_vaybertaytsh_gt", "CC-BY-4.0", "open_with_attribution", {"attribution_text": "a", "evaluation_scope": "character_level_only", "usage_scope": {"evaluation_scope": "character_level_only", "excluded_evaluations": ["word_level"]}}, "character_level_exclusions_missing"),
         ("pinkas_dataset_bgu", "CC-BY-4.0", "open_with_attribution", {"attribution_text": "a"}, "per_line_scope_missing"),
-        ("reshumot_born_digital", "PD-IL", "open", {"is_scan": True}, "rendered_not_scan_flag_missing"),
+        ("reshumot_born_digital", "PD-IL", "open", {"is_scan": True, "reading_order_verified": "within_line"}, "rendered_not_scan_flag_missing"),
+        ("reshumot_born_digital", "PD-IL", "open", {"is_scan": False}, "reading_order_scope_missing"),
+        ("reshumot_born_digital", "PD-IL", "open", {"is_scan": False, "reading_order_verified": "page"}, "reading_order_scope_missing"),
         ("knesset_committee_protocols_pre1976", "CC-BY-4.0", "open", {}, "licence CC-BY-4.0 != PD-IL"),
         ("hash_nli_any_use", "PD-IL", "open", {}, "source_not_promoted"),
     ],
@@ -375,6 +380,8 @@ def test_public_beta_export_ships_texts_terms_and_a_complete_notice(tmp_path: Pa
     assert {item["release_terms"]["evaluation_scope"] for item in by_source["yidtaknl_vaybertaytsh_gt"]} == {"character_level_only"}
     assert all(item["release_terms"]["share_alike"] for item in by_source["wikisource_he_proofread"])
     assert all(item["release_terms"]["rendered_not_scan"] for item in by_source["reshumot_born_digital"])
+    assert all(item["release_terms"]["reading_order_verified"] == "within_line" for item in by_source["reshumot_born_digital"])
+    assert all("page_reading_order" in item["release_terms"]["excluded_evaluations"] for item in by_source["reshumot_born_digital"])
     assert all(item["release_terms"]["line_scope_summary"] for item in by_source["pinkas_dataset_bgu"])
     manifest = json.loads((output_dir / "manifests" / "attribution_manifest.json").read_text(encoding="utf-8"))
     sources = {source["source_id"]: source for source in manifest["sources"]}
@@ -483,9 +490,12 @@ def test_committed_tranche_manifest_is_coherent_and_holds_no_page_text() -> None
     items = [json.loads(line) for line in lines]
     assert len(items) == manifest["item_count"] == sum(source["item_count"] for source in manifest["sources"].values())
     contract = load_and_validate_bundle().real_source_contract
-    allowed_keys = {"source_id", "source_item_id", "source_group", "modality", "asset", "page_image", "text", "cropped", "quality", "provenance"}
+    allowed_keys = {"source_id", "source_item_id", "source_group", "modality", "asset", "page_image", "text", "cropped", "quality", "provenance",
+                    "reading_order_verified"}
     for item in items:
         assert set(item) <= allowed_keys
+        # F8e3: every Reshumot item says its line text is verified and its order across the page is not; no other does.
+        assert item.get("reading_order_verified") == ("within_line" if item["source_id"] == "reshumot_born_digital" else None)
         entry = contract.entry(item["source_id"])
         assert entry is not None and item["modality"] in {modality.value for modality in entry.modalities}
         assert re.fullmatch(r"[0-9a-f]{64}", item["asset"]["sha256"])

@@ -326,6 +326,9 @@ class RealSourceReleaseTerms(ConfigBaseModel):
     evaluation_scope: RealSourceEvaluationScope
     rendered_not_scan: bool = False
     paired_text: Literal["page_text", "page_xml", "none"] = "none"
+    # F8e3: ``within_line`` when the paired text's line text is verified but its order of lines and blocks across the
+    # page is not (Reshumot); every item must then carry it, and page-order evaluation is excluded.
+    reading_order_verified: Literal["within_line", "page"] | None = None
     notice: str = Field(min_length=1)
 
 

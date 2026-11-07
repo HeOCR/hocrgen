@@ -155,7 +155,7 @@ For a frozen, rights-clean mixed-script example, see the [synthetic evaluation r
 
 `--modality printed|handwritten` (with `--reference-manifest`; refused with `--diagnostic-only`) makes a run one modality track. The modality track is distinct from the open/proprietary prediction `track`; both are reported.
 
-- **Input.** `benchmark_reference_manifest.v1` items may declare `modality` (`printed` or `handwritten`) and `reference_normalization` (`footnote_marker_style`, `footnote_count`). Unset, both are omitted from serialized output, so existing manifests and release artifacts are unchanged.
+- **Input.** `benchmark_reference_manifest.v1` items may declare `modality` (`printed` or `handwritten`) and `reference_normalization` (`footnote_marker_style`, `footnote_count`, and since F8e3 `reading_order_verified`). Unset, they are omitted from serialized output, so existing manifests and release artifacts are unchanged.
 - **Scope.** Only adjudicated items of the run's modality are scored. Others are listed in `excluded_references` with a reason; a track with no scored item fails closed.
 - **Report.** `modality` at the top level, on `scored.adjudicated_reference`, in `strata.modality` and in the run record (`modality`, `modality_scope`). `scored.synthetic_gold` is identical with and without the flag; a run without it is byte-identical to one before E2d.
 
@@ -166,6 +166,17 @@ For a frozen, rights-clean mixed-script example, see the [synthetic evaluation r
 - `masking`: mark, masked-reference-character and removed-prediction-character counts per item, and skipped items (alignments above 25 million cells).
 
 The view is heuristic near the marks, appears only when a scored item declares the fact, and never changes `scored` or `primary.v1`. `comparison.reference_view_deltas` covers it.
+
+**Line-matched view (`line_matched.v1`, F8e3).** Some texts have each line verified but not the order of lines and blocks across the page. Reshumot text, rebuilt from the PDF glyph layer, is one: a side heading level with a body line may be joined to it or read after it, and table cells may be read row by row or column by column. Such a text declares `reading_order_verified: within_line`, as `reference_normalization.reading_order_verified` on a manifest item or as a field of an `--unreviewed-texts` record (`page` means the whole order is verified; unset means no claim). Reading the blocks in another order is not a recognition error, so these items are scored differently:
+
+- **They never enter a page-order aggregate.** They are left out of `scored.adjudicated_reference`, which lists them under `reading_order_within_line_items`, and out of the `unreviewed_diagnostics` aggregate.
+- **They are scored under `reference_views.<origin>."line_matched.v1"`** (for unreviewed texts, `unreviewed_diagnostics.reference_views`):
+  - `views."line_matched.v1"` is their score (`primary_view`). Each non-blank reference line is paired with at most one prediction line, greedily by the lowest edit distance relative to the longer line, and only when that distance is below the longer line's length. The paired prediction lines are put in reference order and the unpaired ones appended. The usual CER and WER then count over the same reference characters.
+  - `views.as_is` is the page-order score, kept for diagnosis only.
+  - `matching` gives per item the reference lines, matched lines and prediction lines moved.
+- **What still counts.** Order inside a line still counts, as do lines the engine split or merged differently.
+- **Comparisons.** `comparison.reference_view_deltas` covers the view, and so does `diagnostic_comparison.unreviewed_view_deltas` in a diagnostic run.
+- **Release.** Exported Reshumot items carry `release_terms.reading_order_verified: within_line`, with `page_reading_order` in `excluded_evaluations` (see [`real_source_release_contract.md`](./real_source_release_contract.md) §3).
 
 **Intervals.** `--bootstrap-resamples N` (with `--baseline-predictions`; `--bootstrap-seed`, default 0) adds `paired_bootstrap` to every comparison delta: the 95% percentile interval of ΔCER and ΔWER over common items resampled with replacement, re-aggregated as sums. The run record lists the settings. The default, 0, adds nothing.
 

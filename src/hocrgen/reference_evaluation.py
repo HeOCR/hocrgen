@@ -609,3 +609,47 @@ def footnote_masked_pair(
     masked_prediction = _drop_aligned_to_excluded(reference, mask, prediction, max_cells)
     stats["removed_prediction_characters"] = len(prediction) - len(masked_prediction)
     return masked_prediction, masked_reference, stats
+
+
+# --- F8e3: line-matched view for references whose reading order is verified within lines only -------------------
+
+LINE_MATCHED_VIEW_ID = "line_matched.v1"
+READING_ORDER_WITHIN_LINE = "within_line"
+
+
+def line_matched_prediction(prediction: str, reference: str) -> tuple[str, dict]:
+    """Reorder the prediction's lines into the reference's line order (the ``line_matched.v1`` view).
+
+    For a reference whose text is verified line by line but whose order of lines across the page is a layout
+    convention (``reading_order_verified: within_line``, F8e3), an engine that reads the blocks in another order has
+    made no recognition error. Each non-blank reference line is paired with at most one non-blank prediction line,
+    greedily by the lowest edit distance relative to the longer line (ties by reference, then prediction position);
+    a pair is made only when its distance is below the longer line's length. The paired prediction lines are put in
+    reference order and the unpaired ones appended in their own order, so the result scores with the usual CER over
+    the same reference characters. Characters inside a line keep their order, so within-line errors still count, and
+    a line the engine split or merged differently still costs edits.
+    """
+    reference_lines = [line for line in reference.split("\n") if line.strip()]
+    prediction_lines = [line for line in prediction.split("\n") if line.strip()]
+    candidates = []
+    for r_index, r_line in enumerate(reference_lines):
+        for p_index, p_line in enumerate(prediction_lines):
+            longer = max(len(r_line), len(p_line))
+            distance = levenshtein_distance(r_line, p_line)
+            if distance < longer:
+                candidates.append((distance / longer, r_index, p_index))
+    pairs: dict[int, int] = {}
+    used: set[int] = set()
+    for _, r_index, p_index in sorted(candidates):
+        if r_index not in pairs and p_index not in used:
+            pairs[r_index] = p_index
+            used.add(p_index)
+    ordered = [prediction_lines[pairs[r_index]] for r_index in range(len(reference_lines)) if r_index in pairs]
+    ordered += [line for p_index, line in enumerate(prediction_lines) if p_index not in used]
+    matched_order = [pairs[r_index] for r_index in range(len(reference_lines)) if r_index in pairs]
+    stats = {
+        "reference_lines": len(reference_lines), "prediction_lines": len(prediction_lines), "matched_lines": len(pairs),
+        # Paired prediction lines that sit elsewhere than in their own reading order.
+        "prediction_lines_moved": sum(a != b for a, b in zip(matched_order, sorted(matched_order))),
+    }
+    return "\n".join(ordered), stats

@@ -15,8 +15,8 @@
   "pinkas_zip": "https://zenodo.org/api/records/3569694/files/pinkas_dataset.zip/content",
   "pinkas_zip_md5": "802f14fbdb400efab9cb0808c3620be8",
   "refreshed_from": {
-   "sha256sums_sha256": "3232f52147fcbca16bbbd5098f4a645eb85b5edde80e1eceb1519f12a8f21e9a",
-   "tranche_id": "f8g2_real_tranche_v2"
+   "sha256sums_sha256": "d2a1618550523f1700696aa3bee69f9c1a5483f04c6e35c7701178ed23892439",
+   "tranche_id": "f8e2_real_tranche_v3"
   },
   "reshumot_capture": {
    "captured_at": "2026-11-07",
@@ -38,9 +38,9 @@
  },
  "item_count": 2611,
  "items_path": "tranche_items.jsonl",
- "planning_notation": "F8e2",
+ "planning_notation": "F8e3",
  "schema": "hocrgen_real_tranche_manifest.v1",
- "sha256sums_sha256": "d2a1618550523f1700696aa3bee69f9c1a5483f04c6e35c7701178ed23892439",
+ "sha256sums_sha256": "653d848bc675eeb505ce47e2e265cca7cd8a887e396c2b6a553fa529178c39f3",
  "sources": {
   "knesset_committee_protocols_pre1976": {
    "item_count": 205,
@@ -78,11 +78,11 @@
     "extraction_order_not_verified": 90
    },
    "snapshot": "sources/reshumot_born_digital/snapshot",
-   "snapshot_bytes": 141225863,
+   "snapshot_bytes": 141545706,
    "snapshot_file_count": 2672,
    "snapshot_files": {
-    "sources/reshumot_born_digital/snapshot/entries.jsonl": "87b0ecfa09c223b1cf6525825a8bbb358ceda3ad62db4189e87fd9b078389a1c",
-    "sources/reshumot_born_digital/snapshot/snapshot.yaml": "7cf4b28dc921c0044e59bf981d2e8388beea3c4d697eaf46f57577632c54ad32"
+    "sources/reshumot_born_digital/snapshot/entries.jsonl": "92fb352044281f07437a7400dfd4eae5be6d29ca928a31a61468badcdd3ccc35",
+    "sources/reshumot_born_digital/snapshot/snapshot.yaml": "63138d1a1711b624b5f29227ba069935bfb79fdac162823b36fa231cdecd11e4"
    }
   },
   "wikisource_he_proofread": {
@@ -113,6 +113,6 @@
    }
   }
  },
- "total_bytes": 1032984854,
- "tranche_id": "f8e2_real_tranche_v3"
+ "total_bytes": 1033304699,
+ "tranche_id": "f8e3_real_tranche_v4"
 }

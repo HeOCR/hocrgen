@@ -1,3 +1,5 @@
-# Extracted and normalized text bytes are pinned by sha256; never normalize them.
-extraction/*.txt -text
+# Pinned by sha256 (text, glyph layers and outline table); never normalize them.
 text/*.txt -text
+extraction/*.gz binary
+*.json -text
+entries.jsonl -text

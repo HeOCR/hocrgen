@@ -4,11 +4,13 @@ Two packaged-static-records adapters over pinned snapshots:
 
 - ``reshumot``: pages of ספר החוקים and קובץ התקנות booklets from 2006 on (Copyright Act section 6). Each
   page is rendered from the born-digital PDF (``rendering.is_scan`` false, so evaluation never mistakes it
-  for a scan) and carries the PDF's embedded text in logical order. The text is admitted only when the
-  committed extraction converts to it exactly and it passes the logical-order checks of
-  ``hocrgen.parsers.pdf_bidi``. F8e entries carry pdftotext output; F8e2 entries carry the page's glyph layer,
-  re-converted by ``hocrgen.parsers.pdf_geometry`` and re-checked against the committed render, and may pair with
-  the render cut to the verified regions (decision 12).
+  for a scan) and carries the PDF's embedded text in logical order. Every entry carries the page's glyph layer
+  (F8e2, ``pdf_glyph_geometry_logical.v1``); the text is admitted only when ``hocrgen.parsers.pdf_geometry``
+  re-converts the committed layer to it exactly, re-checked against the committed render, and it passes the
+  logical-order checks of ``hocrgen.parsers.pdf_bidi``. A page may pair with the render cut to the verified regions
+  (decision 12). Each line's text is verified; the order of lines and blocks across the page is a layout convention,
+  so every entry records ``text.reading_order_verified: within_line`` (F8e3), and evaluation scores such text
+  line-matched, never in page order. F8e's ``pdftotext`` method (``poppler_bidi_logical.v1``) is retired (F8e3).
 - ``knesset_committee``: page scans of Knesset committee protocols from sessions on or before
   1975-12-31 (State works, sections 36 and 42). Images only; the upstream OCR is never carried.
 
@@ -29,7 +31,6 @@ from hocrgen.config.models import SourceConfig
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.base import StageOptions
 from hocrgen.manifests.models import AcquiredAsset, AcquiredItemRecord, AssetReference, CandidateRecord, EnrichedCandidateRecord
-from hocrgen.parsers.pdf_bidi import logical_order_issues, poppler_text_to_logical
 from hocrgen.parsers.pdf_geometry import GEOMETRY_NORMALIZATION_VERSION, verify_glyph_page
 from hocrgen.utils.hashing import sha256_file
 from hocrgen.utils.io import copy_file
@@ -71,6 +72,10 @@ GOVERNMENT_PRINT_INTEGRITY_REASONS = frozenset(
 RESHUMOT_PAGE_RENDER_ROLE = "page_render"
 RESHUMOT_CROP_ROLE = "page_render_crop"
 RESHUMOT_CROP_METHOD = "pdf_glyph_regions.v1"
+# F8e3: the reading order the glyph-layer method verifies. Each line's text (its characters and their order inside the
+# line) is verified; the order of lines and blocks across the page (side headings, table cells, columns) is a layout
+# convention. An entry must record exactly this scope; a missing or stronger claim (``page``) is refused.
+RESHUMOT_READING_ORDER_VERIFIED = "within_line"
 
 
 def government_print_snapshot_root(source: SourceConfig, bundle: ConfigBundle) -> Path:
@@ -117,11 +122,11 @@ def _common_exclusion_reasons(entry: dict[str, Any], source: SourceConfig) -> li
 
 
 def reshumot_text_issues(entry: dict[str, Any], root: Path) -> list[str]:
-    """Re-derive the page text from the committed extraction and check its logical order.
+    """Re-derive the page text from the committed glyph layer and check it against the page render.
 
     Returns integrity reasons (a pinned file is missing or changed) or the order issue codes. An empty list means the
-    text is admitted. F8e entries carry ``pdftotext`` output (``poppler_bidi_logical.v1``); F8e2 entries carry the
-    page's glyph layer (``pdf_glyph_geometry_logical.v1``), re-converted and re-checked against the page render here.
+    text is admitted. Every entry carries the page's glyph layer (``pdf_glyph_geometry_logical.v1``); the gate's
+    caller refuses any other normalization first.
     """
 
     text = entry.get("text") or {}
@@ -136,14 +141,7 @@ def reshumot_text_issues(entry: dict[str, Any], root: Path) -> list[str]:
         return ["text_checksum_mismatch"]
     logical = text_path.read_bytes().decode("utf-8")
     expected = [str(item.get("text", "")) for item in (text.get("order_verification") or {}).get("expected_phrases") or []]
-    if extraction.get("normalization") == GEOMETRY_NORMALIZATION_VERSION:
-        return _glyph_text_issues(entry, root, raw_path, logical, expected)
-    converted, conversion_issues = poppler_text_to_logical(raw_path.read_bytes().decode("utf-8"))
-    if converted != logical:
-        return ["text_not_reproducible_from_extraction"]
-    if not expected:
-        return ["no_expected_phrases"]
-    return sorted(set(conversion_issues) | set(logical_order_issues(logical, expected)))
+    return _glyph_text_issues(entry, root, raw_path, logical, expected)
 
 
 def read_glyph_layer_bytes(path: Path) -> bytes:
@@ -259,12 +257,10 @@ def reshumot_entry_exclusion_reasons(entry: dict[str, Any], source: SourceConfig
     if published < RESHUMOT_BORN_DIGITAL_FROM:
         return ["before_born_digital_era"]
     pdf = entry.get("pdf") or {}
-    text_record = entry.get("text") or {}
-    glyph_entry = (text_record.get("extraction") or {}).get("normalization") == GEOMETRY_NORMALIZATION_VERSION
-    # An F8e2 page may hold a page image (a masthead emblem, an added stamp) only when the pair is cropped: the text
-    # check below re-derives the crop, whose regions never touch an image's inked area, so the pair shows
-    # born-digital text only. Without a crop the page is out, as in F8e.
-    images_cropped_out = glyph_entry and bool(entry.get("crop"))
+    # A page may hold a page image (a masthead emblem, an added stamp) only when the pair is cropped: the text check
+    # below re-derives the crop, whose regions never touch an image's inked area, so the pair shows born-digital text
+    # only. Without a crop the page is out, as in F8e.
+    images_cropped_out = bool(entry.get("crop"))
     if pdf.get("born_digital") is not True or not pdf.get("embedded_fonts") or not pdf.get("sha256"):
         return ["pdf_not_born_digital"]
     if pdf.get("page_image_count") != 0 and not images_cropped_out:
@@ -277,6 +273,11 @@ def reshumot_entry_exclusion_reasons(entry: dict[str, Any], source: SourceConfig
     if text.get("adjudication_status") != "not_adjudicated" or text.get("reference_eligible") is not False:
         # Adjudication and reference eligibility come only from the F2 path.
         return ["unsupported_reference_status"]
+    if (text.get("extraction") or {}).get("normalization") != GEOMETRY_NORMALIZATION_VERSION:
+        # F8e3: one extraction method; F8e's pdftotext entries (poppler_bidi_logical.v1) are retired.
+        return ["unsupported_text_normalization"]
+    if text.get("reading_order_verified") != RESHUMOT_READING_ORDER_VERIFIED:
+        return ["reading_order_scope_mismatch"]
     issues = reshumot_text_issues(entry, root)
     if issues:
         integrity = [issue for issue in issues if issue in GOVERNMENT_PRINT_INTEGRITY_REASONS]
@@ -284,7 +285,7 @@ def reshumot_entry_exclusion_reasons(entry: dict[str, Any], source: SourceConfig
     asset = government_print_entry_asset(entry)
     if asset is None:
         return ["no_raster_asset"]
-    for file in [asset, *([reshumot_page_render(entry)] if glyph_entry else [])]:
+    for file in [asset, reshumot_page_render(entry)]:
         rendering = (file or {}).get("rendering") or {}
         if rendering.get("is_scan") is not False or rendering.get("image_origin") != "rendered_from_born_digital_pdf":
             return ["rendering_provenance_unrecorded"]
@@ -473,7 +474,10 @@ class ReshumotImporter(_GovernmentPrintImporter):
             "text_normalization": (text.get("extraction") or {}).get("normalization"),
             "text_extractor": (text.get("extraction") or {}).get("extractor"),
             "text_extractor_version": (text.get("extraction") or {}).get("extractor_version"),
+            # The gate's order checks passed. What they cover: each line's text, not the order of lines and blocks
+            # across the page (F8e3); evaluation must score this text line-matched, never in page order.
             "text_order_verified": True,
+            "reading_order_verified": text["reading_order_verified"],
             "text_layout_notes": list(text.get("layout_notes") or []),
             # F8e2: a page whose unverified lines were left out pairs with its render cut to the verified regions.
             "cropped": bool(entry.get("crop")),
