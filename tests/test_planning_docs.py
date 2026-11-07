@@ -996,7 +996,7 @@ def test_e2d_real_scan_evaluation_direction_is_recorded_without_changing_scoring
     assert "## E2d — Real-scan evaluation direction" in roadmap
     assert "### 3.7 Evaluation moves to real scans (direction, 2026-11-06)" in roadmap
     assert "E2d" not in _roadmap_table_rows(roadmap)
-    assert "`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c`, `E2d3d` and `E2d3e` implemented on the current ref (2026-11-07); `E2d4` planned." in stub
+    assert "`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c`, `E2d3d`, `E2d3e` and `E2d4` implemented on the current ref (2026-11-07); `E2d5` planned." in stub
     assert "no synthetic score, profile, view or report changed" in stub
     for text in (stub, decision):
         assert "no synthetic text" in text
@@ -1019,3 +1019,11 @@ def test_e2d_real_scan_evaluation_direction_is_recorded_without_changing_scoring
     assert "## E2d3e: a reference constraint on the test split" in evaluation
     assert "validation + test is a labelled diagnostic, never a headline" in stub
     assert "Real-data validation is too small to tune on" in stub and "Tuning stays on synthetic validation" in stub
+    assert "`E2d4` is implemented" in agent_plan and "`E2d5` (retire synthetic text from the scored set) is planned." in agent_plan
+    assert "## E2d4 — Reference audit (agent proposes, human decides)" in stub
+    assert "**An agent proposal is never attestation and never changes a reference by itself**" in stub
+    assert "| `E2d5` | Retire synthetic text from the scored eval set" in stub
+    assert "`E2d4` implemented on the current ref, `E2d5` planned." in roadmap
+    audit_doc = Path("docs/e2d4_reference_audit.md").read_text(encoding="utf-8")
+    assert "## Hypothetical impact (diagnostic only)" in audit_doc and "no reference text has changed" in audit_doc
+    assert Path("docs/reference_audit_proposals.json").exists() and Path("docs/reference_audit_decisions.json").exists()

@@ -2,7 +2,7 @@
 
 `hocrgen.reference_evaluation` scores explicit predictions against reviewed or adjudicated `benchmark_transcription_reference.v1` records. It does not acquire references or run an OCR engine. Existing `hocrgen.evaluation` and `evaluate-benchmark` retain their raw E2a behavior.
 
-**Direction (2026-11-06).** Synthetic gold is the headline scored set for now. Evaluation is to move, over time, to real scans only, with separate printed and handwritten tracks. `E2d1`/`E2d2` add a printed modality track beside it ([modality tracks](#modality-tracks-and-real-printed-references-e2d1-e2d2)); the cutover is `E2d4`. See [`planning/tasks/e2d-real-scan-evaluation.md`](../planning/tasks/e2d-real-scan-evaluation.md).
+**Direction (2026-11-06).** Synthetic gold is the headline scored set for now. Evaluation is to move, over time, to real scans only, with separate printed and handwritten tracks. `E2d1`/`E2d2` add a printed modality track beside it ([modality tracks](#modality-tracks-and-real-printed-references-e2d1-e2d2)); the cutover is `E2d5`. `E2d4` audits the printed references ([`e2d4_reference_audit.md`](./e2d4_reference_audit.md)). See [`planning/tasks/e2d-real-scan-evaluation.md`](../planning/tasks/e2d-real-scan-evaluation.md).
 
 ```python
 from hocrgen.manifests.models import BenchmarkTranscriptionReferenceRecord
@@ -201,6 +201,12 @@ The view is heuristic near the marks, appears only when a scored item declares t
 - Such an item records `reference_text_revision: validating` and `diff_vs_latest`. Every other adjudicated item records `reference_text_revision: latest`.
 - A validated text that differs from the latest text only in line or paragraph whitespace is used whatever its check's verdict (`E2d3c`): a paragraph break is layout, not text. The item records `diff_vs_latest.layout_only` and `validated_text_accepted_by`.
 - A snapshot whose pages carry `validated_revision` and `validated_text_check` (tranche v5, `real_tranche refresh-wikisource`, E2d3e) is read without the two flags, with byte-identical output. Which pages are scored, and on which text, is `fetchers.wikisource.scored_page_reference`. The release split weighs exactly those pages (`size_aware_group_split.v2`).
+
+**Reference audit (`E2d4`).** `--audit-proposals docs/reference_audit_proposals.json --audit-decisions docs/reference_audit_decisions.json` applies the human decisions on an agent's reference audit (`hocrgen.reference_audit`).
+- Only `accepted` and `edited` decisions change a reference; agent proposals alone change nothing, and the output is then byte-identical apart from the audit fields.
+- A corrected reference records `reference_audit_provenance`: the base revision and text checksum, the applied decision ids, and the new `text_sha256`. Its attestation is `two_editor_validated_human_corrected`, and its reviewers add `heocr:<handle>`.
+- A page with undecided proposals stays scored on its current text and is flagged `audit_pending`; `counts.audit_pending` gives the total.
+- `python -m hocrgen.tools.reference_audit` validates both files. See [`e2d4_reference_audit.md`](./e2d4_reference_audit.md).
 
 The text is the post-F8b7 pair text. F8b7 `illegible_on_scan` spans are honoured: an adjudicated reference carries them as `illegible` / `exclude_primary` spans, which `reference_text` excludes, and a single-reviewer text has them removed. `--items` limits the conversion to listed pages, and `--split-manifest` records each page's release split (`benchmark_split` on adjudicated items).
 

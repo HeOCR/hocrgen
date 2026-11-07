@@ -1,12 +1,12 @@
 # E2d — Real-scan evaluation with separate printed and handwritten tracks
 
-Status: **`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c`, `E2d3d` and `E2d3e` implemented on the current ref (2026-11-07); `E2d4` planned.** Until the release splits change again, validation + test is a labelled diagnostic, never a headline (team-lead decision, 2026-11-07). Synthetic gold stays the headline scored set: no synthetic score, profile, view or report changed. Parent milestone: E2, Baselines and evaluation utilities. Decision record: [`planning/decisions/2026-11-06-real-scan-evaluation-direction.md`](../decisions/2026-11-06-real-scan-evaluation-direction.md). Results: [`docs/e2d3b_validated_revision_evaluation.md`](../../docs/e2d3b_validated_revision_evaluation.md) for all pages, and [`docs/e2d3_real_printed_evaluation.md`](../../docs/e2d3_real_printed_evaluation.md) for the release validation + test pages; E2d3 supersedes the release-split and interval sections of [`docs/e2d2_real_printed_evaluation.md`](../../docs/e2d2_real_printed_evaluation.md).
+Status: **`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c`, `E2d3d`, `E2d3e` and `E2d4` implemented on the current ref (2026-11-07); `E2d5` planned.** `E2d4`'s human review of the audit proposals is pending, so no reference text has changed yet. Until the release splits change again, validation + test is a labelled diagnostic, never a headline (team-lead decision, 2026-11-07). Synthetic gold stays the headline scored set: no synthetic score, profile, view or report changed. Parent milestone: E2, Baselines and evaluation utilities. Decision record: [`planning/decisions/2026-11-06-real-scan-evaluation-direction.md`](../decisions/2026-11-06-real-scan-evaluation-direction.md). Results: [`docs/e2d3b_validated_revision_evaluation.md`](../../docs/e2d3b_validated_revision_evaluation.md) for all pages, and [`docs/e2d3_real_printed_evaluation.md`](../../docs/e2d3_real_printed_evaluation.md) for the release validation + test pages; E2d3 supersedes the release-split and interval sections of [`docs/e2d2_real_printed_evaluation.md`](../../docs/e2d2_real_printed_evaluation.md).
 
 ## Direction
 
 - **Real scans only, eventually.** The eval set will be real scanned Hebrew text, both printed and handwritten. It will contain no synthetic text.
 - **Separate printed and handwritten tracks.** Printed and handwritten Hebrew are scored and reported separately. They may also need separate pipelines (segmentation and recognition); whether they do is decided later, on evidence.
-- **A transition, not a cutover.** Synthetic evaluation (E2c4–E2c7: synthetic gold as the scored set, `primary.v1` as the headline) stays in use until there is enough real reference data. Until `E2d4` changes it, every current synthetic score, profile, view and report stays as it is.
+- **A transition, not a cutover.** Synthetic evaluation (E2c4–E2c7: synthetic gold as the scored set, `primary.v1` as the headline) stays in use until there is enough real reference data. Until `E2d5` changes it, every current synthetic score, profile, view and report stays as it is.
 
 **Naming.** These are *modality* tracks. They are distinct from the existing open/proprietary `track` field in `evaluate-references` (heocr-engine decision 0005). The field is named `modality`, the name the E2c3 strata already use.
 
@@ -14,14 +14,15 @@ Status: **`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c`, `E2d3d` and `E2d3e` implemen
 
 | Notation | Scope | State |
 | --- | --- | --- |
-| `E2d1` | The modality-track contract and the training-text leakage policy (below). Small, so folded into the `E2d2` PR. The cutover criteria are not part of it; they stay open for `E2d4`. | completed |
+| `E2d1` | The modality-track contract and the training-text leakage policy (below). Small, so folded into the `E2d2` PR. The cutover criteria are not part of it; they stay open for `E2d5`. | completed |
 | `E2d2` | The first real printed reference set (Hebrew Wikisource quality 4), engine runs on it, and a results doc beside the synthetic scored set. | completed |
 | `E2d3` | Refresh the real printed evaluation on the F8g2 tranche v2 splits: rebuild the pool, re-score (cached predictions), report all pages and the release `validation` + `test` pages separately, and add a book-level (cluster) bootstrap. | completed |
 | `E2d3b` | Score quality-4 pages edited after validation on their text as of the validating revision (team-lead decision 2026-11-07), after a visual check of the scan; pages where a later edit fixed a real transcription error are excluded (`validated_text_disagrees_with_scan`). | completed |
 | `E2d3c` | Two corrections to the `E2d3b` pool (team-lead decisions 2026-11-07): a validated text that differs from the latest text only in line or paragraph whitespace is never disqualified (a general rule); Hebrewbooks 19784 p. 24 is `text_not_on_page`. The pool is re-scored. | completed |
 | `E2d3d` | Check every scored Hebrewbooks 19784 page against its scan for editors' text the page does not print; such pages become `text_not_on_page` (decision #130.1) and leave the pool. No reference text is edited. The pool is re-scored. | completed |
 | `E2d3e` | A reference constraint in the group-whole split (`size_aware_group_split.v2`), weighted by exactly the pages the evaluation scores: `test` must hold 2 or more such books, 10% or more of their characters, and no book above 50% of them. Applied in tranche v5, then the pool is re-scored on the new splits. Validation + test is a labelled diagnostic only, and tuning stays on synthetic validation. | completed |
-| `E2d4` | Retire synthetic text from the scored eval set once both tracks meet cutover criteria the maintainer sets. | planned |
+| `E2d4` | Audit the 38 scored reference pages against their scans (maintainer decision 2026-11-07): an agent proposes corrections (`reference_audit_proposals.v1`), a human decides each one (`reference_audit_decisions.v1`), and the reference build applies only human-accepted or human-edited corrections, with provenance; pages with undecided proposals are flagged `audit_pending`. | completed (human review pending) |
+| `E2d5` | Retire synthetic text from the scored eval set once both tracks meet cutover criteria the maintainer sets. | planned |
 
 ## E2d1 — Modality-track contract
 
@@ -144,6 +145,23 @@ Status: **`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c`, `E2d3d` and `E2d3e` implemen
   - The validation + test diagnostic is 10 pages (Tesseract 0.385, R3h 0.853).
 - **Results.** They are in the E2d3e section of [`docs/e2d3b_validated_revision_evaluation.md`](../../docs/e2d3b_validated_revision_evaluation.md#e2d3e-a-reference-constraint-on-the-test-split).
 
+## E2d4 — Reference audit (agent proposes, human decides)
+
+- **Decision (maintainer, 2026-11-07).** The reference pages are audited against their scans. An agent proposes corrections and a human confirms them. **An agent proposal is never attestation and never changes a reference by itself**; only a human decision applies a correction.
+- **Audit.** An agent read all 38 scored pages (14 books) tile by tile on enlarged crops of a 1920 px render of the same scan. OCR consensus (Tesseract and R3h + blla agreeing on another reading) was used only as a pointer, and every pointer was checked on the scan. The result is 519 proposals: 404 high, 96 medium and 19 low confidence; 254 `punctuation`, 120 `spacing`, 81 `letter_confusion`, 34 `unprinted_editors_text`, 26 `missing_text`, 4 `extra_text` and 0 `word_join_split`. 33 pages have proposals and 5 are `audited_no_findings`. There are no `text_not_on_page` candidates.
+- **Files.**
+  - `docs/reference_audit_proposals.json` (`reference_audit_proposals.v1`). Each page is pinned by `base_revision_id` and `base_text_sha256`. Each proposal records a span, its context, current and proposed text, a category, a confidence, a page-frame box, `status: agent_proposed` and `checked_by: agent`.
+  - `docs/reference_audit_decisions.json` (`reference_audit_decisions.v1`; empty). It takes one decision per proposal: `accepted`, `rejected` or `edited`, plus a pseudonymous reviewer handle, a date and `checked_by: human`.
+  - Validator: `hocrgen.reference_audit` and `python -m hocrgen.tools.reference_audit`.
+- **Applying.**
+  - `wikisource_eval_references --audit-proposals --audit-decisions`, through `scored_page_reference(..., audit=)`, applies only accepted and edited decisions.
+  - A corrected reference records its base revision, the applied decision ids and its new `text_sha256`. Its attestation is `two_editor_validated_human_corrected`.
+  - Undecided pages stay in the pool on their current text, flagged `audit_pending` (`counts.audit_pending`).
+  - Agent proposals alone change nothing: the output is byte-identical (tested).
+  - The split weight is unchanged.
+- **Hypothetical impact (diagnostic only).** If every high-confidence proposal were accepted, Tesseract would score 0.226 on all 38 pages instead of 0.237. R3h + R4d + A1 would stay at 0.898–0.899, and validation + test would not change. Real numbers change only after human decisions.
+- **Review packet** (operator-only, outside git). An offline HTML file under `intermediates/e2d4/review_packet/`, with a Hebrew README. It exports the decisions file. Details, and the full results, are in [`docs/e2d4_reference_audit.md`](../../docs/e2d4_reference_audit.md).
+
 ## What it depends on
 
 - Human-attested real references in `benchmark_transcription_reference.v1` form (F2), adjudicated before they are scored.
@@ -151,7 +169,7 @@ Status: **`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c`, `E2d3d` and `E2d3e` implemen
 - **Printed:** Hebrew Wikisource quality-4 pages (`E2d2`). The quality-3 pages are a single-reviewer diagnostic stratum. Other candidates remain NLI items (`printed_modern`) and later F8 sources.
 - The existing rules still hold: HTR or OCR output is never ground truth, and `benchmark_v1` membership stays frozen.
 
-## Open questions, for `E2d4`
+## Open questions, for `E2d5`
 
 1. What counts as "enough real data" per track: page count, writer and source diversity, and confidence-interval width (page and book level). The printed set is 35 pages from 14 Indexes; 6 pages come from one book, and after F8g2 only 10 pages (5 Indexes, one with 81% of their characters) are outside the release `train` split.
 2. How a page is assigned to a track (for example from `content_class`), and how mixed printed/handwritten pages are handled.

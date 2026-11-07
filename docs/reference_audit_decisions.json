@@ -1,0 +1,6 @@
+{
+ "schema_version": "reference_audit_decisions.v1",
+ "audit_id": "e2d4_reference_audit_v1",
+ "description": "E2d4: human decisions on the reference audit proposals in docs/reference_audit_proposals.json. One decision per proposal: accepted (apply the proposed text), rejected (keep the reference), or edited (apply the reviewer's own text for the same span). Each names the reviewer by a pseudonymous handle (no real names unless the reviewer consents) and the date. Only these decisions change a reference; an agent never writes here. Empty until a human reviews.",
+ "decisions": []
+}
