@@ -415,6 +415,10 @@ def _plausible(groups: Sequence[Group], chars: Sequence[str], baseline: int, x_h
         elif char in ".,":
             if group.height > 0.7 * x_height or group.width > 0.8 * x_height:
                 return False
+        elif char in ":;!?":
+            # Two stacked marks; a broken colon whose dot is lost would be a period labelled ':'.
+            if group.height < 0.45 * x_height:
+                return False
     return True
 
 
@@ -646,6 +650,7 @@ def write_bank(
     glyphs_by_style: dict[str, list[Candidate]],
     stats_by_style: dict[str, PageStats],
     max_per_char: int = 400,
+    min_style_glyphs: int = 500,
 ) -> dict:
     numpy, _ = _require_numeric()
     output.mkdir(parents=True, exist_ok=True)
@@ -654,8 +659,9 @@ def write_bank(
     for style in styles:
         glyphs = glyphs_by_style.get(style.style_id, [])
         stats = stats_by_style.get(style.style_id, PageStats())
-        if not glyphs:
-            continue
+        heights = [g.x_height for g in glyphs if g.char in X_HEIGHT_LETTERS]
+        if len(glyphs) < min_style_glyphs or not heights or not stats.line_pitches:
+            continue  # too little evidence for a usable typeface or its page metrics
         root = output / "styles" / style.style_id
         (root / "glyphs").mkdir(parents=True, exist_ok=True)
         (root / "paper").mkdir(parents=True, exist_ok=True)

@@ -144,7 +144,7 @@ def test_write_bank_index_and_files(tmp_path):
     out = tmp_path / "bank"
     style = gh.StyleSource("toy", "toy_source", "work-1", "PD")
     stats = gh.PageStats(letter_gaps=[3, 3, 4], word_gaps=[16, 16], line_pitches=[40.0], line_widths=[800], page_sizes=[(900, 200)])
-    index = gh.write_bank(out, bank_id="pgb-test", config={"a": 1}, sources=[{"source_id": "toy_source"}], exclusions=[], styles=[style], glyphs_by_style={"toy": kept}, stats_by_style={"toy": stats})
+    index = gh.write_bank(out, bank_id="pgb-test", config={"a": 1}, sources=[{"source_id": "toy_source"}], exclusions=[], styles=[style], glyphs_by_style={"toy": kept}, stats_by_style={"toy": stats}, min_style_glyphs=1)
     assert index["schema"] == "printed_glyph_bank.v1"
     glyph_bytes = (out / "glyphs.jsonl").read_bytes()
     assert index["glyphs_sha256"] == hashlib.sha256(glyph_bytes).hexdigest()
@@ -195,3 +195,17 @@ def test_complete_rejects_unassigned_ink_inside_a_glyph_box():
     ink[4:7, 3] = True  # ink no glyph owns, e.g. a lost stroke
     labels[2:8, 3] = 0
     assert not gh._complete(ink, labels, (0, 0), [group])
+
+
+def test_write_bank_drops_styles_without_evidence(tmp_path):
+    kept = gh.verify_style(_candidates(tmp_path))
+    style = gh.StyleSource("toy", "toy_source", "work-1", "PD")
+    index = gh.write_bank(tmp_path / "bank", bank_id="pgb-test", config={}, sources=[], exclusions=[], styles=[style], glyphs_by_style={"toy": kept}, stats_by_style={"toy": gh.PageStats()}, min_style_glyphs=1)
+    assert index["styles"] == [] and index["glyph_count"] == 0  # no line pitch measured
+
+
+def test_broken_colon_is_not_labelled_colon():
+    dot = gh.Group([1], (0, 15, 4, 19))
+    assert not gh._plausible([dot], [":"], baseline=19, x_height=20.0)
+    colon = gh.Group([1, 2], (0, 6, 4, 19))
+    assert gh._plausible([colon], [":"], baseline=19, x_height=20.0)
