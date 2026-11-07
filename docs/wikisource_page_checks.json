@@ -457,7 +457,8 @@
    "checked_at": "2026-11-06",
    "method": "agent_render_compare_900px",
    "render_url": "https://thumb.wikimedia.org/wikisource/he/thumb/8/86/Hebrewbooks_org_19784.pdf/page24-960px-Hebrewbooks_org_19784.pdf.jpg?utm_source=he.wikisource.org&utm_campaign=imageinfo&utm_content=thumbnail",
-   "render_sha256": "3cee085ae35eb4a4808b06afa3a87e57c423fae523dbd3a406b3f834101d1dc5"
+   "render_sha256": "3cee085ae35eb4a4808b06afa3a87e57c423fae523dbd3a406b3f834101d1dc5",
+   "text_not_on_page": "editors' additions throughout the two transcribed columns: bracketed source citations the crop does not print (Rashi on Genesis 1:1 at the end of section א, more in sections ב and ג), the expansion 'אמר רבי יצחק' where the page prints the abbreviation 'אר\"י', added quotation marks and vocalised verse words; the latest text also drops the printed section letter ג. Found by the E2d3c agent check (Claude Code (claude-opus-5-5), 2026-11-07) of the pinned 960 px crop, zoomed, against the latest and the validating-revision text"
   },
   {
    "page_title": "עמוד:Hebrewbooks org 19784.pdf/25",

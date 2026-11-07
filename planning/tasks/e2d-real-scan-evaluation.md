@@ -1,6 +1,6 @@
 # E2d — Real-scan evaluation with separate printed and handwritten tracks
 
-Status: **`E2d1`, `E2d2`, `E2d3` and `E2d3b` implemented on the current ref (2026-11-07); `E2d4` planned.** Synthetic gold stays the headline scored set: no synthetic score, profile, view or report changed. Parent milestone: E2, Baselines and evaluation utilities. Decision record: [`planning/decisions/2026-11-06-real-scan-evaluation-direction.md`](../decisions/2026-11-06-real-scan-evaluation-direction.md). Results: [`docs/e2d3b_validated_revision_evaluation.md`](../../docs/e2d3b_validated_revision_evaluation.md) for all pages, and [`docs/e2d3_real_printed_evaluation.md`](../../docs/e2d3_real_printed_evaluation.md) for the release validation + test pages; E2d3 supersedes the release-split and interval sections of [`docs/e2d2_real_printed_evaluation.md`](../../docs/e2d2_real_printed_evaluation.md).
+Status: **`E2d1`, `E2d2`, `E2d3`, `E2d3b` and `E2d3c` implemented on the current ref (2026-11-07); `E2d4` planned.** Synthetic gold stays the headline scored set: no synthetic score, profile, view or report changed. Parent milestone: E2, Baselines and evaluation utilities. Decision record: [`planning/decisions/2026-11-06-real-scan-evaluation-direction.md`](../decisions/2026-11-06-real-scan-evaluation-direction.md). Results: [`docs/e2d3b_validated_revision_evaluation.md`](../../docs/e2d3b_validated_revision_evaluation.md) for all pages, and [`docs/e2d3_real_printed_evaluation.md`](../../docs/e2d3_real_printed_evaluation.md) for the release validation + test pages; E2d3 supersedes the release-split and interval sections of [`docs/e2d2_real_printed_evaluation.md`](../../docs/e2d2_real_printed_evaluation.md).
 
 ## Direction
 
@@ -18,6 +18,7 @@ Status: **`E2d1`, `E2d2`, `E2d3` and `E2d3b` implemented on the current ref (202
 | `E2d2` | The first real printed reference set (Hebrew Wikisource quality 4), engine runs on it, and a results doc beside the synthetic scored set. | completed |
 | `E2d3` | Refresh the real printed evaluation on the F8g2 tranche v2 splits: rebuild the pool, re-score (cached predictions), report all pages and the release `validation` + `test` pages separately, and add a book-level (cluster) bootstrap. | completed |
 | `E2d3b` | Score quality-4 pages edited after validation on their text as of the validating revision (team-lead decision 2026-11-07), after a visual check of the scan; pages where a later edit fixed a real transcription error are excluded (`validated_text_disagrees_with_scan`). | completed |
+| `E2d3c` | Two corrections to the `E2d3b` pool (team-lead decisions 2026-11-07): a validated text that differs from the latest text only in line or paragraph whitespace is never disqualified (a general rule); Hebrewbooks 19784 p. 24 is `text_not_on_page`. The pool is re-scored. | completed |
 | `E2d4` | Retire synthetic text from the scored eval set once both tracks meet cutover criteria the maintainer sets. | planned |
 
 ## E2d1 — Modality-track contract
@@ -94,6 +95,19 @@ Status: **`E2d1`, `E2d2`, `E2d3` and `E2d3b` implemented on the current ref (202
   - An unchecked or stale page fails closed.
 - **Outcome.** 4 of the 26 pages agree with the scan. The pool is 39 pages: 29 `train` / 5 `validation` / 5 `test`, so validation + test is unchanged. The other 22 pages had later edits that fixed OCR-type misreadings.
 - **Finding.** Validation often left OCR errors in place. The 35 pages never edited after validation may hold some too, and a visual audit of them is suggested.
+
+## E2d3c — Pool corrections
+
+- **Whitespace is layout (team-lead decision, 2026-11-07).**
+  - A validated text that differs from the latest text only in line or paragraph whitespace, or in the length of a whitespace run, is used whatever its check's verdict (`layout_only_difference`).
+  - Words run together, a space inside a word, or any changed character still disqualify the page.
+  - Each item records `diff_vs_latest.layout_only` and `validated_text_accepted_by`.
+  - *Hut ha-Meshulash* p. 12 (`train`) joins the pool.
+- **Hebrewbooks 19784 p. 24.**
+  - It holds editors' text throughout: citations, an expansion of a printed abbreviation, quotation marks and vocalisation. So it is recorded page-level `text_not_on_page` (decision #130.1), not as one excluded span.
+  - The committed tranche v3 still lists the page; the next tranche build drops it.
+- **Outcome.** The pool is 40 pages: 30 `train` / 5 `validation` / 5 `test`. Tesseract scores 0.231 and R3h + R4d + A1 0.889 on all pages; validation + test is unchanged. Results are in the E2d3c section of [`docs/e2d3b_validated_revision_evaluation.md`](../../docs/e2d3b_validated_revision_evaluation.md#e2d3c-two-pool-corrections).
+- **Finding.** A scored page of Hebrewbooks 19784 (p. 25, `test`) shows the same kind of editors' text. That book holds 81% of the validation + test characters. An audit of its references awaits maintainer approval.
 
 ## What it depends on
 
