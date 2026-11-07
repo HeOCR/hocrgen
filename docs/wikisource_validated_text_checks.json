@@ -52,7 +52,7 @@
    "checker": "Claude Code (claude-opus-5-5)",
    "checked_at": "2026-11-07",
    "method": "agent_validated_text_visual.v1",
-   "detail": "both versions hold an editors' citation of Rashi the crop does not print, at the end of section א; the later edits also add a second citation and drop the printed section letter ג"
+   "detail": "both versions hold editors' text the crop does not print: a citation of Rashi at the end of section א, and (E2d3c, on an enlarged crop) more bracketed source citations in sections ב and ג, the expansion 'אמר רבי יצחק' of the printed 'אר\"י', added quotation marks and vocalised verse words; the later edits also add a second citation and drop the printed section letter ג. The page is text_not_on_page (docs/wikisource_page_checks.json, E2d3c)"
   },
   {
    "page_title": "עמוד:Seligman Baer - Seder Avodat Yisroel (1901 ed.).pdf/2",
@@ -268,12 +268,12 @@
    "validating_revision_id": 1041318,
    "latest_revision_id": 1041324,
    "validated_wikitext_sha256": "e9da30946bcd27eac67806eca46435d6d8b5e13a84e05944643310c2d60e44c4",
-   "verdict": "validated_text_disagrees_with_scan",
+   "verdict": "validated_text_matches_scan",
    "checked_by": "agent",
    "checker": "Claude Code (claude-opus-5-5)",
    "checked_at": "2026-11-07",
    "method": "agent_validated_text_visual.v1",
-   "detail": "the only difference is a paragraph break: the page ends a paragraph after 'לתרץ:' and opens the next with a large 'דהנה', which the validated text runs on; strict reading, see the E2d3b doc"
+   "detail": "the only difference is a paragraph break: the page ends a paragraph after 'לתרץ:' and opens the next with a large 'דהנה', which the validated text runs on; E2d3b counted it as disagreeing, but under the E2d3c rule (team-lead decision, 2026-11-07) a difference limited to line or paragraph whitespace is layout, not text, so the validated text agrees with the scan"
   },
   {
    "page_title": "עמוד:Hut ameshulash basheharim.pdf/51",

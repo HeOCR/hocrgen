@@ -35,7 +35,9 @@ The page's F8b7 steps are re-applied to that text (stand-ins; unprinted notes an
 them), and the item records ``reference_text_revision: validating`` and its difference from the latest text. A page
 is used only when an agent or human check of the scan found the validated text agrees with it; a page whose later
 edits fixed a real transcription error is ``validated_text_disagrees_with_scan`` and is left out, as is a page with no
-check. Every other adjudicated item records ``reference_text_revision: latest``.
+check. A page whose validated and latest texts differ only in line or paragraph whitespace is used whatever its
+check's verdict (E2d3c): a paragraph break is layout, not text. Every other adjudicated item records
+``reference_text_revision: latest``.
 
 ``bootstrap_clusters.json`` (``hocrgen_bootstrap_clusters.v1``, E2d3) maps every written item to its Wikisource Index,
 the book-level unit (and the release split group), for ``evaluate-references --bootstrap-clusters``.
@@ -56,6 +58,7 @@ from hocrgen.fetchers.wikisource import (
     VALIDATED_TEXT_DISAGREES_WITH_SCAN,
     VALIDATED_TEXT_MATCHES_SCAN,
     derive_validated_page_text,
+    layout_only_difference,
     load_validated_text_checks,
     page_text,
     page_transclusions,
@@ -193,6 +196,7 @@ def adjudicated_reference(page: Mapping[str, Any], root: Path, *, source_id: str
         adjudication["validated_wikitext_sha256"] = validated["record"]["wikitext_sha256"]
         adjudication["diff_vs_latest"] = dict(validated["diff"])
         adjudication["validated_text_check"] = {key: check[key] for key in ("verdict", "checked_by", "checker", "checked_at", "method")}
+        adjudication["validated_text_accepted_by"] = validated.get("accepted_by", "check_verdict")
     return adjudicated, adjudication
 
 
@@ -203,7 +207,8 @@ def validated_text(page: Mapping[str, Any], root: Path, record: Mapping[str, Any
     latest = page_text(dict(page), root).text
     diff = {"character_edits": levenshtein_distance(derived.text, latest), "latest_characters": len(latest),
             "reference_characters": len(derived.text),
-            "text_changing_edits_after_validation": record["text_changing_edits_after_validation"]}
+            "text_changing_edits_after_validation": record["text_changing_edits_after_validation"],
+            "layout_only": layout_only_difference(derived.text, latest)}
     return {"text": derived.text, "conversion": derived.conversion, "record": record, "check": check, "diff": diff}
 
 
@@ -293,6 +298,7 @@ def write_eval_reference_set(
                 entry["reference_text_revision_id"] = validated["record"]["validating_revision_id"]
                 entry["latest_revision_id"] = page["revision_id"]
                 entry["diff_vs_latest"] = dict(validated["diff"])
+                entry["validated_text_accepted_by"] = validated["accepted_by"]
             record, adjudication = adjudicated_reference(page, root, source_id=source_id, validated=validated)
             base = f"references/{page['source_item_id']}"
             payload = _dump(record.model_dump(mode="json"))
@@ -386,17 +392,22 @@ def _validated_or_reason(page: Mapping[str, Any], root: Path, record: Mapping[st
             or check["latest_revision_id"] != page["revision_id"]
             or check.get("validated_wikitext_sha256") != record["wikitext_sha256"]):
         return None, "validated_text_not_checked"
-    if check["verdict"] != VALIDATED_TEXT_MATCHES_SCAN:
-        return None, VALIDATED_TEXT_DISAGREES_WITH_SCAN
+    matches = check["verdict"] == VALIDATED_TEXT_MATCHES_SCAN
     faithful = convert_wikitext(record["wikitext"], page_transclusions(dict(page), root)).text
     if _sha256(faithful) != record["converted_text_sha256"] or record["converted_text_sha256"] != page.get("quality_set_text_sha256"):
         return None, "validated_revision_text_mismatch"
     try:
-        return validated_text(page, root, record, check), VALIDATED_TEXT_MATCHES_SCAN
+        validated = validated_text(page, root, record, check)
     except ValueError as exc:
-        return None, str(exc)
+        return None, str(exc) if matches else VALIDATED_TEXT_DISAGREES_WITH_SCAN
     except UnsupportedWikitextError:
-        return None, "wikitext_unsupported_markup"
+        return None, "wikitext_unsupported_markup" if matches else VALIDATED_TEXT_DISAGREES_WITH_SCAN
+    # E2d3c: a difference limited to line and paragraph whitespace is layout, not text; it never disqualifies.
+    if matches:
+        return {**validated, "accepted_by": "check_verdict"}, VALIDATED_TEXT_MATCHES_SCAN
+    if validated["diff"]["layout_only"]:
+        return {**validated, "accepted_by": "layout_only_difference"}, VALIDATED_TEXT_MATCHES_SCAN
+    return None, VALIDATED_TEXT_DISAGREES_WITH_SCAN
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

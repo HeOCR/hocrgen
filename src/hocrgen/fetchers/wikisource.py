@@ -807,6 +807,17 @@ VALIDATED_TEXT_DISAGREES_WITH_SCAN = "validated_text_disagrees_with_scan"
 VALIDATED_TEXT_VERDICTS = {VALIDATED_TEXT_MATCHES_SCAN, VALIDATED_TEXT_DISAGREES_WITH_SCAN}
 
 
+def layout_only_difference(validated: str, latest: str) -> bool:
+    """Whether two pair texts differ only in whitespace layout: line and paragraph breaks, or run lengths (E2d3c).
+
+    A paragraph break the print shows and the validated text runs on (or the reverse) is layout, not text, so it does
+    not make the validated text disagree with the scan (team-lead decision, 2026-11-07). The words and their order
+    must be identical: a space added inside a word or dropped between two words is a text difference.
+    """
+
+    return validated != latest and validated.split() == latest.split()
+
+
 def validating_revision(page: dict[str, Any]) -> dict[str, Any] | None:
     """The quality-history entry at which the second editor set quality 4 (the validating revision), or None."""
 

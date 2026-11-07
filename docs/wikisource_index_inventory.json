@@ -3582,7 +3582,7 @@
         },
         "cropped": {
           "3": 0,
-          "4": 1
+          "4": 0
         },
         "cropped_review_recommended": {
           "3": 0,
@@ -3602,7 +3602,7 @@
         },
         "needs_crop": {
           "3": 0,
-          "4": 1
+          "4": 0
         },
         "pending_coverage_only": {
           "3": 0,
@@ -3631,9 +3631,15 @@
         "pending_coverage_pages": [],
         "text_not_on_page": {
           "3": 0,
-          "4": 0
+          "4": 1
         },
-        "text_not_on_page_pages": [],
+        "text_not_on_page_pages": [
+          {
+            "page_title": "עמוד:Hebrewbooks org 19784.pdf/24",
+            "quality": 4,
+            "detail": "editors' additions throughout the two transcribed columns: bracketed source citations the crop does not print (Rashi on Genesis 1:1 at the end of section א, more in sections ב and ג), the expansion 'אמר רבי יצחק' where the page prints the abbreviation 'אר\"י', added quotation marks and vocalised verse words; the latest text also drops the printed section letter ג. Found by the E2d3c agent check (Claude Code (claude-opus-5-5), 2026-11-07) of the pinned 960 px crop, zoomed, against the latest and the validating-revision text"
+          }
+        ],
         "footnote_checks": {
           "located": 1
         },
@@ -3654,7 +3660,9 @@
           "4": 0
         },
         "adjusted_pages": [],
-        "rejected_by_first_reason": {},
+        "rejected_by_first_reason": {
+          "text_not_on_page": 1
+        },
         "unsupported_markup": {}
       }
     },
