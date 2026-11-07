@@ -47,7 +47,7 @@ from hocrgen.tools.real_tranche import _government_print_items
 from hocrgen.utils.hashing import sha256_file
 
 ROOT = Path(__file__).parent / "fixtures" / "reshumot_glyph_pages" / "snapshot"
-TABLE_PATH = package_root() / "data" / "reshumot" / "glyph_outlines.json"
+TABLE_PATH = package_root() / "data" / "reshumot" / "snapshot" / "glyph_outlines.json"
 RESHUMOT_ID = "reshumot_born_digital"
 
 H3085 = "sefer_hachukim_3085__p0003"

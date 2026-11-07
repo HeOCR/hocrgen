@@ -76,7 +76,12 @@ def test_knesset_selection_prefilters_and_spreads_over_committees() -> None:
 # --- the entry builders reproduce the F8e fixture entries ------------------------------------------------------
 
 
-def test_reshumot_page_entry_rebuilds_the_packaged_f8e_entry_and_passes_the_gate() -> None:
+def test_reshumot_glyph_page_entry_rebuilds_the_packaged_entry_and_passes_the_gate() -> None:
+    # F8e3: the packaged fixture is built by the same glyph-layer builder as the tranche.
+    from PIL import Image
+
+    from hocrgen.fetchers.government_print import read_glyph_layer_bytes, reshumot_page_render
+
     root = DATA / "reshumot" / "snapshot"
     packaged = next(entry for entry in _entries("reshumot/snapshot") if entry["entry_id"] == "sefer_hachukim_2580__p0002")
     booklet, pdf = packaged["booklet"], packaged["pdf"]
@@ -97,36 +102,43 @@ def test_reshumot_page_entry_rebuilds_the_packaged_f8e_entry_and_passes_the_gate
         "sha256": pdf["sha256"],
         "bytes": pdf["bytes"],
     }
-    raw = (root / packaged["text"]["extraction"]["raw_local_path"]).read_text(encoding="utf-8")
-    entry, logical, issues = gp.reshumot_page_entry(
-        data=data, pdf=facts, page=2, page_image_count=0, raw_text=raw, poppler_version=packaged["text"]["extraction"]["extractor_version"],
-        captured_at=packaged["rights"]["verified_at"], image_file=packaged["files"][0],
-    )
-    assert issues == []
+    extraction = packaged["text"]["extraction"]
+    layer = json.loads(read_glyph_layer_bytes(root / extraction["raw_local_path"]))
+    table = json.loads((root / extraction["outline_table_path"]).read_text(encoding="utf-8"))
+    render = reshumot_page_render(packaged)
+    with Image.open(root / render["local_path"]) as image:
+        image.load()
+        entry, logical, issues, cropped = gp.reshumot_glyph_page_entry(
+            data=data, pdf=facts, page=2, page_image_count=0, layer=layer, layer_sha256=extraction["raw_sha256"], table=table,
+            table_sha256=extraction["outline_table_sha256"], render_file=render, render_image=image, captured_at=packaged["rights"]["verified_at"],
+        )
+    assert issues == [] and cropped is None
     assert logical == (root / packaged["text"]["local_path"]).read_text(encoding="utf-8")
     assert entry == packaged
+    assert entry["text"]["reading_order_verified"] == "within_line"
     assert reshumot_entry_exclusion_reasons(entry, _source("reshumot_born_digital"), root) == []
     render = gp.reshumot_render_file("x__p0002", b"png", "pix", (10, 20), page=2, poppler_version="26.07.0")
     assert render["rendering"]["is_scan"] is False and render["width_px"] == 10 and render["local_path"] == "assets/x__p0002.png"
 
 
-def test_reshumot_page_entry_records_order_issues_and_a_missing_page_number() -> None:
+def test_reshumot_entry_skeleton_records_born_digital_evidence_and_anchors() -> None:
     data = {
         "BookletNum": "1",
         "BookletYear": "84",
         "FolderType": "3",
         "PublishDate": "2016-09-13",
         "Document": [{"FileName": "u", "DisplayName": "d"}],
-        "DocSummary": {"DescriptionHtmlString": "תקנות כלשהן 12<br/>"},
+        "DocSummary": {"DescriptionHtmlString": "תקנות כלשהן 2246<br/>"},
     }
     facts = {"info": {"Creator": "Scanner", "Pages": "1"}, "fonts": [], "sha256": "0" * 64, "bytes": 1}
-    entry, _logical, issues = gp.reshumot_page_entry(
-        data=data, pdf=facts, page=1, page_image_count=1, raw_text="שלום\n", poppler_version="v", captured_at="2026-11-07", image_file=None
-    )
-    assert "missing_expected_phrase" in issues
+    entry = gp.reshumot_entry_skeleton(data=data, pdf=facts, page=1, page_image_count=1, captured_at="2026-11-07")
     assert entry["page"]["printed_page_number"] is None and entry["pdf"]["born_digital"] is False
     assert "1 page image(s)" in entry["pdf"]["born_digital_evidence"]
+    assert entry["entry_id"] == "kovetz_hatakanot_1__p0001" and entry["text"]["local_path"] == "text/kovetz_hatakanot_1__p0001.txt"
     assert reshumot_entry_exclusion_reasons(entry, _source("reshumot_born_digital"), DATA / "reshumot" / "snapshot") == ["pdf_not_born_digital"]
+    # An inner page is anchored by the running footer and the titles printed on it; page 2246 carries one title.
+    assert [item["text"] for item in gp.reshumot_expected_phrases(data, 2, "כותרת\n2246\n")] == ["קובץ התקנות 1,", "13.9.2016", "תקנות כלשהן"]
+    assert [item["text"] for item in gp.reshumot_expected_phrases(data, 2, "שלום\n")] == ["קובץ התקנות 1,", "13.9.2016"]
     assert gp.docsummary_titles("חוק א 1254<br/>   תיקונים עקיפים:<br/>") == [("חוק א", "1254")]
     assert gp.printed_page_number("כותרת\n2246\nגוף") == "2246"
 
@@ -209,6 +221,9 @@ def test_manifest_items_for_reshumot_and_knesset_snapshots(tmp_path: Path) -> No
     assert len(by_source["reshumot_born_digital"]) == 2 and len(by_source["knesset_committee_protocols_pre1976"]) == 3
     assert all(item["text"]["path"].startswith("text/") for item in by_source["reshumot_born_digital"])
     assert all(item["text"] is None for item in by_source["knesset_committee_protocols_pre1976"])
+    # F8e3: Reshumot items say their line text is verified and their page order is not; image-only items say nothing.
+    assert {item["reading_order_verified"] for item in by_source["reshumot_born_digital"]} == {"within_line"}
+    assert not any("reading_order_verified" in item for item in by_source["knesset_committee_protocols_pre1976"])
     assert {item["source_group"] for item in by_source["knesset_committee_protocols_pre1976"]} == {"knesset_committee:399388", "knesset_committee:430997"}
     assert by_source["reshumot_born_digital"][0]["source_group"] == "reshumot:sefer_hachukim:2580"
 

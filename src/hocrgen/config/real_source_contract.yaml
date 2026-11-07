@@ -102,10 +102,13 @@ sources:
       evaluation_scope: full_hebrew
       rendered_not_scan: true
       paired_text: page_text
+      reading_order_verified: within_line
       notice: >-
         Reshumot (ספר החוקים, קובץ התקנות), 2006 on: laws and regulations carry no copyright (Copyright Act 2007,
         section 6). Page images are rendered by HeOCR from the born-digital PDFs and are not scans
-        (`rendering.is_scan: false`); the text is the PDF's embedded text, bidi-checked per page.
+        (`rendering.is_scan: false`); the text is rebuilt from the PDF's glyph layer and each line is verified
+        against the render. The order of lines and blocks across the page is a layout convention, not verified
+        (`reading_order_verified: within_line`): score it line by line, never in page order.
   - source_id: knesset_committee_protocols_pre1976
     promotion: promoted
     planning_notation: F8g

@@ -1,4 +1,7 @@
-"""E2d1/E2d2/E2d3: modality tracks, the footnote-masked reference view (issue #124), paired item and cluster bootstraps."""
+"""E2d1/E2d2/E2d3: modality tracks, the footnote-masked reference view (issue #124), paired item and cluster bootstraps.
+
+F8e3: text whose reading order is verified within lines only is scored line-matched, never in page order.
+"""
 from __future__ import annotations
 
 import json
@@ -9,8 +12,15 @@ import pytest
 from hocrgen.cli import main
 from hocrgen.config.loader import package_root
 from hocrgen.core.errors import StageExecutionError
-from hocrgen.manifests.models import BenchmarkReferenceManifestItemRecord, BenchmarkReferenceManifestRecord
-from hocrgen.reference_evaluation import FOOTNOTE_MASKED_VIEW_ID, footnote_masked_pair
+from pydantic import ValidationError
+
+from hocrgen.manifests.models import (
+    BenchmarkReferenceManifestItemRecord,
+    BenchmarkReferenceManifestRecord,
+    ItemReleaseTermsRecord,
+    ReferenceNormalizationFactsRecord,
+)
+from hocrgen.reference_evaluation import FOOTNOTE_MASKED_VIEW_ID, LINE_MATCHED_VIEW_ID, footnote_masked_pair, line_matched_prediction
 from hocrgen.reference_runs import (
     load_adjudicated_references,
     load_synthetic_gold,
@@ -62,6 +72,8 @@ def _manifest(tmp_path: Path, entries: list[dict]) -> Path:
             item["modality"] = entry["modality"]
         if entry.get("footnotes"):
             item["reference_normalization"] = {"footnote_marker_style": "bracketed_index", "footnote_count": entry["footnotes"]}
+        if entry.get("reading_order"):
+            item["reference_normalization"] = {"reading_order_verified": entry["reading_order"]}
         items.append(item)
     manifest = {"schema_version": "benchmark_reference_manifest.v1", "benchmark_id": "e2d_real_printed",
                 "reference_manifest_id": "m", "reference_contracts": {"transcription": "benchmark_transcription_reference.v1",
@@ -316,3 +328,120 @@ def test_bit_parallel_levenshtein_equals_the_dynamic_program() -> None:
         right = [rng.choice(["שלום", "עולם", "x", "z"]) for _ in range(rng.randrange(0, 40))]
         assert levenshtein_distance(left, right) == _levenshtein_dp(left, right)
     assert levenshtein_distance("kitten", "sitting") == 3 and levenshtein_distance("", "abc") == 3
+
+
+# --- F8e3: reading order verified within lines only ---------------------------------------------------------------
+
+# A side heading, a body block and a footer: the reference reads the heading first, an engine may read it later.
+REFERENCE = "תיקון סעיף 1\nבחוק העיקרי, בסעיף 1, יבוא\nספר החוקים 2580, 16.8.2016"
+BLOCKS_SWAPPED = "בחוק העיקרי, בסעיף 1, יבוא\nספר החוקים 2580, 16.8.2016\nתיקון סעיף 1"
+
+
+def test_line_matched_prediction_forgives_block_order_but_not_recognition_errors() -> None:
+    reordered, stats = line_matched_prediction(BLOCKS_SWAPPED, REFERENCE)
+    assert reordered == REFERENCE
+    assert stats == {"reference_lines": 3, "prediction_lines": 3, "matched_lines": 3, "prediction_lines_moved": 3}
+    # A wrong letter inside a line is still an error; order inside a line is untouched.
+    reordered, _ = line_matched_prediction(BLOCKS_SWAPPED.replace("יבוא", "יבא"), REFERENCE)
+    assert reordered == REFERENCE.replace("יבוא", "יבא")
+    reversed_words = "1 סעיף תיקון\n" + "\n".join(REFERENCE.split("\n")[1:])
+    assert line_matched_prediction(reversed_words, REFERENCE)[0] == reversed_words
+    # Unpaired prediction lines are appended (they still cost insertions); blank lines are ignored.
+    reordered, stats = line_matched_prediction("\n\nxyz\n" + BLOCKS_SWAPPED, REFERENCE)
+    assert reordered == REFERENCE + "\nxyz" and stats["matched_lines"] == 3 and stats["prediction_lines"] == 4
+    assert line_matched_prediction("", REFERENCE) == ("", {"reference_lines": 3, "prediction_lines": 0, "matched_lines": 0,
+                                                          "prediction_lines_moved": 0})
+
+
+def test_reading_order_fact_is_optional_and_omitted_when_unset() -> None:
+    assert ReferenceNormalizationFactsRecord().model_dump() == {"footnote_marker_style": None, "footnote_count": 0}
+    within = ReferenceNormalizationFactsRecord(reading_order_verified="within_line")
+    assert within.model_dump()["reading_order_verified"] == "within_line"
+    with pytest.raises(ValidationError):
+        ReferenceNormalizationFactsRecord(reading_order_verified="block")
+
+
+def test_within_line_references_leave_the_page_order_score_for_the_line_matched_view(tmp_path: Path) -> None:
+    entries = [
+        {"item_id": "reshumot:page-1", "text": REFERENCE, "sha": "d1" * 32, "modality": "printed", "reading_order": "within_line"},
+        {"item_id": "ws:printed-2", "text": "ספר הזכרונות", "sha": "a2" * 32, "modality": "printed"},
+    ]
+    manifest = _manifest(tmp_path / "refs", entries)
+    assert load_adjudicated_references(manifest)["reading_order_within_line"] == ["reshumot:page-1"]
+    predictions = _predictions(tmp_path / "pred", {"d1" * 32: BLOCKS_SWAPPED, "a2" * 32: "ספר הזכרונות"})
+    report = run_reference_evaluation(predictions_dir=predictions, reference_manifest=manifest,
+                                      asset_index_path=tmp_path / "refs" / "asset_index.json")
+    scored = report["scored"]["adjudicated_reference"]
+    # The page-order aggregate never sees the within_line item.
+    assert [item["item_id"] for item in scored["items"]] == ["ws:printed-2"]
+    assert scored["reading_order_within_line_items"] == ["reshumot:page-1"]
+    assert scored["reading_order_within_line_view"] == LINE_MATCHED_VIEW_ID
+    view = report["reference_views"]["adjudicated_reference"][LINE_MATCHED_VIEW_ID]
+    assert view["item_count"] == 1 and view["primary_view"] == LINE_MATCHED_VIEW_ID
+    assert view["matching"]["matched_lines"] == 3 and view["matching"]["prediction_lines_moved"] == 3
+    assert view["views"]["as_is"]["profiles"]["primary.v1"]["character_edits"] > 0
+    assert view["views"][LINE_MATCHED_VIEW_ID]["profiles"]["primary.v1"]["character_edits"] == 0
+    assert view["views"][LINE_MATCHED_VIEW_ID]["strata"]["source_id"] == {"reshumot": view["views"][LINE_MATCHED_VIEW_ID]["profiles"]}
+    assert [entry["view_id"] for entry in report["run_record"]["reference_views"]] == [LINE_MATCHED_VIEW_ID]
+    # A baseline comparison also compares the view.
+    baseline = _predictions(tmp_path / "base", {"d1" * 32: BLOCKS_SWAPPED.replace("יבוא", "יבא"), "a2" * 32: "ספר"})
+    compared = run_reference_evaluation(predictions_dir=predictions, reference_manifest=manifest, baseline_predictions_dir=baseline,
+                                        asset_index_path=tmp_path / "refs" / "asset_index.json")
+    delta = compared["comparison"]["reference_view_deltas"]["adjudicated_reference"][LINE_MATCHED_VIEW_ID][LINE_MATCHED_VIEW_ID]
+    assert delta["profiles"]["primary.v1"]["paired_edit_accounting"]["characters"]["baseline_edits"] == 1
+
+
+def test_only_within_line_references_still_report_an_empty_page_order_block(tmp_path: Path) -> None:
+    entries = [{"item_id": "reshumot:page-1", "text": REFERENCE, "sha": "d1" * 32, "reading_order": "within_line"}]
+    manifest = _manifest(tmp_path / "refs", entries)
+    predictions = _predictions(tmp_path / "pred", {"d1" * 32: BLOCKS_SWAPPED})
+    report = run_reference_evaluation(predictions_dir=predictions, reference_manifest=manifest,
+                                      asset_index_path=tmp_path / "refs" / "asset_index.json")
+    assert report["scored"]["adjudicated_reference"]["evaluated_item_count"] == 0
+    assert report["reference_views"]["adjudicated_reference"][LINE_MATCHED_VIEW_ID]["views"][LINE_MATCHED_VIEW_ID][
+        "profiles"]["primary.v1"]["cer"] == 0
+
+
+def _unreviewed(tmp_path: Path, records: list[dict]) -> tuple[Path, Path]:
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    path = tmp_path / "unreviewed.jsonl"
+    path.write_text("".join(json.dumps(record, ensure_ascii=False) + "\n" for record in records), encoding="utf-8")
+    index = tmp_path / "index.json"
+    index.write_text(json.dumps({"items": [{"item_id": record["item_id"], "page_sha256": [record["sha"]]} for record in records]}))
+    return path, index
+
+
+def test_unreviewed_within_line_texts_are_scored_line_matched(tmp_path: Path) -> None:
+    records = [
+        {"item_id": "reshumot:p1", "text": REFERENCE, "sha": "e1" * 32, "reading_order_verified": "within_line",
+         "reference_origin": "unreviewed:born_digital_pdf_text"},
+        {"item_id": "hash:p1", "text": "מכתב קצר", "sha": "e2" * 32},
+    ]
+    unreviewed, index = _unreviewed(tmp_path, records)
+    predictions = _predictions(tmp_path / "pred", {"e1" * 32: BLOCKS_SWAPPED, "e2" * 32: "מכתב קצר"})
+    report = run_reference_evaluation(predictions_dir=predictions, unreviewed_texts=unreviewed, asset_index_path=index,
+                                      diagnostic_only=True)
+    diagnostics = report["unreviewed_diagnostics"]
+    assert [item["item_id"] for item in diagnostics["items"]] == ["hash:p1"]
+    assert diagnostics["reading_order_within_line_items"] == ["reshumot:p1"]
+    view = diagnostics["reference_views"][LINE_MATCHED_VIEW_ID]
+    assert view["views"][LINE_MATCHED_VIEW_ID]["profiles"]["primary.v1"]["cer"] == 0
+    assert view["views"]["as_is"]["profiles"]["primary.v1"]["cer"] > 0
+    assert report["run_record"]["reference_views"][0]["origin"] == "unreviewed_diagnostics"
+    baseline = _predictions(tmp_path / "base", {"e1" * 32: REFERENCE, "e2" * 32: "מכתב"})
+    compared = run_reference_evaluation(predictions_dir=predictions, unreviewed_texts=unreviewed, asset_index_path=index,
+                                        baseline_predictions_dir=baseline, diagnostic_only=True)
+    view_delta = compared["diagnostic_comparison"]["unreviewed_view_deltas"][LINE_MATCHED_VIEW_ID][LINE_MATCHED_VIEW_ID]
+    assert view_delta["profiles"]["primary.v1"]["delta_cer"] == 0
+    bad, bad_index = _unreviewed(tmp_path / "bad", [{**records[0], "reading_order_verified": "blocks"}])
+    with pytest.raises(StageExecutionError, match="unknown reading_order_verified"):
+        run_reference_evaluation(predictions_dir=predictions, unreviewed_texts=bad, asset_index_path=bad_index, diagnostic_only=True)
+
+
+def test_within_line_release_terms_must_exclude_page_order_evaluation() -> None:
+    base = {"source_id": "reshumot_born_digital", "licence": "PD-IL", "rights_classification": "open", "attribution_required": False}
+    terms = ItemReleaseTermsRecord.model_validate({**base, "reading_order_verified": "within_line", "excluded_evaluations": ["page_reading_order"]})
+    assert terms.model_dump()["reading_order_verified"] == "within_line"
+    assert "reading_order_verified" not in ItemReleaseTermsRecord.model_validate(base).model_dump()
+    with pytest.raises(ValidationError, match="page_reading_order"):
+        ItemReleaseTermsRecord.model_validate({**base, "reading_order_verified": "within_line"})

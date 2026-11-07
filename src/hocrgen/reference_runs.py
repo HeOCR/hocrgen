@@ -18,6 +18,12 @@ optional paired bootstrap adds percentile intervals to comparison deltas.
 E2d3: with a cluster map (``hocrgen_bootstrap_clusters.v1``, for example item -> Wikisource Index), comparison deltas
 also get a paired *cluster* bootstrap that resamples whole clusters (books), beside the item bootstrap. When one book
 dominates the characters, items are not independent and the item interval is too narrow.
+
+F8e3: an item whose reference declares ``reading_order_verified: within_line`` (adjudicated:
+``reference_normalization.reading_order_verified``; unreviewed: a record field) has verified line text but a
+conventional order of lines across the page (Reshumot). Such items never enter a page-order aggregate: they are scored
+on the ``line_matched.v1`` view, beside an order-sensitive ``as_is`` view kept for diagnosis only, so an engine that
+reads the blocks in another order is not charged recognition errors.
 """
 from __future__ import annotations
 
@@ -39,11 +45,15 @@ from hocrgen.reference_evaluation import (
     _item_strata,
     DEFAULT_PROFILE_IDS,
     FOOTNOTE_MASKED_VIEW_ID,
+    LINE_MATCHED_VIEW_ID,
     NORMALIZATION_PROFILES,
     PRIMARY_PROFILE_ID,
+    READING_ORDER_WITHIN_LINE,
     evaluate_reference_profiles,
     evaluate_text_profiles,
     footnote_masked_pair,
+    line_matched_prediction,
+    reference_text,
 )
 
 PREDICTION_SCHEMA_VERSIONS = frozenset({"1.0", "heocr_engine_prediction.v1"})
@@ -362,7 +372,7 @@ def load_adjudicated_references(manifest_path: Path, *, modality: str | None = N
     except ValidationError as exc:
         raise StageExecutionError(f"invalid reference manifest {manifest_path.name}: {exc}") from exc
     root = manifest_path.parent.resolve()
-    references, strata, excluded, children, normalization = {}, {}, [], [], {}
+    references, strata, excluded, children, normalization, within_line = {}, {}, [], [], {}, []
     for item in manifest.items:
         if item.public_reference_status not in {"reviewed", "adjudicated"} or item.adjudication_status != "adjudicated":
             excluded.append({"item_id": item.item_id, "reason": "reference is not reviewed and adjudicated"})
@@ -391,14 +401,18 @@ def load_adjudicated_references(manifest_path: Path, *, modality: str | None = N
         references[item.item_id] = record
         strata[item.item_id] = {"reference_origin": "adjudicated_reference",
                                 **({"modality": item.modality} if item.modality else {})}
-        if item.reference_normalization is not None and item.reference_normalization.footnote_marker_style:
-            normalization[item.item_id] = item.reference_normalization.footnote_marker_style
+        facts = item.reference_normalization
+        if facts is not None and facts.reading_order_verified == READING_ORDER_WITHIN_LINE:
+            within_line.append(item.item_id)
+        elif facts is not None and facts.footnote_marker_style:
+            normalization[item.item_id] = facts.footnote_marker_style
         children.append({"item_id": item.item_id, "reference_id": item.reference_id,
                          "path": item.transcription_reference.path, "sha256": child_sha,
                          "declared_sha256": declared})
     if modality is not None and not references:
         raise StageExecutionError(f"no adjudicated reference in the {modality} modality track")
     return {"references": references, "strata": strata, "excluded": excluded, "footnote_marker_styles": normalization,
+            "reading_order_within_line": sorted(within_line),
             "identity": {"kind": "benchmark_reference_manifest", "sha256": manifest_sha,
                          "reference_manifest_id": manifest.reference_manifest_id,
                          "child_references": children,
@@ -412,7 +426,7 @@ def load_unreviewed_texts(path: Path) -> dict[str, Any]:
         lines = [json.loads(line) for line in raw.decode("utf-8").splitlines() if line.strip()]
     except (OSError, UnicodeDecodeError, json.JSONDecodeError) as exc:
         raise StageExecutionError(f"could not read unreviewed texts {path.name}: {exc}") from exc
-    texts, strata = {}, {}
+    texts, strata, within_line = {}, {}, []
     for line in lines:
         if not isinstance(line, dict):
             raise StageExecutionError("each unreviewed text record must be a JSON object")
@@ -422,10 +436,15 @@ def load_unreviewed_texts(path: Path) -> dict[str, Any]:
         origin = line.get("reference_origin") or "unreviewed_candidate"
         if origin in SCORED_ORIGINS:
             raise StageExecutionError(f"unreviewed text {item_id} cannot claim scored origin {origin}")
+        order = line.get("reading_order_verified")
+        if order not in (None, READING_ORDER_WITHIN_LINE, "page"):
+            raise StageExecutionError(f"unreviewed text {item_id} has unknown reading_order_verified {order!r}")
+        if order == READING_ORDER_WITHIN_LINE:
+            within_line.append(item_id)
         texts[item_id] = text
         strata[item_id] = {key: line[key] for key in ("language_script", "modality", "source_id", "document_type")
                            if line.get(key)} | {"reference_origin": origin}
-    return {"texts": texts, "strata": strata, "sha256": _sha256_bytes(raw)}
+    return {"texts": texts, "strata": strata, "reading_order_within_line": sorted(within_line), "sha256": _sha256_bytes(raw)}
 
 
 # --- runs -------------------------------------------------------------------------------------------------------
@@ -444,11 +463,18 @@ def _score(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any
         scored["synthetic_gold"] = evaluate_text_profiles(
             sorted(gold_texts), predictions={k: v for k, v in predictions.items() if k in gold_texts},
             references=gold_texts, profiles=profiles, item_strata=gold["strata"])
+    within_line = set(adjudicated.get("reading_order_within_line", ())) if adjudicated else set()
     if references:
+        # F8e3: items whose reading order is verified within lines only never enter the page-order aggregate.
+        ordered = {k: v for k, v in references.items() if k not in within_line}
         scored["adjudicated_reference"] = evaluate_reference_profiles(
-            sorted(references), predictions={k: v for k, v in predictions.items() if k in references},
-            references=references, profiles=profiles, item_strata=adjudicated["strata"],
+            sorted(ordered), predictions={k: v for k, v in predictions.items() if k in ordered},
+            references=ordered, profiles=profiles,
+            item_strata={k: v for k, v in adjudicated["strata"].items() if k in ordered},
             alignment_masked=alignment_masked)
+        if within_line:
+            scored["adjudicated_reference"]["reading_order_within_line_items"] = sorted(within_line)
+            scored["adjudicated_reference"]["reading_order_within_line_view"] = LINE_MATCHED_VIEW_ID
     for report in scored.values():
         report["track"] = track
     if modality is not None and "adjudicated_reference" in scored:
@@ -461,16 +487,71 @@ def _score(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any
     if references and adjudicated.get("footnote_marker_styles"):
         views["adjudicated_reference"] = {FOOTNOTE_MASKED_VIEW_ID: _footnote_view_reports(
             predictions, track=track, adjudicated=adjudicated, profiles=profiles)}
+    if references and within_line:
+        ids = sorted(within_line)
+        views.setdefault("adjudicated_reference", {})[LINE_MATCHED_VIEW_ID] = _line_matched_view_reports(
+            predictions, track=track, ids=ids, texts={item_id: reference_text(references[item_id]) for item_id in ids},
+            strata={item_id: _item_strata(references[item_id], adjudicated["strata"][item_id]) for item_id in ids},
+            profiles=profiles, scope="adjudicated items whose reference declares reading_order_verified: within_line")
     if views:
         result["reference_views"] = views
     if unreviewed and unreviewed["texts"]:
+        unordered = set(unreviewed.get("reading_order_within_line", ()))
+        texts = {k: v for k, v in unreviewed["texts"].items() if k not in unordered}
         diagnostic = evaluate_text_profiles(
-            sorted(unreviewed["texts"]),
-            predictions={k: v for k, v in predictions.items() if k in unreviewed["texts"]},
-            references=unreviewed["texts"], profiles=profiles, item_strata=unreviewed["strata"])
+            sorted(texts), predictions={k: v for k, v in predictions.items() if k in texts},
+            references=texts, profiles=profiles,
+            item_strata={k: v for k, v in unreviewed["strata"].items() if k in texts})
         result["unreviewed_diagnostics"] = {"reference_status": "unreviewed", "benchmark_ready": False,
                                             "scored": False, "track": track, **diagnostic}
+        if unordered:
+            ids = sorted(unordered)
+            result["unreviewed_diagnostics"]["reading_order_within_line_items"] = ids
+            result["unreviewed_diagnostics"]["reference_views"] = {LINE_MATCHED_VIEW_ID: _line_matched_view_reports(
+                predictions, track=track, ids=ids, texts={item_id: unreviewed["texts"][item_id] for item_id in ids},
+                strata={item_id: unreviewed["strata"][item_id] for item_id in ids}, profiles=profiles,
+                scope="unreviewed texts that declare reading_order_verified: within_line")}
     return result
+
+
+def _line_matched_view_reports(predictions: Mapping[str, str], *, track: str, ids: list[str], texts: Mapping[str, str],
+                               strata: Mapping[str, Mapping[str, str]], profiles: list[str], scope: str) -> dict[str, Any]:
+    """Score items whose reading order is verified within lines only, as is and line-matched (F8e3).
+
+    ``line_matched.v1`` is the score for these items; ``as_is`` keeps the page-order score beside it to show how much
+    of it is block order, and is never a recognition score for them.
+    """
+    matched, matching_items = {}, []
+    for item_id in ids:
+        if item_id in predictions:
+            matched[item_id], stats = line_matched_prediction(predictions[item_id], texts[item_id])
+            matching_items.append({"item_id": item_id, **stats})
+    subset = {k: v for k, v in predictions.items() if k in texts}
+    views = {
+        "as_is": evaluate_text_profiles(ids, predictions=subset, references=dict(texts), profiles=profiles,
+                                        item_strata={k: dict(v) for k, v in strata.items()}),
+        LINE_MATCHED_VIEW_ID: evaluate_text_profiles(ids, predictions=matched, references=dict(texts), profiles=profiles,
+                                                     item_strata={k: dict(v) for k, v in strata.items()}),
+    }
+    for report in views.values():
+        report["track"] = track
+    return {
+        "view_id": LINE_MATCHED_VIEW_ID,
+        "scope": scope,
+        "item_count": len(ids),
+        "primary_view": LINE_MATCHED_VIEW_ID,
+        "matching": {
+            "method": "prediction lines reordered into reference line order by greedy lowest relative edit distance; "
+                      "unpaired prediction lines appended",
+            "diagnostic_limit": "order inside a line still counts; lines split or merged differently still cost edits; "
+                                "as_is is page order and not a recognition score for these items",
+            "matched_lines": sum(item["matched_lines"] for item in matching_items),
+            "reference_lines": sum(item["reference_lines"] for item in matching_items),
+            "prediction_lines_moved": sum(item["prediction_lines_moved"] for item in matching_items),
+            "items": matching_items,
+        },
+        "views": views,
+    }
 
 
 def _cell_view_reports(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any],
@@ -494,7 +575,7 @@ def _cell_view_reports(predictions: Mapping[str, str], *, track: str, gold: Mapp
 def _footnote_view_reports(predictions: Mapping[str, str], *, track: str, adjudicated: Mapping[str, Any],
                            profiles: list[str]) -> dict[str, Any]:
     """Score adjudicated items that declare a footnote marker style as is and footnote-masked (E2d2, issue #124)."""
-    styles = adjudicated["footnote_marker_styles"]
+    styles = adjudicated["footnote_marker_styles"]  # never holds a reading_order_verified: within_line item
     ids = sorted(styles)
     references = {item_id: adjudicated["references"][item_id] for item_id in ids}
     strata = {item_id: adjudicated["strata"][item_id] for item_id in ids}
@@ -725,10 +806,18 @@ def _diagnostic_comparison(baseline: dict[str, Any], candidate: dict[str, Any], 
                            cand_set: dict, bootstrap: Mapping[str, int] | None = None) -> dict[str, Any]:
     """Delta between two sets on unreviewed text only; never a scored comparison (E2c5)."""
     context = _comparison_context(base_set, cand_set)
-    return {"track": context.pop("track"), "reference_status": "unreviewed", "benchmark_ready": False,
-            "scored": False, "unreviewed_deltas": _report_deltas(baseline["unreviewed_diagnostics"],
-                                                                 candidate["unreviewed_diagnostics"], bootstrap),
-            **context}
+    comparison = {"track": context.pop("track"), "reference_status": "unreviewed", "benchmark_ready": False,
+                  "scored": False, "unreviewed_deltas": _report_deltas(baseline["unreviewed_diagnostics"],
+                                                                       candidate["unreviewed_diagnostics"], bootstrap),
+                  **context}
+    views = candidate["unreviewed_diagnostics"].get("reference_views")
+    if views:
+        comparison["unreviewed_view_deltas"] = {
+            view_id: {name: _report_deltas(baseline["unreviewed_diagnostics"]["reference_views"][view_id]["views"][name],
+                                           report, bootstrap) for name, report in block["views"].items()}
+            for view_id, block in views.items()
+        }
+    return comparison
 
 
 def run_reference_evaluation(
@@ -831,11 +920,21 @@ def run_reference_evaluation(
     if cell_view is not None:
         reference_views.append({"origin": "synthetic_gold", "view_id": cell_view["view_id"],
                                 "source": cell_view["source"], "item_count": len(cell_view["texts"])})
-    if "adjudicated_reference" in result.get("reference_views", {}):
+    adjudicated_views = result.get("reference_views", {}).get("adjudicated_reference", {})
+    if FOOTNOTE_MASKED_VIEW_ID in adjudicated_views:
         reference_views.append({"origin": "adjudicated_reference", "view_id": FOOTNOTE_MASKED_VIEW_ID,
                                 "source": {"kind": "benchmark_reference_manifest",
                                            "field": "items[].reference_normalization.footnote_marker_style"},
                                 "item_count": len(adjudicated["footnote_marker_styles"])})
+    if LINE_MATCHED_VIEW_ID in adjudicated_views:
+        reference_views.append({"origin": "adjudicated_reference", "view_id": LINE_MATCHED_VIEW_ID,
+                                "source": {"kind": "benchmark_reference_manifest",
+                                           "field": "items[].reference_normalization.reading_order_verified"},
+                                "item_count": len(adjudicated["reading_order_within_line"])})
+    if LINE_MATCHED_VIEW_ID in (result.get("unreviewed_diagnostics") or {}).get("reference_views", {}):
+        reference_views.append({"origin": "unreviewed_diagnostics", "view_id": LINE_MATCHED_VIEW_ID,
+                                "source": {"kind": "unreviewed_texts", "field": "reading_order_verified"},
+                                "item_count": len(unreviewed["reading_order_within_line"])})
     if reference_views:
         run_record["reference_views"] = reference_views
     if modality is not None:

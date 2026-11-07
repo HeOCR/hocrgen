@@ -233,6 +233,14 @@ class ExportedTextRecord(ManifestModel):
         return validate_release_relative_manifest_path(value, field_label="release_text_path")
 
 
+# F8e3: how much of a text's reading order is verified. ``within_line``: each line's text, including the order of
+# characters inside it, is verified, but the order of lines and blocks across the page is a layout convention (the
+# Reshumot glyph-layer method). ``page``: the page's whole reading order is verified too.
+ReadingOrderVerified = Literal["within_line", "page"]
+# The evaluation a ``within_line`` text must never enter: scoring its page order (line order across the page).
+PAGE_READING_ORDER_EVALUATION = "page_reading_order"
+
+
 class ItemReleaseTermsRecord(ManifestModel):
     """The terms an exported item ships under (F8g), checked against its source's real-source contract entry."""
 
@@ -251,6 +259,15 @@ class ItemReleaseTermsRecord(ManifestModel):
     scope_decision: str | None = None
     paired_text: Literal["page_text", "page_xml", "none"] | None = None
     contract_id: str | None = None
+    # F8e3: how much of the paired text's reading order is verified; omitted from output while unset.
+    reading_order_verified: ReadingOrderVerified | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_unset_reading_order(self, handler: Any) -> dict[str, Any]:
+        payload = handler(self)
+        if payload.get("reading_order_verified") is None:
+            payload.pop("reading_order_verified", None)
+        return payload
 
     @model_validator(mode="after")
     def validate_terms(self) -> "ItemReleaseTermsRecord":
@@ -260,6 +277,8 @@ class ItemReleaseTermsRecord(ManifestModel):
             self.excluded_evaluations
         ):
             raise ValueError(f"{self.source_id}: character_level_only must exclude word-level and language-level Hebrew evaluation")
+        if self.reading_order_verified == "within_line" and PAGE_READING_ORDER_EVALUATION not in self.excluded_evaluations:
+            raise ValueError(f"{self.source_id}: within_line reading order must exclude {PAGE_READING_ORDER_EVALUATION} evaluation")
         return self
 
 
@@ -806,10 +825,22 @@ ReferenceModality = Literal["printed", "handwritten"]
 
 
 class ReferenceNormalizationFactsRecord(ManifestModel):
-    """How a reference differs from the print by convention, for evaluation masking (E2d2, issue #124)."""
+    """How a reference differs from the print by convention, for evaluation masking (E2d2, issue #124).
+
+    ``reading_order_verified: within_line`` (F8e3) means between-line order is not part of the reference: such an
+    item is scored on the ``line_matched.v1`` view, never on page order. Omitted from output while unset.
+    """
 
     footnote_marker_style: Literal["bracketed_index"] | None = None
     footnote_count: int = Field(default=0, ge=0)
+    reading_order_verified: ReadingOrderVerified | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_unset_reading_order(self, handler: Any) -> dict[str, Any]:
+        payload = handler(self)
+        if payload.get("reading_order_verified") is None:
+            payload.pop("reading_order_verified", None)
+        return payload
 
 
 # E2d1: optional per-item facts, omitted from serialized output while unset so existing manifests and release

@@ -9,7 +9,7 @@ It has four parts:
 3. **promotion**, with each source's scope markers and attribution carried into every export;
 4. a **real tranche**: the full promoted pool, materialized outside git from pinned caches, with a committed manifest.
 
-`F8g2` hardens it: size-aware group splits (§2), the Pinkas canvas checks, the crop height floor, `wikisource_plain_text.v3`, and a tranche v2 that grows Reshumot and the Knesset protocols past their fixtures (§4). `F8e2` rebuilds the Reshumot text from the PDF glyph layer and verifies it line by line, in tranche v3 (§4).
+`F8g2` hardens it: size-aware group splits (§2), the Pinkas canvas checks, the crop height floor, `wikisource_plain_text.v3`, and a tranche v2 that grows Reshumot and the Knesset protocols past their fixtures (§4). `F8e2` rebuilds the Reshumot text from the PDF glyph layer and verifies it line by line, in tranche v3 (§4). `F8e3` makes explicit that only each line is verified, not the order of lines and blocks across the page (`reading_order_verified: within_line`, §3 and §4), keeps such text out of page-order scoring, and retires the `pdftotext` method, in tranche v4.
 
 The same contract shape is meant for `F7d` (HASH).
 
@@ -40,7 +40,7 @@ The contract is `src/hocrgen/config/real_source_contract.yaml`, typed by `RealSo
 | `yidtaknl_vaybertaytsh_gt` | promoted (F8g) | printed | 5 | 15 | CC BY 4.0, attribution; `character_level_only` (decision 6); page text ships |
 | `pinkas_dataset_bgu` | promoted (F8g) | handwritten | 10 | 30 | CC BY 4.0, attribution; per-line scope (decision 8); PAGE XML ships |
 | `nli_any_use_permitted` | legacy (F8c printed books) | both | 0 | 20 | PD-IL; images only |
-| `reshumot_born_digital` | promoted (F8g) | printed, not counted toward the modality floors | 0 | 5 | PD-IL; `rendered_not_scan`; page text ships |
+| `reshumot_born_digital` | promoted (F8g) | printed, not counted toward the modality floors | 0 | 5 | PD-IL; `rendered_not_scan`; page text ships, `reading_order_verified: within_line` (F8e3) |
 | `knesset_committee_protocols_pre1976` | promoted (F8g) | printed | 0 | 10 | PD-IL; images only |
 | `pinkas_open`, `biblia_open` | legacy | handwritten | 0 | 15 each | PD-IL; images only |
 | `hash_nli_any_use`, `hash_public_domain` | not promoted (F7d) | handwritten | 0 | 40 / 20 | F7d sets the promotion and a floor; nothing else changes |
@@ -127,9 +127,10 @@ Every gate, validator and exclusion reason is otherwise unchanged.
 - `text_licence`;
 - `evaluation_scope`, `allowed_uses` and `excluded_evaluations`;
 - the Pinkas `line_scope_summary`;
-- `rendered_not_scan`.
+- `rendered_not_scan`;
+- `reading_order_verified` (F8e3), when the contract names it. Reshumot is `within_line`: each line's text is verified, the order of lines and blocks across the page is not. Such an item also lists `page_reading_order` in `excluded_evaluations`.
 
-An item that cannot carry its source's terms stops the export. For example, a YidTakNL item without `character_level_only`, or without both of its exclusions, or a Reshumot page without `is_scan: false`.
+An item that cannot carry its source's terms stops the export. For example, a YidTakNL item without `character_level_only`, or without both of its exclusions, or a Reshumot page without `is_scan: false` or without `reading_order_verified: within_line`.
 
 **Paired text.** The human-made text ships next to the image, in `data/<split>/<item_id>/`, checked against the checksum its snapshot pinned:
 
@@ -149,7 +150,7 @@ The public-beta docs gate requires `docs/NOTICE.md`.
 
 ## 4. The real tranche
 
-The full pool (tranche v3, `f8e2_real_tranche_v3`) is 2,611 pages and 1,033 MB. It never enters git. `python -m hocrgen.tools.real_tranche` builds it reproducibly in an operator folder:
+The full pool (tranche v4, `f8e3_real_tranche_v4`) is 2,611 pages and 1,033 MB. It never enters git. `python -m hocrgen.tools.real_tranche` builds it reproducibly in an operator folder:
 
 ```bash
 # 1. capture what no operator cache holds yet (network; each file checked against the pin the repo already records)
@@ -157,15 +158,16 @@ PYTHONPATH=src python -m hocrgen.tools.real_tranche capture --cache <cache> \
   [--source yidtaknl|pinkas|reshumot|knesset ...] [--pinkas-manifest-copy <F8d2 copy of the NLI manifest>] \
   [--reshumot-per-query 2] [--knesset-per-term 3]
 # 2. materialize the tree from the caches (offline; the Wikisource API cache is replayed, and any miss fails; poppler)
-PYTHONPATH=src python -m hocrgen.tools.real_tranche materialize --out <tranche>/f8e2_real_tranche_v3 --cache <cache> \
+PYTHONPATH=src python -m hocrgen.tools.real_tranche materialize --out <tranche>/f8e3_real_tranche_v4 --cache <cache> \
   --wikisource-work-dir <F8b7 inventory work dir> --wikisource-renders <renders dir> [--wikisource-renders ...] \
   --created-at 2026-11-07 --manifest-out src/hocrgen/data/real_tranche
 # 3. check every file, and build or export against the tranche (only a tree that matches the committed manifest is accepted)
-PYTHONPATH=src python -m hocrgen.tools.real_tranche verify --tranche <tranche>/f8e2_real_tranche_v3
-PYTHONPATH=src python -m hocrgen export-public-beta --profile profile_open_v1 --dry-run --real-tranche-root <tranche>/f8e2_real_tranche_v3 ...
-# F8e2: tranche v3 is tranche v2 with only the Reshumot snapshot rebuilt (poppler and pdfminer.six: pip install '.[pdf]')
-PYTHONPATH=src python -m hocrgen.tools.real_tranche refresh-reshumot --base <tranche>/f8g2_real_tranche_v2 \
-  --out <tranche>/f8e2_real_tranche_v3 --cache <cache> --created-at 2026-11-07 --government-print-captured-at 2026-11-07 \
+PYTHONPATH=src python -m hocrgen.tools.real_tranche verify --tranche <tranche>/f8e3_real_tranche_v4
+PYTHONPATH=src python -m hocrgen export-public-beta --profile profile_open_v1 --dry-run --real-tranche-root <tranche>/f8e3_real_tranche_v4 ...
+# F8e2 / F8e3: a tranche with only the Reshumot snapshot rebuilt (poppler and pdfminer.six: pip install '.[pdf]').
+# Tranche v3 was v2 refreshed (F8e2); tranche v4 is v3 refreshed (F8e3).
+PYTHONPATH=src python -m hocrgen.tools.real_tranche refresh-reshumot --base <tranche>/f8e2_real_tranche_v3 \
+  --out <tranche>/f8e3_real_tranche_v4 --cache <cache> --created-at 2026-11-07 --government-print-captured-at 2026-11-07 \
   [--reshumot-glyph-layers <layers extracted before>] [--reshumot-report <pages.jsonl>] --manifest-out src/hocrgen/data/real_tranche
 ```
 
@@ -184,12 +186,15 @@ PYTHONPATH=src python -m hocrgen.tools.real_tranche refresh-reshumot --base <tra
 - **Wikisource text is `wikisource_plain_text.v3` (F8g2, #134).** The version now covers the F8b7 changes (the dropped note-list headings; unprinted notes dropped by reviewed checks), and v3 renders the label of a broken link as the page prints it: a doubled pipe (Hyman I p. 44), an unclosed link (Hyman II p. 239) and two unopened links (Hyman I p. 414, *Sefer Arakhim* p. 11), each checked on the page render and against MediaWiki's own `action=parse` rendering (which shows the fragment literally). Only those 4 of the 1,455 pair texts change. The fifth `|` fragment (Pri Megadim p. 244) is no link: the editor typed the expansion `"הלכות פסח|` where the page prints the abbreviation ה"פ, so that page is `text_not_on_page`. Each item's metadata carries `text_derivation`: the converter version, its repairs, the unprinted notes dropped and the stand-in mappings applied.
 - **YidTakNL and Pinkas:** the upstream images and texts, unchanged. Each Pinkas entry carries `scan.match_check` from `docs/pinkas_canvas_match_checks.json` (below).
 - **Reshumot (F8e2):** every page of every captured booklet. Each page's text is rebuilt from its glyph layer (`pdf_glyph_geometry_logical.v1`, see `planning/tasks/f8-real-source-map.md`, F8e2 findings), and every line is verified against the page's `pdftoppm` 150 dpi gray render (`is_scan: false`). Lines that cannot be verified are left out, and the pair image is cut to the verified regions (decision 12; `crop.method: pdf_glyph_regions.v1`). The gate re-derives every page from the committed glyph layer (`extraction/*.glyphs.json.gz`), the outline identity table (`glyph_outlines.json`) and the render.
+  - **Reading order (F8e3).** What is verified is each line's text: its characters and their order inside the line. The order of lines and blocks across the page follows a layout convention (body lines top to bottom, side headings before the body line beside them, narrower blocks read whole) and is not verified. A side heading level with a body line may be joined to it or read after it, and table cells may be read row by row or column by column. Every entry records `text.reading_order_verified: within_line`, and the gate refuses an entry that records anything else (`reading_order_scope_mismatch`). The fact reaches item metadata, the committed manifest items and the release terms.
+  - **Evaluation constraint (F8e3).** Between-block order differences in this text are not recognition errors. An evaluation that scores it must use the `line_matched.v1` view of `hocrgen evaluate-references` and never a page-order CER. A reference or unreviewed text built from it must declare `reading_order_verified: within_line`; it is then left out of every page-order aggregate (see [`reference_evaluation.md`](./reference_evaluation.md)). The text is still `not_adjudicated`, so no Reshumot page is scored today.
+  - **One method.** F8e's `pdftotext` method (`poppler_bidi_logical.v1`) is retired. The packaged fixture uses the glyph layer too, and the gate refuses any other normalization (`unsupported_text_normalization`).
 - **Knesset:** every page of every captured protocol that is one embedded scan, extracted losslessly with `pdfimages`: the 1-bit CCITT scans as PNG, and the colour rescans' JPEG streams byte for byte. Images only.
 - The packaged fixture's admitted Reshumot and Knesset pages are kept as packaged.
 
 **The committed manifest** is `src/hocrgen/data/real_tranche/tranche_manifest.json` and `tranche_items.jsonl`. It holds no page text. It records:
 
-- per item: the source, id, source group, modality, asset checksum and size, text checksum, crop flag and upstream provenance;
+- per item: the source, id, source group, modality, asset checksum and size, text checksum, crop flag and upstream provenance, and for Reshumot `reading_order_verified` (F8e3);
 - per source: the checksums of the snapshot's descriptor files;
 - the digest of `SHA256SUMS`.
 
@@ -200,7 +205,7 @@ PYTHONPATH=src python -m hocrgen.tools.real_tranche refresh-reshumot --base <tra
 | `wikisource_he_proofread` | 1,455 (1,214 full pages, 241 crops) | 58 Indexes | 632 MB | 1 page `text_not_on_page` (Pri Megadim p. 244, F8g2) |
 | `yidtaknl_vaybertaytsh_gt` | 123 (121 matched pages, plus the 2 vendored 1781 pages) | 3 works | 164 MB | 33 matched pages whose upstream text file is empty (below) |
 | `pinkas_dataset_bgu` | 30 (24 train, 6 test upstream) | 1 manuscript | 49 MB | none |
-| `reshumot_born_digital` | 798 (796 captured, 275 of them cropped; 2 fixture) | 84 booklets | 141 MB | 90 of 886 captured pages (below) |
+| `reshumot_born_digital` | 798 (796 captured, 275 of them cropped; 2 fixture, glyph layer since F8e3) | 84 booklets | 141 MB | 90 of 886 captured pages (below) |
 | `knesset_committee_protocols_pre1976` | 205 (202 captured, 3 fixture) | 20 protocols | 46 MB | none |
 
 NLI keeps its packaged snapshot (10 items); its image server answered HTTP 520 throughout.
@@ -235,12 +240,12 @@ The tree (v2) is about 910 MB in 5,689 files: JPEG and PNG images, UTF-8 text, P
 
 Both routes carry `NOTICE.md` and the attribution manifest. Share-alike for the Wikisource text, and attribution for Wikisource, YidTakNL and Pinkas, travel with the files.
 
-## Readiness picture (dry runs, 2026-11-07, tranche v3)
+## Readiness picture (dry runs, 2026-11-07, tranche v4)
 
 | Run | Real items shipped | Counted / 80 | Printed (counted / 30) | Handwritten (counted / 25) | `source_depth_composition` |
 | --- | --- | --- | --- | --- | --- |
 | Packaged fixtures (CI) | 21 | 21 | 15 | 4 | blocked: the Wikisource, YidTakNL and Pinkas floors, both modality floors, the total |
-| Real tranche v3 (`--real-tranche-root`) | 2,615 | 105 | 68 | 32 | **pass** |
+| Real tranche v4 (`--real-tranche-root`) | 2,615 | 105 | 68 | 32 | **pass** |
 
 In the tranche run, the payload per source (counted in brackets) and its splits (train / validation / test items, with groups in brackets) are:
 

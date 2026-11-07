@@ -1,28 +1,16 @@
-"""Logical-order text from born-digital Hebrew PDFs, and checks that the order is right (F8e).
+"""Checks that logical-order Hebrew text from a born-digital PDF is in the right order (F8e).
 
-F8e2 supersedes the ``pdftotext`` conversion below for new captures with ``hocrgen.parsers.pdf_geometry``, which
-rebuilds the text from the PDF's glyph layer; the order checks here (``logical_order_issues``) still run on its
-output. This module stays for the F8e entries (``poppler_bidi_logical.v1``), which the gate still re-derives.
+The text itself is rebuilt from the PDF's glyph layer by ``hocrgen.parsers.pdf_geometry`` (F8e2,
+``pdf_glyph_geometry_logical.v1``); these checks run on its output as an independent second line. F8e's
+``pdftotext`` conversion (``poppler_bidi_logical.v1``), which inverted poppler's bidi markup, was retired in F8e3 once
+no entry used it.
 
-``pdftotext`` (poppler) writes right-to-left lines in a bidi-markup form: each RTL line opens with RLE
-(U+202B) and closes with PDF (U+202C); Hebrew words are already in logical order, but every run of
-digits, Latin letters and the neutral characters next to them is wrapped in LRE (U+202A) ... PDF and
-written in *visual* (left-to-right display) order. Stripping the control characters is therefore not
-enough: ``מס' (תיקון מס' 25), התשע"ו-2016`` comes out as ``מס' ,)25 התשע"ו*2016-``.
-
-``poppler_text_to_logical`` inverts that markup. Inside each LRE run it splits the text into number
-tokens (digits with single ``. , : / -`` separators between them), Latin tokens and single neutral
-characters, and reverses the token order; tokens themselves keep their internal left-to-right order.
-That is the inverse of the Unicode bidi algorithm for numbers and neutrals inside an RTL paragraph. It
-is not exact for Latin text next to numbers (``123 ABC`` and ``ABC 123`` look the same once displayed),
-so any LRE run with a Latin letter is reported as ``latin_run_order_unverified``.
-
-``logical_order_issues`` checks the result independently of the conversion. A page with any issue must
+``logical_order_issues`` checks the text independently of the conversion. A page with any issue must
 not become a reference candidate. Reason codes:
 
 - ``bidi_controls_present``: an embedding, override, isolate or mark character is left in the text.
-- ``control_characters_present``: a C0/C1 control character other than newline or tab (poppler can
-  emit a stray backspace, U+0008).
+- ``control_characters_present``: a C0/C1 control character other than newline or tab (a stray backspace,
+  U+0008, in a PDF's text).
 - ``reversed_hebrew_word``: a word starts with a final letter form (ך ם ן ף ץ), i.e. a reversed run.
 - ``hebrew_year_gregorian_order``: a Hebrew year (``התשע"ו``) is directly followed by a digit or an
   asterisk instead of ``-<year>`` (``התשע"ו*2016-``).
@@ -37,8 +25,6 @@ not become a reference candidate. Reason codes:
 - ``missing_expected_phrase``: a phrase known from independent metadata (the gazette API's table of
   contents, the booklet number and date) does not occur in the text, compared by ``phrase_key`` (whitespace,
   dash and quote variants folded).
-- conversion issues: ``unbalanced_embedding``, ``nested_embedding``, ``hebrew_inside_ltr_embedding``,
-  ``latin_run_order_unverified``.
 """
 
 from __future__ import annotations
@@ -47,27 +33,15 @@ import re
 import unicodedata
 from collections.abc import Iterable
 
-PDF_BIDI_NORMALIZATION_VERSION = "poppler_bidi_logical.v1"
-
-LRE = "‪"
-RLE = "‫"
-POP = "‬"
-LRO = "‭"
-RLO = "‮"
 BIDI_MARKS = frozenset("‎‏؜")
 BIDI_CONTROL_CHARACTERS = frozenset("‪‫‬‭‮⁦⁧⁨⁩﻿") | BIDI_MARKS
 
 HEBREW_LETTER = "א-ת"
-_LTR_TOKEN = re.compile(r"[A-Za-z][A-Za-z0-9]*(?:[ .,:/\-'&]+[A-Za-z0-9]+)*|\d+(?:[.,:/\-]\d+)*|.", re.DOTALL)
-_MARK_BETWEEN_DIGITS = re.compile(r"(?<=\d)[‎‏؜]+(?=\d)")
 _REVERSED_HEBREW_WORD = re.compile(rf"(?<![{HEBREW_LETTER}'\"׳״])[ךםןףץ][{HEBREW_LETTER}]")
 _HEBREW_YEAR = re.compile(rf"(?<![{HEBREW_LETTER}])ה?תש[{HEBREW_LETTER}]{{0,2}}[\"״][{HEBREW_LETTER}]")
 _GLUED_PUNCTUATION = re.compile(rf"[{HEBREW_LETTER}][,:;.][{HEBREW_LETTER}]")
 _REVERSED_SECTION_NUMBER = re.compile(rf"^\.\d+[{HEBREW_LETTER}]?$")
 
-CONVERSION_ISSUES = frozenset(
-    {"unbalanced_embedding", "nested_embedding", "hebrew_inside_ltr_embedding", "latin_run_order_unverified"}
-)
 ORDER_ISSUES = frozenset(
     {
         "bidi_controls_present",
@@ -81,78 +55,6 @@ ORDER_ISSUES = frozenset(
         "missing_expected_phrase",
     }
 )
-
-
-def _ltr_run_to_logical(run: str, issues: set[str]) -> str:
-    if any("א" <= char <= "ת" for char in run):
-        issues.add("hebrew_inside_ltr_embedding")
-    if any(char.isascii() and char.isalpha() for char in run):
-        issues.add("latin_run_order_unverified")
-    return "".join(reversed(_LTR_TOKEN.findall(run)))
-
-
-def poppler_line_to_logical(line: str, issues: set[str] | None = None) -> str:
-    """Convert one ``pdftotext`` output line from bidi markup to logical order."""
-
-    found = issues if issues is not None else set()
-    output: list[str] = []
-    stack: list[str] = []
-    ltr_run: list[str] = []
-    for char in line:
-        if stack and stack[-1] == LRE:
-            if char == POP:
-                stack.pop()
-                output.append(_ltr_run_to_logical("".join(ltr_run), found))
-                ltr_run = []
-            elif char in (LRE, RLE, LRO, RLO):
-                found.add("nested_embedding")
-                stack.append(char)
-            else:
-                ltr_run.append(char)
-            continue
-        if char in (LRE, RLE, LRO, RLO):
-            if char in (LRO, RLO) or (char == RLE and stack):
-                found.add("nested_embedding")
-            stack.append(char)
-            continue
-        if char == POP:
-            if not stack:
-                found.add("unbalanced_embedding")
-            else:
-                stack.pop()
-            continue
-        output.append(char)
-    if stack or ltr_run:
-        found.add("unbalanced_embedding")
-        output.append("".join(ltr_run))
-    text = _MARK_BETWEEN_DIGITS.sub(" ", "".join(output))
-    return "".join(char for char in text if char not in BIDI_MARKS)
-
-
-def poppler_text_to_logical(text: str) -> tuple[str, list[str]]:
-    """Convert a ``pdftotext`` page to logical-order plain text.
-
-    Returns the text and the sorted conversion issues. Line structure is kept; trailing spaces, the form
-    feed and leading or trailing blank lines are dropped, and the text is NFC-normalized.
-    """
-
-    issues: set[str] = set()
-    lines = [poppler_line_to_logical(line, issues).rstrip() for line in text.replace("\f", "").split("\n")]
-    while lines and not lines[0]:
-        lines.pop(0)
-    while lines and not lines[-1]:
-        lines.pop()
-    return unicodedata.normalize("NFC", "\n".join(lines) + "\n"), sorted(issues)
-
-
-def strip_bidi_controls(text: str) -> str:
-    """The naive extraction: remove the control characters and keep the visual runs as they are."""
-
-    return "".join(char for char in text.replace("\f", "") if char not in BIDI_CONTROL_CHARACTERS)
-
-
-def _collapse_spaces(text: str) -> str:
-    return re.sub(r"\s+", " ", text).strip()
 
 
 _PHRASE_FOLD = str.maketrans({"־": "-", "–": "-", "—": "-", "‑": "-", "―": "-", "״": '"', "“": '"', "”": '"', "„": '"', "׳": "'", "‘": "'", "’": "'"})
@@ -203,16 +105,3 @@ def logical_order_issues(text: str, expected_phrases: Iterable[str] = ()) -> lis
     if any(phrase_key(phrase) not in folded for phrase in expected_phrases):
         issues.add("missing_expected_phrase")
     return sorted(issues)
-
-
-_LETTER_SPACED_RUN = re.compile(rf"(?<![{HEBREW_LETTER}])(?:[{HEBREW_LETTER}]{{1,2}} ){{3,}}[{HEBREW_LETTER}]{{1,2}}(?![{HEBREW_LETTER}])")
-
-
-def layout_notes(text: str) -> list[str]:
-    """Layout facts worth recording that do not make the order wrong.
-
-    ``letter_spaced_run``: letter-spaced print (signature blocks) comes out as single letters separated by
-    irregular spaces (``ב ני מ י ן``). The letters are in order; the spacing does not follow the print.
-    """
-
-    return ["letter_spaced_run"] if _LETTER_SPACED_RUN.search(text) else []
