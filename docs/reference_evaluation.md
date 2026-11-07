@@ -184,6 +184,11 @@ The view is heuristic near the marks, appears only when a scored item declares t
 - an `--asset-index` that maps each item to its page image, or to its decision-12 crop;
 - `bootstrap_clusters.json`, which maps each item to its Wikisource Index (`cluster_key: wikisource_index`), for `--bootstrap-clusters`.
 
+**Validating-revision text (`E2d3b`).** `--validated-revisions DIR --validated-text-checks FILE` admits quality-4 pages whose text changed after validation, scored on their text as of the validating revision.
+- `DIR` comes from `python -m hocrgen.tools.wikisource_validated_revisions SNAPSHOT DIR --raw-cache CACHE --cache-only`. It pins that revision's wikitext and checks it against the inventory's checksum.
+- `FILE` is `docs/wikisource_validated_text_checks.json`. Only a page whose check found the validated text agrees with the scan is used.
+- Such an item records `reference_text_revision: validating` and `diff_vs_latest`. Every other adjudicated item records `reference_text_revision: latest`.
+
 The text is the post-F8b7 pair text. F8b7 `illegible_on_scan` spans are honoured: an adjudicated reference carries them as `illegible` / `exclude_primary` spans, which `reference_text` excludes, and a single-reviewer text has them removed. `--items` limits the conversion to listed pages, and `--split-manifest` records each page's release split (`benchmark_split` on adjudicated items).
 
 `python -m hocrgen.tools.eval_text_leakage` checks reference texts against training corpora (word 8-gram exclusion, 3-gram share flag above 20%) and writes the `--hold-out` list. The first run is in [`e2d2_real_printed_evaluation.md`](./e2d2_real_printed_evaluation.md).

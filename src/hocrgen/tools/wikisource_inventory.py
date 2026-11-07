@@ -1775,8 +1775,9 @@ def _entities(fetch: FetchJson, qids: list[str]) -> dict[str, dict[str, Any]]:  
     return result
 
 
-def capture_page_record(fetch: FetchJson, title: str, index: dict[str, Any], root: Path) -> dict[str, Any]:  # pragma: no cover - network
-    """Pin one Page into the operator snapshot root in the F8b page-record shape (no image)."""
+def fetch_page_revisions(fetch: FetchJson, title: str) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+    """Every revision of a Page with its content, oldest first, and the page metadata (the inventory's own query,
+    so a cached run answers it from the cache)."""
 
     revisions: list[dict[str, Any]] = []
     page_meta: dict[str, Any] = {}
@@ -1784,6 +1785,13 @@ def capture_page_record(fetch: FetchJson, title: str, index: dict[str, Any], roo
         page = block["pages"][0]
         page_meta = page
         revisions.extend(page.get("revisions") or [])
+    return revisions, page_meta
+
+
+def capture_page_record(fetch: FetchJson, title: str, index: dict[str, Any], root: Path) -> dict[str, Any]:  # pragma: no cover - network
+    """Pin one Page into the operator snapshot root in the F8b page-record shape (no image)."""
+
+    revisions, page_meta = fetch_page_revisions(fetch, title)
     users = sorted({revision.get("user", "") for revision in revisions if revision.get("user")})
     groups: dict[str, list[str]] = {}
     for chunk in _chunks(users):
