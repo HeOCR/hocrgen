@@ -69,7 +69,11 @@ The first batch draws on two sources.
   - Every pinned image and text is checked against its sha256.
   - The 38 scored quality-4 pages are left out through `--exclude-reference-manifest`, along with every other
     quality-4 page.
-- **Images.** They are the pinned 960 px Commons renders.
+- **Images.** Localization and selection run on the pinned 960 px Commons renders.
+  - The shipped `line_verify_v1` bundle swaps all 629 Wikisource pages for 1,920 px renders of the same Commons file and page.
+  - Each 1,920 px render is checked against the 960 px pin, downscaled, with a mean absolute difference of at most 12 grey levels. All 629 pass.
+  - The boxes scale by the width ratio.
+  - The operator step is `intermediates/line_verify_v1/hires.py`. It leaves the item ids, texts and selection unchanged.
 - **Localization.** It reuses the coverage tool's Tesseract cache (`<image sha256>.heb.psm3.x2.tsv`, from a 2× upscale
   of the render).
 - **Labels.** `candidate_provenance: wikisource_quality3_single_proofreader`, and the `release_split` of the page's
@@ -337,9 +341,8 @@ python -m hocrgen.tools.line_verify ingest --bundle $D/line_verify_v1/bundle --d
 
 ## Caveats and follow-ups
 
-- **Image resolution.** The Wikisource images are the pinned 960 px renders. Small type and niqqud are hard to read
-  at that size. A 1,920 px render of the same Commons pages, as E2d4 used, would help the verifier. It needs a
-  fetch, and the box coordinates scale by 2.
+- **Image resolution.** Done for `line_verify_v1` (see Sources). The verifier sees 1,920 px Wikisource renders. A
+  future exporter option could fetch them directly.
 - **R3h covers few pages.** R3h + R4d + A1 readings exist only for the E2d diagnostic pages. More engines' line
   readings would sharpen the difficulty score.
 - **Where the eligible lines are.** Most come from a few large books: Hyman's three volumes hold 16,623 of the
