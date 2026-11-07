@@ -12,11 +12,22 @@ scored text, so a stale proposal is caught before a reviewer sees it. It never p
 outlined, cut from ``DIR/<source_item_id>.jpg|png``: any render of the page in the page frame, for example a 1920 px
 render of the pinned scan) and ``OUT/crops.json`` (``reference_audit_crops.v1``: per proposal the crop file, its
 SHA-256 and size, the source image's SHA-256 and the crop box in source pixels). Crops are scan images: keep the
-bundle out of git.
+bundle out of git. Proposals already decided, by a human or by a rule, are left out of the bundle (``OUT/proposals.json``
+is then the still-undecided subset, a valid ``reference_audit_proposals.v1``; ``crops.json`` counts what was skipped).
+
+E2d4b:
+
+- ``--add-decisions EXPORT`` merges the human decisions of a review-app export (``reference_audit_decisions.v1``) into
+  ``--decisions`` (default: the committed file), validated, sorted by id, written as ``reference_audit_decisions.v2``.
+- ``--rule-coverage --snapshot-root ROOT`` lists the still-undecided proposals that a reference rule
+  (``hocrgen.reference_rules``) makes exactly on the page's scored text: proposal ids and counts, never text. With
+  ``--write-rule-decisions`` it records them in ``--decisions`` as rule decisions (``checked_by: rule``, id
+  ``rule:<rule>:<proposal_id>``, dated ``--decided-at``).
 """
 from __future__ import annotations
 
 import argparse
+import datetime as _dt
 import hashlib
 import json
 from collections import Counter
@@ -25,10 +36,14 @@ from typing import Any
 
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.reference_audit import (
+    DECISIONS_SCHEMA,
     ReferenceAudit,
     load_reference_audit_decisions,
     load_reference_audit_proposals,
+    merge_decisions,
     proposal_text_problems,
+    rule_coverage,
+    rule_decisions_for,
     text_sha256,
 )
 
@@ -46,17 +61,42 @@ def _page_image(directory: Path, item_id: str) -> Path:
     raise StageExecutionError(f"no page image for {item_id} in {directory.name}")
 
 
-def export_crops(proposals_path: Path, page_images: Path, out: Path, *, max_width: int = 760, max_scale: float = 2.2,
-                 quality: int = 80) -> dict[str, Any]:
-    """Write ``proposals.json``, one enlarged, outlined crop per proposal and ``crops.json`` to ``out`` (new or empty)."""
+def undecided_proposals(proposals: dict[str, Any], decisions: dict[str, Any] | None) -> tuple[dict[str, Any], dict[str, int]]:
+    """``proposals`` without the ones a human or a rule decided (a valid ``reference_audit_proposals.v1``: pages
+    left with no proposal are dropped, ``proposal_count`` follows), and how many were skipped by whom."""
+
+    by_whom: dict[str, str] = {}
+    for decision in (decisions or {}).get("decisions") or []:
+        by_whom.setdefault(decision["proposal_id"], decision["checked_by"])
+    skipped = dict(sorted(Counter(by_whom[p["proposal_id"]] for p in proposals["proposals"]
+                                  if p["proposal_id"] in by_whom).items()))
+    if not skipped:
+        return proposals, {}
+    kept = [p for p in proposals["proposals"] if p["proposal_id"] not in by_whom]
+    counts = Counter(p["item_id"] for p in kept)
+    pages = [{**page, "proposal_count": counts[page["item_id"]]} for page in proposals["pages"] if counts[page["item_id"]]]
+    if not pages:
+        raise StageExecutionError("every proposal is decided; nothing to export")
+    return {**proposals, "pages": pages, "proposals": kept}, skipped
+
+
+def export_crops(proposals_path: Path, page_images: Path, out: Path, *, decisions: dict[str, Any] | None = None,
+                 max_width: int = 760, max_scale: float = 2.2, quality: int = 80) -> dict[str, Any]:
+    """Write ``proposals.json``, one enlarged, outlined crop per proposal and ``crops.json`` to ``out`` (new or empty).
+
+    Proposals with a human or rule decision in ``decisions`` are left out; with none decided, ``proposals.json`` is
+    the input byte for byte."""
 
     from PIL import Image, ImageDraw
 
-    proposals = load_reference_audit_proposals(proposals_path)
+    proposals, skipped = undecided_proposals(load_reference_audit_proposals(proposals_path), decisions)
     if out.exists() and any(out.iterdir()):
         raise StageExecutionError(f"{out.name} must be new or empty")
     (out / "crops").mkdir(parents=True, exist_ok=True)
-    (out / "proposals.json").write_bytes(Path(proposals_path).read_bytes())
+    if skipped:
+        (out / "proposals.json").write_text(json.dumps(proposals, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    else:
+        (out / "proposals.json").write_bytes(Path(proposals_path).read_bytes())
     entries, opened = [], {}
     for proposal in proposals["proposals"]:
         item_id = proposal["item_id"]
@@ -84,8 +124,11 @@ def export_crops(proposals_path: Path, page_images: Path, out: Path, *, max_widt
     index = {"schema_version": CROPS_SCHEMA, "audit_id": proposals["audit_id"], "proposals_file": "proposals.json",
              "proposals_sha256": hashlib.sha256((out / "proposals.json").read_bytes()).hexdigest(),
              "note": "scan crops for human review; operator-only, never committed", "crops": entries}
+    if skipped:
+        index["skipped_decided"] = skipped
+        index["source_proposals_sha256"] = hashlib.sha256(Path(proposals_path).read_bytes()).hexdigest()
     (out / "crops.json").write_text(json.dumps(index, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    return {"crops": len(entries), "pages": len(opened)}
+    return {"crops": len(entries), "pages": len(opened), **({"skipped_decided": skipped} if skipped else {})}
 
 
 def audit_summary(proposals: dict[str, Any], decisions: dict[str, Any] | None) -> dict[str, Any]:
@@ -94,7 +137,8 @@ def audit_summary(proposals: dict[str, Any], decisions: dict[str, Any] | None) -
     all_decisions = (decisions or {}).get("decisions") or []
     decided = {d["proposal_id"] for d in all_decisions}
     pending_pages = {p["item_id"] for p in proposals["proposals"] if p["proposal_id"] not in decided}
-    per_proposal = Counter(d["proposal_id"] for d in all_decisions)
+    human = [d for d in all_decisions if d["checked_by"] == "human"]
+    per_proposal = Counter(d["proposal_id"] for d in human)
     return {
         "audit_id": proposals["audit_id"],
         "pages": len(proposals["pages"]),
@@ -103,12 +147,35 @@ def audit_summary(proposals: dict[str, Any], decisions: dict[str, Any] | None) -
         "proposals": len(proposals["proposals"]),
         "by_category": dict(sorted(Counter(p["category"] for p in proposals["proposals"]).items())),
         "by_confidence": dict(sorted(Counter(p["confidence"] for p in proposals["proposals"]).items())),
-        "decisions": dict(sorted(Counter(d["decision"] for d in all_decisions).items())),
-        "reviewers": len({d["reviewer"] for d in all_decisions}),
+        "decisions": dict(sorted(Counter(d["decision"] for d in human).items())),
+        "rule_decisions": dict(sorted(Counter(d["rule"] for d in all_decisions if d["checked_by"] == "rule").items())),
+        "reviewers": len({d["reviewer"] for d in human}),
         "proposals_by_reviewer_count": dict(sorted(Counter(per_proposal.values()).items())),
+        "human_decided_proposals": len(per_proposal),
         "undecided_proposals": len(proposals["proposals"]) - len(decided),
         "pages_audit_pending": len(pending_pages),
     }
+
+
+def scored_texts(audit: ReferenceAudit, root: Path) -> tuple[dict[str, str], list[str]]:
+    """Item id -> the current scored (unaudited) text of every audited page in an operator snapshot, and problems."""
+
+    from hocrgen.fetchers.wikisource import load_wikisource_snapshot, scored_page_reference
+
+    _, _, pages = load_wikisource_snapshot(root)
+    by_item = {f"wikisource_he_proofread:{page['source_item_id']}": page for page in pages}
+    texts, problems = {}, []
+    for item_id in sorted(audit.pages):
+        page = by_item.get(item_id)
+        if page is None:
+            problems.append(f"{item_id}: not in the snapshot")
+            continue
+        scored = scored_page_reference(page, root)
+        if not scored["scored"]:
+            problems.append(f"{item_id}: no longer scored ({scored['reason']})")
+            continue
+        texts[item_id] = scored["text"]
+    return texts, problems
 
 
 def check_against_snapshot(audit: ReferenceAudit, root: Path) -> list[str]:
@@ -149,24 +216,67 @@ def main(argv: list[str] | None = None) -> int:
                         help="operator: write proposals.json, crops/ and crops.json for a review app (needs --page-images)")
     parser.add_argument("--page-images", type=Path, default=None,
                         help="directory of page renders named <source_item_id>.jpg|png, in the page frame")
+    parser.add_argument("--add-decisions", type=Path, default=None,
+                        help="E2d4b: merge this review-app export's decisions into --decisions (written in place)")
+    parser.add_argument("--rule-coverage", action="store_true",
+                        help="E2d4b: list undecided proposals a reference rule makes exactly (needs --snapshot-root)")
+    parser.add_argument("--write-rule-decisions", action="store_true",
+                        help="E2d4b: with --rule-coverage, record them in --decisions as rule decisions (in place)")
+    parser.add_argument("--decided-at", default=_dt.date.today().isoformat(),
+                        help="the date rule decisions record (default today)")
     args = parser.parse_args(argv)
     if (args.export_dir is None) != (args.page_images is None):
         raise StageExecutionError("--export-dir and --page-images go together")
+    if args.rule_coverage and args.snapshot_root is None:
+        raise StageExecutionError("--rule-coverage needs --snapshot-root (the pages' scored text)")
+    if args.write_rule_decisions and not args.rule_coverage:
+        raise StageExecutionError("--write-rule-decisions needs --rule-coverage")
     default_pair = args.proposals == DEFAULT_PROPOSALS and DEFAULT_DECISIONS.exists()
     decisions_path = args.decisions or (DEFAULT_DECISIONS if default_pair else None)
+    if (args.add_decisions is not None or args.write_rule_decisions) and decisions_path is None:
+        raise StageExecutionError("writing decisions needs --decisions")
     proposals = load_reference_audit_proposals(args.proposals)
     decisions = load_reference_audit_decisions(decisions_path, proposals) if decisions_path is not None else None
+    if args.add_decisions is not None:
+        incoming = json.loads(args.add_decisions.read_text(encoding="utf-8"))
+        before = len(decisions["decisions"])
+        decisions = merge_decisions(decisions, incoming, proposals)
+        _write_decisions(decisions_path, decisions)
+        added = len(decisions["decisions"]) - before
     summary = audit_summary(proposals, decisions)
+    if args.add_decisions is not None:
+        summary["decisions_added"] = added
     if args.snapshot_root is not None:
         problems = check_against_snapshot(ReferenceAudit(proposals, decisions, min_reviewers=args.min_reviewers),
                                           args.snapshot_root)
         if problems:
             raise StageExecutionError("; ".join(problems[:10]))
         summary["spans_checked_against_snapshot"] = True
+    if args.rule_coverage:
+        audit = ReferenceAudit(proposals, decisions, min_reviewers=args.min_reviewers)
+        texts, problems = scored_texts(audit, args.snapshot_root)
+        if problems:
+            raise StageExecutionError("; ".join(problems[:10]))
+        covered = rule_coverage(audit, texts)
+        summary["rule_coverage"] = {rule: {"proposals": len(found), "proposal_ids": [p["proposal_id"] for p in found],
+                                           "by_category": dict(sorted(Counter(p["category"] for p in found).items()))}
+                                    for rule, found in covered.items()}
+        if args.write_rule_decisions:
+            new = [d for rule, found in covered.items() for d in rule_decisions_for(found, rule, args.decided_at)]
+            decisions = merge_decisions(decisions, {**decisions, "schema_version": DECISIONS_SCHEMA, "decisions": new},
+                                        proposals)
+            _write_decisions(decisions_path, decisions)
+            summary["rule_decisions_written"] = len(new)
+            summary.update({k: v for k, v in audit_summary(proposals, decisions).items()
+                            if k in ("rule_decisions", "undecided_proposals", "pages_audit_pending")})
     if args.export_dir is not None:
-        summary["export"] = export_crops(args.proposals, args.page_images, args.export_dir)
+        summary["export"] = export_crops(args.proposals, args.page_images, args.export_dir, decisions=decisions)
     print(json.dumps(summary, indent=2))
     return 0
+
+
+def _write_decisions(path: Path, decisions: dict[str, Any]) -> None:
+    path.write_text(json.dumps(decisions, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":  # pragma: no cover

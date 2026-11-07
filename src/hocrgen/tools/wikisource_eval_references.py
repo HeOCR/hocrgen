@@ -49,7 +49,17 @@ human-edited reference corrections, and only those (``hocrgen.reference_audit``)
 nothing. A corrected reference records its provenance (base revision, applied decision ids, new ``text_sha256``), its
 adjudication record names the human reviewers, and its attestation is ``two_editor_validated_human_corrected``.
 Every audited item records ``reference_audit_state``; a page with undecided proposals stays in the pool on its
-current text and is flagged ``audit_pending`` (counted in ``counts.audit_pending``).
+current text and is flagged ``audit_pending`` (counted in ``counts.audit_pending``). A proposal resolved by a reference
+rule (``checked_by: rule``) is applied and counted as decided, but adds no reviewer and no human attestation
+(``rule_corrected``).
+
+**Reference rules (E2d4b).** Every reference this writes, on both strata, then gets the maintainer-approved reference
+rules (``hocrgen.reference_rules``; today ``space_before_punctuation.v1``, maintainer decision 2026-11-07), after the
+audit decisions, so proposal offsets keep referring to the unnormalized text. A fix never touches a span a human
+decided in the audit, nor an excluded span (whose offsets are carried through the fixes). Every item records
+``reference_rules_applied`` (``[{rule, fixes}]``, also on each single-reviewer line), the adjudication record says
+which rules ran and the text checksum before them, and ``counts.reference_rule_fixes`` gives the totals.
+``--no-reference-rules`` reproduces a pre-rule set.
 
 ``bootstrap_clusters.json`` (``hocrgen_bootstrap_clusters.v1``, E2d3) maps every written item to its Wikisource Index,
 the book-level unit (and the release split group), for ``evaluate-references --bootstrap-clusters``.
@@ -61,7 +71,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Mapping, Sequence
 
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.wikisource import (
@@ -84,6 +94,7 @@ from hocrgen.fetchers.wikisource import (
 from hocrgen.manifests.models import BenchmarkReferenceManifestRecord, BenchmarkTranscriptionReferenceRecord
 from hocrgen.parsers.wikitext import WIKITEXT_NORMALIZATION_VERSION
 from hocrgen.reference_audit import HUMAN_CORRECTED_ATTESTATION, ReferenceAudit, corrected_footnote_facts
+from hocrgen.reference_rules import REFERENCE_RULES, RULE_DECISION_RECORDS, apply_reference_rules
 from hocrgen.reference_runs import BOOTSTRAP_CLUSTERS_SCHEMA
 from hocrgen.tools.wikisource_validated_revisions import load_validated_revisions
 
@@ -145,16 +156,35 @@ def _manifest_facts(facts: Mapping[str, Any]) -> dict[str, Any]:
     return {"footnote_marker_style": facts["footnote_marker_style"], "footnote_count": facts["footnote_count"]}
 
 
+def _rules_text(text: str, span_page: Mapping[str, Any], rules: Sequence[str],
+                protected: Sequence[Sequence[int]] = ()) -> tuple[dict[str, Any], dict[str, Any]]:
+    """``apply_reference_rules`` on ``text`` with the page's excluded spans and ``protected`` left alone; returns
+    the result and ``span_page`` with its excluded spans moved to the new offsets."""
+
+    record = span_page.get("excluded_spans") or None
+    spans = (record or {}).get("spans") or []
+    result = apply_reference_rules(text, rules, protected=[(span["start"], span["end"]) for span in spans]
+                                   + [tuple(span) for span in protected])
+    if spans and result["text"] != text:
+        moved = [{**span, "start": start, "end": end} for span, (start, end) in zip(spans, result["protected"])]
+        span_page = {**span_page, "excluded_spans": {**record, "spans": moved, "text_sha256": _sha256(result["text"])}}
+    return result, dict(span_page)
+
+
 def adjudicated_reference(page: Mapping[str, Any], root: Path, *, source_id: str = SOURCE_ID,
                           validated: Mapping[str, Any] | None = None, audit: Mapping[str, Any] | None = None,
+                          reference_rules: Sequence[str] = (),
                           ) -> tuple[BenchmarkTranscriptionReferenceRecord, dict[str, Any]]:
     """One quality-4 page as an adjudicated reference plus its adjudication record (two named Wikisource editors).
 
     With ``validated`` (``{"text", "record", "check", "diff"}``, E2d3b) the reference is the page's text as of its
     validating revision instead of the latest one. With ``audit`` (``apply_reference_audit``'s result, E2d4) that
-    carries applied human decisions, the reference is the corrected text, and the adjudication record says so.
+    carries applied decisions, the reference is the corrected text, and the adjudication record says so. Then
+    ``reference_rules`` (E2d4b) are applied, leaving human-decided audit spans and excluded spans alone; the
+    adjudication record's ``reference_rules`` says which ran, with how many fixes.
     """
 
+    span_page: dict[str, Any] = dict(page)
     if validated is None:
         record = page_reference_record(source_id, dict(page), root)  # raises unless adjudication-eligible
         attestation = page_attestation(dict(page))
@@ -166,7 +196,8 @@ def adjudicated_reference(page: Mapping[str, Any], root: Path, *, source_id: str
             raise StageExecutionError(f"{page['source_item_id']} has no attested validating-revision text")
         revision_id = validated["record"]["validating_revision_id"]
         spans = (validated["check"].get("excluded_spans") or None)
-        record = reference_record_from_text(source_id, {**page, "excluded_spans": spans}, validated["text"], attestation, revision_id)
+        span_page = {**page, "excluded_spans": spans}
+        record = reference_record_from_text(source_id, span_page, validated["text"], attestation, revision_id)
         text_sha256 = _sha256(validated["text"])
         basis = (f"Wikisource quality 4, text as of the validating revision {revision_id} (latest {page['revision_id']}; "
                  f"{validated['diff']['text_changing_edits_after_validation']} later text-changing edits not used)")
@@ -176,18 +207,36 @@ def adjudicated_reference(page: Mapping[str, Any], root: Path, *, source_id: str
               f"(revision {proofreader['revision_id']}), validated by {reviewers[1]} (revision {validator['revision_id']}); "
               f"adjudicated under maintainer decision 2; {WIKITEXT_NORMALIZATION_VERSION}; lines are rendered paragraphs")
     corrected = audit is not None and audit["provenance"] is not None
+    human_corrected = corrected and bool(audit["provenance"]["applied_decisions"])
     if corrected:
         provenance = audit["provenance"]
         if record.spans:
             raise StageExecutionError(f"{record.item_id}: reference audit corrections on a page with excluded spans "
                                       "are not supported (the spans would need re-pinning)")
-        record = reference_record_from_text(source_id, dict(page), audit["text"], attestation, revision_id)
+        span_page = dict(page)
+        record = reference_record_from_text(source_id, span_page, audit["text"], attestation, revision_id)
         humans = sorted({reviewer for entry in audit["applied_decisions"] for reviewer in entry["reviewers"]})
         reviewers = reviewers + [f"heocr:{handle}" for handle in humans]
-        reason += (f"; corrected by human reference-audit decisions {', '.join(provenance['applied_decisions'])} "
+        by = []
+        if provenance["applied_decisions"]:
+            by.append(f"human reference-audit decisions {', '.join(provenance['applied_decisions'])}")
+        if provenance.get("applied_rule_decisions"):
+            by.append(f"rule decisions (not human review) {', '.join(provenance['applied_rule_decisions'])}")
+        reason += (f"; corrected by {' and '.join(by)} "
                    f"({provenance['audit_id']}; base text {provenance['base_text_sha256'][:12]}, "
                    f"corrected text {provenance['text_sha256'][:12]})")
         text_sha256 = provenance["text_sha256"]
+    rules = None
+    if reference_rules:
+        before = record.pages[0].text
+        rules, span_page = _rules_text(before, span_page, reference_rules,
+                                       audit["human_decided_spans"] if audit is not None else ())
+        if rules["text"] != before:
+            record = reference_record_from_text(source_id, span_page, rules["text"], attestation, revision_id)
+            fixes = ", ".join(f"{entry['rule']} {entry['fixes']}" for entry in rules["applied"] if entry["fixes"])
+            reason += f"; mechanical reference rules ({fixes} fixes; text before {_sha256(before)[:12]})"
+            rules["text_sha256_before"] = _sha256(before)
+            text_sha256 = _sha256(rules["text"])
     adjudicated = record.model_copy(update={"review": record.review.model_copy(update={
         "status": "adjudicated", "reviewers": reviewers, "adjudicator": reviewers[1],
         "adjudicated_at": validator["timestamp"], "change_reason": reason})})
@@ -220,7 +269,7 @@ def adjudicated_reference(page: Mapping[str, Any], root: Path, *, source_id: str
         adjudication["validated_text_check"] = {key: check[key] for key in ("verdict", "checked_by", "checker", "checked_at", "method")}
         adjudication["validated_text_accepted_by"] = validated.get("accepted_by", "check_verdict")
     if audit is not None:
-        adjudication["human_attestation"] = HUMAN_CORRECTED_ATTESTATION if corrected else "two_editor_validated"
+        adjudication["human_attestation"] = HUMAN_CORRECTED_ATTESTATION if human_corrected else "two_editor_validated"
         adjudication["reference_audit"] = {
             "state": audit["state"], "audit_pending": audit["audit_pending"],
             "pending_proposals": len(audit["pending_proposals"]),
@@ -231,9 +280,23 @@ def adjudicated_reference(page: Mapping[str, Any], root: Path, *, source_id: str
                                                                "reviewer_count", "decided_at")}
                                   for entry in audit["applied_decisions"]],
             "rule": ("E2d4 maintainer decision (2026-11-07): an agent proposes reference corrections and only a human "
-                     "decision applies one; an agent proposal is never attestation"),
+                     "decision, or a rule decision under a maintainer-approved reference rule (E2d4b; never human "
+                     "review), applies one; an agent proposal is never attestation"),
         }
+        if audit["rule_decisions"]:
+            adjudication["reference_audit"]["rule_decisions"] = [
+                {key: entry[key] for key in ("proposal_id", "rule", "decision_ids", "decided_at")}
+                for entry in audit["rule_decisions"]]
+    if rules is not None:
+        adjudication["reference_rules"] = _rules_provenance(rules)
     return adjudicated, adjudication
+
+
+def _rules_provenance(rules: Mapping[str, Any]) -> dict[str, Any]:
+    return {"applied": rules["applied"],
+            "decision_records": sorted({RULE_DECISION_RECORDS[entry["rule"]] for entry in rules["applied"]}),
+            **({"text_sha256_before": rules["text_sha256_before"]} if "text_sha256_before" in rules else {}),
+            "note": "mechanical maintainer-approved rules; never human review"}
 
 
 def load_release_splits(path: Path) -> dict[str, dict[str, Any]]:
@@ -254,11 +317,14 @@ def write_eval_reference_set(
     held_out: Mapping[str, str] | None = None, release_splits: Mapping[str, Mapping[str, Any]] | None = None,
     include: set[str] | None = None, validated_revisions: Path | None = None, validated_text_checks: Path | None = None,
     audit_proposals: Path | None = None, audit_decisions: Path | None = None, audit_min_reviewers: int = 1,
+    reference_rules: Sequence[str] = REFERENCE_RULES,
 ) -> dict[str, Any]:
     """Write the adjudicated printed reference manifest, the single-reviewer texts and the asset index.
 
     ``held_out`` maps item ids to a reason (for example a training-text overlap); those pages are listed, never
-    written. Returns the ``wikisource_eval_reference_set.v1`` summary, also written as ``eval_set.json``.
+    written. ``reference_rules`` (default: every rule in ``REFERENCE_RULES``; ``()`` reproduces a pre-rule set) run
+    on every written reference after the audit. Returns the ``wikisource_eval_reference_set.v1`` summary, also
+    written as ``eval_set.json``.
     """
 
     if (validated_revisions is None) != (validated_text_checks is None):
@@ -282,6 +348,7 @@ def write_eval_reference_set(
     validated_excluded: list[dict[str, Any]] = []
     considered = revisions is not None
     masked_spans = 0
+    rule_fixes = {"adjudicated": 0, "single_reviewer": 0}
     audited: set[str] = set()
     for page in sorted(pages, key=lambda record: record["source_item_id"]):
         item_id = f"{source_id}:{page['source_item_id']}"
@@ -341,14 +408,19 @@ def write_eval_reference_set(
                 entry["audit_pending"] = page_audit["audit_pending"]
                 entry["audit_pending_proposals"] = len(page_audit["pending_proposals"])
                 entry["audit_conflicting_proposals"] = len(page_audit["conflicting_proposals"])
+                if page_audit["rule_decisions"]:
+                    entry["audit_rule_decided_proposals"] = len(page_audit["rule_decisions"])
                 entry["human_attestation"] = (HUMAN_CORRECTED_ATTESTATION if page_audit["provenance"] is not None
-                                              else "two_editor_validated")
+                                              and page_audit["provenance"]["applied_decisions"] else "two_editor_validated")
                 if page_audit["provenance"] is not None:
                     entry["reference_audit_provenance"] = page_audit["provenance"]
                     entry["reference_normalization"] = facts = corrected_footnote_facts(
                         facts, scored["base_text"], page_audit["text"])
             record, adjudication = adjudicated_reference(page, root, source_id=source_id, validated=validated,
-                                                         audit=page_audit)
+                                                         audit=page_audit, reference_rules=reference_rules)
+            if reference_rules:
+                entry["reference_rules_applied"] = adjudication["reference_rules"]["applied"]
+                rule_fixes["adjudicated"] += sum(rule["fixes"] for rule in entry["reference_rules_applied"])
             base = f"references/{page['source_item_id']}"
             payload = _dump(record.model_dump(mode="json"))
             (output_dir / base).mkdir(parents=True)
@@ -372,11 +444,19 @@ def write_eval_reference_set(
         else:
             text, count = single_reviewer_text(page, root)
             masked_spans += count
+            applied_rules = {}
+            if reference_rules:  # the excluded spans are already removed from this text
+                result = apply_reference_rules(text, reference_rules)
+                text = result["text"]
+                entry["reference_rules_applied"] = result["applied"]
+                applied_rules = {"reference_rules_applied": result["applied"]}
+                rule_fixes["single_reviewer"] += sum(rule["fixes"] for rule in result["applied"])
             single_reviewer.append({
                 "item_id": item_id, "text": text, "reference_origin": SINGLE_REVIEWER_ORIGIN,
                 "modality": MODALITY, "source_id": source_id, "document_type": DOCUMENT_TYPE,
                 "language_script": "he-Hebr",
                 **({"release_split": entry["release_split"]} if release_splits is not None else {}),
+                **applied_rules,
             })
         asset_index.append({"item_id": item_id, "page_sha256": [image["sha256"]]})
         items.append(entry)
@@ -421,17 +501,30 @@ def write_eval_reference_set(
         "held_out": excluded,
         "items": items,
     }
+    if reference_rules:
+        summary["counts"]["reference_rule_fixes"] = rule_fixes
+        summary["reference_rules"] = {
+            "rules": list(reference_rules),
+            "decision_records": sorted({RULE_DECISION_RECORDS[rule] for rule in reference_rules}),
+            "items_changed": sum(1 for entry in items if any(r["fixes"] for r in entry.get("reference_rules_applied", []))),
+            "order": "after the reference audit (proposal offsets refer to the unnormalized text); human-decided "
+                     "audit spans and excluded spans are left alone",
+        }
     if audit is not None:
         states = [entry["reference_audit_state"] for entry in items if "reference_audit_state" in entry]
         summary["counts"]["audit_pending"] = sum(1 for entry in items if entry.get("audit_pending"))
-        summary["counts"]["human_corrected"] = sum(1 for entry in items if "reference_audit_provenance" in entry)
+        summary["counts"]["human_corrected"] = sum(
+            1 for entry in items if entry.get("human_attestation") == HUMAN_CORRECTED_ATTESTATION)
+        summary["counts"]["audit_rule_decided_proposals"] = sum(entry.get("audit_rule_decided_proposals", 0)
+                                                                for entry in items)
         summary["reference_audit"] = {
             "audit_id": audit.audit_id,
             "min_reviewers": audit.min_reviewers,
             "states": {state: states.count(state) for state in sorted(set(states))},
             "audited_items_not_scored": sorted(audit.item_ids() - audited),
             "rule": ("only human-accepted or human-edited corrections are applied, when at least min_reviewers "
-                     "reviewers decided and all agree; agent proposals alone change nothing"),
+                     "reviewers decided and all agree, and proposals a maintainer-approved reference rule resolves "
+                     "(checked_by rule, never counted as human review); agent proposals alone change nothing"),
         }
     if considered:
         summary["counts"]["adjudicated_validating_revision"] = sum(
@@ -463,6 +556,9 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
                              "human-accepted or human-edited corrections")
     parser.add_argument("--audit-min-reviewers", type=int, default=1,
                         help="E2d4: agreeing human reviewers a proposal needs before it applies (default 1)")
+    parser.add_argument("--no-reference-rules", action="store_true",
+                        help="E2d4b: do not apply the reference rules (space_before_punctuation.v1); reproduces a "
+                             "pre-rule set")
     parser.add_argument("--split-manifest", type=Path, default=None,
                         help="A release split_manifest.json: record each page's release split (F8g group-whole splits)")
     return parser.parse_args(argv)
@@ -478,7 +574,8 @@ def main(argv: list[str] | None = None) -> int:
                                        validated_revisions=args.validated_revisions,
                                        validated_text_checks=args.validated_text_checks,
                                        audit_proposals=args.audit_proposals, audit_decisions=args.audit_decisions,
-                                       audit_min_reviewers=args.audit_min_reviewers)
+                                       audit_min_reviewers=args.audit_min_reviewers,
+                                       reference_rules=() if args.no_reference_rules else REFERENCE_RULES)
     print(json.dumps({"counts": summary["counts"], "release_split_counts": summary["release_split_counts"]},
                      indent=2))  # counts only, never text
     return 0

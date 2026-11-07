@@ -33,7 +33,8 @@ def test_quality_4_pages_become_adjudicated_printed_references_named_for_two_edi
     summary = write_eval_reference_set(SNAPSHOT, tmp_path / "set", reference_manifest_id="e2d2_test")
     assert benchmark.read_bytes() == before
     assert summary["counts"] == {"adjudicated": 1, "single_reviewer": 3, "held_out": 0,
-                                 "skipped": {"text_changed_after_validation": 1}, "excluded_spans_honoured": 0}
+                                 "skipped": {"text_changed_after_validation": 1}, "excluded_spans_honoured": 0,
+                                 "reference_rule_fixes": {"adjudicated": 0, "single_reviewer": 0}}
     manifest = json.loads((tmp_path / "set" / "reference_manifest.json").read_text(encoding="utf-8"))
     BenchmarkReferenceManifestRecord.model_validate(manifest)
     assert manifest["benchmark_id"] != "benchmark_v1"
