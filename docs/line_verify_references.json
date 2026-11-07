@@ -1,0 +1,38 @@
+{
+ "schema_version": "line_verify_references.v1",
+ "batch_id": "line_verify_v1",
+ "bundle_items_sha256": "04b5fbbe5df5cff282f2e589e8b8d19c850ee376da28463768e70ebe602232f2",
+ "generator": {
+  "tool": "hocrgen.tools.line_verify",
+  "bundle_generator_ref": "4d569ac44beb8afd27f35d206be1ae0a7e6ae20e"
+ },
+ "attestation_policy": {
+  "name": "adjudicated",
+  "attestation_status": "typist_and_verifier_adjudicated",
+  "adjudication_status": "adjudicated",
+  "reference_eligible": true,
+  "decision": "maintainer decision 2026-11-07 (planning/decisions/2026-11-07-line-verification-attestation.md)",
+  "min_reviewers": 1,
+  "verifier_differs_from_typist": true
+ },
+ "counts": {
+  "bundle_items": 1500,
+  "decided_items": 0,
+  "undecided_items": 1500,
+  "decisions": 0,
+  "reviewers": 0,
+  "line_references": 0,
+  "reference_eligible": 0,
+  "by_decision": {},
+  "conflicts": 0,
+  "pending_min_reviewers": 0,
+  "stale_decisions": 0,
+  "misaligned_share_by_source": {},
+  "by_release_split": {}
+ },
+ "decisions": [],
+ "lines": [],
+ "excluded": [],
+ "conflicts": [],
+ "stale": []
+}
