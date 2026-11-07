@@ -46,6 +46,7 @@ from hocrgen.parsers.wikitext import (
     convert_wikitext,
     pagequality_level,
 )
+from hocrgen.reference_audit import apply_reference_audit
 from hocrgen.utils.hashing import sha256_file
 from hocrgen.utils.io import copy_file
 
@@ -974,7 +975,8 @@ def validated_page_reference(page: dict[str, Any], root: Path, record: dict[str,
 _FROM_PAGE = object()
 
 
-def scored_page_reference(page: dict[str, Any], root: Path, *, validation: Any = _FROM_PAGE) -> dict[str, Any]:
+def scored_page_reference(page: dict[str, Any], root: Path, *, validation: Any = _FROM_PAGE, audit: Any = None,
+                          item_id: str | None = None) -> dict[str, Any]:
     """Whether the E2d3 printed evaluation scores a page, and on which text (E2d3e; one rule for every consumer).
 
     For a page that passed ``page_exclusion_reasons`` (so ``text_not_on_page`` and every other page gate already
@@ -986,8 +988,23 @@ def scored_page_reference(page: dict[str, Any], root: Path, *, validation: Any =
     ``--validated-text-checks``); by default the page's own ``validated_revision`` and ``validated_text_check``
     fields are read (a tranche built with them, E2d3e). Returns ``{"scored", "reason", "reference_text_revision",
     "text", "validated", "validation_considered"}``.
+
+    ``audit`` (E2d4, a ``hocrgen.reference_audit.ReferenceAudit``) applies the page's human-accepted and
+    human-edited reference corrections, and only those, to the scored text; the result then also carries
+    ``base_text`` (the uncorrected text) and ``reference_audit`` (``apply_reference_audit``'s state, pending
+    proposals and provenance). ``item_id`` defaults to ``wikisource_he_proofread:<source_item_id>``. Without
+    ``audit`` the result is unchanged, so the split stage's reference weight is unaffected.
     """
 
+    if audit is not None:
+        scored = scored_page_reference(page, root, validation=validation)
+        if not scored["scored"]:
+            return scored
+        revision = (scored["validated"]["record"]["validating_revision_id"] if scored["validated"] is not None
+                    else page["revision_id"])
+        applied = apply_reference_audit(audit, item_id or f"wikisource_he_proofread:{page['source_item_id']}",
+                                        scored["text"], base_revision_id=revision)
+        return {**scored, "text": applied["text"], "base_text": scored["text"], "reference_audit": applied}
     base = {"scored": False, "reference_text_revision": None, "text": None, "validated": None, "validation_considered": False}
     if page.get("quality") != 4:
         return {**base, "reason": "quality_3_single_reviewer"}
