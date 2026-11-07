@@ -433,12 +433,22 @@ def test_entry_builder_reproduces_the_committed_entries(entries, table, entry_id
             layer_sha256=sha256_file(raw), table=table, table_sha256=sha256_file(TABLE_PATH), render_file=render, render_image=image,
             captured_at=entry["rights"]["verified_at"],
         )
-    expected = {key: value for key, value in entry.items() if key != "fixture_note"}
-    assert json.loads(json.dumps(rebuilt, ensure_ascii=False)) == expected
+    def portable(record: dict) -> dict:
+        # A crop PNG's encoded bytes depend on the Pillow/zlib build; its decoded pixels (pixel_sha256) do not.
+        record = json.loads(json.dumps(record, ensure_ascii=False))
+        record.pop("fixture_note", None)
+        for file in record["files"]:
+            if file.get("role") == "page_render_crop":
+                file.pop("bytes")
+                file.pop("sha256")
+        return record
+
+    assert portable(rebuilt) == portable(entry)
     assert logical == _text(entry_id) and issues == entry["text"]["order_verification"]["issues"]
     assert (cropped is not None) == ("crop" in entry)
     if cropped is not None:
-        assert cropped[1] == (ROOT / reshumot_crop_file(entry)["local_path"]).read_bytes()
+        with Image.open(ROOT / reshumot_crop_file(entry)["local_path"]) as committed:
+            assert cropped[0].tobytes() == committed.convert("RGB").tobytes()
 
 
 def _truetype(glyphs: list[bytes], *, long_offsets: bool = False, units_per_em: int = 1000) -> bytes:
