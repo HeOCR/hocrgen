@@ -423,7 +423,8 @@ def test_entry_builder_reproduces_the_committed_entries(entries, table, entry_id
     row, facts = _api_row_and_pdf_facts(entry)
     raw = ROOT / entry["text"]["extraction"]["raw_local_path"]
     layer = json.loads(read_glyph_layer_bytes(raw))
-    assert gpt.glyph_layer_bytes(layer) == raw.read_bytes()  # the committed form is byte-reproducible
+    # The committed form is the compact JSON, gzip-compressed (the deflate stream may differ between zlib builds).
+    assert gzip.decompress(gpt.glyph_layer_bytes(layer)) == gzip.decompress(raw.read_bytes())
     render = reshumot_page_render(entry)
     with Image.open(ROOT / render["local_path"]) as image:
         image.load()

@@ -300,7 +300,8 @@ def reshumot_page_entry(
 
 
 def glyph_layer_bytes(layer: dict[str, Any]) -> bytes:
-    """The committed form of a glyph layer: compact JSON, gzip-compressed with no timestamp (byte-reproducible)."""
+    """The committed form of a glyph layer: compact JSON, gzip-compressed with no timestamp. The JSON is
+    byte-reproducible; the deflate stream is for one zlib build, so the file is pinned by its own sha256."""
 
     import gzip
 
