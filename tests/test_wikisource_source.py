@@ -518,6 +518,8 @@ def test_discovery_emits_stable_ids_and_provenance_metadata() -> None:
     assert metadata["wikisource_quality_label"] == "validated"
     assert metadata["validator"]["user"] == "Nahum"
     assert metadata["adjudication_eligible"] is True
+    # E2d3e: the pair text's length, the page's reference weight in the split's reference constraints.
+    assert metadata["page_text_characters"] == len(page_plain_text(selihot.raw_metadata["page"], Path(selihot.raw_metadata["snapshot_root"])))
     assert metadata["scan_commons_file_sha1"] == "962def078054dac4adb630f76fc78db982d82617"
     assert metadata["scan_rights_basis"] == "explicit_open_licence"
     assert metadata["scan_licence"] == "CC0-1.0"

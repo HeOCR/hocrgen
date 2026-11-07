@@ -506,7 +506,7 @@ def test_committed_tranche_manifest_is_coherent_and_holds_no_page_text() -> None
         "knesset_committee_protocols_pre1976": 205,
         "pinkas_dataset_bgu": 30,
         "reshumot_born_digital": 798,
-        "wikisource_he_proofread": 1455,
+        "wikisource_he_proofread": 1452,
         "yidtaknl_vaybertaytsh_gt": 123,
     }
     assert manifest["sources"]["pinkas_dataset_bgu"]["canvas_match_verified"] == 6
@@ -527,3 +527,37 @@ def test_offline_wikisource_replay_refuses_cache_misses(tmp_path: Path) -> None:
     client = tranche_tool.CacheOnlyClient(tmp_path)
     with pytest.raises(RuntimeError, match="not in the operator cache"):
         client("https://he.wikisource.org/w/api.php", {"action": "query"})
+
+
+def test_refresh_wikisource_drops_only_pages_a_newer_check_excludes(tmp_path: Path) -> None:
+    """E2d3e: ``refresh-wikisource`` re-applies the committed page-level verdicts; every other file is copied unchanged."""
+
+    base, _ = _small_tranche(tmp_path)
+    snapshot = base / "sources" / "wikisource_he_proofread" / "snapshot"
+    lines = (snapshot / "pages.jsonl").read_text(encoding="utf-8").splitlines()
+    position = 0
+    page = json.loads(lines[position])
+    other = json.loads(lines[1])
+    indexes = {record["index_key"]: record for record in json.loads((snapshot / "indexes.json").read_text(encoding="utf-8"))["indexes"]}
+    check = {"page_title": page["page_title"], "revision_id": page["revision_id"], "scan_page": 1,
+             "commons_file_sha1": indexes[page["index_key"]]["commons_file"]["sha1"], "checked_by": "agent", "checker": "test",
+             "checked_at": "2026-11-07", "method": "m", "transcription_coverage": "full_page", "text_not_on_page": "an editors' heading"}
+    stale = {**check, "page_title": other["page_title"], "revision_id": 1}  # another revision: not applied
+    checks = tmp_path / "checks.json"
+    checks.write_text(json.dumps({"schema_version": "wikisource_page_render_checks.v1", "checks": [check, stale]}), encoding="utf-8")
+    out = tmp_path / "v-next"
+    result = tranche_tool.refresh_wikisource(base=base, out=out, page_check_paths=[checks], created_at="2026-11-07")
+    assert result == {"item_count": len(lines) - 1, "dropped": [{"source_item_id": page["source_item_id"], "reasons": ["text_not_on_page"]}]}
+    refreshed = out / "sources" / "wikisource_he_proofread" / "snapshot"
+    assert (refreshed / "pages.jsonl").read_text(encoding="utf-8") == "".join(line + "\n" for n, line in enumerate(lines) if n != position)
+    assert not (refreshed / page["text_path"]).exists() and not (refreshed / page["image"]["path"]).exists()
+    # The fixture's Indexes have one page each, so the dropped page's Index leaves the Index list.
+    remaining = [record["index_key"] for record in json.loads((refreshed / "indexes.json").read_text(encoding="utf-8"))["indexes"]]
+    assert page["index_key"] not in remaining and len(remaining) == len(indexes) - 1
+    assert verify_tranche_files(out) == []
+    descriptor = json.loads((out / "tranche.json").read_text(encoding="utf-8"))
+    assert descriptor["tranche_id"] == tranche_tool.TRANCHE_ID
+    assert descriptor["sources"]["wikisource_he_proofread"]["skipped"] == {"text_not_on_page": 1}
+    assert descriptor["inputs"]["refreshed_from"]["tranche_id"] == json.loads((base / "tranche.json").read_text(encoding="utf-8"))["tranche_id"]
+    with pytest.raises(SystemExit, match="not empty"):
+        tranche_tool.refresh_wikisource(base=base, out=out, page_check_paths=[checks], created_at="2026-11-07")

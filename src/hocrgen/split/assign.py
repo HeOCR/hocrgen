@@ -5,7 +5,13 @@ from dataclasses import dataclass, field
 
 from hocrgen.config.models import SplitPolicy
 from hocrgen.manifests.models import CuratedItemRecord, SplitAssignmentRecord
-from hocrgen.split.balance import DEFAULT_SPLIT_SEED, SplitGroup, assign_group_splits, split_balance_report
+from hocrgen.split.balance import (
+    DEFAULT_SPLIT_SEED,
+    PIN_REFERENCE_CONSTRAINT,
+    SplitGroup,
+    assign_group_splits_with_moves,
+    split_balance_report,
+)
 from hocrgen.split.work_groups import item_work_group_keys
 
 SYNTHETIC_TRAINING_SPLIT = "train"
@@ -170,6 +176,20 @@ def item_split_stratum(item: CuratedItemRecord) -> str:
     return f"{item.source_id}:{modality}"
 
 
+def item_reference_weight(item: CuratedItemRecord) -> int:
+    """The characters of an item's human-adjudicable reference text (E2d3e), for the split's reference constraints.
+
+    An item counts when its metadata marks it ``adjudication_eligible`` (a Wikisource quality-4 page validated by a
+    second named editor, its text unchanged since; maintainer decision 2) and records ``page_text_characters``.
+    """
+
+    metadata = item.metadata if isinstance(item.metadata, dict) else {}
+    if metadata.get("adjudication_eligible") is not True:
+        return 0
+    characters = metadata.get("page_text_characters")
+    return characters if isinstance(characters, int) and characters > 0 else 0
+
+
 def split_groups_for_components(
     items: list[CuratedItemRecord],
     component_ids: dict[str, str],
@@ -179,7 +199,8 @@ def split_groups_for_components(
     """One ``SplitGroup`` per component: its counted (retained) items, its commonest stratum and its pin.
 
     ``pins`` maps a component id to ``(split, reason)``. A component's stratum is the stratum most of its counted
-    items have (ties: the smallest key), so a component spanning sources (one NLI record) is balanced once.
+    items have (ties: the smallest key), so a component spanning sources (one NLI record) is balanced once. Its
+    reference weight is its counted items' ``item_reference_weight``.
     """
 
     members: dict[str, list[CuratedItemRecord]] = {}
@@ -198,6 +219,7 @@ def split_groups_for_components(
                 stratum=stratum,
                 pinned_split=split,
                 pin_reason=reason,
+                reference_weight=sum(item_reference_weight(item) for item in component if item.item_id in counted_item_ids),
             )
         )
     return groups
@@ -227,7 +249,8 @@ def assign_splits(
     pinned_splits: dict[str, str] | None = None,
     seed: str = DEFAULT_SPLIT_SEED,
 ) -> SplitOutputs:
-    """Assign whole connected groups to splits, size-aware per source and modality (F1d, F8g, F8g2).
+    """Assign whole connected groups to splits, size-aware per source and modality (F1d, F8g, F8g2), with the
+    reference constraints of ``size_aware_group_split.v2`` (E2d3e).
 
     ``synthetic_training_keys`` maps a work-group key to the registered synthetic-training work ids that carry it
     (``SyntheticTrainingWorkRegistry.match_keys``). A component holding any matching item goes to train whole.
@@ -250,7 +273,8 @@ def assign_splits(
         if existing is None:
             pins[group_id] = (split, PIN_COMMITTED)
     groups = split_groups_for_components(all_items, component_ids, pins, {item.item_id for item in retained_items})
-    group_assignments = assign_group_splits(groups, split_policy, seed=seed)
+    group_assignments, moves = assign_group_splits_with_moves(groups, split_policy, seed=seed)
+    constraint_groups = {move["group_id"] for stratum_moves in moves.values() for move in stratum_moves}
 
     updated_retained: list[CuratedItemRecord] = []
     assignments: list[SplitAssignmentRecord] = []
@@ -268,7 +292,10 @@ def assign_splits(
                 near_duplicate_cluster_id=item.near_duplicate_cluster_id,
                 source_group_id=item.source_group_id,
                 work_group_ids=item_work_group_keys(item),
-                split_constraint="synthetic_training_overlap" if split_group_id in forced_train_groups else None,
+                split_constraint=(
+                    "synthetic_training_overlap" if split_group_id in forced_train_groups
+                    else PIN_REFERENCE_CONSTRAINT if split_group_id in constraint_groups else None
+                ),
             )
         )
 

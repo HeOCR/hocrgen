@@ -1073,6 +1073,8 @@ class WikisourceProofreadImporter:
                         "reference_normalization": reference_normalization(conversion, page),
                         "page_text_ref": page["text_path"],
                         "page_text_sha256": page["text_sha256"],
+                        # E2d3e: the pair text's length, the reference weight of an adjudication-eligible page.
+                        "page_text_characters": len(derived.text),
                         # F8b7: the faithful MediaWiki rendering's checksum, and what was changed to reach the pair text
                         # (footnotes found not printed, editors' stand-ins mapped to the printed character).
                         "converted_text_sha256": page_text_sha256_converted(page),

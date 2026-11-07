@@ -4,7 +4,7 @@ Date: 2026-11-07, on the F8g2 tranche v2. Plan: [`planning/tasks/e2d-real-scan-e
 
 This document **supersedes the all-pages results of [E2d3](./e2d3_real_printed_evaluation.md)**. E2d3's validation + test results are unchanged, because no new page falls in those splits. Everything else in E2d3 still holds: the method, the book (cluster) bootstrap, the release splits and the quality-3 stratum.
 
-> **[E2d3c](#e2d3c-two-pool-corrections) corrects the pool to 40 pages** (one paragraph-break page admitted; Hebrewbooks 19784 p. 24 is `text_not_on_page`). **[E2d3d](#e2d3d-the-hebrewbooks-19784-pages) then removes two more Hebrewbooks 19784 pages: 38 pages, validation + test 8.** The E2d3d numbers supersede both earlier headlines.
+> **[E2d3c](#e2d3c-two-pool-corrections) corrects the pool to 40 pages** (one paragraph-break page admitted; Hebrewbooks 19784 p. 24 is `text_not_on_page`). **[E2d3d](#e2d3d-the-hebrewbooks-19784-pages) then removes two more Hebrewbooks 19784 pages: 38 pages, validation + test 8.** The E2d3d numbers supersede both earlier headlines. **[E2d3e](#e2d3e-a-reference-constraint-on-the-test-split) re-splits the release (`size_aware_group_split.v2`): validation + test becomes 13 pages. Until the splits change again, validation + test is a labelled diagnostic, never a headline (team-lead decision, 2026-11-07).**
 
 All numbers are aggregates. No page text appears here. The references, the pinned validating-revision wikitext and the predictions stay operator-only.
 
@@ -265,3 +265,91 @@ The eval snapshot predates the check. So the run holds out pp. 8 and 25 by item 
 - **Manifest.** sha256 `c0682e82…`, children `5a13400f…`. The 38 child references are byte-identical to E2d3c's.
 - **Predictions.** They are E2d3c's, unchanged; the prediction set checksums are the same.
 - **Leakage.** It was re-run over the 181 texts: 0 excluded and 0 flagged.
+
+## E2d3e: a reference constraint on the test split
+
+Date: 2026-11-07, team-lead decisions of the same day on the E2d3d split proposal.
+
+> **Validation + test is a labelled diagnostic, never a headline,** until the release splits change. That covers every table below and the operator report. The headline is the all-pages result.
+
+### The constraint (`size_aware_group_split.v2`)
+
+The group-whole split (`src/hocrgen/split/balance.py`) keeps v1's item placement. It adds a constraint on human-adjudicated reference text, in characters of `adjudication_eligible` pages. The full rule is in [the release contract](./real_source_release_contract.md).
+
+| Constraint on `test` | Value | Why |
+| --- | ---: | --- |
+| `min_groups`, the fewest books with adjudicated pages | 2 | A result from one book is a one-book result, and the book bootstrap needs two clusters. |
+| `min_share`, the smallest share of the stratum's adjudicated characters | 10% | The test ratio of the split policy: test holds its share of the reference text, as it holds its share of the items. |
+| `max_group_share`, the largest share one book may hold of test's adjudicated characters | 50% | No book holds a majority of test's reference text. In E2d3d one book held 70% of validation + test. |
+
+- **The repair.** When `test` fails the constraint, the weighted books keep their splits, and test takes one more weighted book from train.
+  - The book must not itself exceed the cap.
+  - A book whose move alone satisfies the constraint is preferred; then the fewest pages, then the least adjudicated text.
+  - Unweighted books refill the item targets around it.
+  - The process is deterministic. A constraint that cannot be met is reported, not forced.
+- **Validation.** It is not constrained: a validation constraint would move a 91- or 210-page book into it.
+- **On this pool it picks *Dorot ha-Rishonim* I.** After the three `text_not_on_page` pages leave the tranche, v1 puts three books in test: Hebrewbooks 19784 (78% of test's adjudicated characters), *Sefer ha-Mispar* and Hebrewbooks 38168. That fails the 50% cap.
+  - *Dorot ha-Rishonim* I (10 pages) is the smallest train book whose move clears it.
+  - *Agadat ha-Melekh Artush* (7 pages) and *Hut ha-Meshulash* (11) would each leave one book above 50%.
+  - *Masa ba-Arav* (34 pages) would also clear it. It is passed over on size, so no noise flag was needed.
+  - Nothing was pinned by hand.
+- **Margins.** The choice is not robust to small changes. Artush misses the cap by 1.4 points and *Hut ha-Meshulash* by 0.9.
+- **Who could have seen the moved pages.** No model trained on release `train` data can have seen them.
+  - R3d, R3g and R3h (recognition), R4d (segmentation) and A1 (reading order) were trained from scratch on hocrsyngen synthetic pages only: their run records give `init: from_scratch` and `hocrsyngen_line_annotations.v1`.
+  - Their text corpora (`r3d_train_corpus`, `r3e_train_corpus`) are among the 11 corpora of the leakage check, which is clear.
+  - Tesseract `heb` is an external model.
+
+### Tranche v5 and the release splits
+
+- **Tranche v5.** `e2d3e_real_tranche_v5` is v4 with the committed Wikisource page checks re-applied (`real_tranche refresh-wikisource`).
+  - Hebrewbooks 19784 pp. 8, 24 and 25 leave. Every other file is copied byte for byte.
+  - It has 2,608 items, and `verify` is ok. The manifest is regenerated.
+- **The Wikisource stratum.** It splits 1,162 / 145 / 145 pages (v1 on v4: 1,163 / 146 / 146).
+  - In books, that is 22 / 19 / 17 (26 / 24 / 8 before).
+  - By adjudicated characters it is 80.9% / 1.3% / 17.8%.
+  - No other source's split changes.
+- **What moved apart from Dorot.**
+  - Dropping the three pages alone (under v1) moves *Sefer ha-Mispar* and Hebrewbooks 38168 from validation to test.
+  - Unweighted books refill around the move.
+  - Only *Dorot ha-Rishonim* I moves by the constraint, and its items record `split_constraint: reference_constraint`.
+
+### The pool on the new splits
+
+The pool still has 38 pages, and their references are byte-identical to E2d3d's.
+
+| Split | Pages | Books | Ref. characters | Each book's share of the split's characters |
+| --- | ---: | ---: | ---: | --- |
+| `train` | 25 | 8 | 40,305 | Hyman I 43.0%, *Hut ha-Meshulash* 19.8%, *Masa ba-Arav* 16.2%, *Selihot* 8.5%, *Artush* 5.6%, Hyman III 5.3%, Luzzatto 1.2%, Korfu 0.5% |
+| `validation` | 2 | 2 | 511 | *Seder Avodat Yisrael* 71.8%, *Vikuah* 28.2% |
+| `test` | 11 | 4 | 9,583 | ***Dorot ha-Rishonim* I 54.8%**, Hebrewbooks 19784 35.2%, *Sefer ha-Mispar* 7.3%, Hebrewbooks 38168 2.7% |
+
+- ***Dorot ha-Rishonim* I holds 54.8% of the pool's test characters, above the 50% cap.** The split stage counts only `adjudication_eligible` pages, and there Dorot holds 38.5% and Hebrewbooks 19784 47.9%. The pool also scores Dorot's validating-revision page p. 9 (E2d3b), which the split stage does not count.
+- **Validation has 2 pages (511 characters).** Its two adjudicated books moved to test when the pool changed, not by the constraint.
+
+### Results (`primary.v1` CER, 95% intervals, 2,000 resamples, seed 20261106)
+
+| Engine | All 38 pages (headline, unchanged) | E2d3d val + test, 8 pages (diagnostic) | **E2d3e val + test, 13 pages (diagnostic)** | Page | Book |
+| --- | ---: | ---: | ---: | --- | --- |
+| Tesseract 5.5.3 `heb`, psm 3 | 0.237 | 0.257 | **0.210** | [0.138, 0.382] | [0.168, 0.283] |
+| R3d + R4d + A1 | 0.901 | 0.808 | **0.936** | [0.842, 1.137] | [0.789, 1.037] |
+| R3g + R4d + A1 | 0.896 | 0.783 | **0.926** | [0.824, 1.131] | [0.753, 1.041] |
+| R3h + R4d + A1 | 0.898 | 0.779 | **0.924** | [0.823, 1.114] | [0.757, 1.038] |
+| R3h + blla (diagnostic) | 0.578 | 0.613 | **0.583** | [0.511, 0.699] | [0.495, 0.646] |
+
+- **All pages.** The headline is unchanged, because the 38 pages and their predictions are the same; only their split labels changed.
+- **Validation + test.** It is 13 pages from 6 books with 10,094 characters.
+  - *Dorot ha-Rishonim* I holds 52% of those characters, and every R3 pipeline scores above 1.0 on it.
+  - R3h − Tesseract is +0.714: page [+0.523, +0.876], book [+0.474, +0.868]; R3h is worse on 13 of 13 pages.
+  - R3h − R3d is −0.012, with page interval [−0.041, +0.004].
+- **By split** (Tesseract / R3h): `train` 0.243 / 0.892, `validation` 0.341 / 0.706, `test` 0.203 / 0.935.
+
+### Reproduction
+
+- **Operator scripts.** They are in `tasks/real-source-mapping/intermediates/e2d3e/scripts/`.
+  - The E2d3d scripts are reused with paths updated. The summary labels validation + test as a diagnostic.
+  - `e2d3e_groups.py`, `e2d3e_simulate.py` and `e2d3e_trials.py` replay the Wikisource split groups (ids and counts only).
+- **Release split.** It comes from `hocrgen build-release --profile profile_open_v1 --dry-run --real-tranche-root .../e2d3e_real_tranche_v5`.
+- **References.** The command is E2d3d's, run on the v5 snapshot with `release_split_manifest.json` from that run, the E2d3b `items.json` without the three pages, and `--reference-manifest-id e2d3e_wikisource_printed_v6`. No page is held out.
+- **Manifest.** sha256 `c9d9d542…`, children `a0a4b152…`.
+- **Predictions.** They are E2d3c's, unchanged.
+- **Leakage.** It is clear over the 181 texts.
