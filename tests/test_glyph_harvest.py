@@ -204,6 +204,19 @@ def test_write_bank_drops_styles_without_evidence(tmp_path):
     assert index["styles"] == [] and index["glyph_count"] == 0  # no line pitch measured
 
 
+def test_single_tick_is_not_kept_as_double_mark():
+    singles = [("'", 10.0, 32.0, 1)] * 6
+    marks = [
+        *singles,
+        ('"', 10.0, 32.0, 1),  # one tick under a '"' label (single quotation marks in print)
+        ('"', 18.0, 32.0, 1),  # two touching ticks
+        ("״", 9.0, 32.0, 2),  # two separate ticks, close together
+    ]
+    assert gh.implausible_double_marks(marks) == {6}
+    # Without enough singles, the floor is a third of the x-height.
+    assert gh.implausible_double_marks([('"', 9.0, 32.0, 1), ('"', 12.0, 32.0, 1)]) == {0}
+
+
 def test_broken_colon_is_not_labelled_colon():
     dot = gh.Group([1], (0, 15, 4, 19))
     assert not gh._plausible([dot], [":"], baseline=19, x_height=20.0)
