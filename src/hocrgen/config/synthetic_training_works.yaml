@@ -41,6 +41,28 @@ works:
     corpus_build: pgb-v1
     recorded_by: hocrgen.tools.glyph_harvest S16
     recorded_at: 2026-11-07
+# S16c bank pgb-v2.1 (2026-11-08): three more Ben-Yehuda x NLI free-use books its glyphs come from.
+  - work_id: glyphs:nli-990020308000205171
+    producer: hocrgen.tools.glyph_harvest
+    title: benyehuda_nli_free_use 990020308000205171 (Berashadsky, Ketavim Aharonim (Tushiya, 1910))
+    match_keys: [nli_record:990020308000205171]
+    corpus_build: pgb-v2.1
+    recorded_by: hocrgen.tools.glyph_harvest S16c
+    recorded_at: 2026-11-08
+  - work_id: glyphs:nli-990020495520205171
+    producer: hocrgen.tools.glyph_harvest
+    title: benyehuda_nli_free_use 990020495520205171 (Citron, Me-Ahorei ha-Pargod (Vilna, 1923-1925))
+    match_keys: [nli_record:990020495520205171]
+    corpus_build: pgb-v2.1
+    recorded_by: hocrgen.tools.glyph_harvest S16c
+    recorded_at: 2026-11-08
+  - work_id: glyphs:nli-990020522850205171
+    producer: hocrgen.tools.glyph_harvest
+    title: benyehuda_nli_free_use 990020522850205171 (Tchernowitz, Im Shahar (Ha-Madpis, 1927))
+    match_keys: [nli_record:990020522850205171]
+    corpus_build: pgb-v2.1
+    recorded_by: hocrgen.tools.glyph_harvest S16c
+    recorded_at: 2026-11-08
   - work_id: glyphs:ws-1711486
     producer: hocrgen.tools.glyph_harvest
     title: wikisource_he_proofread ws_index_1711486
