@@ -38,7 +38,7 @@ from hocrgen.core.errors import StageExecutionError
 
 BANK_SCHEMA = "printed_glyph_bank.v1"
 TOOL_NAME = "hocrgen.tools.glyph_harvest"
-TOOL_VERSION = "s16-glyph-harvest-v1"
+TOOL_VERSION = "s16-glyph-harvest-v2"
 
 HEBREW_LETTERS = frozenset(chr(code) for code in range(0x05D0, 0x05EB))
 DIGITS = frozenset("0123456789")
@@ -47,6 +47,8 @@ HARVESTABLE = HEBREW_LETTERS | DIGITS | PUNCTUATION
 # Letters with neither ascender nor descender; their median height is the style's x-height.
 X_HEIGHT_LETTERS = frozenset("אבגדהחטכמסעפצשתם")
 DESCENDERS = frozenset("ךןףץק")
+DOUBLE_MARKS = frozenset("\"״")
+SINGLE_MARKS = frozenset("'׳")
 # Characters whose bottom is not on the baseline, so they do not vote for it.
 OFF_BASELINE = DESCENDERS | frozenset("'\"״׳-–—־()[]י")
 
@@ -639,6 +641,40 @@ def _png_bytes(array, mode: str) -> bytes:
     return buffer.getvalue()
 
 
+def implausible_double_marks(
+    marks: Sequence[tuple[str, float, float, int]],
+    *,
+    min_single_ratio: float = 1.2,
+    min_x_height_ratio: float = 0.33,
+    min_singles: int = 5,
+) -> set[int]:
+    """Indices of ``"``/``״`` glyphs too narrow to hold two ticks.
+
+    ``marks`` are one style's ``(char, ink_width, x_height, major_parts)``. Books that print single
+    quotation marks under a ``"`` transcription label one tick as a double mark; a double mark must
+    have two major parts, or be at least ``min_single_ratio`` times the style's median single-tick
+    width (``min_x_height_ratio`` of the x-height when the style has fewer than ``min_singles`` ticks).
+    """
+
+    singles = [width / x_height for char, width, x_height, _ in marks if char in SINGLE_MARKS and x_height > 0]
+    floor = (
+        min_single_ratio * statistics.median(singles) if len(singles) >= min_singles else min_x_height_ratio
+    )
+    return {
+        index
+        for index, (char, width, x_height, parts) in enumerate(marks)
+        if char in DOUBLE_MARKS and parts < 2 and (x_height <= 0 or width / x_height < floor)
+    }
+
+
+def _major_parts(mask, ndimage) -> int:
+    labels, count = ndimage.label(mask)
+    if count < 2:
+        return count
+    sizes = ndimage.sum(mask, labels, range(1, count + 1))
+    return int(sum(1 for size in sizes if size >= 0.25 * max(sizes)))
+
+
 def write_bank(
     output: Path,
     *,
@@ -652,12 +688,22 @@ def write_bank(
     max_per_char: int = 400,
     min_style_glyphs: int = 500,
 ) -> dict:
-    numpy, _ = _require_numeric()
+    numpy, ndimage = _require_numeric()
     output.mkdir(parents=True, exist_ok=True)
     style_entries = []
     glyph_lines: list[str] = []
     for style in styles:
         glyphs = glyphs_by_style.get(style.style_id, [])
+        marks = [g for g in glyphs if g.char in DOUBLE_MARKS | SINGLE_MARKS]
+        widths = [numpy.nonzero(g.mask.any(axis=0))[0] for g in marks]
+        drop = implausible_double_marks(
+            [
+                (g.char, float(w.max() - w.min() + 1) if w.size else 0.0, g.x_height, _major_parts(g.mask, ndimage))
+                for g, w in zip(marks, widths)
+            ]
+        )
+        dropped = {id(marks[index]) for index in drop}
+        glyphs = [g for g in glyphs if id(g) not in dropped]
         stats = stats_by_style.get(style.style_id, PageStats())
         heights = [g.x_height for g in glyphs if g.char in X_HEIGHT_LETTERS]
         if len(glyphs) < min_style_glyphs or not heights or not stats.line_pitches:

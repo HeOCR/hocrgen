@@ -59,6 +59,12 @@ that 1920 frame.
 4. **Verify.** Within each face, a glyph is kept only when a nearest-centroid
    classifier built from that face's own glyphs picks its label. This removes
    glyphs from words that were paired with the wrong box.
+   - A `"` or `״` glyph must hold two ticks: two major ink parts, or at least
+     1.2× the face's median `'`/`׳` width (a third of the x-height when the face
+     has fewer than five single ticks). Some books print single quotation marks
+     where the transcription has `"`, and without this rule a lone tick was
+     banked as `"`, so composed pages showed one tick under `"` gold
+     (`implausible_double_marks`, since `s16-glyph-harvest-v2`).
 5. **Write.**
    - Each glyph is written as a grayscale crop of the original pixels plus its
      own ink mask, its baseline inside the crop and its source word's x-height.
