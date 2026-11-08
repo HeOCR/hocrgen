@@ -270,7 +270,7 @@ def test_synthetic_training_registry_is_packaged_and_validated() -> None:
     }
     # Only the S16 glyph bank has registered works so far: one per scanned book it cut glyphs from.
     assert registry.works and {work.producer for work in registry.works} == {"hocrgen.tools.glyph_harvest"}
-    assert all(work.corpus_build == "pgb-v1" for work in registry.works)
+    assert {work.corpus_build for work in registry.works} == {"pgb-v1", "pgb-v2.1"}
     assert {key.partition(":")[0] for key in registry.match_keys()} <= {"commons_file", "nli_record"}
     base = {**registry.model_dump(mode="json"), "works": []}
     work = {"work_id": "pby:1", "producer": "HeOCR/hocrsyngen", "match_keys": ["nli_record:9"], "recorded_by": "agent", "recorded_at": "2026-11-06"}
