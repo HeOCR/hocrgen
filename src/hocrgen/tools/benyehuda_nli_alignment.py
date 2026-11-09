@@ -30,6 +30,13 @@ Every pair is **silver**: ``text_provenance: human_typed_edition_text_aligned``,
 ``verification_status: needs_human_verification``. A human verification pass (a campaign is allowed by the
 2026-11-06 decision) is required before any pair becomes a reference through F2.
 
+**Second scan source: Internet Archive (IA).** ``align --source ia`` aligns a PBY work to a non-Google library scan
+on IA (maintainer decision ``planning/decisions/2026-11-09-internet-archive-library-scans.md``). The item's saved IA
+metadata passes the IA gate (``hocrgen.fetchers.ia_iiif.decide_ia_rights``) instead of the NLI gate, and its saved IIIF
+v3 manifest is read through ``ia_v3_canvases``. The report's ``scan`` then carries ``source: "internet_archive"``,
+``record_id`` (the IA identifier), the contributing library, ``source_class``, the item's ``rights``, ``licenseurl``
+and ``possible-copyright-status`` as found, and the gate evidence. NLI runs and their outputs are unchanged.
+
 The NLI key is read only from ``NLI_API_KEY`` and is never printed, logged or written. CI never runs the
 network or OCR paths; tests use pinned fixtures and synthetic input.
 """
@@ -59,6 +66,15 @@ from urllib.parse import urlencode
 
 from PIL import Image
 
+from hocrgen.fetchers.ia_iiif import (
+    IA_MANIFEST_URL,
+    IA_METADATA_URL,
+    IA_SOURCE,
+    decide_ia_rights,
+    ia_v3_canvases,
+    manifest_label,
+    manifest_provider,
+)
 from hocrgen.fetchers.nli_iiif import (
     NLI_CAPTURE_FORMAT,
     NliManifestCapture,
@@ -135,6 +151,18 @@ MIN_PLAUSIBLE_CANVAS_PX = 200
 
 FetchResult = tuple[int, bytes]
 Fetch = Callable[[str], FetchResult]
+
+
+def scan_record_id(scan: dict[str, Any]) -> str:
+    """The scan's record id: ``scan.record_id`` (IA identifier) when present, else the NLI record id."""
+
+    return str(scan.get("record_id") or scan["nli_record_id"])
+
+
+def scan_heading(scan: dict[str, Any]) -> str:
+    if scan.get("source") == IA_SOURCE:
+        return f"IA {scan.get('record_id')} ({scan.get('contributing_library')}; {scan.get('source_class')})"
+    return f"NLI {scan.get('nli_record_id')} ({scan.get('license_slug')})"
 
 # --- text normalization --------------------------------------------------------------------------------------
 
@@ -1205,7 +1233,7 @@ def render_report(report: dict[str, Any], *, image_src: Callable[[dict[str, Any]
         "localization only; no OCR text is shown. Verify that the PBY text on the right is exactly the text in the "
         "crop box on the left.</p>",
         f"<p class='meta'>PBY {html.escape(str(work.get('pby_id')))}: {html.escape(str(work.get('source_edition')))} | "
-        f"NLI {html.escape(str(scan.get('nli_record_id')))} ({html.escape(str(scan.get('license_slug')))})</p>",
+        f"{html.escape(scan_heading(scan))}</p>",
         "<table><tr><th>aligned pages</th><th>quality</th><th>crop</th><th>difference classes</th></tr><tr>"
         f"<td>{summary['aligned_pages']} / {summary['pages']}</td><td>{html.escape(json.dumps(summary['quality']))}</td>"
         f"<td>{html.escape(json.dumps(summary['crop']))}</td><td>{html.escape(json.dumps(summary['difference_classes'], ensure_ascii=False))}</td></tr></table>",
@@ -1282,10 +1310,12 @@ def compact_match(match_report: dict[str, Any]) -> list[dict[str, Any]]:
 
 
 def compact_alignment(report: dict[str, Any]) -> dict[str, Any]:
+    scan = report["scan"]
+    record = {"nli_record_id": scan["nli_record_id"]} if "nli_record_id" in scan else {"source": scan.get("source"), "record_id": scan_record_id(scan)}
     return {
         "pby_id": report["work"]["pby_id"],
         "title": report["work"]["title"],
-        "nli_record_id": report["scan"]["nli_record_id"],
+        **record,
         "summary": report["summary"],
         "pages": [
             [
@@ -1311,7 +1341,7 @@ SUMMARY_FORMAT = "hocrgen.benyehuda_nli_pilot_summary.v1"
 def pilot_summary(match_report: dict[str, Any], alignment_reports: Sequence[dict[str, Any]]) -> dict[str, Any]:
     """Deterministic committed summary: match rows, per-work alignment rows, and pooled page statistics."""
 
-    works = [compact_alignment(report) for report in sorted(alignment_reports, key=lambda item: (item["scan"]["nli_record_id"], int(item["work"]["pby_id"])))]
+    works = [compact_alignment(report) for report in sorted(alignment_reports, key=lambda item: (scan_record_id(item["scan"]), int(item["work"]["pby_id"])))]
     aligned = [page for report in alignment_reports for page in report["pages"] if page["status"] == PAGE_ALIGNED]
     quality = Counter(page["quality"] for page in aligned)
     crops = Counter(page["crop"]["status"] for page in aligned)
@@ -1323,7 +1353,7 @@ def pilot_summary(match_report: dict[str, Any], alignment_reports: Sequence[dict
         "match": {"captured_on": match_report["captured_on"], "summary": match_report["summary"], "candidates": compact_match(match_report)},
         "alignment": {
             "works": len(alignment_reports),
-            "scans": len({report["scan"]["nli_record_id"] for report in alignment_reports}),
+            "scans": len({scan_record_id(report["scan"]) for report in alignment_reports}),
             "aligned_pages": len(aligned),
             "quality": {name: quality.get(name, 0) for name, _ in QUALITY_BINS},
             "score_histogram_2pt": {f"{bucket / 100:.2f}": histogram[bucket] for bucket in sorted(histogram)},
@@ -1516,24 +1546,96 @@ def _parse_range(text: str | None, count: int) -> list[int]:
     return list(range(int(start or 0), min(count, int(end) if end else count)))
 
 
+def ia_scan_record(
+    metadata: dict[str, Any],
+    manifest: dict[str, Any],
+    *,
+    identifier: str,
+    manifest_url: str,
+    manifest_sha256: str,
+    metadata_sha256: str,
+) -> dict[str, Any] | str:
+    """The report's ``scan`` for an IA item, or an error string when the IA gate rejects it or the ids disagree."""
+
+    decision = decide_ia_rights(metadata)
+    if decision.identifier != identifier:
+        return f"IA metadata is for {decision.identifier!r}, not {identifier!r}"
+    if not decision.accepted:
+        return f"scan rejected by the IA gate: {decision.reason}"
+    evidence = decision.evidence()
+    return {
+        "source": IA_SOURCE,
+        "record_id": identifier,
+        "ia_identifier": identifier,
+        "contributing_library": evidence["contributor"],
+        "source_class": decision.source_class,
+        "rights": evidence["rights"],
+        "licenseurl": evidence["licenseurl"],
+        "possible-copyright-status": evidence["possible-copyright-status"],
+        "metadata_url": IA_METADATA_URL.format(identifier=identifier),
+        "metadata_snapshot_sha256": metadata_sha256,
+        "manifest_url": manifest_url,
+        "manifest_upstream_sha256": manifest_sha256,
+        "canvas_count": len(ia_v3_canvases(manifest)),
+        "rights_decision": evidence,
+        "label": manifest_label(manifest),
+        "attribution": manifest_provider(manifest),
+    }
+
+
+def ia_scan(args: argparse.Namespace, manifest: dict[str, Any], manifest_bytes: bytes) -> dict[str, Any] | str:  # pragma: no cover - operator path
+    if not args.ia_identifier or args.ia_metadata is None:
+        return "--ia-identifier and --ia-metadata are required for an IA scan."
+    metadata_bytes = args.ia_metadata.read_bytes()
+    return ia_scan_record(
+        json.loads(metadata_bytes),
+        manifest,
+        identifier=args.ia_identifier,
+        manifest_url=args.manifest_url or IA_MANIFEST_URL.format(identifier=args.ia_identifier),
+        manifest_sha256=hashlib.sha256(manifest_bytes).hexdigest(),
+        metadata_sha256=hashlib.sha256(metadata_bytes).hexdigest(),
+    )
+
+
 def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator path
     catalogue = load_catalogue(args.catalogue)
     row = catalogue[args.pby_id]
     pby_text = pby_body(args.pby_text.read_text(encoding="utf-8"))
     manifest_bytes = args.manifest.read_bytes()
     manifest = json.loads(manifest_bytes)
-    canvases = manifest_canvases(manifest)
-    capture = NliManifestCapture(
-        manifest_url=args.manifest_url,
-        http_status=200,
-        canvas_count=len(canvases),
-        manifest=manifest,
-        upstream_sha256=hashlib.sha256(manifest_bytes).hexdigest(),
-    )
-    decision = decide_nli_rights(display_rights=None, capture=capture)
-    if not decision.accepted:
-        sys.stderr.write(f"scan rejected by the NLI gate: {decision.reason}\n")
-        return 2
+    if args.source == "ia":
+        scan_or_error = ia_scan(args, manifest, manifest_bytes)
+        if isinstance(scan_or_error, str):
+            sys.stderr.write(scan_or_error + "\n")
+            return 2
+        scan = scan_or_error
+        canvases = ia_v3_canvases(manifest)
+    else:
+        if not args.nli_record_id or not args.manifest_url:
+            sys.stderr.write("--nli-record-id and --manifest-url are required for an NLI scan.\n")
+            return 2
+        canvases = manifest_canvases(manifest)
+        capture = NliManifestCapture(
+            manifest_url=args.manifest_url,
+            http_status=200,
+            canvas_count=len(canvases),
+            manifest=manifest,
+            upstream_sha256=hashlib.sha256(manifest_bytes).hexdigest(),
+        )
+        decision = decide_nli_rights(display_rights=None, capture=capture)
+        if not decision.accepted:
+            sys.stderr.write(f"scan rejected by the NLI gate: {decision.reason}\n")
+            return 2
+        scan = {
+            "nli_record_id": args.nli_record_id,
+            "manifest_url": args.manifest_url,
+            "manifest_upstream_sha256": capture.upstream_sha256,
+            "canvas_count": len(canvases),
+            "license_slug": decision.license_slug,
+            "rights_decision": decision.evidence(),
+            "label": manifest.get("label"),
+            "attribution": capture.attribution,
+        }
     indices = _parse_range(args.canvases, len(canvases))
     work_dir: Path = args.work_dir
     lang: str = args.tesseract_lang
@@ -1580,16 +1682,7 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
     sys.stderr.write("\n")
     report = alignment_report(
         work={**catalogue_fields(row), "pby_release": args.pby_release, "pby_text_path": pby_text_path(row), "pby_text_url": pby_raw_url(row, args.pby_release)},
-        scan={
-            "nli_record_id": args.nli_record_id,
-            "manifest_url": args.manifest_url,
-            "manifest_upstream_sha256": capture.upstream_sha256,
-            "canvas_count": len(canvases),
-            "license_slug": decision.license_slug,
-            "rights_decision": decision.evidence(),
-            "label": manifest.get("label"),
-            "attribution": capture.attribution,
-        },
+        scan=scan,
         pby_text=pby_text,
         pages=pages,
         canvases=[canvases[index] for index in indices],
@@ -1682,13 +1775,21 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     match.add_argument("--captured-on", required=True)
     match.add_argument("--request-delay", type=float, default=1.5)
     align = sub.add_parser("align", help="OCR (localization only) and align one PBY work to its matched scan.")
+    align.add_argument(
+        "--source",
+        choices=("nli", "ia"),
+        default="nli",
+        help="Scan source: nli (NLI IIIF v2, NLI gate) or ia (Internet Archive IIIF v3, IA gate). Default nli.",
+    )
     align.add_argument("--catalogue", type=Path, required=True)
     align.add_argument("--pby-id", required=True)
     align.add_argument("--pby-text", type=Path, required=True)
     align.add_argument("--pby-release", default=PBY_DEFAULT_RELEASE)
-    align.add_argument("--manifest", type=Path, required=True, help="A saved copy of the IIIF manifest.")
-    align.add_argument("--manifest-url", required=True)
-    align.add_argument("--nli-record-id", required=True)
+    align.add_argument("--manifest", type=Path, required=True, help="A saved copy of the IIIF manifest (v3 for --source ia).")
+    align.add_argument("--manifest-url", help="Required for nli; for ia it defaults to the iiif.archive.org v3 manifest URL.")
+    align.add_argument("--nli-record-id", help="The NLI record id (required for --source nli).")
+    align.add_argument("--ia-identifier", help="The IA item identifier (required for --source ia).")
+    align.add_argument("--ia-metadata", type=Path, help="A saved copy of https://archive.org/metadata/<identifier> (required for --source ia).")
     align.add_argument("--canvases", help="Canvas index range start:end (default all).")
     align.add_argument("--image-width", type=int, default=1600)
     align.add_argument("--work-dir", type=Path, required=True)

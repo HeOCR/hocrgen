@@ -17,7 +17,9 @@ page OCR; ``ocr-<method.ocr_model>/`` for a record placed by another model). Sec
 in ``alignment.json`` are IIIF canvas pixels; Tesseract boxes are image pixels (scale = canvas width / image width).
 
 ``build`` keeps lines of class ``matched`` with score >= ``--min-score`` on ``aligned`` pages of records whose rights
-decision is ``accepted`` with license ``public-domain-free-use``. The alignment's line span is approximate at the
+decision is ``accepted``: with license ``public-domain-free-use`` for an NLI scan, or by the IA gate
+(``hocrgen.fetchers.ia_iiif.decide_ia_rights``) for an Internet Archive scan (``scan.source: "internet_archive"``,
+whose record is ``scan.record_id``, the IA identifier; its line ids start ``ia_`` instead of ``nli``). The alignment's line span is approximate at the
 edges, so it is snapped to word (or after-hyphen) boundaries within two units of each edge, keeping the span whose
 label best matches Tesseract's reading of that line. Dropped: lines taller than 1.6x the page's median line (two printed
 lines), lines whose best label still matches the line OCR below 0.7, ``[n]`` footnote markers, characters outside
@@ -54,6 +56,8 @@ from typing import Any
 
 from PIL import Image
 
+from hocrgen.fetchers.ia_iiif import IA_GATE, IA_SOURCE
+
 SCHEMA_PREFIX = "s16c_benyehuda_nli_lines"
 POINTS = re.compile("[֑-ׇֽֿׁׂׅׄ]")  # niqqud + cantillation; keeps maqaf, paseq, sof pasuq
 CANTILLATION = re.compile("[֑-֯]")
@@ -74,6 +78,21 @@ CHECK_POINTED_DENSITY = 0.1
 MAX_UNDOTTED_SHIN = 0.05
 MAX_BARE_WORDS = 0.01
 ACCEPTED_LICENSE = "public-domain-free-use"
+
+
+def record_id(scan: Mapping[str, Any]) -> str:
+    """The alignment's record: ``scan.record_id`` (an IA identifier) when present, else the NLI record id."""
+    return str(scan.get("record_id") or scan["nli_record_id"])
+
+
+def rights_accepted(scan: Mapping[str, Any]) -> bool:
+    """NLI: accepted ``public-domain-free-use``. IA: accepted by the IA gate."""
+    decision = scan.get("rights_decision") or {}
+    if decision.get("decision") != "accepted":
+        return False
+    if scan.get("source") == IA_SOURCE:
+        return decision.get("gate") == IA_GATE
+    return scan.get("license_slug") == ACCEPTED_LICENSE
 
 
 def label(raw: str, *, keep_niqqud: bool = False) -> str:
@@ -132,7 +151,7 @@ def alignment_sources(roots: Sequence[Path], prefer: Sequence[str]):
                 if not ap_path.parent.name.isdigit():
                     continue
                 al = json.loads(ap_path.read_text(encoding="utf-8"))
-                found[al["scan"]["nli_record_id"]][(root, adir.name)].append((ap_path, al))
+                found[record_id(al["scan"])][(root, adir.name)].append((ap_path, al))
     chosen, choice = [], {}
     for rec in sorted(found):
         sources = found[rec]
@@ -210,7 +229,9 @@ def crop_box(image_size: tuple[int, int], bbox_canvas: Sequence[float], canvas_w
 
 
 def line_id(record: str, canvas_index: int, line_index: int) -> str:
-    return f"nli{record}_c{canvas_index:04d}_l{line_index:03d}"
+    """``nli<record>_…`` for an NLI record (always numeric), ``ia_<identifier>_…`` for an IA item."""
+    prefix = "nli" if record.isdigit() else "ia_"
+    return f"{prefix}{record}_c{canvas_index:04d}_l{line_index:03d}"
 
 
 def _named(pairs: Iterable[str] | None) -> dict[str, str]:
@@ -232,8 +253,8 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
     for root, ap_path, al in chosen:
         pby = ap_path.parent.name
         scan = al["scan"]
-        rec = scan["nli_record_id"]
-        if scan.get("license_slug") != ACCEPTED_LICENSE or (scan.get("rights_decision") or {}).get("decision") != "accepted":
+        rec = record_id(scan)
+        if not rights_accepted(scan):
             continue
         method = al.get("method") or {}
         placer, ocr_sub = ocr_placer(method), ocr_subdir(method)
