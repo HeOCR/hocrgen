@@ -346,3 +346,9 @@ with `--add-decisions` and every span was checked against the tranche v5 snapsho
 
 "Before" is the E2d4b decisions file with the rule, so its Tesseract CER equals E2d4b's "after". Earlier reports
 that cite 0.232 on these pages should be read against 0.226 from now on.
+
+**Caveat: a lean toward Tesseract.** Some audit proposals were found by looking where Tesseract and R3h agree with
+each other but not with the reference. So the human corrections may lean slightly toward what Tesseract reads, and
+part of Tesseract's drop may come from where reviewers were pointed, not only from how wrong the references were.
+Engine comparisons stay valid because both engines are always scored on the same references. Do not quote the drop
+in Tesseract's CER as Tesseract getting better.
