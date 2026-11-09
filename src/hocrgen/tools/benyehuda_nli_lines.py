@@ -11,7 +11,9 @@ Subcommands:
   keep-rule (min word confidence, lexicon coverage) with the most kept characters.
 
 An alignment root has the F8f layout: ``out/<pby_id>/alignment.json`` (``hocrgen.benyehuda_nli_alignment.v1``),
-``pby/txt/m<pby_id>.txt``, ``work/<record>/img/c<idx:04d>.jpg`` and ``work/<record>/ocr/c<idx:04d>.tsv``. Line boxes
+``pby/txt/m<pby_id>.txt``, ``work/<record>/img/c<idx:04d>.jpg`` and ``work/<record>/ocr/c<idx:04d>.tsv`` (the
+page OCR; ``ocr-<method.ocr_model>/`` for a record placed by another model). Second alignment passes may sit in
+``out_<name>/`` (e.g. ``out_r6/``); a record with several sources needs ``--prefer-placer`` to pick one. Line boxes
 in ``alignment.json`` are IIIF canvas pixels; Tesseract boxes are image pixels (scale = canvas width / image width).
 
 ``build`` keeps lines of class ``matched`` with score >= ``--min-score`` on ``aligned`` pages of records whose rights
@@ -43,7 +45,6 @@ import json
 import os
 import re
 import subprocess
-import sys
 import unicodedata
 from collections import Counter, defaultdict
 from collections.abc import Iterable, Mapping, Sequence
@@ -104,6 +105,55 @@ def ocr_placer(method: Mapping[str, Any]) -> str:
     engine = str(method.get("ocr_engine") or "")
     m = re.search(r"--tessdata-dir[ =](\S+)", engine)
     return f"tessdata:{Path(m.group(1)).name}" if m else "stock"
+
+
+def ocr_subdir(method: Mapping[str, Any]) -> str:
+    """The aligner's page-OCR cache under ``work/<rec>/`` (hocrgen#155): ``ocr`` for stock ``heb``, else
+    ``ocr-<method.ocr_model>`` (or ``ocr-<lang>`` for another stock language)."""
+    if method.get("ocr_model"):
+        return f"ocr-{method['ocr_model']}"
+    m = re.search(r"(?:^|\s)-l\s+(\S+)", str(method.get("ocr_engine") or ""))
+    lang = m.group(1) if m else "heb"
+    return "ocr" if lang == "heb" else f"ocr-{lang}"
+
+
+def alignment_sources(roots: Sequence[Path], prefer: Sequence[str]):
+    """Alignment files per record, one source (root, alignment dir) chosen per record.
+
+    Each root may hold ``out/`` and second passes in ``out_<name>/`` (e.g. ``out_r6/``, hocrgen#155), so one record can
+    be aligned by several placers. A record with one source uses it; otherwise the source whose placer comes first in
+    ``prefer`` wins, and anything else is ambiguous and fails.
+    """
+    found: dict[str, dict[tuple[Path, str], list[tuple[Path, dict]]]] = defaultdict(lambda: defaultdict(list))
+    for root in roots:
+        dirs = [root / "out"] + sorted(d for d in root.glob("out_*") if d.is_dir())
+        for adir in dirs:
+            for ap_path in sorted(adir.glob("*/alignment.json")):
+                if not ap_path.parent.name.isdigit():
+                    continue
+                al = json.loads(ap_path.read_text(encoding="utf-8"))
+                found[al["scan"]["nli_record_id"]][(root, adir.name)].append((ap_path, al))
+    chosen, choice = [], {}
+    for rec in sorted(found):
+        sources = found[rec]
+        placers = {src: sorted({ocr_placer(al.get("method") or {}) for _, al in files}) for src, files in sources.items()}
+        pick = next(iter(sources)) if len(sources) == 1 else None
+        if pick is None:
+            for want in prefer:
+                hits = [src for src, ps in placers.items() if ps == [want]]
+                if len(hits) == 1:
+                    pick = hits[0]
+                    break
+        if pick is None:
+            raise SystemExit(f"record {rec} has several alignment sources and --prefer-placer does not pick one: "
+                             + "; ".join(f"{root / d} ({', '.join(ps)})" for (root, d), ps in placers.items()))
+        chosen.extend((pick[0], ap, al) for ap, al in sources[pick])
+        if len(sources) > 1:
+            pby = lambda src: sorted(ap.parent.name for ap, _ in sources[src])  # noqa: E731
+            choice[rec] = {"chosen": {"root": str(pick[0]), "dir": pick[1], "ocr_placer": placers[pick], "pby_ids": pby(pick)},
+                           "skipped": [{"root": str(src[0]), "dir": src[1], "ocr_placer": placers[src], "pby_ids": pby(src)}
+                                       for src in sources if src != pick]}
+    return chosen, choice
 
 
 def read_tsv_boxes(path: Path) -> list[tuple[str, float, tuple[int, int, int, int]]]:
@@ -171,85 +221,87 @@ def _named(pairs: Iterable[str] | None) -> dict[str, str]:
     return out
 
 
-def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, str], keep_pointed: bool):
-    """Candidate lines per (record, canvas, line) after the line gates, with drop counts and edition niqqud density."""
+def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, str], keep_pointed: bool,
+            prefer_placer: Sequence[str] = ()):
+    """Candidate lines per (record, canvas, line) after the line gates, with drop counts, edition niqqud density and
+    the per-record alignment-source choice."""
     best: dict[tuple[str, int, int], dict[str, Any]] = {}
     drops: Counter = Counter()
-    seen: dict[str, Path] = {}
     density: dict[str, list[int]] = defaultdict(lambda: [0, 0])
-    for root in roots:
-        for ap_path in sorted((root / "out").glob("*/alignment.json")):
-            pby = ap_path.parent.name
-            if not pby.isdigit():
+    chosen, choice = alignment_sources(roots, prefer_placer)
+    for root, ap_path, al in chosen:
+        pby = ap_path.parent.name
+        scan = al["scan"]
+        rec = scan["nli_record_id"]
+        if scan.get("license_slug") != ACCEPTED_LICENSE or (scan.get("rights_decision") or {}).get("decision") != "accepted":
+            continue
+        method = al.get("method") or {}
+        placer, ocr_sub = ocr_placer(method), ocr_subdir(method)
+        source = str(ap_path.relative_to(root))
+        text = unicodedata.normalize("NFC", (root / "pby" / "txt" / f"m{pby}.txt").read_text(encoding="utf-8"))
+        for page in al["pages"]:
+            if page["status"] != "aligned":
                 continue
-            al = json.loads(ap_path.read_text(encoding="utf-8"))
-            scan = al["scan"]
-            rec = scan["nli_record_id"]
-            if scan.get("license_slug") != ACCEPTED_LICENSE or (scan.get("rights_decision") or {}).get("decision") != "accepted":
-                continue
-            if seen.setdefault(rec, root) != root:
-                raise SystemExit(f"record {rec} under two roots: {seen[rec]} and {root}")
-            placer = ocr_placer(al.get("method") or {})
-            text = unicodedata.normalize("NFC", (root / "pby" / "txt" / f"m{pby}.txt").read_text(encoding="utf-8"))
-            for page in al["pages"]:
-                if page["status"] != "aligned":
+            idx = page["canvas_index"]
+            with Image.open(root / "work" / rec / "img" / f"c{idx:04d}.jpg") as opened:
+                page_scale = page["canvas_size"][0] / opened.size[0]
+            tsv = root / "work" / rec / ocr_sub / f"c{idx:04d}.tsv"
+            if not tsv.exists():
+                raise SystemExit(f"page OCR missing for {source}: {tsv}")
+            words = read_tsv_boxes(tsv)
+            heights = sorted(ln["bbox"][3] for ln in page["lines"] if ln.get("class") == "matched")
+            median_h = heights[len(heights) // 2] if heights else 0
+            for line in page["lines"]:
+                if line.get("class") != "matched" or not line.get("pby_span"):
                     continue
-                idx = page["canvas_index"]
-                with Image.open(root / "work" / rec / "img" / f"c{idx:04d}.jpg") as opened:
-                    page_scale = page["canvas_size"][0] / opened.size[0]
-                words = read_tsv_boxes(root / "work" / rec / "ocr" / f"c{idx:04d}.tsv")
-                heights = sorted(ln["bbox"][3] for ln in page["lines"] if ln.get("class") == "matched")
-                median_h = heights[len(heights) // 2] if heights else 0
-                for line in page["lines"]:
-                    if line.get("class") != "matched" or not line.get("pby_span"):
+                if (line.get("score") or 0) < min_score:
+                    drops["below_min_score"] += 1
+                    continue
+                if median_h and line["bbox"][3] > MAX_HEIGHT_RATIO * median_h:
+                    drops["taller_than_one_line"] += 1
+                    continue
+                s0, e0 = line["pby_span"]
+                inside = words_in_box(words, [v / page_scale for v in line["bbox"]])
+                s, e, sim_before, sim = refine(text, s0, e0, label(" ".join(wd[0] for wd in inside)))
+                raw = text[s:e]
+                if sim < MIN_OCR_SIMILARITY:
+                    drops["label_disagrees_with_line_ocr"] += 1
+                    continue
+                plain = label(raw)
+                density[rec][0] += len(NIQQUD.findall(unicodedata.normalize("NFD", raw)))
+                density[rec][1] += len(LETTER.findall(raw))
+                stratum, gt = "unpointed", plain
+                if rec in pointed:
+                    if not keep_pointed:
+                        drops["pointed_print"] += 1
                         continue
-                    if (line.get("score") or 0) < min_score:
-                        drops["below_min_score"] += 1
+                    if CANTILLATION.search(unicodedata.normalize("NFD", raw)):
+                        drops["pointed_print_cantillation"] += 1
                         continue
-                    if median_h and line["bbox"][3] > MAX_HEIGHT_RATIO * median_h:
-                        drops["taller_than_one_line"] += 1
+                    if niqqud_density(raw) < MIN_POINTED_DENSITY:
+                        drops["pointed_print_label_unpointed"] += 1
                         continue
-                    s0, e0 = line["pby_span"]
-                    inside = words_in_box(words, [v / page_scale for v in line["bbox"]])
-                    s, e, sim_before, sim = refine(text, s0, e0, label(" ".join(wd[0] for wd in inside)))
-                    raw = text[s:e]
-                    if sim < MIN_OCR_SIMILARITY:
-                        drops["label_disagrees_with_line_ocr"] += 1
+                    stratum, gt = "pointed", label(raw, keep_niqqud=True)
+                if re.search(r"\[\d+\]", raw):
+                    drops["footnote_marker"] += 1
+                    continue
+                if not plain or not LETTER.search(plain) or not ALLOWED.match(plain):
+                    drops["outside_repertoire"] += 1
+                    continue
+                key = (rec, idx, line["line"])
+                cand = {"record_id": rec, "pby_id": pby, "canvas_index": idx, "canvas_id": page["canvas_id"],
+                        "line_index": line["line"], "bbox_canvas": line["bbox"], "canvas_size": page["canvas_size"],
+                        "text": gt, "pby_span": [s, e], "pby_span_alignment": [s0, e0], "span_adjusted": [s, e] != [s0, e0],
+                        "ocr_similarity_before": round(sim_before, 4), "ocr_similarity": round(sim, 4),
+                        "alignment_score": line["score"], "strict_char_similarity": line.get("strict_char_similarity"),
+                        "page_quality": page.get("quality"), "_root": root, "_stratum": stratum, "_placer": placer,
+                        "_alignment": source, "_page_ocr": ocr_sub}
+                if key in best:
+                    drops["aligned_twice"] += 1
+                    if cand["alignment_score"] <= best[key]["alignment_score"]:
                         continue
-                    plain = label(raw)
-                    density[rec][0] += len(NIQQUD.findall(unicodedata.normalize("NFD", raw)))
-                    density[rec][1] += len(LETTER.findall(raw))
-                    stratum, gt = "unpointed", plain
-                    if rec in pointed:
-                        if not keep_pointed:
-                            drops["pointed_print"] += 1
-                            continue
-                        if CANTILLATION.search(unicodedata.normalize("NFD", raw)):
-                            drops["pointed_print_cantillation"] += 1
-                            continue
-                        if niqqud_density(raw) < MIN_POINTED_DENSITY:
-                            drops["pointed_print_label_unpointed"] += 1
-                            continue
-                        stratum, gt = "pointed", label(raw, keep_niqqud=True)
-                    if re.search(r"\[\d+\]", raw):
-                        drops["footnote_marker"] += 1
-                        continue
-                    if not plain or not LETTER.search(plain) or not ALLOWED.match(plain):
-                        drops["outside_repertoire"] += 1
-                        continue
-                    key = (rec, idx, line["line"])
-                    cand = {"record_id": rec, "pby_id": pby, "canvas_index": idx, "canvas_id": page["canvas_id"],
-                            "line_index": line["line"], "bbox_canvas": line["bbox"], "canvas_size": page["canvas_size"],
-                            "text": gt, "pby_span": [s, e], "pby_span_alignment": [s0, e0], "span_adjusted": [s, e] != [s0, e0],
-                            "ocr_similarity_before": round(sim_before, 4), "ocr_similarity": round(sim, 4),
-                            "alignment_score": line["score"], "strict_char_similarity": line.get("strict_char_similarity"),
-                            "page_quality": page.get("quality"), "_root": root, "_stratum": stratum, "_placer": placer}
-                    if key in best:
-                        drops["aligned_twice"] += 1
-                        if cand["alignment_score"] <= best[key]["alignment_score"]:
-                            continue
-                    best[key] = cand
-    return best, drops, density
+                best[key] = cand
+    return best, drops, density, choice
 
 
 def pointed_book_gate(best: dict, drops: Counter) -> dict[str, dict[str, Any]]:
@@ -301,7 +353,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     unpointed = set(args.unpointed or ())
     if unpointed & set(pointed):
         raise SystemExit(f"records both --pointed and --unpointed: {sorted(unpointed & set(pointed))}")
-    best, drops, density = collect(roots, min_score=args.min_score, pointed=pointed, keep_pointed=args.keep_pointed)
+    best, drops, density, placer_choice = collect(roots, min_score=args.min_score, pointed=pointed,
+                                                  keep_pointed=args.keep_pointed, prefer_placer=args.prefer_placer or ())
     dens = {rec: round(m / n, 3) if n else 0.0 for rec, (m, n) in sorted(density.items())}
     unresolved = sorted(rec for rec, d in dens.items() if d >= CHECK_POINTED_DENSITY and rec not in pointed and rec not in unpointed)
     if args.schema == "v2" and unresolved:
@@ -321,6 +374,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     for key in keys:
         r = dict(best[key])
         root, stratum, placer = r.pop("_root"), r.pop("_stratum"), r.pop("_placer")
+        alignment, page_ocr = r.pop("_alignment"), r.pop("_page_ocr")
         rec = r["record_id"]
         split = "dev" if rec in dev else "train"
         lid = line_id(*key)
@@ -338,7 +392,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                "image_scale": round(scale, 5), "bbox_image": [round(x), round(y), round(w), round(h)],
                "crop_box_image": list(box), "image": str(rel), "image_sha256": image_sha}
         if v2:
-            row["stratum"], row["ocr_placer"] = stratum, placer
+            row.update(stratum=stratum, ocr_placer=placer, alignment=alignment, page_ocr=page_ocr)
         rows.append(row)
         label_key = f"{rec} {book}"
         counts[split][label_key] += 1
@@ -360,6 +414,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "roots": [str(r) for r in roots], "strata": {s: dict(c) for s, c in strata.items()},
             "lines_by_book_and_stratum": {s: {b: dict(c) for b, c in sorted(d.items())} for s, d in by_book_stratum.items()},
             "lines_by_book_and_ocr_placer": {b: dict(c) for b, c in sorted(by_book_placer.items())},
+            # Records aligned by more than one placer (out/ and out_<name>/): which source the lines came from.
+            "prefer_placer": list(args.prefer_placer or ()), "ocr_placer_choice": placer_choice,
             "max_lines_per_book": args.max_lines_per_book, "cap_dev": args.cap_dev,
             "capped_lines": {rec: n for rec, n in sorted(capped.items()) if n},
             "min_pointed_density": MIN_POINTED_DENSITY, "max_undotted_shin": MAX_UNDOTTED_SHIN,
@@ -511,7 +567,7 @@ def score(args: argparse.Namespace) -> dict[str, Any]:
         key = (r["record_id"], r["canvas_index"])
         if key not in page_cache:
             page_cache.clear()
-            page_cache[key] = read_tsv_boxes(Path(args.page_ocr_root) / "work" / key[0] / "ocr" / f"c{key[1]:04d}.tsv")
+            page_cache[key] = read_tsv_boxes(Path(args.page_ocr_root) / "work" / key[0] / r.get("page_ocr", "ocr") / f"c{key[1]:04d}.tsv")
         return words_in_box(page_cache[key], r["bbox_image"])
 
     rows = load_manifest(lines_dir, args.records)
@@ -544,6 +600,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     b.add_argument("--max-lines-per-book", type=int, default=0)
     b.add_argument("--cap-dev", action="store_true")
     b.add_argument("--no-images", action="store_true", help="manifest and summary only (image_sha256 null)")
+    b.add_argument("--prefer-placer", action="append", help="for a record aligned by several placers (out/, out_<name>/), "
+                   "take the source of this placer, e.g. r6@73eb18e0 or stock (repeatable, in order of preference)")
     o = sub.add_parser("ocr", help="run a Tesseract model on every line crop of a built set")
     o.add_argument("lines")
     o.add_argument("ocr_dir")

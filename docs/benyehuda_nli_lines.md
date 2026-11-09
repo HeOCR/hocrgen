@@ -12,14 +12,25 @@ lines (in the aligner) and, here, only chooses between candidate edition spans a
 python -m hocrgen.tools.benyehuda_nli_lines build OUT \
   --root F8F_ROOT [--root F8F3_ROOT ...] --editions EDITIONS.json \
   --pointed REC=name ... --keep-pointed \
-  --dev REC=name ... --max-lines-per-book 3000 [--cap-dev] [--no-images]
+  --dev REC=name ... --max-lines-per-book 3000 [--cap-dev] [--no-images] \
+  [--prefer-placer r6@73eb18e0 ...]
 ```
 
 The input is one or more F8f roots, each laid out as follows:
 - `out/<pby>/alignment.json`
 - `pby/txt/m<pby>.txt`
 - `work/<rec>/img/c<idx>.jpg`
-- `work/<rec>/ocr/c<idx>.tsv`
+- `work/<rec>/ocr/c<idx>.tsv`, the aligner's page OCR. A record placed by another model (`method.ocr_model`, e.g.
+  `r6@73eb18e0`) keeps it in `work/<rec>/ocr-<ocr_model>/` (hocrgen#155). The builder reads the placer's own TSVs for
+  span refinement and the line-OCR gate, and fails if they are missing rather than falling back to stock.
+- optionally, second alignment passes in `out_<name>/<pby>/alignment.json` (e.g. `out_r6/`), which leave `out/` intact.
+
+**One source per record.** A record aligned in more than one place (`out/` and `out_r6/`, or two roots) is ambiguous.
+`--prefer-placer P` (repeatable, in order of preference) takes the source whose placer is `P`, for example
+`--prefer-placer r6@73eb18e0` for the R6 second pass, or `stock` for `out/`. Without a preference that resolves it, the
+build fails and names the sources. In v2, `summary.json` records each such choice in `ocr_placer_choice` (chosen and
+skipped sources, with their placers and PBY ids). Manifest rows carry `alignment` (the alignment file, relative to its
+root) and `page_ocr` (the OCR directory read). `score --page-ocr-root` reads `page_ocr`.
 
 Line boxes in the alignment are in canvas pixels; they are converted to image pixels using canvas width / image
 width (hocrgen#152).
