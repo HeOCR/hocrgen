@@ -1,0 +1,153 @@
+{
+ "@context": "http://iiif.io/api/presentation/3/context.json",
+ "id": "https://iiif.archive.org/iiif/hegyoneshpinozah00rubi/manifest.json",
+ "type": "Manifest",
+ "label": {
+  "none": [
+   "Hegyone Shpinozah : al ha-Elohut ha-tevel e-nefesh ha-adam o, Shiat ha-filosofyah shel Shpinozah ... be-sefer \"eer Eloha\" ..."
+  ]
+ },
+ "provider": [
+  {
+   "id": "https://archive.org",
+   "type": "Agent",
+   "label": {
+    "en": [
+     "The Internet Archive"
+    ]
+   }
+  }
+ ],
+ "viewingDirection": "right-to-left",
+ "items": [
+  {
+   "annotations": [
+    {
+     "id": "https://iiif.archive.org/iiif/3/annotations/hegyoneshpinozah00rubi/hegyoneshpinozah00rubi_djvu.xml/1.json",
+     "type": "AnnotationPage"
+    }
+   ],
+   "height": 3237,
+   "id": "https://iiif.archive.org/iiif/hegyoneshpinozah00rubi$0/canvas",
+   "items": [
+    {
+     "id": "https://iiif.archive.org/iiif/hegyoneshpinozah00rubi/annotationPage/0",
+     "items": [
+      {
+       "body": {
+        "format": "image/jpeg",
+        "id": "https://iiif.archive.org/image/iiif/3/hegyoneshpinozah00rubi%2Fhegyoneshpinozah00rubi_jp2.zip%2Fhegyoneshpinozah00rubi_jp2%2Fhegyoneshpinozah00rubi_0001.jp2/full/max/0/default.jpg",
+        "service": [
+         {
+          "id": "https://iiif.archive.org/image/iiif/3/hegyoneshpinozah00rubi%2Fhegyoneshpinozah00rubi_jp2.zip%2Fhegyoneshpinozah00rubi_jp2%2Fhegyoneshpinozah00rubi_0001.jp2",
+          "profile": "level2",
+          "type": "ImageService3"
+         }
+        ],
+        "type": "Image"
+       },
+       "id": "https://iiif.archive.org/iiif/hegyoneshpinozah00rubi/annotation/0",
+       "motivation": "painting",
+       "target": "https://iiif.archive.org/iiif/hegyoneshpinozah00rubi$0/canvas",
+       "type": "Annotation"
+      }
+     ],
+     "type": "AnnotationPage"
+    }
+   ],
+   "label": {
+    "none": [
+     "1"
+    ]
+   },
+   "type": "Canvas",
+   "width": 2242
+  },
+  {
+   "annotations": [
+    {
+     "id": "https://iiif.archive.org/iiif/3/annotations/hegyoneshpinozah00rubi/hegyoneshpinozah00rubi_djvu.xml/2.json",
+     "type": "AnnotationPage"
+    }
+   ],
+   "height": 3160,
+   "id": "https://iiif.archive.org/iiif/hegyoneshpinozah00rubi$1/canvas",
+   "items": [
+    {
+     "id": "https://iiif.archive.org/iiif/hegyoneshpinozah00rubi/annotationPage/1",
+     "items": [
+      {
+       "body": {
+        "format": "image/jpeg",
+        "id": "https://iiif.archive.org/image/iiif/3/hegyoneshpinozah00rubi%2Fhegyoneshpinozah00rubi_jp2.zip%2Fhegyoneshpinozah00rubi_jp2%2Fhegyoneshpinozah00rubi_0002.jp2/full/max/0/default.jpg",
+        "service": [
+         {
+          "id": "https://iiif.archive.org/image/iiif/3/hegyoneshpinozah00rubi%2Fhegyoneshpinozah00rubi_jp2.zip%2Fhegyoneshpinozah00rubi_jp2%2Fhegyoneshpinozah00rubi_0002.jp2",
+          "profile": "level2",
+          "type": "ImageService3"
+         }
+        ],
+        "type": "Image"
+       },
+       "id": "https://iiif.archive.org/iiif/hegyoneshpinozah00rubi/annotation/1",
+       "motivation": "painting",
+       "target": "https://iiif.archive.org/iiif/hegyoneshpinozah00rubi$1/canvas",
+       "type": "Annotation"
+      }
+     ],
+     "type": "AnnotationPage"
+    }
+   ],
+   "label": {
+    "none": [
+     "2"
+    ]
+   },
+   "type": "Canvas",
+   "width": 2111
+  },
+  {
+   "annotations": [
+    {
+     "id": "https://iiif.archive.org/iiif/3/annotations/hegyoneshpinozah00rubi/hegyoneshpinozah00rubi_djvu.xml/3.json",
+     "type": "AnnotationPage"
+    }
+   ],
+   "height": 2885,
+   "id": "https://iiif.archive.org/iiif/hegyoneshpinozah00rubi$2/canvas",
+   "items": [
+    {
+     "id": "https://iiif.archive.org/iiif/hegyoneshpinozah00rubi/annotationPage/2",
+     "items": [
+      {
+       "body": {
+        "format": "image/jpeg",
+        "id": "https://iiif.archive.org/image/iiif/3/hegyoneshpinozah00rubi%2Fhegyoneshpinozah00rubi_jp2.zip%2Fhegyoneshpinozah00rubi_jp2%2Fhegyoneshpinozah00rubi_0003.jp2/full/max/0/default.jpg",
+        "service": [
+         {
+          "id": "https://iiif.archive.org/image/iiif/3/hegyoneshpinozah00rubi%2Fhegyoneshpinozah00rubi_jp2.zip%2Fhegyoneshpinozah00rubi_jp2%2Fhegyoneshpinozah00rubi_0003.jp2",
+          "profile": "level2",
+          "type": "ImageService3"
+         }
+        ],
+        "type": "Image"
+       },
+       "id": "https://iiif.archive.org/iiif/hegyoneshpinozah00rubi/annotation/2",
+       "motivation": "painting",
+       "target": "https://iiif.archive.org/iiif/hegyoneshpinozah00rubi$2/canvas",
+       "type": "Annotation"
+      }
+     ],
+     "type": "AnnotationPage"
+    }
+   ],
+   "label": {
+    "none": [
+     "3"
+    ]
+   },
+   "type": "Canvas",
+   "width": 2011
+  }
+ ]
+}

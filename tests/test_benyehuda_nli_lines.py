@@ -245,3 +245,41 @@ def test_build_v2_fails_closed_on_unclassified_pointed_edition(tmp_path, root):
         _build(tmp_path / "c", root, "--unpointed", "333")
     v1, _ = _build(tmp_path / "d", root, "--schema", "v1")  # v1 (frozen bynli_lines_v1) does not fail
     assert v1["schema"].endswith(".v1")
+
+
+def _as_ia(root: Path, pby: str, identifier: str, *, gate: str = bl.IA_GATE, decision: str = "accepted") -> None:
+    """Rewrite one fixture record's alignment as an Internet Archive scan (``scan.record_id`` = identifier)."""
+    path = root / "out" / pby / "alignment.json"
+    al = json.loads(path.read_text(encoding="utf-8"))
+    old = al["scan"]["nli_record_id"]
+    al["scan"] = {"source": "internet_archive", "record_id": identifier, "ia_identifier": identifier,
+                  "source_class": "ia_library_scan_no_licence_field",
+                  "rights_decision": {"gate": gate, "decision": decision}}
+    path.write_text(json.dumps(al, ensure_ascii=False), encoding="utf-8")
+    (root / "work" / old).rename(root / "work" / identifier)
+
+
+def test_record_id_and_rights_for_both_sources():
+    nli = {"nli_record_id": "111", "license_slug": "public-domain-free-use", "rights_decision": {"decision": "accepted"}}
+    assert bl.record_id(nli) == "111" and bl.rights_accepted(nli)
+    assert not bl.rights_accepted({**nli, "license_slug": "public-domain-non-commercial-use"})
+    ia = {"source": "internet_archive", "record_id": "abc00x", "rights_decision": {"gate": bl.IA_GATE, "decision": "accepted"}}
+    assert bl.record_id(ia) == "abc00x" and bl.rights_accepted(ia)
+    # An IA scan is never accepted on an NLI-style verdict, nor on a rejected IA one.
+    assert not bl.rights_accepted({**ia, "rights_decision": {"decision": "accepted"}})
+    assert not bl.rights_accepted({**ia, "rights_decision": {"gate": bl.IA_GATE, "decision": "rejected"}})
+    assert bl.line_id("990012", 3, 7) == "nli990012_c0003_l007"
+    assert bl.line_id("abc00x", 3, 7) == "ia_abc00x_c0003_l007"
+
+
+def test_build_reads_ia_alignments_and_skips_ia_items_the_gate_did_not_accept(tmp_path, root):
+    _as_ia(root, "2", "sefer00test")
+    _as_ia(root, "5", "google00goog", decision="rejected")
+    summary, rows = _build(tmp_path, root, "--keep-pointed", "--no-images")
+    ia_rows = [r for r in rows if r["record_id"] == "sefer00test"]
+    assert len(ia_rows) == 4 and all(r["id"].startswith("ia_sefer00test_c0000_l") for r in ia_rows)
+    assert all(r["split"] == "train" for r in ia_rows)
+    assert all(r["scan_source"] == "internet_archive" and r["source_class"] == "ia_library_scan_no_licence_field" for r in ia_rows)
+    assert not any("scan_source" in r or "source_class" in r for r in rows if r["record_id"] != "sefer00test")
+    assert not any(r["record_id"] == "google00goog" for r in rows)
+    assert summary["lines_by_book_and_ocr_placer"]["sefer00test sefer00test"] == {"tessdata:r6": 4}
