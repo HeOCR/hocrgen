@@ -26,8 +26,12 @@ def _tsv(lines_words: list[tuple[list[float], list[str]]]) -> str:
     return "\n".join(rows) + "\n"
 
 
-def _record(root: Path, rec: str, pby: str, lines: list[str], *, method: dict | None = None, rights: str = "accepted") -> None:
-    """One aligned page whose lines carry ``lines`` (edition text); the page OCR reads them without niqqud."""
+def _record(root: Path, rec: str, pby: str, lines: list[str], *, method: dict | None = None, rights: str = "accepted",
+            out: str = "out") -> None:
+    """One aligned page whose lines carry ``lines`` (edition text); the page OCR reads them without niqqud.
+
+    The OCR TSV goes where the aligner caches it (``ocr/``, or ``ocr-<ocr_model>/``).
+    """
     text = " ".join(lines)
     spans, pos = [], 0
     for ln in lines:
@@ -38,21 +42,24 @@ def _record(root: Path, rec: str, pby: str, lines: list[str], *, method: dict | 
         bbox = [20, 20 + 40 * i, 360, 30]
         page_lines.append({"line": i, "class": "matched", "score": 0.95, "bbox": bbox, "pby_span": spans[i]})
         ocr.append(([v / 2 for v in bbox], bl.label(ln).split()))
-    alignment = {"format": "hocrgen.benyehuda_nli_alignment.v1", "method": method or {"ocr_engine": "tesseract 5.5.3 -l heb --psm 3"},
+    method = method or {"ocr_engine": "tesseract 5.5.3 -l heb --psm 3"}
+    alignment = {"format": "hocrgen.benyehuda_nli_alignment.v1", "method": method,
                  "scan": {"nli_record_id": rec, "license_slug": "public-domain-free-use", "rights_decision": {"decision": rights}},
                  "pages": [{"canvas_index": 0, "canvas_id": f"{rec}/c0", "canvas_size": list(CANVAS), "status": "aligned",
                             "quality": "high", "lines": page_lines}]}
-    (root / "out" / pby).mkdir(parents=True)
-    (root / "out" / pby / "alignment.json").write_text(json.dumps(alignment, ensure_ascii=False), encoding="utf-8")
+    (root / out / pby).mkdir(parents=True)
+    (root / out / pby / "alignment.json").write_text(json.dumps(alignment, ensure_ascii=False), encoding="utf-8")
     (root / "pby" / "txt").mkdir(parents=True, exist_ok=True)
     (root / "pby" / "txt" / f"m{pby}.txt").write_text(text, encoding="utf-8")
-    for sub in ("img", "ocr"):
-        (root / "work" / rec / sub).mkdir(parents=True)
-    Image.new("RGB", IMAGE, "white").save(root / "work" / rec / "img" / "c0000.jpg")
-    (root / "work" / rec / "ocr" / "c0000.tsv").write_text(_tsv(ocr), encoding="utf-8")
+    sub = bl.ocr_subdir(method)
+    for d in ("img", sub):
+        (root / "work" / rec / d).mkdir(parents=True, exist_ok=True)
+    if not (root / "work" / rec / "img" / "c0000.jpg").exists():
+        Image.new("RGB", IMAGE, "white").save(root / "work" / rec / "img" / "c0000.jpg")
+    (root / "work" / rec / sub / "c0000.tsv").write_text(_tsv(ocr), encoding="utf-8")
 
 
-POINTED_FULL = [f"{SHIN}{HOLAM}לוֹם עוֹלָם", f"בַּיִת גָּדוֹל", f"{SHIN}{PATAH}בָּת טוֹבָה"]
+POINTED_FULL = [f"{SHIN}{HOLAM}לוֹם עוֹלָם", "בַּיִת גָּדוֹל", f"{SHIN}{PATAH}בָּת טוֹבָה"]
 POINTED_UNDER = ["שלוֹם עוֹלם", "בַּיִת גָּדוֹל", "שבָּת טוֹבָה"]  # shins undotted: edition under-pointed
 
 
@@ -92,6 +99,60 @@ def test_ocr_placer():
     assert bl.ocr_placer({"ocr_engine": "tesseract 5.5.3 -l heb --psm 3"}) == "stock"
     assert bl.ocr_placer({"ocr_engine": "tesseract -l heb --tessdata-dir /m/r6"}) == "tessdata:r6"
     assert bl.ocr_placer({"ocr_engine": "x", "ocr_model": "r6"}) == "r6"
+
+
+def test_ocr_subdir_follows_the_aligner_cache():
+    assert bl.ocr_subdir({"ocr_engine": "tesseract 5.5.3 -l heb --psm 3"}) == "ocr"
+    assert bl.ocr_subdir({"ocr_engine": "tesseract -l heb", "ocr_model": "r6@73eb18e0"}) == "ocr-r6@73eb18e0"
+    assert bl.ocr_subdir({"ocr_engine": "tesseract 5.5.3 -l yid --psm 3"}) == "ocr-yid"
+
+
+def test_r6_placed_record_reads_its_own_page_ocr(tmp_path):
+    """Refinement and the line-OCR gate must use the placer's TSVs, not stock ones (hocrgen#155 cache layout)."""
+    r = tmp_path / "f8f"
+    r6 = {"ocr_engine": "tesseract 5.5.3 -l heb --psm 3", "ocr_model": "r6@73eb18e0"}
+    _record(r, "777", "7", ["ספר חדש ויפה", "עיר גדולה מאד"], method=r6)
+    # a stock TSV that disagrees with every line: reading it would drop them all
+    (r / "work" / "777" / "ocr").mkdir()
+    (r / "work" / "777" / "ocr" / "c0000.tsv").write_text(
+        _tsv([([10, 10 + 20 * i, 180, 15], ["קקקק", "רררר"]) for i in range(2)]), encoding="utf-8")
+    out = tmp_path / "set"
+    assert bl.main(["build", str(out), "--root", str(r), "--no-images"]) == 0
+    rows = [json.loads(x) for x in (out / "manifest.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert len(rows) == 2 and all(row["page_ocr"] == "ocr-r6@73eb18e0" and row["ocr_similarity"] == 1.0 for row in rows)
+    (r / "work" / "777" / "ocr-r6@73eb18e0" / "c0000.tsv").unlink()
+    with pytest.raises(SystemExit, match="page OCR missing"):  # never falls back to stock
+        bl.main(["build", str(tmp_path / "set2"), "--root", str(r), "--no-images"])
+
+
+def test_prefer_placer_picks_the_r6_second_pass(tmp_path):
+    r = tmp_path / "f8f"
+    lines = ["ספר חדש ויפה", "עיר גדולה מאד", "נהר ארוך וצר"]
+    _record(r, "888", "8", lines)  # stock pass in out/
+    _record(r, "888", "8", lines, out="out_r6", method={"ocr_engine": "tesseract 5.5.3 -l heb --psm 3", "ocr_model": "r6@73eb18e0"})
+    with pytest.raises(SystemExit, match="several alignment sources"):
+        bl.main(["build", str(tmp_path / "a"), "--root", str(r), "--no-images"])
+    out = tmp_path / "b"
+    assert bl.main(["build", str(out), "--root", str(r), "--no-images", "--prefer-placer", "r6@73eb18e0"]) == 0
+    summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+    rows = [json.loads(x) for x in (out / "manifest.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert {row["alignment"] for row in rows} == {"out_r6/8/alignment.json"} and len(rows) == 3
+    assert summary["lines_by_book_and_ocr_placer"] == {"888 888": {"r6@73eb18e0": 3}}
+    choice = summary["ocr_placer_choice"]["888"]
+    assert choice["chosen"] == {"root": str(r), "dir": "out_r6", "ocr_placer": ["r6@73eb18e0"], "pby_ids": ["8"]}
+    assert choice["skipped"] == [{"root": str(r), "dir": "out", "ocr_placer": ["stock"], "pby_ids": ["8"]}]
+    out = tmp_path / "c"  # the preference order decides; a placer no source has is skipped
+    assert bl.main(["build", str(out), "--root", str(r), "--no-images", "--prefer-placer", "r7", "--prefer-placer", "stock"]) == 0
+    summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+    assert summary["lines_by_book_and_ocr_placer"] == {"888 888": {"stock": 3}}
+    assert summary["prefer_placer"] == ["r7", "stock"]
+
+
+def test_same_record_under_two_roots_still_fails(tmp_path, root):
+    other = tmp_path / "other"
+    _record(other, "222", "2", ["ספר חדש ויפה"])
+    with pytest.raises(SystemExit, match="several alignment sources"):
+        bl.main(["build", str(tmp_path / "set"), "--root", str(root), "--root", str(other), "--pointed", "333", "444"])
 
 
 def test_refine_snaps_span_to_words():
