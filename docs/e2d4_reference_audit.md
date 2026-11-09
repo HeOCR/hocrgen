@@ -326,3 +326,29 @@ python -m hocrgen.tools.reference_audit --rule-coverage --write-rule-decisions -
   --snapshot-root <tranche>/sources/wikisource_he_proofread/snapshot
 # rebuild the reference set as above; the rule is on by default (--no-reference-rules for the E2d4 set)
 ```
+
+## E2d4c: the full human audit (2026-11-09)
+
+The maintainer went through the whole audit queue in the review app (batch `e2d4_reference_audit_v1`, 403 active
+proposals, ordered by category, most informative first) and decided 391 of them, skipping 12. The export was merged
+with `--add-decisions` and every span was checked against the tranche v5 snapshot.
+
+- **Decisions:** 494 human decisions in all (103 from E2d4b and 391 new): 416 accepted, 58 edited and 20 rejected,
+  plus the 13 rule decisions. One reviewer. 12 proposals are undecided.
+- **Pages:** `audit_pending` falls from 33 to 6 of the 38 scored pages; `human_corrected` rises from 6 to 32.
+- **CER and WER (`primary.v1`, all 38 pages, cached E2d3e predictions), before → after:**
+
+| Engine | CER before | CER after | WER before | WER after |
+| --- | ---: | ---: | ---: | ---: |
+| Tesseract 5.5.3 `heb`, psm 3 | 0.2321 | 0.2257 | 0.4860 | 0.4731 |
+| R3h + R4d + A1 | 0.8985 | 0.8958 | 1.0568 | 1.0544 |
+| R3h + blla (diagnostic) | 0.5743 | 0.5724 | 0.9226 | 0.9204 |
+
+"Before" is the E2d4b decisions file with the rule, so its Tesseract CER equals E2d4b's "after". Earlier reports
+that cite 0.232 on these pages should be read against 0.226 from now on.
+
+**Caveat: a lean toward Tesseract.** Some audit proposals were found by looking where Tesseract and R3h agree with
+each other but not with the reference. So the human corrections may lean slightly toward what Tesseract reads, and
+part of Tesseract's drop may come from where reviewers were pointed, not only from how wrong the references were.
+Engine comparisons stay valid because both engines are always scored on the same references. Do not quote the drop
+in Tesseract's CER as Tesseract getting better.

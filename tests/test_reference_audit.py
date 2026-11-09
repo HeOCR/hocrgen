@@ -106,8 +106,9 @@ def test_committed_proposals_are_agent_proposals_over_the_38_scored_pages() -> N
     human = [d for d in decisions["decisions"] if d["checked_by"] == "human"]
     rule = [d for d in decisions["decisions"] if d["checked_by"] == "rule"]
     assert all(reviewer_id_problems(d["reviewer"]) == [] for d in human)
-    # E2d4b: the maintainer's 103 accepted spacing proposals, and 13 more the rule resolves; never a reviewer on a rule
-    assert len(human) == 103 and {d["decision"] for d in human} == {"accepted"}
+    # E2d4b + E2d4c: the maintainer decided 494 proposals (103 spacing, then the full queue), and the rule resolves 13
+    # more; never a reviewer on a rule
+    assert len(human) == 494 and {d["decision"] for d in human} == {"accepted", "edited", "rejected"}
     assert len(rule) == 13 and all("reviewer" not in d and d["rule"] == SPACE_BEFORE_PUNCTUATION_RULE for d in rule)
     assert {d["decision_record"] for d in rule} == {RULE_DECISION_RECORDS[SPACE_BEFORE_PUNCTUATION_RULE]}
     assert (DOCS.parent / RULE_DECISION_RECORDS[SPACE_BEFORE_PUNCTUATION_RULE]).is_file()
@@ -273,9 +274,9 @@ def test_scored_page_reference_applies_decisions_only_when_given_an_audit(seliho
 def test_audit_tool_validates_and_checks_spans_against_a_snapshot(tmp_path: Path, selihot_proposals: dict, capsys) -> None:
     assert audit_tool.main([]) == 0
     summary = json.loads(capsys.readouterr().out)
-    assert summary["pages"] == 38 and summary["decisions"] == {"accepted": 103} and summary["reviewers"] == 1
-    assert summary["rule_decisions"] == {SPACE_BEFORE_PUNCTUATION_RULE: 13} and summary["human_decided_proposals"] == 103
-    assert summary["undecided_proposals"] == summary["proposals"] - 103 - 13
+    assert summary["pages"] == 38 and summary["decisions"] == {"accepted": 416, "edited": 58, "rejected": 20} and summary["reviewers"] == 1
+    assert summary["rule_decisions"] == {SPACE_BEFORE_PUNCTUATION_RULE: 13} and summary["human_decided_proposals"] == 494
+    assert summary["undecided_proposals"] == summary["proposals"] - 494 - 13
     proposals = _write(tmp_path, "proposals.json", selihot_proposals)
     decisions = _write(tmp_path, "decisions.json", _decisions(_decision("p-1", "rejected")))
     assert audit_tool.main(["--proposals", str(proposals), "--decisions", str(decisions), "--snapshot-root", str(SNAPSHOT)]) == 0
