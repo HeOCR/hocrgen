@@ -4,6 +4,169 @@
  "description": "E2d4: decisions on the reference audit proposals in docs/reference_audit_proposals.json. A human decision (checked_by human) is accepted (apply the proposed text), rejected (keep the reference) or edited (apply the reviewer's own text for the same span); it names its reviewer by a pseudonymous id (rv_ and 8 lower-case letters or digits, never a real name) and the date. Several reviewers may decide one proposal, one decision each (decision_id decision:<proposal_id>:<reviewer>); a proposal applies when at least min_reviewers reviewers decided it and all agree (min_reviewers is 1 for now), and every applied outcome records its reviewer_count. A rule decision (checked_by rule, E2d4b, schema v2) resolves a proposal that a maintainer-approved reference rule makes exactly on the page text (rule space_before_punctuation.v1, decision record planning/decisions/2026-11-07-space-before-punctuation-rule.md); its id is rule:<rule>:<proposal_id>, it names no reviewer and is never counted as human review. A proposal decided by a human takes no rule decision. An agent never writes a human decision here.",
  "decisions": [
   {
+   "decision_id": "decision:e2d4-ws_index_1725257__p0003-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_1725257__p0003-001",
+   "item_id": "wikisource_he_proofread:ws_index_1725257__p0003",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_1725257__p0003-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_1725257__p0003-002",
+   "item_id": "wikisource_he_proofread:ws_index_1725257__p0003",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_1725257__p0003-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_1725257__p0003-003",
+   "item_id": "wikisource_he_proofread:ws_index_1725257__p0003",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_1725257__p0003-004:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_1725257__p0003-004",
+   "item_id": "wikisource_he_proofread:ws_index_1725257__p0003",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_1725257__p0003-005:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_1725257__p0003-005",
+   "item_id": "wikisource_he_proofread:ws_index_1725257__p0003",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_1725257__p0003-006:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_1725257__p0003-006",
+   "item_id": "wikisource_he_proofread:ws_index_1725257__p0003",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_1725257__p0003-007:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_1725257__p0003-007",
+   "item_id": "wikisource_he_proofread:ws_index_1725257__p0003",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_1725257__p0003-008:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_1725257__p0003-008",
+   "item_id": "wikisource_he_proofread:ws_index_1725257__p0003",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_1725257__p0003-009:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_1725257__p0003-009",
+   "item_id": "wikisource_he_proofread:ws_index_1725257__p0003",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_1725257__p0003-010:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_1725257__p0003-010",
+   "item_id": "wikisource_he_proofread:ws_index_1725257__p0003",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_1725257__p0003-011:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_1725257__p0003-011",
+   "item_id": "wikisource_he_proofread:ws_index_1725257__p0003",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_1725257__p0011-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_1725257__p0011-001",
+   "item_id": "wikisource_he_proofread:ws_index_1725257__p0011",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_214041__p0001-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_214041__p0001-001",
+   "item_id": "wikisource_he_proofread:ws_index_214041__p0001",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_220713__p0001-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_220713__p0001-001",
+   "item_id": "wikisource_he_proofread:ws_index_220713__p0001",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_220713__p0018-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_220713__p0018-001",
+   "item_id": "wikisource_he_proofread:ws_index_220713__p0018",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_220713__p0018-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_220713__p0018-002",
+   "item_id": "wikisource_he_proofread:ws_index_220713__p0018",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_256391__p0034-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_256391__p0034-001",
+   "item_id": "wikisource_he_proofread:ws_index_256391__p0034",
+   "decision": "edited",
+   "text": "·",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_260883__p0443-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_260883__p0443-001",
+   "item_id": "wikisource_he_proofread:ws_index_260883__p0443",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
    "decision_id": "decision:e2d4-ws_index_288182__p0009-001:rv_b277b48d",
    "proposal_id": "e2d4-ws_index_288182__p0009-001",
    "item_id": "wikisource_he_proofread:ws_index_288182__p0009",
@@ -76,6 +239,15 @@
    "decided_at": "2026-11-07"
   },
   {
+   "decision_id": "decision:e2d4-ws_index_288182__p0009-009:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288182__p0009-009",
+   "item_id": "wikisource_he_proofread:ws_index_288182__p0009",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
    "decision_id": "decision:e2d4-ws_index_288182__p0009-010:rv_b277b48d",
    "proposal_id": "e2d4-ws_index_288182__p0009-010",
    "item_id": "wikisource_he_proofread:ws_index_288182__p0009",
@@ -83,6 +255,24 @@
    "checked_by": "human",
    "reviewer": "rv_b277b48d",
    "decided_at": "2026-11-07"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288182__p0009-011:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288182__p0009-011",
+   "item_id": "wikisource_he_proofread:ws_index_288182__p0009",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288182__p0009-012:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288182__p0009-012",
+   "item_id": "wikisource_he_proofread:ws_index_288182__p0009",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
   },
   {
    "decision_id": "decision:e2d4-ws_index_288182__p0009-013:rv_b277b48d",
@@ -94,6 +284,15 @@
    "decided_at": "2026-11-07"
   },
   {
+   "decision_id": "decision:e2d4-ws_index_288182__p0009-014:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288182__p0009-014",
+   "item_id": "wikisource_he_proofread:ws_index_288182__p0009",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
    "decision_id": "decision:e2d4-ws_index_288182__p0009-015:rv_b277b48d",
    "proposal_id": "e2d4-ws_index_288182__p0009-015",
    "item_id": "wikisource_he_proofread:ws_index_288182__p0009",
@@ -101,6 +300,15 @@
    "checked_by": "human",
    "reviewer": "rv_b277b48d",
    "decided_at": "2026-11-07"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288182__p0009-016:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288182__p0009-016",
+   "item_id": "wikisource_he_proofread:ws_index_288182__p0009",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
   },
   {
    "decision_id": "decision:e2d4-ws_index_288182__p0009-017:rv_b277b48d",
@@ -157,6 +365,15 @@
    "decided_at": "2026-11-07"
   },
   {
+   "decision_id": "decision:e2d4-ws_index_288182__p0009-023:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288182__p0009-023",
+   "item_id": "wikisource_he_proofread:ws_index_288182__p0009",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
    "decision_id": "decision:e2d4-ws_index_288182__p0009-024:rv_b277b48d",
    "proposal_id": "e2d4-ws_index_288182__p0009-024",
    "item_id": "wikisource_he_proofread:ws_index_288182__p0009",
@@ -164,6 +381,15 @@
    "checked_by": "human",
    "reviewer": "rv_b277b48d",
    "decided_at": "2026-11-07"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288182__p0009-025:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288182__p0009-025",
+   "item_id": "wikisource_he_proofread:ws_index_288182__p0009",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
   },
   {
    "decision_id": "decision:e2d4-ws_index_288182__p0009-026:rv_b277b48d",
@@ -263,6 +489,24 @@
    "checked_by": "human",
    "reviewer": "rv_b277b48d",
    "decided_at": "2026-11-07"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288182__p0015-011:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288182__p0015-011",
+   "item_id": "wikisource_he_proofread:ws_index_288182__p0015",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288182__p0018-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288182__p0018-001",
+   "item_id": "wikisource_he_proofread:ws_index_288182__p0018",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
   },
   {
    "decision_id": "decision:e2d4-ws_index_288182__p0018-002:rv_b277b48d",
@@ -452,6 +696,42 @@
    "checked_by": "human",
    "reviewer": "rv_b277b48d",
    "decided_at": "2026-11-07"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288182__p0018-023:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288182__p0018-023",
+   "item_id": "wikisource_he_proofread:ws_index_288182__p0018",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288182__p0019-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288182__p0019-001",
+   "item_id": "wikisource_he_proofread:ws_index_288182__p0019",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288182__p0019-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288182__p0019-002",
+   "item_id": "wikisource_he_proofread:ws_index_288182__p0019",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288182__p0019-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288182__p0019-003",
+   "item_id": "wikisource_he_proofread:ws_index_288182__p0019",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
   },
   {
    "decision_id": "decision:e2d4-ws_index_288182__p0019-004:rv_b277b48d",
@@ -706,6 +986,15 @@
    "decided_at": "2026-11-07"
   },
   {
+   "decision_id": "decision:e2d4-ws_index_288182__p0020-005:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288182__p0020-005",
+   "item_id": "wikisource_he_proofread:ws_index_288182__p0020",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
    "decision_id": "decision:e2d4-ws_index_288182__p0020-006:rv_b277b48d",
    "proposal_id": "e2d4-ws_index_288182__p0020-006",
    "item_id": "wikisource_he_proofread:ws_index_288182__p0020",
@@ -913,6 +1202,1881 @@
    "decided_at": "2026-11-07"
   },
   {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-001",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-002",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-003",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-004:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-004",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-005:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-005",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-006:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-006",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-007:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-007",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-008:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-008",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-009:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-009",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-010:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-010",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-011:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-011",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-012:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-012",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-013:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-013",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-014:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-014",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-015:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-015",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-016:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-016",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_288444__p0002-017:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_288444__p0002-017",
+   "item_id": "wikisource_he_proofread:ws_index_288444__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_314831__p0002-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_314831__p0002-001",
+   "item_id": "wikisource_he_proofread:ws_index_314831__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_314831__p0002-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_314831__p0002-002",
+   "item_id": "wikisource_he_proofread:ws_index_314831__p0002",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_314831__p0002-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_314831__p0002-003",
+   "item_id": "wikisource_he_proofread:ws_index_314831__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-001",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-002",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-003",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-004:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-004",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-005:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-005",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-006:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-006",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-007:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-007",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-008:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-008",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-009:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-009",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-010:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-010",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-011:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-011",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-012:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-012",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-013:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-013",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-014:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-014",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-015:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-015",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-016:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-016",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-017:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-017",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-018:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-018",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-019:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-019",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-020:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-020",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-021:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-021",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-022:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-022",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-023:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-023",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-024:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-024",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-025:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-025",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-026:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-026",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-027:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-027",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-028:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-028",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-029:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-029",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-030:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-030",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-031:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-031",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-032:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-032",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-033:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-033",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-034:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-034",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-035:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-035",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-036:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-036",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-037:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-037",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0032-038:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0032-038",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0032",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0033-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0033-001",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0033",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0033-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0033-002",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0033",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0033-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0033-003",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0033",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0033-004:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0033-004",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0033",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0033-006:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0033-006",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0033",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0033-008:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0033-008",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0033",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0033-010:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0033-010",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0033",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0033-011:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0033-011",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0033",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0033-012:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0033-012",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0033",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0033-013:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0033-013",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0033",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0033-014:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0033-014",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0033",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0033-015:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0033-015",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0033",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0033-018:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0033-018",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0033",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0033-019:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0033-019",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0033",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-001",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-002",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "edited",
+   "text": "קימי",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-003",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-004:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-004",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-005:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-005",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-006:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-006",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-007:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-007",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-008:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-008",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-009:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-009",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-010:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-010",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-011:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-011",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-012:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-012",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-013:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-013",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-014:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-014",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-015:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-015",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-016:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-016",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-017:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-017",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-018:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-018",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-019:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-019",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-020:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-020",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-021:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-021",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-022:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-022",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-023:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-023",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-024:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-024",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-025:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-025",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-026:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-026",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "edited",
+   "text": "רכ\"ט,",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-027:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-027",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-028:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-028",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-029:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-029",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-030:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-030",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-031:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-031",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-032:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-032",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-033:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-033",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-034:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-034",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-035:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-035",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-036:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-036",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-037:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-037",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-038:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-038",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-039:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-039",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-040:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-040",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-041:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-041",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-042:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-042",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-043:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-043",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-044:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-044",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-045:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-045",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-046:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-046",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-047:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-047",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-048:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-048",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-049:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-049",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-050:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-050",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0034-051:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0034-051",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0034",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-001",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-002",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-003",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-004:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-004",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-005:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-005",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-006:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-006",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-007:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-007",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-008:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-008",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-009:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-009",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-010:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-010",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-011:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-011",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-012:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-012",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-013:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-013",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-014:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-014",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-015:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-015",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-016:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-016",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-017:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-017",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-018:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-018",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-019:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-019",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-020:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-020",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-021:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-021",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-022:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-022",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-023:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-023",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-024:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-024",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-025:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-025",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-026:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-026",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-027:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-027",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-028:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-028",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-029:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-029",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-030:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-030",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-031:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-031",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-032:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-032",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-033:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-033",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-034:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-034",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-035:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-035",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-036:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-036",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-037:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-037",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-038:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-038",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-039:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-039",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-040:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-040",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "edited",
+   "text": "כ\"ו.",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-041:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-041",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-042:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-042",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-043:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-043",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-044:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-044",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-045:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-045",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-046:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-046",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-047:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-047",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-048:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-048",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-049:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-049",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-050:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-050",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-051:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-051",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-052:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-052",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0035-053:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0035-053",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0035",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-001",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-002",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-003",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-004:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-004",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-005:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-005",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-006:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-006",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-007:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-007",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-008:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-008",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-009:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-009",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-010:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-010",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-011:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-011",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-012:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-012",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-013:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-013",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-014:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-014",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-015:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-015",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-016:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-016",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0036-017:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0036-017",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0036",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-001",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-002",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-003",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-004:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-004",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-005:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-005",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-006:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-006",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-007:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-007",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-008:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-008",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-009:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-009",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-010:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-010",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-011:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-011",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-012:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-012",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-013:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-013",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-015:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-015",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-016:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-016",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
    "decision_id": "decision:e2d4-ws_index_328113__p0353-017:rv_b277b48d",
    "proposal_id": "e2d4-ws_index_328113__p0353-017",
    "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
@@ -922,6 +3086,15 @@
    "decided_at": "2026-11-07"
   },
   {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-018:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-018",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
    "decision_id": "decision:e2d4-ws_index_328113__p0353-019:rv_b277b48d",
    "proposal_id": "e2d4-ws_index_328113__p0353-019",
    "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
@@ -929,6 +3102,1410 @@
    "checked_by": "human",
    "reviewer": "rv_b277b48d",
    "decided_at": "2026-11-07"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0353-020:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0353-020",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0353",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0407-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0407-001",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0407",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0407-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0407-002",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0407",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0407-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0407-003",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0407",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0407-004:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0407-004",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0407",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0407-005:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0407-005",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0407",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0407-006:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0407-006",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0407",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0407-007:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0407-007",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0407",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0407-008:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0407-008",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0407",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0407-009:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0407-009",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0407",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0407-010:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0407-010",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0407",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0407-011:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0407-011",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0407",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0407-012:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0407-012",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0407",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0407-013:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0407-013",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0407",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0407-014:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0407-014",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0407",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328113__p0407-015:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328113__p0407-015",
+   "item_id": "wikisource_he_proofread:ws_index_328113__p0407",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328115__p0251-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328115__p0251-001",
+   "item_id": "wikisource_he_proofread:ws_index_328115__p0251",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328115__p0251-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328115__p0251-002",
+   "item_id": "wikisource_he_proofread:ws_index_328115__p0251",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328115__p0251-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328115__p0251-003",
+   "item_id": "wikisource_he_proofread:ws_index_328115__p0251",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328115__p0251-004:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328115__p0251-004",
+   "item_id": "wikisource_he_proofread:ws_index_328115__p0251",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328115__p0251-005:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328115__p0251-005",
+   "item_id": "wikisource_he_proofread:ws_index_328115__p0251",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328115__p0251-006:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328115__p0251-006",
+   "item_id": "wikisource_he_proofread:ws_index_328115__p0251",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328115__p0251-007:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328115__p0251-007",
+   "item_id": "wikisource_he_proofread:ws_index_328115__p0251",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_328115__p0251-008:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_328115__p0251-008",
+   "item_id": "wikisource_he_proofread:ws_index_328115__p0251",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_336412__p0002-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_336412__p0002-001",
+   "item_id": "wikisource_he_proofread:ws_index_336412__p0002",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_336412__p0002-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_336412__p0002-002",
+   "item_id": "wikisource_he_proofread:ws_index_336412__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_336412__p0002-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_336412__p0002-003",
+   "item_id": "wikisource_he_proofread:ws_index_336412__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_336412__p0002-004:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_336412__p0002-004",
+   "item_id": "wikisource_he_proofread:ws_index_336412__p0002",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_336412__p0002-005:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_336412__p0002-005",
+   "item_id": "wikisource_he_proofread:ws_index_336412__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0001-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0001-001",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0001",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0002-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0002-001",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0002-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0002-002",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0002-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0002-003",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0002-004:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0002-004",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0002-005:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0002-005",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0002-006:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0002-006",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0002-007:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0002-007",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0002-008:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0002-008",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0002-009:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0002-009",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0002-010:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0002-010",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0002-011:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0002-011",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0002-012:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0002-012",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0002-013:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0002-013",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0002-014:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0002-014",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0002-015:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0002-015",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0002",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-002",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-004:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-004",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-005:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-005",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-006:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-006",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": " ˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-008:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-008",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-009:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-009",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-010:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-010",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-011:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-011",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-013:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-013",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-014:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-014",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-016:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-016",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-017:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-017",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-018:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-018",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-019:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-019",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-020:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-020",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-021:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-021",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-022:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-022",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-023:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-023",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-024:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-024",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-025:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-025",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-026:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-026",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-027:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-027",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-028:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-028",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-029:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-029",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-030:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-030",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-031:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-031",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-032:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-032",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-033:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-033",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-034:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-034",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-035:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-035",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-036:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-036",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-037:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-037",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-038:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-038",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-039:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-039",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-040:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-040",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-041:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-041",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-042:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-042",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-043:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-043",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-044:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-044",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-045:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-045",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-046:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-046",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-047:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-047",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-048:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-048",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0011-049:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0011-049",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0011",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-001",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-002",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-003",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-005:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-005",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-006:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-006",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-007:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-007",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-008:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-008",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-010:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-010",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-011:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-011",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-013:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-013",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-014:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-014",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-015:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-015",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-016:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-016",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-017:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-017",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-018:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-018",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-019:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-019",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-020:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-020",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-022:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-022",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-023:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-023",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-024:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-024",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-025:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-025",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-026:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-026",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-027:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-027",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-028:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-028",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-029:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-029",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-030:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-030",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-031:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-031",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-032:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-032",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-033:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-033",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "קה״ר",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-034:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-034",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-035:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-035",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-036:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-036",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-037:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-037",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-038:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-038",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-039:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-039",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-040:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-040",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-041:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-041",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-042:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-042",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-043:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-043",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-044:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-044",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-045:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-045",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-046:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-046",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-047:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-047",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-048:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-048",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-049:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-049",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-050:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-050",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_381649__p0012-051:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_381649__p0012-051",
+   "item_id": "wikisource_he_proofread:ws_index_381649__p0012",
+   "decision": "edited",
+   "text": "˙",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_398674__p0001-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_398674__p0001-001",
+   "item_id": "wikisource_he_proofread:ws_index_398674__p0001",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_398674__p0003-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_398674__p0003-001",
+   "item_id": "wikisource_he_proofread:ws_index_398674__p0003",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_398674__p0003-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_398674__p0003-002",
+   "item_id": "wikisource_he_proofread:ws_index_398674__p0003",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_398674__p0007-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_398674__p0007-001",
+   "item_id": "wikisource_he_proofread:ws_index_398674__p0007",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_398674__p0007-002:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_398674__p0007-002",
+   "item_id": "wikisource_he_proofread:ws_index_398674__p0007",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_398674__p0007-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_398674__p0007-003",
+   "item_id": "wikisource_he_proofread:ws_index_398674__p0007",
+   "decision": "edited",
+   "text": "·",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_398674__p0009-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_398674__p0009-003",
+   "item_id": "wikisource_he_proofread:ws_index_398674__p0009",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_398674__p0009-004:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_398674__p0009-004",
+   "item_id": "wikisource_he_proofread:ws_index_398674__p0009",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_398674__p0009-005:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_398674__p0009-005",
+   "item_id": "wikisource_he_proofread:ws_index_398674__p0009",
+   "decision": "rejected",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_398674__p0009-006:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_398674__p0009-006",
+   "item_id": "wikisource_he_proofread:ws_index_398674__p0009",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_398674__p0009-007:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_398674__p0009-007",
+   "item_id": "wikisource_he_proofread:ws_index_398674__p0009",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_398674__p0009-012:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_398674__p0009-012",
+   "item_id": "wikisource_he_proofread:ws_index_398674__p0009",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_398674__p0010-001:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_398674__p0010-001",
+   "item_id": "wikisource_he_proofread:ws_index_398674__p0010",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
+  },
+  {
+   "decision_id": "decision:e2d4-ws_index_398674__p0010-003:rv_b277b48d",
+   "proposal_id": "e2d4-ws_index_398674__p0010-003",
+   "item_id": "wikisource_he_proofread:ws_index_398674__p0010",
+   "decision": "accepted",
+   "checked_by": "human",
+   "reviewer": "rv_b277b48d",
+   "decided_at": "2026-11-09"
   },
   {
    "decision_id": "rule:space_before_punctuation.v1:e2d4-ws_index_381649__p0011-001",
