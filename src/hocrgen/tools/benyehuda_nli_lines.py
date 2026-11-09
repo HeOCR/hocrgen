@@ -19,7 +19,8 @@ in ``alignment.json`` are IIIF canvas pixels; Tesseract boxes are image pixels (
 ``build`` keeps lines of class ``matched`` with score >= ``--min-score`` on ``aligned`` pages of records whose rights
 decision is ``accepted``: with license ``public-domain-free-use`` for an NLI scan, or by the IA gate
 (``hocrgen.fetchers.ia_iiif.decide_ia_rights``) for an Internet Archive scan (``scan.source: "internet_archive"``,
-whose record is ``scan.record_id``, the IA identifier; its line ids start ``ia_`` instead of ``nli``). The alignment's line span is approximate at the
+whose record is ``scan.record_id``, the IA identifier; its line ids start ``ia_`` instead of ``nli``, and each IA row carries ``scan_source`` and ``source_class`` so a
+release can be rebuilt without IA lines). The alignment's line span is approximate at the
 edges, so it is snapped to word (or after-hyphen) boundaries within two units of each edge, keeping the span whose
 label best matches Tesseract's reading of that line. Dropped: lines taller than 1.6x the page's median line (two printed
 lines), lines whose best label still matches the line OCR below 0.7, ``[n]`` footnote markers, characters outside
@@ -317,6 +318,9 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
                         "alignment_score": line["score"], "strict_char_similarity": line.get("strict_char_similarity"),
                         "page_quality": page.get("quality"), "_root": root, "_stratum": stratum, "_placer": placer,
                         "_alignment": source, "_page_ocr": ocr_sub}
+                if scan.get("source") == IA_SOURCE:  # NLI rows stay byte-identical
+                    cand["scan_source"] = IA_SOURCE
+                    cand["source_class"] = scan.get("source_class")
                 if key in best:
                     drops["aligned_twice"] += 1
                     if cand["alignment_score"] <= best[key]["alignment_score"]:

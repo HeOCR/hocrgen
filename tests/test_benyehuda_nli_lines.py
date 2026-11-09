@@ -279,5 +279,7 @@ def test_build_reads_ia_alignments_and_skips_ia_items_the_gate_did_not_accept(tm
     ia_rows = [r for r in rows if r["record_id"] == "sefer00test"]
     assert len(ia_rows) == 4 and all(r["id"].startswith("ia_sefer00test_c0000_l") for r in ia_rows)
     assert all(r["split"] == "train" for r in ia_rows)
+    assert all(r["scan_source"] == "internet_archive" and r["source_class"] == "ia_library_scan_no_licence_field" for r in ia_rows)
+    assert not any("scan_source" in r or "source_class" in r for r in rows if r["record_id"] != "sefer00test")
     assert not any(r["record_id"] == "google00goog" for r in rows)
     assert summary["lines_by_book_and_ocr_placer"]["sefer00test sefer00test"] == {"tessdata:r6": 4}
