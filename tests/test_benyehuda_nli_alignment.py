@@ -604,6 +604,7 @@ def test_parse_args_and_ranges() -> None:
         ]
     )  # fmt: skip
     assert args.image_width == 1600
+    assert args.tesseract_lang == "heb" and args.tessdata_dir is None
     assert tool._parse_range(None, 3) == [0, 1, 2]
     assert tool._parse_range("1:", 4) == [1, 2, 3]
     assert tool._parse_range(":2", 4) == [0, 1]
@@ -632,3 +633,66 @@ def test_summary_json_keeps_scalar_lists_on_one_line() -> None:
     assert '[1, "aligned", 0.99, ["a", "b"]]' in text
     assert '"x": [1, 2]' in text
     assert '\n  [2, "weak", null, []]' in text
+
+
+# --- OCR model and canvas size options ---------------------------------------------------------------------
+
+
+def test_tesseract_command_default_and_custom_model() -> None:
+    image = Path("c0001.jpg")
+    assert tool.tesseract_command(image) == ["tesseract", "c0001.jpg", "-", "-l", "heb", "--psm", "3", "tsv"]
+    assert tool.tesseract_command(image, lang="heb", tessdata_dir=Path("models/r6")) == [
+        "tesseract", "c0001.jpg", "-", "-l", "heb", "--psm", "3", "--tessdata-dir", "models/r6", "tsv",
+    ]  # fmt: skip
+
+
+def test_ocr_model_id_names_the_dir_and_hashes_the_traineddata(tmp_path: Path) -> None:
+    model_dir = tmp_path / "r6"
+    model_dir.mkdir()
+    (model_dir / "heb.traineddata").write_bytes(b"fine-tuned")
+    digest = tool.sha256_text("fine-tuned")
+    assert tool.ocr_model_id(model_dir, "heb") == f"r6@{digest[:8]}"
+
+
+def test_alignment_report_records_ocr_model_only_when_set() -> None:
+    kwargs = dict(
+        work={}, scan={}, pby_text="", pages=[], canvases=[], canvas_indices=[],
+        ocr_engine="tesseract 5 -l heb --psm 3", image_width=1600, generated_on="2026-11-09",
+    )  # fmt: skip
+    stock = tool.alignment_report(**kwargs)
+    assert "ocr_model" not in stock["method"]
+    assert list(stock["method"])[:2] == ["ocr_engine", "ocr_role"]
+    tuned = tool.alignment_report(**kwargs, ocr_model="r6@73eb18e0")
+    assert tuned["method"]["ocr_model"] == "r6@73eb18e0"
+    assert {key: value for key, value in tuned["method"].items() if key != "ocr_model"} == stock["method"]
+
+
+def test_resolve_canvas_size_replaces_only_placeholder_sizes() -> None:
+    calls: list[int] = []
+
+    def info(body: dict | None):
+        def lookup():
+            calls.append(1)
+            return body
+
+        return lookup
+
+    real = {"@id": "c1", "width": 2400, "height": 3600}
+    assert tool.resolve_canvas_size(real, info({"width": 1, "height": 1})) is real
+    assert calls == []
+    placeholder = {"@id": "c2", "width": 16, "height": 9}
+    resolved = tool.resolve_canvas_size(placeholder, info({"width": 1800, "height": 2700}))
+    assert resolved == {"@id": "c2", "width": 1800, "height": 2700, "hocrgen_size_source": "info.json"}
+    assert placeholder["width"] == 16
+    assert tool.resolve_canvas_size(placeholder, info({"width": 16, "height": 9})) is placeholder
+    assert tool.resolve_canvas_size(placeholder, info(None)) is placeholder
+    assert tool.resolve_canvas_size({"@id": "c3"}, info({"width": 900, "height": 1400}))["width"] == 900
+
+
+def test_page_record_notes_a_size_taken_from_info_json() -> None:
+    canvas = {"@id": "c2", "label": "2", "width": 1800, "height": 2700, "hocrgen_size_source": "info.json"}
+    record = tool.page_record([], "", canvas=canvas, canvas_index=1, gap_before=None)
+    assert record["canvas_size"] == [1800, 2700]
+    assert record["canvas_size_source"] == "info.json"
+    plain = tool.page_record([], "", canvas={"@id": "c1", "width": 10, "height": 10}, canvas_index=0, gap_before=None)
+    assert "canvas_size_source" not in plain
