@@ -38,7 +38,7 @@ from hocrgen.core.errors import StageExecutionError
 
 BANK_SCHEMA = "printed_glyph_bank.v1"
 TOOL_NAME = "hocrgen.tools.glyph_harvest"
-TOOL_VERSION = "s16-glyph-harvest-v2"
+TOOL_VERSION = "s16-glyph-harvest-v3"
 
 HEBREW_LETTERS = frozenset(chr(code) for code in range(0x05D0, 0x05EB))
 DIGITS = frozenset("0123456789")
@@ -896,15 +896,19 @@ def benyehuda_units(f8f_root: Path, *, min_line_score: float = 0.85) -> tuple[li
             image = f8f_root / "work" / record / "img" / f"c{index:04d}.jpg"
             tsv = f8f_root / "work" / record / "ocr" / f"c{index:04d}.tsv"
             if image.exists() and tsv.exists():
-                selected.append((style_id, record, index, image, tsv, text_path, lines))
+                # Line bboxes are canvas pixels (image px * canvas width / image width, as F8f scales its OCR);
+                # the TSV word boxes are image pixels.
+                with Image.open(image) as opened:
+                    scale = page["canvas_size"][0] / opened.size[0]
+                selected.append((style_id, record, index, image, tsv, text_path, lines, scale))
 
     def generate() -> Iterator[Unit]:
         cache: dict[Path, str] = {}
-        for style_id, record, index, image, tsv, text_path, lines in selected:
+        for style_id, record, index, image, tsv, text_path, lines, scale in selected:
             text = cache.setdefault(text_path, unicodedata.normalize("NFC", text_path.read_text(encoding="utf-8")))
             words = read_tesseract_tsv(tsv)
             for line in lines:
-                x, y, w, h = line["bbox"]
+                x, y, w, h = (value / scale for value in line["bbox"])
                 inside = [word for word in words if x - 2 <= (word.box[0] + word.box[2]) / 2 <= x + w + 2 and y - 2 <= (word.box[1] + word.box[3]) / 2 <= y + h + 2]
                 start, end = line["pby_span"]
                 yield Unit(
