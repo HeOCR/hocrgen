@@ -65,6 +65,12 @@ that 1920 frame.
      where the transcription has `"`, and without this rule a lone tick was
      banked as `"`, so composed pages showed one tick under `"` gold
      (`implausible_double_marks`, since `s16-glyph-harvest-v2`).
+   - F8f line bboxes are IIIF canvas pixels; the cached scan and its Tesseract
+     words are image pixels (canvas width / image width is 1.0–1.46 on the NLI
+     records). Lines are converted to image pixels before their words are
+     selected (since `s16-glyph-harvest-v3`). Before that, lines lower on a page
+     took their words from the next line: 1.4% of `pgb-v2.1`, labels intact
+     because pairing needs the texts to agree, but yield was lost.
 5. **Write.**
    - Each glyph is written as a grayscale crop of the original pixels plus its
      own ink mask, its baseline inside the crop and its source word's x-height.

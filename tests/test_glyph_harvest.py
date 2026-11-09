@@ -222,3 +222,34 @@ def test_broken_colon_is_not_labelled_colon():
     assert not gh._plausible([dot], [":"], baseline=19, x_height=20.0)
     colon = gh.Group([1, 2], (0, 6, 4, 19))
     assert gh._plausible([colon], [":"], baseline=19, x_height=20.0)
+
+
+def test_benyehuda_units_convert_canvas_line_boxes_to_image_pixels(tmp_path):
+    # F8f stores line bboxes in IIIF canvas pixels; the cached image (and its TSV) is narrower, here half as wide.
+    root = tmp_path / "f8f"
+    record = "990000000000205171"
+    (root / "work" / record / "img").mkdir(parents=True)
+    (root / "work" / record / "ocr").mkdir(parents=True)
+    (root / "pby" / "txt").mkdir(parents=True)
+    (root / "out" / "7").mkdir(parents=True)
+    Image.new("L", (900, 200), 255).save(root / "work" / record / "img" / "c0000.jpg")
+    rows = ["level\tpage_num\tblock_num\tpar_num\tline_num\tword_num\tleft\ttop\twidth\theight\tconf\ttext",
+            "1\t1\t0\t0\t0\t0\t0\t0\t900\t200\t-1\t"]
+    for line_num, (top, words) in enumerate([(60, ["אבס", "בא"]), (140, ["סבא", "אב"])], start=1):
+        for word_num, (left, word) in enumerate(zip((700, 600), words), start=1):
+            rows.append(f"5\t1\t1\t1\t{line_num}\t{word_num}\t{left}\t{top}\t80\t20\t95\t{word}")
+    (root / "work" / record / "ocr" / "c0000.tsv").write_text("\n".join(rows) + "\n", encoding="utf-8")
+    text = "אבס בא\nסבא אב\n"
+    (root / "pby" / "txt" / "m7.txt").write_text(text, encoding="utf-8")
+    line = lambda index, top, span: {"line": index, "bbox": [1200, top * 2, 400, 40], "class": "matched", "score": 1.0, "pby_span": span}
+    alignment = {
+        "scan": {"nli_record_id": record, "license_slug": "public-domain-free-use", "rights_decision": {"decision": "accepted"}},
+        "pages": [{"canvas_index": 0, "canvas_size": [1800, 400], "status": "aligned", "lines": [line(0, 60, [0, 6]), line(1, 140, [7, 13])]}],
+    }
+    (root / "out" / "7" / "alignment.json").write_text(json.dumps(alignment, ensure_ascii=False), encoding="utf-8")
+
+    _, units = gh.benyehuda_units(root)
+    units = list(units)
+
+    assert [unit.reference_text for unit in units] == ["אבס בא", "סבא אב"]
+    assert [[word.text for word in unit.ocr_words] for unit in units] == [["אבס", "בא"], ["סבא", "אב"]]
