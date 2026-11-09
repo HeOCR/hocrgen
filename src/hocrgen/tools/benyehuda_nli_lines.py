@@ -27,7 +27,9 @@ edition niqqud and the lines form the ``pointed`` stratum, behind three gates: l
 cantillation or too little niqqud are dropped; a book whose edition text is under-pointed against a fully pointed
 print (more than 5% of shins undotted or 1% of words bare) is dropped whole; then any line with a bare word or an
 undotted shin. ``--dev`` books are held out whole; ``--max-lines-per-book`` caps each other book (and dev books only
-with ``--cap-dev``) by sha256 of the line id. Schema v2 adds per-line ``stratum`` and ``ocr_placer`` (which OCR
+with ``--cap-dev``) by sha256 of the line id. Schema v2 fails closed on possibly pointed prints: ``build`` exits
+non-zero, writing nothing, when a record's edition text is pointed (``CHECK_POINTED_DENSITY``) and the record is named
+in neither ``--pointed`` nor ``--unpointed`` (an asserted unpointed print). Schema v2 adds per-line ``stratum`` and ``ocr_placer`` (which OCR
 localized the line for the aligner: ``method.ocr_model`` if the alignment records one, else the ``--tessdata-dir`` of
 ``method.ocr_engine``, else ``stock``) and the matching summary breakdowns.
 """
@@ -64,6 +66,10 @@ HYPHEN = re.compile("[-־]")
 MIN_OCR_SIMILARITY = 0.7
 MAX_HEIGHT_RATIO = 1.6
 MIN_POINTED_DENSITY = 0.3
+# A record whose edition text carries this much niqqud (marks per letter) may be a pointed print. Unpointed editions in
+# the F8f2 set sit at 0.004-0.045; pointed ones at 0.65-0.89. Schema v2 refuses to build while such a record is in
+# neither --pointed nor --unpointed: stripping its niqqud would teach a recognizer to drop marks the print shows.
+CHECK_POINTED_DENSITY = 0.1
 MAX_UNDOTTED_SHIN = 0.05
 MAX_BARE_WORDS = 0.01
 ACCEPTED_LICENSE = "public-domain-free-use"
@@ -292,7 +298,15 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     for path in args.editions or ():
         editions.update(json.loads(Path(path).read_text(encoding="utf-8")))
     names = _named(args.name)
+    unpointed = set(args.unpointed or ())
+    if unpointed & set(pointed):
+        raise SystemExit(f"records both --pointed and --unpointed: {sorted(unpointed & set(pointed))}")
     best, drops, density = collect(roots, min_score=args.min_score, pointed=pointed, keep_pointed=args.keep_pointed)
+    dens = {rec: round(m / n, 3) if n else 0.0 for rec, (m, n) in sorted(density.items())}
+    unresolved = sorted(rec for rec, d in dens.items() if d >= CHECK_POINTED_DENSITY and rec not in pointed and rec not in unpointed)
+    if args.schema == "v2" and unresolved:
+        raise SystemExit("edition text is pointed but the print is not classified; name each in --pointed or --unpointed: "
+                         + ", ".join(f"{rec} (niqqud {dens[rec]}/letter)" for rec in unresolved))
     pointing = pointed_book_gate(best, drops) if args.keep_pointed else {}
     keys = sorted(best)
     capped: Counter = Counter()
@@ -342,7 +356,6 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         "lines": {s: dict(c) for s, c in counts.items()}, "totals": {s: sum(c.values()) for s, c in counts.items()},
         "dropped": dict(drops), "manifest_sha256": hashlib.sha256(manifest.read_bytes()).hexdigest()}
     if v2:
-        dens = {rec: round(m / n, 3) if n else 0.0 for rec, (m, n) in sorted(density.items())}
         summary.update({
             "roots": [str(r) for r in roots], "strata": {s: dict(c) for s, c in strata.items()},
             "lines_by_book_and_stratum": {s: {b: dict(c) for b, c in sorted(d.items())} for s, d in by_book_stratum.items()},
@@ -351,8 +364,9 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "capped_lines": {rec: n for rec, n in sorted(capped.items()) if n},
             "min_pointed_density": MIN_POINTED_DENSITY, "max_undotted_shin": MAX_UNDOTTED_SHIN,
             "max_bare_words": MAX_BARE_WORDS, "pointed_edition_check": pointing, "edition_niqqud_density": dens,
-            # Records not listed as pointed whose edition text is pointed: the print may be pointed too.
-            "check_pointed": sorted(rec for rec, d in dens.items() if d >= MIN_POINTED_DENSITY and rec not in pointed),
+            "check_pointed_density": CHECK_POINTED_DENSITY, "unpointed_records": sorted(unpointed),
+            # Asserted unpointed prints whose edition text is pointed (labels have niqqud stripped, as the print shows).
+            "unpointed_with_pointed_edition": sorted(rec for rec in unpointed if dens.get(rec, 0.0) >= CHECK_POINTED_DENSITY),
             "images_written": not args.no_images})
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return summary
@@ -524,6 +538,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     b.add_argument("--min-score", type=float, default=0.9)
     b.add_argument("--schema", choices=("v1", "v2"), default="v2")
     b.add_argument("--pointed", nargs="*", help="pointed-print records REC[=name]")
+    b.add_argument("--unpointed", nargs="*", help="records asserted to be unpointed prints although their edition text is pointed")
     b.add_argument("--keep-pointed", action="store_true", help="keep pointed prints with niqqud labels (stratum `pointed`)")
     b.add_argument("--dev", nargs="*", help="dev records REC[=name], held out whole")
     b.add_argument("--max-lines-per-book", type=int, default=0)
