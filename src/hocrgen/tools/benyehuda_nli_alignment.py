@@ -130,6 +130,8 @@ CROP_CROPPED = "cropped"
 CROP_REVIEW = "needs_review"
 CROP_NONE = "not_applicable"
 CROP_METHOD = "ocr_line_localization"
+# Some free-use NLI manifests carry placeholder canvas sizes (e.g. 16 x 9); below this the size comes from info.json.
+MIN_PLAUSIBLE_CANVAS_PX = 200
 
 FetchResult = tuple[int, bytes]
 Fetch = Callable[[str], FetchResult]
@@ -509,9 +511,38 @@ def tesseract_version() -> str:  # pragma: no cover - operator path
     return first[0].strip() if first else "tesseract (unknown version)"
 
 
-def run_tesseract(image_path: Path, *, lang: str = "heb", psm: int = 3) -> str:  # pragma: no cover - operator path
+def tesseract_command(image_path: Path, *, lang: str = "heb", psm: int = 3, tessdata_dir: Path | None = None) -> list[str]:
+    command = ["tesseract", str(image_path), "-", "-l", lang, "--psm", str(psm)]
+    if tessdata_dir is not None:
+        command += ["--tessdata-dir", str(tessdata_dir)]
+    return command + ["tsv"]
+
+
+def ocr_model_id(tessdata_dir: Path, lang: str) -> str:
+    """``<tessdata dir name>@<first 8 hex of the traineddata sha256>``, e.g. ``r6@73eb18e0``."""
+    digest = hashlib.sha256((tessdata_dir / f"{lang}.traineddata").read_bytes()).hexdigest()
+    return f"{tessdata_dir.name}@{digest[:8]}"
+
+
+def resolve_canvas_size(canvas: dict[str, Any], info: Callable[[], dict[str, Any] | None]) -> dict[str, Any]:
+    """Return the canvas, or a copy sized from the image service's info.json when the manifest size is a placeholder.
+
+    ``info`` is called only for a placeholder size. The copy carries ``hocrgen_size_source: "info.json"``; when
+    info.json gives no plausible size either, the canvas is returned unchanged.
+    """
+    width, height = int(canvas.get("width") or 0), int(canvas.get("height") or 0)
+    if min(width, height) >= MIN_PLAUSIBLE_CANVAS_PX:
+        return canvas
+    body = info() or {}
+    info_width, info_height = body.get("width"), body.get("height")
+    if not (isinstance(info_width, int) and isinstance(info_height, int)) or min(info_width, info_height) < MIN_PLAUSIBLE_CANVAS_PX:
+        return canvas
+    return {**canvas, "width": info_width, "height": info_height, "hocrgen_size_source": "info.json"}
+
+
+def run_tesseract(image_path: Path, *, lang: str = "heb", psm: int = 3, tessdata_dir: Path | None = None) -> str:  # pragma: no cover - operator path
     completed = subprocess.run(
-        ["tesseract", str(image_path), "-", "-l", lang, "--psm", str(psm), "tsv"],
+        tesseract_command(image_path, lang=lang, psm=psm, tessdata_dir=tessdata_dir),
         capture_output=True,
         text=True,
         check=True,
@@ -928,6 +959,8 @@ def page_record(
         "canvas_size": list(size),
         "status": status,
     }
+    if canvas.get("hocrgen_size_source"):
+        record["canvas_size_source"] = canvas["hocrgen_size_source"]
     if not matched:
         record.update({"alignment_score": None, "quality": None, "crop": crop_decision(page_lines, size), "lines": _line_records(page_lines)})
         return record
@@ -1104,9 +1137,13 @@ def alignment_report(
     ocr_engine: str,
     image_width: int | None,
     generated_on: str,
+    ocr_model: str | None = None,
 ) -> dict[str, Any]:
     alignments = align_pages(pby_text, pages)
     records = build_page_records(alignments, pby_text, canvases, canvas_indices)
+    method: dict[str, Any] = {"ocr_engine": ocr_engine}
+    if ocr_model is not None:
+        method["ocr_model"] = ocr_model
     return {
         "format": ALIGNMENT_FORMAT,
         "tool_version": TOOL_VERSION,
@@ -1114,7 +1151,7 @@ def alignment_report(
         "work": {**work, "pby_text_sha256": sha256_text(pby_text), "pby_text_chars": len(pby_text), "pby_niqqud": niqqud_profile(pby_text)},
         "scan": scan,
         "method": {
-            "ocr_engine": ocr_engine,
+            **method,
             "ocr_role": OCR_ROLE,
             "ocr_text_recorded": False,
             "image_width": image_width,
@@ -1499,16 +1536,27 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
         return 2
     indices = _parse_range(args.canvases, len(canvases))
     work_dir: Path = args.work_dir
+    lang: str = args.tesseract_lang
+    tessdata_dir: Path | None = args.tessdata_dir
+    ocr_model = ocr_model_id(tessdata_dir, lang) if tessdata_dir is not None else None
+    # The OCR cache is per model, so a second pass with another model never reuses stock TSVs.
+    ocr_dir = work_dir / ("ocr" if ocr_model is None and lang == "heb" else f"ocr-{ocr_model or lang}")
     (work_dir / "img").mkdir(parents=True, exist_ok=True)
-    (work_dir / "ocr").mkdir(parents=True, exist_ok=True)
+    ocr_dir.mkdir(parents=True, exist_ok=True)
     fetch = polite_fetch(args.request_delay)
+
+    def info_json(service: str) -> dict[str, Any] | None:
+        status, body = fetch(f"{service}/info.json")
+        return json.loads(body) if status == 200 else None
+
     pages: list[list[OcrLine]] = []
     for index in indices:
-        canvas = canvases[index]
+        canvas = resolve_canvas_size(canvases[index], lambda: info_json(canvas_image_service(canvases[index])))
+        canvases[index] = canvas
         service = canvas_image_service(canvas)
         canvas_width = int(canvas.get("width") or args.image_width)
         image_path = work_dir / "img" / f"c{index:04d}.jpg"
-        tsv_path = work_dir / "ocr" / f"c{index:04d}.tsv"
+        tsv_path = ocr_dir / f"c{index:04d}.tsv"
         if not image_path.exists():
             # The image server refuses upscaling (HTTP 403), and canvas sizes can differ from the image's.
             width = min(args.image_width, canvas_width)
@@ -1524,7 +1572,7 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
                 continue
             image_path.write_bytes(body)
         if not tsv_path.exists():
-            tsv_path.write_text(run_tesseract(image_path), encoding="utf-8")
+            tsv_path.write_text(run_tesseract(image_path, lang=lang, tessdata_dir=tessdata_dir), encoding="utf-8")
         with Image.open(image_path) as image:
             scale = canvas_width / image.width
         pages.append(parse_tesseract_tsv(tsv_path.read_text(encoding="utf-8"), scale=scale))
@@ -1546,9 +1594,10 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
         pages=pages,
         canvases=[canvases[index] for index in indices],
         canvas_indices=indices,
-        ocr_engine=f"{tesseract_version()} -l heb --psm 3",
+        ocr_engine=f"{tesseract_version()} -l {lang} --psm 3" + (f" --tessdata-dir {tessdata_dir.name}" if tessdata_dir is not None else ""),
         image_width=args.image_width,
         generated_on=args.generated_on,
+        ocr_model=ocr_model,
     )
     out_dir: Path = args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -1646,6 +1695,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     align.add_argument("--out-dir", type=Path, required=True)
     align.add_argument("--generated-on", required=True)
     align.add_argument("--request-delay", type=float, default=1.0)
+    align.add_argument("--tesseract-lang", default="heb", help="Tesseract language (traineddata name) used to place the text.")
+    align.add_argument(
+        "--tessdata-dir",
+        type=Path,
+        help="A tessdata directory holding another model (e.g. a fine-tuned heb). Recorded as method.ocr_model; the OCR cache is separate.",
+    )
     fixture = sub.add_parser("fixture", help="Write a small pinned fixture of aligned pages from an alignment run.")
     fixture.add_argument("--alignment", type=Path, required=True)
     fixture.add_argument("--pby-text", type=Path, required=True)
