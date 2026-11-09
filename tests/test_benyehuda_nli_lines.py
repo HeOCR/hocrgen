@@ -131,6 +131,7 @@ def test_build_v2_pointed_gate_cap_and_breakdowns(tmp_path, root):
     assert summary["lines_by_book_and_ocr_placer"]["222 222"] == {"tessdata:r6": 2}
     assert summary["lines_by_book_and_ocr_placer"]["111 devbook"] == {"stock": 3}
     assert rows[0]["image_sha256"] is None and summary["images_written"] is False
+    assert summary["unpointed_with_pointed_edition"] == []
     _, again = _build(tmp_path / "b", root, "--keep-pointed", "--max-lines-per-book", "2", "--no-images")
     assert [r["id"] for r in again] == [r["id"] for r in rows]  # cap is deterministic
 
@@ -168,3 +169,18 @@ def test_score_crop_ocr_and_rules(tmp_path, root):
     page = tmp_path / "page.json"
     assert bl.main(["score", str(lines_dir), str(page), "--page-ocr-root", str(root)]) == 0
     assert json.loads(page.read_text(encoding="utf-8"))["all"]["exact_rate"] == 1.0
+
+
+def test_build_v2_fails_closed_on_unclassified_pointed_edition(tmp_path, root):
+    _record(root, "666", "6", POINTED_FULL)  # pointed edition text, print not classified
+    with pytest.raises(SystemExit, match="666"):
+        _build(tmp_path, root, "--keep-pointed")
+    assert not (tmp_path / "set").exists()  # nothing written
+    summary, rows = _build(tmp_path, root, "--keep-pointed", "--unpointed", "666")
+    labels = [r["text"] for r in rows if r["record_id"] == "666"]
+    assert labels and not any(bl.NIQQUD.search(t) for t in labels)  # asserted unpointed print: niqqud stripped
+    assert summary["unpointed_with_pointed_edition"] == ["666"] and summary["unpointed_records"] == ["666"]
+    with pytest.raises(SystemExit, match="both"):
+        _build(tmp_path / "c", root, "--unpointed", "333")
+    v1, _ = _build(tmp_path / "d", root, "--schema", "v1")  # v1 (frozen bynli_lines_v1) does not fail
+    assert v1["schema"].endswith(".v1")
