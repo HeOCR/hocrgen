@@ -707,6 +707,37 @@ def build_ia_rights_justification(
     return JustificationResult(True, "rights_justified", [], record)
 
 
+REASON_JUSTIFICATION_MISSING = "ia_rights_justification_missing"
+REASON_GOOGLE_HYGIENE_PENDING = "google_hygiene_pending"
+
+
+def ia_derivation_blocker(scan: Mapping[str, Any]) -> str | None:
+    """Why no line, glyph or benchmark page may be derived from this scan yet, or None when it may.
+
+    Every exporter of scan-derived artefacts (the line builder ``benyehuda_nli_lines``, and any glyph or benchmark
+    export that takes Internet Archive scans) must call this and skip the whole scan when it returns a reason. It
+    fails closed:
+
+    - ``ia_rights_justification_missing``: an IA scan without a ``rights_justification`` id (2026-11-10 legal
+      strategy, "Per-item rights justification");
+    - ``google_hygiene_pending``: a Google-digitized IA scan whose justification's ``hygiene`` is not a hygiene
+      record (``"pending"``, as ``justify_existing_alignment`` or an alignment made without the hygiene pass leaves
+      it): its front page and watermark were never looked for (rule 5).
+
+    NLI and other non-IA scans return None; their own gates apply.
+    """
+
+    if scan.get("source") != IA_SOURCE:
+        return None
+    record = scan.get("rights_justification")
+    if not isinstance(record, Mapping) or not isinstance(record.get("id"), str) or not record["id"]:
+        return REASON_JUSTIFICATION_MISSING
+    google = SOURCE_CLASS_GOOGLE in (scan.get("source_class"), record.get("source_class"))
+    if google and not isinstance(record.get("hygiene"), Mapping):
+        return REASON_GOOGLE_HYGIENE_PENDING
+    return None
+
+
 def justify_existing_alignment(
     alignment: Mapping[str, Any],
     metadata_bytes: bytes,

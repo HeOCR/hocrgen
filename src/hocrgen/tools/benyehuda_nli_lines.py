@@ -22,7 +22,12 @@ decision is ``accepted``: with license ``public-domain-free-use`` for an NLI sca
 whose record is ``scan.record_id``, the IA identifier; its line ids start ``ia_`` instead of ``nli`` (by ``scan.source``), and each IA row carries ``scan_source``, ``source_class`` and
 ``rights_justification_id`` so a release can be rebuilt without IA lines and every line points to its scan's rights
 justification). An IA scan without a ``scan.rights_justification`` (an alignment made before the 2026-11-10 legal
-strategy, not yet back-filled) gives no lines; its matched lines are counted as ``ia_rights_justification_missing``. The alignment's line span is approximate at the
+strategy, not yet back-filled) gives no lines; its matched lines are counted as ``ia_rights_justification_missing``.
+A Google-digitized IA scan whose justification's ``hygiene`` is still ``"pending"`` (no front-page and watermark pass)
+gives no lines either, counted as ``google_hygiene_pending``. Both checks are
+``hocrgen.fetchers.ia_justification.ia_derivation_blocker``, which every scan-derived export must call.
+On a Google-digitized IA page, a line whose box overlaps the page's ``google_watermark_bbox`` (the "Digitized by
+Google" watermark the aligner found) is dropped as ``google_watermark_overlap`` (legal strategy rule 5). The alignment's line span is approximate at the
 edges, so it is snapped to word (or after-hyphen) boundaries within two units of each edge, keeping the span whose
 label best matches Tesseract's reading of that line. Dropped: lines taller than 1.6x the page's median line (two printed
 lines), lines whose best label still matches the line OCR below 0.7, ``[n]`` footnote markers, characters outside
@@ -59,7 +64,9 @@ from typing import Any
 
 from PIL import Image
 
+from hocrgen.fetchers.google_hygiene import boxes_overlap
 from hocrgen.fetchers.ia_iiif import IA_GATE, IA_SOURCE
+from hocrgen.fetchers.ia_justification import ia_derivation_blocker
 
 SCHEMA_PREFIX = "s16c_benyehuda_nli_lines"
 POINTS = re.compile("[֑-ׇֽֿׁׂׅׄ]")  # niqqud + cantillation; keeps maqaf, paseq, sof pasuq
@@ -266,12 +273,13 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
         rec = record_id(scan)
         if not rights_accepted(scan):
             continue
-        justification_id = rights_justification_id(scan) if scan.get("source") == IA_SOURCE else None
-        if scan.get("source") == IA_SOURCE and justification_id is None:
-            drops["ia_rights_justification_missing"] += sum(
+        blocked = ia_derivation_blocker(scan)  # fails closed: no justification, or Google hygiene still pending
+        if blocked is not None:
+            drops[blocked] += sum(
                 1 for page in al["pages"] if page["status"] == "aligned"
                 for line in page["lines"] if line.get("class") == "matched" and line.get("pby_span"))
             continue
+        justification_id = rights_justification_id(scan) if scan.get("source") == IA_SOURCE else None
         method = al.get("method") or {}
         placer, ocr_sub = ocr_placer(method), ocr_subdir(method)
         source = str(ap_path.relative_to(root))
@@ -288,8 +296,12 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
             words = read_tsv_boxes(tsv)
             heights = sorted(ln["bbox"][3] for ln in page["lines"] if ln.get("class") == "matched")
             median_h = heights[len(heights) // 2] if heights else 0
+            watermark = page.get("google_watermark_bbox")
             for line in page["lines"]:
                 if line.get("class") != "matched" or not line.get("pby_span"):
+                    continue
+                if watermark and boxes_overlap(line["bbox"], watermark):
+                    drops["google_watermark_overlap"] += 1
                     continue
                 if (line.get("score") or 0) < min_score:
                     drops["below_min_score"] += 1
