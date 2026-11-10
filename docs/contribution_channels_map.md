@@ -139,8 +139,8 @@ Ranked by value relative to effort:
 
 ## Next steps
 
-Each selected channel needs a roadmap notation before implementation. Likely first steps:
+Each selected channel needs a roadmap notation before implementation. The first three are registered as planned items, not started:
 
-- a contributor consent and waiver template that covers sections A, B and E, reviewed with the legal help described in `CC-F2`;
-- a known-text kit for `CC-B1`–`CC-B5`: the rendered PDFs, templates and an intake manifest schema that records the source text id, device and transformation;
-- a pilot of `CC-C3` blank-paper intake.
+- `E1c`: a contributor consent and waiver template that covers sections A, B and E. It needs Shay's approval and legal review (see `CC-F2`) before any use.
+- `E1d`: a known-text kit for `CC-B1`–`CC-B5`: the rendered PDFs, templates and an intake manifest schema that records the source text id, device and transformation.
+- `E1e`: a pilot of `CC-C3` blank-paper intake.

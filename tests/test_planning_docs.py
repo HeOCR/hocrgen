@@ -83,7 +83,7 @@ def test_planning_docs_agree_on_current_and_next_notation() -> None:
     assert "| D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |" in roadmap
     assert "| D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |" in roadmap
     assert "| D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |" in roadmap
-    assert "| E1 | Ecosystem maturity | E1a, E1b | Community contribution model, then the public contribution channels map | completed |" in roadmap
+    assert "| E1 | Ecosystem maturity | E1a, E1b, E1c, E1d, E1e | Community contribution model, the public contribution channels map, then planned channel follow-ups | partial |" in roadmap
     assert "| E2 | Ecosystem maturity | E2a, E2b | Baselines/evaluation utilities, then live/cached NLI seed acquisition | completed |" in roadmap
     assert "| E3 | Ecosystem maturity | E3a | Annotation subset pilots | completed |" in roadmap
     assert "| E4 | Ecosystem maturity | E4a | Multi-release governance maturity | completed |" in roadmap
