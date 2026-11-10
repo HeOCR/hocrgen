@@ -67,14 +67,14 @@ The strategy discusses only Google-digitized files on Routes B and C. Asked whet
 
 ## Per-item rights justification (maintainer, 2026-11-10)
 
-The maintainer asked that this be documented clearly, with its justification recorded for every item that comes in through this route. So **every scan accepted through Route B or C** carries its own `rights_justification` record, in `scan` and in `editions.json`, and every line, glyph or page derived from that scan points to it. Route B is the Internet Archive and Route C is Wikimedia Commons. A scan whose digitizer or origin is Google or NLI must have one; no exceptions.
+The maintainer asked that this be documented clearly, with its justification recorded for every item that comes in through this route. So **every scan accepted through Route B or C** carries its own `rights_justification` record, in `scan` and in `editions.json`, and every line, glyph or page derived from that scan points to it. Route B is the Internet Archive and Route C is Wikimedia Commons. A scan whose digitizer or origin is Google or NLI must have one; no exceptions. This covers the Wikisource and Commons scans behind the Wikisource pipeline and its eval sets too. The Wikisource gate must emit the same record before any Wikisource-derived artefact is published.
 
 The gate generates the record from evidence; nobody writes it by hand. If the gate cannot fill a required field, it rejects the item. Required fields:
 
 | Field | What it records |
 |---|---|
 | `route` | `internet_archive` or `wikimedia_commons`, plus the exact URL the file was fetched from and its sha256 |
-| `work_public_domain` | Author or authors with death years, publication year and place, Israeli status (author died over 70 years ago), and US status (published before the current US cutoff, or the reason it is PD in the US). Every source is cited, for example the PBY catalogue or NLI authority dates. |
+| `work_public_domain` | Author or authors with death years, publication year and place, Israeli status (author died over 70 years ago, or, for a work printed on or before 1855 with no death year found, the presumption of decision 10 (2026-11-06), recorded as such), and US status (published before the current US cutoff, or the reason it is PD in the US). Every source is cited, for example the PBY catalogue or NLI authority dates. |
 | `faithful_reproduction` | That the file is a faithful scan of a 2D printed page, so no new right arises. Cites strategy §1: *Feist* / *Bridgeman* in the US, *Interlego* in Israel. |
 | `digitizer` | Who scanned it: Google, NLI or a named library. Gives the evidence, such as metadata fields, an identifier pattern (`bub_gb_`, `…goog`) or a Commons template. |
 | `origin_label` | Any restriction the original holder attached, recorded as found. Examples: NLI's `public-domain-non-commercial-use`, or Google's front-page usage guidelines. Null when there is none. |
