@@ -78,6 +78,7 @@ from PIL import Image
 
 from hocrgen.fetchers.google_hygiene import (
     EXCLUDED_GOOGLE_FRONT_MATTER,
+    FOOT_BAND_FRACTIONS,
     FRONT_MATTER_MAX_CANVASES,
     detect_google_front_matter,
     detect_google_watermark,
@@ -1786,13 +1787,17 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
             scale = canvas_width / image.width
             if google:
                 # Rule 5 hygiene: the "Digitized by Google" watermark at the page foot.
-                band = foot_band_box(image.size)
-                foot_path = work_dir / "foot" / f"c{index:04d}.png"
-                foot_tsv = work_dir / "ocr-eng-foot" / f"c{index:04d}.tsv"
-                if not foot_tsv.exists():
-                    image.crop(band).save(foot_path)
-                    foot_tsv.write_text(run_tesseract(foot_path, lang="eng", psm=6), encoding="utf-8")
-                watermarks[index] = detect_google_watermark(foot_tsv.read_text(encoding="utf-8"), band_top=band[1], scale=scale)
+                watermarks[index] = None
+                for fraction in FOOT_BAND_FRACTIONS:
+                    band = foot_band_box(image.size, fraction)
+                    name = f"c{index:04d}_b{round(fraction * 100):02d}"
+                    foot_tsv = work_dir / "ocr-eng-foot" / f"{name}.tsv"
+                    if not foot_tsv.exists():
+                        image.crop(band).save(work_dir / "foot" / f"{name}.png")
+                        foot_tsv.write_text(run_tesseract(work_dir / "foot" / f"{name}.png", lang="eng", psm=6), encoding="utf-8")
+                    watermarks[index] = detect_google_watermark(foot_tsv.read_text(encoding="utf-8"), band_top=band[1], scale=scale)
+                    if watermarks[index] is not None:
+                        break
         pages.append(parse_tesseract_tsv(tsv_path.read_text(encoding="utf-8"), scale=scale))
         sys.stderr.write(f"\rOCR {len(pages)}/{len(indices)} (canvas {index})" if args.reverse_canvases else f"\rOCR {index + 1}/{len(canvases)}")
     sys.stderr.write("\n")

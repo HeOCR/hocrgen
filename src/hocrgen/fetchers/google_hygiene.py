@@ -22,11 +22,17 @@ from typing import Any
 
 EXCLUDED_GOOGLE_FRONT_MATTER = "excluded_google_front_matter"
 FRONT_MATTER_MAX_CANVASES = 3  # Google's front page is among the first 1-3 canvases
-FOOT_BAND_FRACTION = 0.15  # the watermark sits in the bottom band of the page
+# The watermark sits at the very foot of the page. Bands are tried in this order until one finds it: a band that
+# reaches into the body text makes the eng pass misread the whole band (a real Google page: 6-12% read the line,
+# 15% did not).
+FOOT_BAND_FRACTIONS = (0.10, 0.06, 0.15)
 WATERMARK_PAD_FRACTION = 0.25  # of the watermark line's height, on every side
 HYGIENE_FORMAT = "hocrgen.google_hygiene.v1"
 FRONT_MATTER_METHOD = "tesseract -l eng --psm 3 on the first canvases; Google usage-guidelines boilerplate phrases"
-WATERMARK_METHOD = f"tesseract -l eng --psm 6 on the bottom {FOOT_BAND_FRACTION:.0%} of each page; 'Digitized by Google' line"
+WATERMARK_METHOD = (
+    "tesseract -l eng --psm 6 on the bottom band of each page (" + ", then ".join(f"{f:.0%}" for f in FOOT_BAND_FRACTIONS)
+    + " until found); 'Digitized by Google' line"
+)
 
 # Boilerplate phrases of Google's front page (English, with the German and French versions some library copies carry).
 OPENING_PHRASES = (
@@ -92,11 +98,11 @@ def _like(word: str, target: str, threshold: float) -> bool:
     return bool(clean) and SequenceMatcher(None, clean, target).ratio() >= threshold
 
 
-def foot_band_box(image_size: tuple[int, int]) -> tuple[int, int, int, int]:
-    """The bottom band of an image, as a PIL crop box (left, top, right, bottom)."""
+def foot_band_box(image_size: tuple[int, int], fraction: float = FOOT_BAND_FRACTIONS[0]) -> tuple[int, int, int, int]:
+    """The bottom ``fraction`` of an image, as a PIL crop box (left, top, right, bottom)."""
 
     width, height = image_size
-    return 0, int(round(height * (1 - FOOT_BAND_FRACTION))), width, height
+    return 0, int(round(height * (1 - fraction))), width, height
 
 
 def detect_google_watermark(tsv: str, *, band_top: int, scale: float) -> list[int] | None:

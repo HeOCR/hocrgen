@@ -58,7 +58,8 @@ def test_watermark_box_is_found_in_the_foot_band_and_scaled_to_the_canvas() -> N
 
 
 def test_foot_band_and_overlap_helpers() -> None:
-    assert gh.foot_band_box((1600, 2000)) == (0, 1700, 1600, 2000)
+    assert gh.foot_band_box((1600, 2000)) == (0, 1800, 1600, 2000)
+    assert gh.foot_band_box((1600, 2000), 0.15) == (0, 1700, 1600, 2000)
     assert gh.boxes_overlap([0, 0, 10, 10], [5, 5, 10, 10]) and not gh.boxes_overlap([0, 0, 10, 10], [10, 0, 5, 5])
 
 
