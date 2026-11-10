@@ -1,11 +1,24 @@
 {
- "format": "heocr.f8f_r7_handoff.v1",
+ "format": "heocr.f8f_r7_handoff.v2",
  "generated_on": "2026-11-11",
- "hocrgen_commit": "bf3c1ff",
- "decision": "heocr-lead 2026-11-11 00:45 (R7 timing delegated by the maintainer): hand off f8f3 7 books + f8f_ia 26 books now; stragglers to R8",
- "line_build": {
-  "command": "python -I -m hocrgen.tools.benyehuda_nli_lines build <out> --root f8f/f8f3 --root f8f/f8f_ia --prefer-placer stock --keep-pointed --pointed 990013297040205171=hiawatha-nli-1922 990018346960205171=meyuhas-bat-hayil-1901 990020403130205171=pines-sefer-hakoah-1894 eretsyiraelsefer00goor nirdavid01coheuoft shirathayaatahme00long_0 --unpointed mimitsrayimhusef00fran --dev 990010684570205171=bodek-1870 990010106660205171=bodek-1865 nirdavid01coheuoft=nir-david-1834 990020250940205171=silman-1929 990018546440205171=brainin-1928",
-  "dry_run": "--no-images; manifest_sha256 is for that run (image_sha256 null)",
+ "decision": "heocr-lead 2026-11-11 00:45 (R7 timing delegated by the maintainer): hand off f8f3 7 books + f8f_ia 26 books now; stragglers to R8; recipe by heocr-lead 2026-11-11: add the f8f2 root (R6 train and dev), strip niqqud and drop fully pointed prints as in v1, per-record cap",
+ "line_set": {
+  "name": "bynli_lines_v2",
+  "built_by": "heocr-synth-gen",
+  "hocrgen_commit": "1921bbe",
+  "output_dir": "tasks/s16c-glyph-scale/outputs/lines/bynli_lines_v2",
+  "command": "(from hocrgen) python -I -m hocrgen.tools.benyehuda_nli_lines build $T/s16c-glyph-scale/outputs/lines/bynli_lines_v2 --root $T/s16c-glyph-scale/intermediates/f8f2 --root $T/real-source-mapping/intermediates/f8f/f8f3 --root $T/real-source-mapping/intermediates/f8f/f8f_ia --editions $T/s16c-glyph-scale/intermediates/f8f2_editions.json --prefer-placer stock --max-lines-per-book 6100 --pointed 990017258010205171=katzenelson-mahamadim-1923 990013637480205171=mandelkern-shirei-1882 990013297040205171=hiawatha-nli-1922 990018346960205171=meyuhas-bat-hayil-1901 990020403130205171=pines-sefer-hakoah-1894 eretsyiraelsefer00goor nirdavid01coheuoft shirathayaatahme00long_0 --unpointed mimitsrayimhusef00fran 990013538860205171 --dev 990010684570205171=bodek-1870 990010106660205171=bodek-1865 nirdavid01coheuoft=nir-david-1834 990020250940205171=silman-1929 990018546440205171=brainin-1928  (T = the HeOCR tasks dir; no --keep-pointed)",
+  "cap_note": "6,100 rather than 6,000 so every R6 book keeps all its lines (Berashadsky 6,076, Citron 6,052)",
+  "checks": {
+   "manifest_sha256_verified": true,
+   "rows": 102478,
+   "ia_rows": 75545,
+   "ia_rows_missing_rights_justification_id": 0,
+   "image_sha256_null": 0,
+   "records": 33,
+   "ia_records": 23,
+   "r8_straggler_records_present": 0
+  },
   "summary": {
    "schema": "s16c_benyehuda_nli_lines.v2",
    "min_score": 0.9,
@@ -24,7 +37,9 @@
     "990020250940205171": "silman-1929",
     "990018546440205171": "brainin-1928"
    },
-   "pointed_records": {
+   "excluded_pointed_records": {
+    "990017258010205171": "katzenelson-mahamadim-1923",
+    "990013637480205171": "mandelkern-shirei-1882",
     "990013297040205171": "hiawatha-nli-1922",
     "990018346960205171": "meyuhas-bat-hayil-1901",
     "990020403130205171": "pines-sefer-hakoah-1894",
@@ -35,24 +50,26 @@
    "lines": {
     "dev": {
      "990010684570205171 bodek-1870": 21,
-     "nirdavid01coheuoft nir-david-1834": 823
+     "990018546440205171 brainin-1928": 4046,
+     "990020250940205171 silman-1929": 3046
     },
     "train": {
-     "990013297040205171 hiawatha-nli-1922": 1074,
-     "990017640460205171 990017640460205171": 7945,
-     "990018346960205171 meyuhas-bat-hayil-1901": 785,
-     "990020403130205171 pines-sefer-hakoah-1894": 1965,
+     "990013538860205171 katzenelson-shirim-1938": 1,
+     "990017640460205171 990017640460205171": 6100,
+     "990019385920205171 frank-agadot-hazohar-1924": 8,
+     "990020308000205171 berashadsky-sipurim-1910": 6076,
      "990020466440205171 990020466440205171": 72,
+     "990020495520205171 citron-ahorei-hapargod-1923": 6052,
+     "990020522850205171 tchernowitz-hamadpis-1927": 1511,
      "ademataidibruivr00benyuoft ademataidibruivr00benyuoft": 2980,
      "agadothatanaim11bach agadothatanaim11bach": 2977,
      "anshekayruan00pozn anshekayruan00pozn": 1218,
      "atn3681.0001.001.umich.edu atn3681.0001.001.umich.edu": 4128,
-     "eretsyiraelsefer00goor eretsyiraelsefer00goor": 606,
      "hegyoneshpinozah00rubi hegyoneshpinozah00rubi": 557,
      "igrothaasirmeiha00drey igrothaasirmeiha00drey": 2498,
      "imanuelharomimon0000tche imanuelharomimon0000tche": 2572,
-     "kolsifreperetsbe01smoluoft kolsifreperetsbe01smoluoft": 16188,
-     "kolsifreperetsbe03smoluoft kolsifreperetsbe03smoluoft": 19885,
+     "kolsifreperetsbe01smoluoft kolsifreperetsbe01smoluoft": 6100,
+     "kolsifreperetsbe03smoluoft kolsifreperetsbe03smoluoft": 6100,
      "kolsifreperetsbe05smoluoft kolsifreperetsbe05smoluoft": 5489,
      "ldpd_15772050_000 ldpd_15772050_000": 4639,
      "maamarmagenetsin00mode maamarmagenetsin00mode": 1145,
@@ -66,36 +83,34 @@
      "peereakhmemedina00gree peereakhmemedina00gree": 2777,
      "reginahashkenazi00ginsuoft reginahashkenazi00ginsuoft": 1305,
      "sepherhayyeyehud01mode sepherhayyeyehud01mode": 1491,
-     "sifrehazikhronot00mont sifrehazikhronot00mont": 8204
+     "sifrehazikhronot00mont sifrehazikhronot00mont": 6100
     }
    },
    "totals": {
-    "dev": 844,
-    "train": 113969
+    "dev": 7113,
+    "train": 95365
    },
    "dropped": {
-    "below_min_score": 7041,
-    "label_disagrees_with_line_ocr": 14550,
-    "pointed_print_label_unpointed": 613,
-    "taller_than_one_line": 1315,
-    "outside_repertoire": 1171,
-    "aligned_twice": 2924,
-    "footnote_marker": 1,
-    "pointed_line_underpointed": 194
+    "below_min_score": 9408,
+    "label_disagrees_with_line_ocr": 15235,
+    "pointed_print": 10566,
+    "taller_than_one_line": 1778,
+    "outside_repertoire": 1177,
+    "aligned_twice": 2925,
+    "footnote_marker": 1
    },
-   "manifest_sha256": "4c96d926a680defa8c17d0670bd14767fa8e8091570125d02dc1d9f0ff70ab82",
+   "manifest_sha256": "53dd7f1a10929ad4a60020ad7f42be62f27ee905cb7e6cfb0e319c5b2f5db7ca",
    "roots": [
-    "f8f/f8f3",
-    "f8f/f8f_ia"
+    "tasks/s16c-glyph-scale/intermediates/f8f2",
+    "tasks/real-source-mapping/intermediates/f8f/f8f3",
+    "tasks/real-source-mapping/intermediates/f8f/f8f_ia"
    ],
    "strata": {
     "dev": {
-     "unpointed": 21,
-     "pointed": 823
+     "unpointed": 7113
     },
     "train": {
-     "pointed": 4430,
-     "unpointed": 109539
+     "unpointed": 95365
     }
    },
    "lines_by_book_and_stratum": {
@@ -103,25 +118,34 @@
      "990010684570205171 bodek-1870": {
       "unpointed": 21
      },
-     "nirdavid01coheuoft nir-david-1834": {
-      "pointed": 823
+     "990018546440205171 brainin-1928": {
+      "unpointed": 4046
+     },
+     "990020250940205171 silman-1929": {
+      "unpointed": 3046
      }
     },
     "train": {
-     "990013297040205171 hiawatha-nli-1922": {
-      "pointed": 1074
+     "990013538860205171 katzenelson-shirim-1938": {
+      "unpointed": 1
      },
      "990017640460205171 990017640460205171": {
-      "unpointed": 7945
+      "unpointed": 6100
      },
-     "990018346960205171 meyuhas-bat-hayil-1901": {
-      "pointed": 785
+     "990019385920205171 frank-agadot-hazohar-1924": {
+      "unpointed": 8
      },
-     "990020403130205171 pines-sefer-hakoah-1894": {
-      "pointed": 1965
+     "990020308000205171 berashadsky-sipurim-1910": {
+      "unpointed": 6076
      },
      "990020466440205171 990020466440205171": {
       "unpointed": 72
+     },
+     "990020495520205171 citron-ahorei-hapargod-1923": {
+      "unpointed": 6052
+     },
+     "990020522850205171 tchernowitz-hamadpis-1927": {
+      "unpointed": 1511
      },
      "ademataidibruivr00benyuoft ademataidibruivr00benyuoft": {
       "unpointed": 2980
@@ -135,9 +159,6 @@
      "atn3681.0001.001.umich.edu atn3681.0001.001.umich.edu": {
       "unpointed": 4128
      },
-     "eretsyiraelsefer00goor eretsyiraelsefer00goor": {
-      "pointed": 606
-     },
      "hegyoneshpinozah00rubi hegyoneshpinozah00rubi": {
       "unpointed": 557
      },
@@ -148,10 +169,10 @@
       "unpointed": 2572
      },
      "kolsifreperetsbe01smoluoft kolsifreperetsbe01smoluoft": {
-      "unpointed": 16188
+      "unpointed": 6100
      },
      "kolsifreperetsbe03smoluoft kolsifreperetsbe03smoluoft": {
-      "unpointed": 19885
+      "unpointed": 6100
      },
      "kolsifreperetsbe05smoluoft kolsifreperetsbe05smoluoft": {
       "unpointed": 5489
@@ -193,7 +214,7 @@
       "unpointed": 1491
      },
      "sifrehazikhronot00mont sifrehazikhronot00mont": {
-      "unpointed": 8204
+      "unpointed": 6100
      }
     }
    },
@@ -201,20 +222,32 @@
     "990010684570205171 bodek-1870": {
      "stock": 21
     },
-    "990013297040205171 hiawatha-nli-1922": {
-     "stock": 1074
+    "990013538860205171 katzenelson-shirim-1938": {
+     "stock": 1
     },
     "990017640460205171 990017640460205171": {
-     "stock": 7945
+     "stock": 6100
     },
-    "990018346960205171 meyuhas-bat-hayil-1901": {
-     "stock": 785
+    "990018546440205171 brainin-1928": {
+     "stock": 4046
     },
-    "990020403130205171 pines-sefer-hakoah-1894": {
-     "stock": 1965
+    "990019385920205171 frank-agadot-hazohar-1924": {
+     "stock": 8
+    },
+    "990020250940205171 silman-1929": {
+     "stock": 3046
+    },
+    "990020308000205171 berashadsky-sipurim-1910": {
+     "stock": 6076
     },
     "990020466440205171 990020466440205171": {
      "stock": 72
+    },
+    "990020495520205171 citron-ahorei-hapargod-1923": {
+     "stock": 6052
+    },
+    "990020522850205171 tchernowitz-hamadpis-1927": {
+     "stock": 1511
     },
     "ademataidibruivr00benyuoft ademataidibruivr00benyuoft": {
      "stock": 2980
@@ -228,9 +261,6 @@
     "atn3681.0001.001.umich.edu atn3681.0001.001.umich.edu": {
      "stock": 4128
     },
-    "eretsyiraelsefer00goor eretsyiraelsefer00goor": {
-     "stock": 606
-    },
     "hegyoneshpinozah00rubi hegyoneshpinozah00rubi": {
      "stock": 557
     },
@@ -241,10 +271,10 @@
      "stock": 2572
     },
     "kolsifreperetsbe01smoluoft kolsifreperetsbe01smoluoft": {
-     "stock": 16188
+     "stock": 6100
     },
     "kolsifreperetsbe03smoluoft kolsifreperetsbe03smoluoft": {
-     "stock": 19885
+     "stock": 6100
     },
     "kolsifreperetsbe05smoluoft kolsifreperetsbe05smoluoft": {
      "stock": 5489
@@ -276,9 +306,6 @@
     "motsaegolahzikhr00rabbuoft motsaegolahzikhr00rabbuoft": {
      "stock": 2853
     },
-    "nirdavid01coheuoft nir-david-1834": {
-     "stock": 823
-    },
     "peereakhmemedina00gree peereakhmemedina00gree": {
      "stock": 2777
     },
@@ -289,7 +316,7 @@
      "stock": 1491
     },
     "sifrehazikhronot00mont sifrehazikhronot00mont": {
-     "stock": 8204
+     "stock": 6100
     }
    },
    "prefer_placer": [
@@ -298,7 +325,7 @@
    "ocr_placer_choice": {
     "nirdavid01coheuoft": {
      "chosen": {
-      "root": "f8f/f8f_ia",
+      "root": "tasks/real-source-mapping/intermediates/f8f/f8f_ia",
       "dir": "out",
       "ocr_placer": [
        "stock"
@@ -309,7 +336,7 @@
      },
      "skipped": [
       {
-       "root": "f8f/f8f_ia",
+       "root": "tasks/real-source-mapping/intermediates/f8f/f8f_ia",
        "dir": "out_r6",
        "ocr_placer": [
         "r6@73eb18e0"
@@ -321,51 +348,34 @@
      ]
     }
    },
-   "max_lines_per_book": 0,
+   "max_lines_per_book": 6100,
    "cap_dev": false,
-   "capped_lines": {},
+   "capped_lines": {
+    "990017640460205171": 1845,
+    "kolsifreperetsbe01smoluoft": 10088,
+    "kolsifreperetsbe03smoluoft": 13785,
+    "sifrehazikhronot00mont": 2104
+   },
    "min_pointed_density": 0.3,
    "max_undotted_shin": 0.05,
    "max_bare_words": 0.01,
-   "pointed_edition_check": {
-    "990013297040205171": {
-     "lines": 1081,
-     "bare_word_rate": 0.0005,
-     "undotted_shin_rate": 0.0076,
-     "edition_fully_pointed": true
-    },
-    "990018346960205171": {
-     "lines": 799,
-     "bare_word_rate": 0.0002,
-     "undotted_shin_rate": 0.0141,
-     "edition_fully_pointed": true
-    },
-    "990020403130205171": {
-     "lines": 2096,
-     "bare_word_rate": 0.0051,
-     "undotted_shin_rate": 0.0195,
-     "edition_fully_pointed": true
-    },
-    "eretsyiraelsefer00goor": {
-     "lines": 640,
-     "bare_word_rate": 0.006,
-     "undotted_shin_rate": 0.0074,
-     "edition_fully_pointed": true
-    },
-    "nirdavid01coheuoft": {
-     "lines": 831,
-     "bare_word_rate": 0.0,
-     "undotted_shin_rate": 0.0079,
-     "edition_fully_pointed": true
-    }
-   },
+   "pointed_edition_check": {},
    "edition_niqqud_density": {
     "990010684570205171": 0.005,
     "990013297040205171": 0.706,
+    "990013538860205171": 0.889,
+    "990013637480205171": 0.799,
+    "990017258010205171": 0.645,
     "990017640460205171": 0.003,
     "990018346960205171": 0.58,
+    "990018546440205171": 0.011,
+    "990019385920205171": 0.016,
+    "990020250940205171": 0.004,
+    "990020308000205171": 0.01,
     "990020403130205171": 0.734,
     "990020466440205171": 0.043,
+    "990020495520205171": 0.045,
+    "990020522850205171": 0.012,
     "ademataidibruivr00benyuoft": 0.01,
     "agadothatanaim11bach": 0.003,
     "anshekayruan00pozn": 0.002,
@@ -394,16 +404,15 @@
    },
    "check_pointed_density": 0.1,
    "unpointed_records": [
+    "990013538860205171",
     "mimitsrayimhusef00fran"
    ],
    "unpointed_with_pointed_edition": [
+    "990013538860205171",
     "mimitsrayimhusef00fran"
    ],
-   "images_written": false
-  },
-  "ia_rows": 102951,
-  "ia_rows_missing_rights_justification_id": 0,
-  "ia_rights_justification_missing_drops": 0
+   "images_written": true
+  }
  },
  "rights_justification_backfill": {
   "as_of": "2026-11-10",
@@ -512,7 +521,8 @@
    "kevarpirezikhron00haco",
    "sifruthahisoriya11kaha"
   ],
-  "f8f_g": "all (14 candidates + probe-promoted near misses)"
+  "f8f_g": "all (14 candidates + probe-promoted near misses)",
+  "f8f_ia_location": "f8f_ia/r8_stragglers/out/ (outside every build root's out*/ dirs)"
  },
  "release_notices": {
   "f8f3": {
