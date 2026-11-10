@@ -2,17 +2,32 @@
 
 from __future__ import annotations
 
+import datetime as dt
 import json
 from pathlib import Path
 
 import pytest
 
 from hocrgen.fetchers import ia_iiif as ia
+from hocrgen.fetchers import ia_justification as ij
 from hocrgen.fetchers.nli_iiif import canvas_image_service
 from hocrgen.tools import benyehuda_nli_alignment as tool
 
 FIXTURE = Path(__file__).parent / "fixtures" / "ia"
 IDENTIFIER = "hegyoneshpinozah00rubi"
+AS_OF = dt.date(2026, 11, 10)
+# PBY 31623 (pseudocatalogue.csv), the work this IA item was aligned to.
+ROW = {"ID": "31623", "authors": "שלמה רובין", "translators": "", "author_uris": "https://wikidata.org/wiki/Q2215049",
+       "translator_uris": "", "source_edition": "קראקוב: אהרן פויסט"}
+
+
+def _wikidata(qid: str, died: str | None) -> ij.WikidataSnapshot:
+    claims = {"P570": [{"rank": "normal", "mainsnak": {"snaktype": "value", "datavalue": {"value": {"time": died, "precision": 11}}}}]} if died else {}
+    entity = {"entities": {qid: {"id": qid, "labels": {"en": {"language": "en", "value": "Salomon Rubin"}}, "claims": claims}}}
+    return ij.wikidata_snapshot_from_bytes(qid, json.dumps(entity).encode())
+
+
+WIKIDATA = {"Q2215049": _wikidata("Q2215049", "+1910-12-27T00:00:00Z")}
 
 
 def _metadata() -> dict:
@@ -71,44 +86,33 @@ def test_public_domain_licence_fields_give_their_own_source_class(fields: dict, 
 
 
 @pytest.mark.parametrize(
-    ("fields", "reason"),
+    ("fields", "evidence"),
     [
-        ({"sponsor": "Google"}, "ia_google_scan:sponsor"),
-        ({"contributor": "Google Books"}, "ia_google_scan:contributor"),
-        ({"scanner": "Google"}, "ia_google_scan:scanner"),
-        ({"collection": ["americana", "googlebooks"]}, "ia_google_scan:collection"),
-        ({"identifier": "bub_gb_AbCdEf123"}, "ia_google_scan:identifier"),
-        ({"identifier": "liuimshonimmiki00geiggoog"}, "ia_google_scan:identifier"),
-        ({"description": "Book digitized by Google from the library of Oxford University."}, "ia_google_scan:description"),
+        ({"sponsor": "Google"}, "sponsor: Google"),
+        ({"contributor": "Google Books"}, "contributor: Google Books"),
+        ({"scanner": "Google"}, "scanner: Google"),
+        ({"collection": ["americana", "googlebooks"]}, "collection: googlebooks"),
+        ({"identifier": "bub_gb_AbCdEf123"}, "identifier: bub_gb_AbCdEf123 (Google Books import pattern bub_gb_)"),
+        ({"identifier": "liuimshonimmiki00geiggoog"}, "identifier: liuimshonimmiki00geiggoog (Google Books import pattern goog)"),
+        ({"description": "Book digitized by Google from the library of Oxford University."}, "description: Book digitized by Google from the library of Oxford University."),
     ],
 )
-def test_google_scans_are_rejected_even_with_a_public_domain_mark(fields: dict, reason: str) -> None:
-    decision = ia.decide_ia_rights(_with(licenseurl="http://creativecommons.org/publicdomain/mark/1.0/", **fields))
-    assert not decision.accepted
-    assert decision.reason == reason
-    assert decision.source_class is None
-    assert decision.evidence()["decision"] == "rejected"
-
-
-@pytest.mark.parametrize("contributor", [None, "", "Anonymous", "unknown"])
-def test_anonymous_uploads_are_rejected(contributor: str | None) -> None:
-    decision = ia.decide_ia_rights(_with(contributor=contributor, sponsor=None, scanner="Internet Archive HTML5 Uploader 1.7.0"))
-    assert not decision.accepted
-    assert decision.reason == "ia_anonymous_upload_no_known_library"
-
-
-@pytest.mark.parametrize(
-    "fields",
-    [
-        {"contributor": "National Library of Israel"},
-        {"source": "https://commons.wikimedia.org/wiki/File:X.pdf (from www.nli.org.il)"},
-        {"description": "סריקה של הספרייה הלאומית"},
-    ],
-)
-def test_files_from_nli_are_rejected(fields: dict) -> None:
+def test_google_scans_are_accepted_with_their_own_class_and_digitizer_evidence(fields: dict, evidence: str) -> None:
+    # Condition 2 is superseded by the 2026-11-10 legal strategy (Route B).
     decision = ia.decide_ia_rights(_with(**fields))
-    assert not decision.accepted
-    assert decision.reason.startswith("ia_files_from_nli:")
+    assert decision.accepted
+    assert decision.reason == "ia_google_digitized_scan_accepted"
+    assert decision.source_class == "ia_google_digitized_scan"
+    record = decision.evidence()
+    assert evidence in record["google_evidence"]
+    assert record["digitizer"]["name"] == "Google" and evidence in record["digitizer"]["evidence"]
+    assert record["amended_by"] == "planning/decisions/2026-11-10-legal-strategy.md"
+
+
+def test_a_google_digitizer_is_a_known_source_without_a_contributor() -> None:
+    decision = ia.decide_ia_rights(_with(identifier="bub_gb_AbCdEf123", contributor=None, sponsor=None, scanner=None))
+    assert decision.accepted and decision.source_class == "ia_google_digitized_scan"
+    assert decision.evidence()["digitizer"] == {"name": "Google", "evidence": ["identifier: bub_gb_AbCdEf123 (Google Books import pattern bub_gb_)"]}
 
 
 @pytest.mark.parametrize(
@@ -129,13 +133,18 @@ def test_restrictive_or_unclear_rights_are_rejected(fields: dict, reason: str) -
 
 
 def test_every_failed_condition_is_recorded() -> None:
-    decision = ia.decide_ia_rights(_with(sponsor="Google", contributor=None, rights="All rights reserved"))
+    decision = ia.decide_ia_rights(_with(mediatype="audio", contributor=None, sponsor=None, rights="All rights reserved"))
     assert decision.evidence()["failed_conditions"] == [
-        "ia_google_scan:sponsor",
+        "ia_not_a_printed_text:audio",
         "ia_anonymous_upload_no_known_library",
         "ia_rights_restrictive",
     ]
-    assert decision.reason == "ia_google_scan:sponsor"
+    assert decision.reason == "ia_not_a_printed_text:audio"
+
+
+def test_google_items_still_need_conditions_1_and_5() -> None:
+    decision = ia.decide_ia_rights(_with(sponsor="Google", licenseurl="https://creativecommons.org/licenses/by-nc/4.0/"))
+    assert not decision.accepted and decision.reason.startswith("ia_licence_non_commercial:")
 
 
 # --- canvas adapter ----------------------------------------------------------------------------------------
@@ -174,15 +183,27 @@ def test_v3_adapter_skips_non_canvases_and_reads_a_bare_service() -> None:
 # --- the aligner's IA scan record --------------------------------------------------------------------------
 
 
-def _scan() -> dict:
-    record = tool.ia_scan_record(
-        _metadata(),
+def _fixture_metadata(**fields: object) -> dict:
+    # The fixture manifest is trimmed to 3 canvases; its imagecount is set to match.
+    return _with(imagecount="3", **fields)
+
+
+def _scan_record(metadata: dict | None = None, *, identifier: str = IDENTIFIER, wikidata: dict | None = None):
+    return tool.ia_scan_record(
+        metadata or _fixture_metadata(),
         _manifest(),
-        identifier=IDENTIFIER,
+        identifier=identifier,
         manifest_url=ia.IA_MANIFEST_URL.format(identifier=IDENTIFIER),
         manifest_sha256="m" * 64,
         metadata_sha256="d" * 64,
+        catalogue_row=ROW,
+        wikidata=WIKIDATA if wikidata is None else wikidata,
+        as_of=AS_OF,
     )
+
+
+def _scan() -> dict:
+    record = _scan_record()
     assert isinstance(record, dict)
     return record
 
@@ -202,13 +223,21 @@ def test_ia_scan_record_carries_source_rights_fields_and_gate_evidence() -> None
     assert scan["canvas_count"] == 3
     assert "nli_record_id" not in scan and "license_slug" not in scan
     assert tool.scan_record_id(scan) == IDENTIFIER
+    justification = scan["rights_justification"]
+    assert justification["id"].startswith(f"rj:{IDENTIFIER}:")
+    # The route records the metadata URL, the manifest and every image service the alignment used, with sha256s.
+    assert justification["route"]["url"][:2] == [scan["metadata_url"], scan["manifest_url"]]
+    assert len(justification["route"]["url"]) == 2 + 3
+    assert justification["route"]["sha256"] == {"metadata_snapshot": "d" * 64, "manifest": "m" * 64}
 
 
-def test_ia_scan_record_refuses_rejected_items_and_mismatched_ids() -> None:
-    rejected = tool.ia_scan_record(_with(sponsor="Google"), _manifest(), identifier=IDENTIFIER, manifest_url="u", manifest_sha256="", metadata_sha256="")
-    assert rejected == "scan rejected by the IA gate: ia_google_scan:sponsor"
-    other = tool.ia_scan_record(_metadata(), _manifest(), identifier="another00item", manifest_url="u", manifest_sha256="", metadata_sha256="")
+def test_ia_scan_record_refuses_rejected_items_mismatched_ids_and_unjustified_items() -> None:
+    rejected = _scan_record(_fixture_metadata(rights="All rights reserved"))
+    assert rejected == "scan rejected by the IA gate: ia_rights_restrictive"
+    other = _scan_record(identifier="another00item")
     assert isinstance(other, str) and "not 'another00item'" in other
+    unjustified = _scan_record(wikidata={})
+    assert unjustified == "scan rejected by the IA rights justification: justification_missing_death_year:שלמה רובין"
 
 
 def test_ia_report_summaries_and_review_heading() -> None:
@@ -246,9 +275,11 @@ def test_nli_scan_keys_and_compact_rows_are_unchanged() -> None:
 def test_align_args_accept_an_ia_source() -> None:
     args = tool.parse_args(
         ["align", "--source", "ia", "--catalogue", "c.csv", "--pby-id", "1", "--pby-text", "t", "--manifest", "m.json",
-         "--ia-identifier", IDENTIFIER, "--ia-metadata", "md.json", "--work-dir", "w", "--out-dir", "o", "--generated-on", "2026-11-09"]
+         "--ia-identifier", IDENTIFIER, "--ia-metadata", "md.json", "--work-dir", "w", "--out-dir", "o", "--generated-on", "2026-11-09",
+         "--wikidata-snapshots", "wd", "--nli-snapshot", "nli.json", "--as-of", "2026-11-10"]
     )
     assert args.source == "ia" and args.ia_identifier == IDENTIFIER and args.nli_record_id is None and args.manifest_url is None
+    assert args.wikidata_snapshots == Path("wd") and args.nli_snapshot == Path("nli.json") and args.as_of == "2026-11-10"
     nli = tool.parse_args(
         ["align", "--catalogue", "c.csv", "--pby-id", "1", "--pby-text", "t", "--manifest", "m.json", "--manifest-url", "u",
          "--nli-record-id", "99", "--work-dir", "w", "--out-dir", "o", "--generated-on", "2026-11-09"]
