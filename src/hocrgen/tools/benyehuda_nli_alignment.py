@@ -1122,7 +1122,7 @@ def summarize_alignment(pages: Sequence[dict[str, Any]], pby_text: str) -> dict[
             covered.append((start, end))
     located = sum(len(skeleton(pby_text[start:end]).strict) for start, end in covered)
     total = len(skeleton(pby_text).strict)
-    aligned_indices = [page["canvas_index"] for page in aligned]
+    aligned_indices = sorted(page["canvas_index"] for page in aligned)
     interior_missing = [
         page["canvas_index"]
         for page in pages
@@ -1166,12 +1166,18 @@ def alignment_report(
     image_width: int | None,
     generated_on: str,
     ocr_model: str | None = None,
+    canvas_order: str = "scan",
 ) -> dict[str, Any]:
+    """The alignment report. ``pages``/``canvases``/``canvas_indices`` are in the order the text is read; with
+    ``canvas_order="reversed"`` (a back-to-front scan) that is descending canvas index, recorded as
+    ``method.canvas_order``; the default scan order is not recorded, so default output is unchanged."""
     alignments = align_pages(pby_text, pages)
     records = build_page_records(alignments, pby_text, canvases, canvas_indices)
     method: dict[str, Any] = {"ocr_engine": ocr_engine}
     if ocr_model is not None:
         method["ocr_model"] = ocr_model
+    if canvas_order != "scan":
+        method["canvas_order"] = canvas_order
     return {
         "format": ALIGNMENT_FORMAT,
         "tool_version": TOOL_VERSION,
@@ -1637,6 +1643,9 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
             "attribution": capture.attribution,
         }
     indices = _parse_range(args.canvases, len(canvases))
+    if args.reverse_canvases:
+        # A back-to-front scan: read the pages last canvas first. Page records keep the true canvas index.
+        indices = indices[::-1]
     work_dir: Path = args.work_dir
     lang: str = args.tesseract_lang
     tessdata_dir: Path | None = args.tessdata_dir
@@ -1678,7 +1687,7 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
         with Image.open(image_path) as image:
             scale = canvas_width / image.width
         pages.append(parse_tesseract_tsv(tsv_path.read_text(encoding="utf-8"), scale=scale))
-        sys.stderr.write(f"\rOCR {index + 1}/{len(canvases)}")
+        sys.stderr.write(f"\rOCR {len(pages)}/{len(indices)} (canvas {index})" if args.reverse_canvases else f"\rOCR {index + 1}/{len(canvases)}")
     sys.stderr.write("\n")
     report = alignment_report(
         work={**catalogue_fields(row), "pby_release": args.pby_release, "pby_text_path": pby_text_path(row), "pby_text_url": pby_raw_url(row, args.pby_release)},
@@ -1691,6 +1700,7 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
         image_width=args.image_width,
         generated_on=args.generated_on,
         ocr_model=ocr_model,
+        canvas_order="reversed" if args.reverse_canvases else "scan",
     )
     out_dir: Path = args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -1796,6 +1806,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     align.add_argument("--out-dir", type=Path, required=True)
     align.add_argument("--generated-on", required=True)
     align.add_argument("--request-delay", type=float, default=1.0)
+    align.add_argument(
+        "--reverse-canvases",
+        action="store_true",
+        help="Read the canvases last first (a back-to-front scan, e.g. a Hebrew book scanned left to right). Page records keep "
+        "the true canvas index; recorded as method.canvas_order: reversed.",
+    )
     align.add_argument("--tesseract-lang", default="heb", help="Tesseract language (traineddata name) used to place the text.")
     align.add_argument(
         "--tessdata-dir",
