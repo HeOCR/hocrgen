@@ -322,3 +322,18 @@ def test_nli_rows_and_summary_are_unchanged_by_the_ia_justification(tmp_path, ro
     summary, rows = _build(tmp_path, root, "--keep-pointed", "--no-images")
     assert rows and not any({"scan_source", "source_class", "rights_justification_id"} & set(r) for r in rows)
     assert "ia_rights_justification_missing" not in summary["dropped"]
+
+
+def test_line_overlapping_the_google_watermark_is_dropped(tmp_path, root):
+    _as_ia(root, "2", "bub_gb_test1")
+    path = root / "out" / "2" / "alignment.json"
+    al = json.loads(path.read_text(encoding="utf-8"))
+    al["scan"]["source_class"] = "ia_google_digitized_scan"
+    # Lines sit at y = 20 + 40 * i (30 px tall); the watermark box overlaps line 3 only.
+    al["pages"][0]["google_watermark_bbox"] = [100, 140, 200, 15]
+    path.write_text(json.dumps(al, ensure_ascii=False), encoding="utf-8")
+    summary, rows = _build(tmp_path, root, "--keep-pointed", "--no-images")
+    ia_rows = [r for r in rows if r["record_id"] == "bub_gb_test1"]
+    assert sorted(r["line_index"] for r in ia_rows) == [0, 1, 2]
+    assert summary["dropped"]["google_watermark_overlap"] == 1
+    assert all(r["source_class"] == "ia_google_digitized_scan" for r in ia_rows)

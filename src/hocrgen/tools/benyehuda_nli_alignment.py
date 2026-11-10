@@ -39,7 +39,12 @@ and ``possible-copyright-status`` as found, and the gate evidence. Google-digiti
 accepted too (2026-11-10 legal strategy), and every accepted IA scan carries ``scan.rights_justification``, built
 from evidence by ``hocrgen.fetchers.ia_justification`` (PBY catalogue row, saved Wikidata entity snapshots
 ``--wikidata-snapshots``, an optional saved NLI manifest ``--nli-snapshot``, and ``--as-of``); an item whose
-justification cannot be filled is rejected. NLI runs and their outputs are unchanged.
+justification cannot be filled is rejected. For a Google-digitized item, ``align`` also runs the hygiene pass of the
+strategy's rule 5 (``hocrgen.fetchers.google_hygiene``): an ``eng`` Tesseract pass on the first 1-3 canvases detects
+Google's usage-guidelines front page, which is marked ``excluded_google_front_matter`` and never aligned; an ``eng``
+pass on each page's foot band finds the "Digitized by Google" watermark, recorded as the page's
+``google_watermark_bbox`` (canvas pixels). Both go into ``scan.google_hygiene`` and the justification's ``hygiene``.
+NLI runs and their outputs are unchanged.
 
 The NLI key is read only from ``NLI_API_KEY`` and is never printed, logged or written. CI never runs the
 network or OCR paths; tests use pinned fixtures and synthetic input.
@@ -71,10 +76,19 @@ from urllib.parse import urlencode
 
 from PIL import Image
 
+from hocrgen.fetchers.google_hygiene import (
+    EXCLUDED_GOOGLE_FRONT_MATTER,
+    FRONT_MATTER_MAX_CANVASES,
+    detect_google_front_matter,
+    detect_google_watermark,
+    foot_band_box,
+    hygiene_record,
+)
 from hocrgen.fetchers.ia_iiif import (
     IA_MANIFEST_URL,
     IA_METADATA_URL,
     IA_SOURCE,
+    SOURCE_CLASS_GOOGLE,
     decide_ia_rights,
     ia_v3_canvases,
     manifest_label,
@@ -1577,9 +1591,11 @@ def ia_scan_record(
     as_of: dt.date,
     canvas_indices: Sequence[int] | None = None,
     nli_snapshot: NliSnapshot | None = None,
+    google_hygiene: dict[str, Any] | None = None,
 ) -> dict[str, Any] | str:
     """The report's ``scan`` for an IA item, or an error string when the IA gate rejects it, the ids disagree, or
-    its rights justification cannot be filled. ``canvas_indices`` are the canvases aligned (default all)."""
+    its rights justification cannot be filled. ``canvas_indices`` are the canvases aligned (default all);
+    ``google_hygiene`` is the hygiene pass's record for a Google item (``scan.google_hygiene``)."""
 
     decision = decide_ia_rights(metadata)
     if decision.identifier != identifier:
@@ -1601,11 +1617,12 @@ def ia_scan_record(
         canvas_count=len(canvases),
         image_urls=image_urls,
         nli_snapshot=nli_snapshot,
+        hygiene=google_hygiene,
         decision=decision,
     )
     if not justification.accepted:
         return f"scan rejected by the IA rights justification: {justification.reason}"
-    return {
+    scan: dict[str, Any] = {
         "source": IA_SOURCE,
         "record_id": identifier,
         "ia_identifier": identifier,
@@ -1624,9 +1641,19 @@ def ia_scan_record(
         "label": manifest_label(manifest),
         "attribution": manifest_provider(manifest),
     }
+    if google_hygiene is not None:
+        scan["google_hygiene"] = google_hygiene
+    return scan
 
 
-def ia_scan(args: argparse.Namespace, manifest: dict[str, Any], manifest_bytes: bytes, row: dict[str, str], indices: Sequence[int]) -> dict[str, Any] | str:  # pragma: no cover - operator path
+def ia_scan(
+    args: argparse.Namespace,
+    manifest: dict[str, Any],
+    manifest_bytes: bytes,
+    row: dict[str, str],
+    indices: Sequence[int],
+    google_hygiene: dict[str, Any] | None = None,
+) -> dict[str, Any] | str:  # pragma: no cover - operator path
     if not args.ia_identifier or args.ia_metadata is None:
         return "--ia-identifier and --ia-metadata are required for an IA scan."
     if args.wikidata_snapshots is None or args.as_of is None:
@@ -1644,6 +1671,7 @@ def ia_scan(args: argparse.Namespace, manifest: dict[str, Any], manifest_bytes: 
         as_of=dt.date.fromisoformat(args.as_of),
         canvas_indices=indices,
         nli_snapshot=load_nli_snapshot(args.nli_snapshot) if args.nli_snapshot is not None else None,
+        google_hygiene=google_hygiene,
     )
 
 
@@ -1704,14 +1732,14 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
         status, body = fetch(f"{service}/info.json")
         return json.loads(body) if status == 200 else None
 
-    pages: list[list[OcrLine]] = []
-    for index in indices:
+    def page_image(index: int) -> tuple[Path, int, int]:
+        """The canvas's cached image (fetched when missing), the canvas width, and the HTTP status (200 if cached)."""
         canvas = resolve_canvas_size(canvases[index], lambda: info_json(canvas_image_service(canvases[index])))
         canvases[index] = canvas
         service = canvas_image_service(canvas)
         canvas_width = int(canvas.get("width") or args.image_width)
         image_path = work_dir / "img" / f"c{index:04d}.jpg"
-        tsv_path = ocr_dir / f"c{index:04d}.tsv"
+        status = 200
         if not image_path.exists():
             # The image server refuses upscaling (HTTP 403), and canvas sizes can differ from the image's.
             width = min(args.image_width, canvas_width)
@@ -1721,18 +1749,60 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
                 info_width = json.loads(info_body).get("width") if info_status == 200 else None
                 if isinstance(info_width, int) and info_width < width:
                     status, body = fetch(f"{service}/full/{info_width},/0/default.jpg")
+            if status == 200:
+                image_path.write_bytes(body)
+        return image_path, canvas_width, status
+
+    google = args.source == "ia" and scan.get("source_class") == SOURCE_CLASS_GOOGLE
+    excluded: list[dict[str, Any]] = []
+    watermarks: dict[int, list[int] | None] = {}
+    if google:
+        # Rule 5 hygiene: Google's usage-guidelines front page (first 1-3 canvases) is never aligned.
+        (work_dir / "ocr-eng-front").mkdir(parents=True, exist_ok=True)
+        for index in sorted(i for i in indices if i < FRONT_MATTER_MAX_CANVASES):
+            image_path, _, status = page_image(index)
             if status != 200:
-                sys.stderr.write(f"canvas {index}: image HTTP {status}; page left empty\n")
-                pages.append([])
                 continue
-            image_path.write_bytes(body)
+            front_tsv = work_dir / "ocr-eng-front" / f"c{index:04d}.tsv"
+            if not front_tsv.exists():
+                front_tsv.write_text(run_tesseract(image_path, lang="eng", psm=3), encoding="utf-8")
+            is_front, phrases = detect_google_front_matter(front_tsv.read_text(encoding="utf-8"))
+            if is_front:
+                excluded.append({"canvas_index": index, "reason": EXCLUDED_GOOGLE_FRONT_MATTER, "phrases": phrases})
+        indices = [index for index in indices if index not in {item["canvas_index"] for item in excluded}]
+        (work_dir / "foot").mkdir(parents=True, exist_ok=True)
+        (work_dir / "ocr-eng-foot").mkdir(parents=True, exist_ok=True)
+    pages: list[list[OcrLine]] = []
+    for index in indices:
+        image_path, canvas_width, status = page_image(index)
+        tsv_path = ocr_dir / f"c{index:04d}.tsv"
+        if status != 200:
+            sys.stderr.write(f"canvas {index}: image HTTP {status}; page left empty\n")
+            pages.append([])
+            continue
         if not tsv_path.exists():
             tsv_path.write_text(run_tesseract(image_path, lang=lang, tessdata_dir=tessdata_dir), encoding="utf-8")
         with Image.open(image_path) as image:
             scale = canvas_width / image.width
+            if google:
+                # Rule 5 hygiene: the "Digitized by Google" watermark at the page foot.
+                band = foot_band_box(image.size)
+                foot_path = work_dir / "foot" / f"c{index:04d}.png"
+                foot_tsv = work_dir / "ocr-eng-foot" / f"c{index:04d}.tsv"
+                if not foot_tsv.exists():
+                    image.crop(band).save(foot_path)
+                    foot_tsv.write_text(run_tesseract(foot_path, lang="eng", psm=6), encoding="utf-8")
+                watermarks[index] = detect_google_watermark(foot_tsv.read_text(encoding="utf-8"), band_top=band[1], scale=scale)
         pages.append(parse_tesseract_tsv(tsv_path.read_text(encoding="utf-8"), scale=scale))
         sys.stderr.write(f"\rOCR {len(pages)}/{len(indices)} (canvas {index})" if args.reverse_canvases else f"\rOCR {index + 1}/{len(canvases)}")
     sys.stderr.write("\n")
+    if google:
+        hygiene = hygiene_record(excluded, watermarks)
+        scan_or_error = ia_scan(args, manifest, manifest_bytes, row, sorted(indices), google_hygiene=hygiene)
+        if isinstance(scan_or_error, str):
+            sys.stderr.write(scan_or_error + "\n")
+            return 2
+        scan = scan_or_error
     report = alignment_report(
         work={**catalogue_fields(row), "pby_release": args.pby_release, "pby_text_path": pby_text_path(row), "pby_text_url": pby_raw_url(row, args.pby_release)},
         scan=scan,
@@ -1746,6 +1816,9 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
         ocr_model=ocr_model,
         canvas_order="reversed" if args.reverse_canvases else "scan",
     )
+    for page in report["pages"]:
+        if watermarks.get(page["canvas_index"]) is not None:
+            page["google_watermark_bbox"] = watermarks[page["canvas_index"]]
     out_dir: Path = args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "alignment.json").write_text(json.dumps(report, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
