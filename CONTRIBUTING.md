@@ -20,6 +20,8 @@ Use the path that matches the change:
 | Review data update | focused review-decision or override PR | one-record-per-file JSON under `review_data/`, reviewer/rationale/timestamp, no broad allowlists |
 | Documentation or policy fix | focused PR | keep README, roadmap, and planning tests aligned when workflow expectations change |
 
+For contributions from people and organizations who do not write code (texts, scans, handwriting, labels, rights research, resources), see the [Contribution Channels Map](./docs/contribution_channels_map.md). It is a planning map: a channel accepts contributions only after its own roadmap item lands.
+
 ## Source proposal workflow
 
 Open an issue before adding source code or changing release profiles. A source proposal should include:

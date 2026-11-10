@@ -132,7 +132,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | D3 | Expansion and benchmark formation | D3a | Benchmark subset v1 | completed |
 | D4 | Expansion and benchmark formation | D4a, D4b | Richer synthetic generation, then synthetic diversity/reporting hardening | completed |
 | D5 | Expansion and benchmark formation | D5a | Optional transcription-ready architecture | completed |
-| E1 | Ecosystem maturity | E1a | Community contribution model | completed |
+| E1 | Ecosystem maturity | E1a, E1b | Community contribution model, then the public contribution channels map | completed |
 | E2 | Ecosystem maturity | E2a, E2b | Baselines/evaluation utilities, then live/cached NLI seed acquisition | completed |
 | E3 | Ecosystem maturity | E3a | Annotation subset pilots | completed |
 | E4 | Ecosystem maturity | E4a | Multi-release governance maturity | completed |
@@ -178,6 +178,7 @@ Several milestones that are marked `partial` are code-complete enough to exercis
 | D4b | D4 | Synthetic diversity controls and reporting hardening | no | completed | merged as PR #33 |
 | D5a | D5 | Optional transcription-ready architecture foundations | no | completed | merged as PR #34 |
 | E1a | E1 | Community contribution model and contribution safety rails | no | completed | merged as PR #35 |
+| E1b | E1 | Map every people- and organization-facing contribution channel with its gates, as planning only | no | completed | planning-only channel map in docs/contribution_channels_map.md |
 | E2a | E2 | Baselines and evaluation utilities | no | completed | merged as PR #36 |
 | E2b | E2 | Live-but-cached batch acquisition for vetted NLI seed URLs | no | completed | merged as PR #38 |
 | E3a | E3 | Annotation subset pilots | no | completed | merged as PR #39 |
@@ -989,6 +990,8 @@ Enable outside contributors to safely help expand or improve the project.
 
 ### Current-state clarification
 `E1a` is implemented on the current ref as policy and documentation rails, not as a new ingestion workflow. The contribution model now lives in [`CONTRIBUTING.md`](../CONTRIBUTING.md), [`docs/source_adapter_contribution_guide.md`](./source_adapter_contribution_guide.md), [`docs/synthetic_asset_contribution_guide.md`](./synthetic_asset_contribution_guide.md), and [`docs/release_governance.md`](./release_governance.md). It defines source proposal requirements, review expectations for external changes, synthetic asset licensing/provenance rules, a dataset issue taxonomy, source-adapter acceptance criteria, and release governance notes while leaving typed config validation, rights classification, privacy review, review merge, release eligibility, benchmark stability, and export portability as mandatory gates.
+
+`E1b` adds [`docs/contribution_channels_map.md`](./contribution_channels_map.md), a planning-only map of contribution channels for non-developers: text, known-text physical transformations, images, ready-made pairs, labelling, rights research, evaluation, feedback from real use, resources, and reach. It ranks the channels and lists the gates that apply to every one of them. It does not add upload forms, collection flows, or sources; each channel selected for implementation needs its own roadmap notation and stays under `F3a`/`F3b` and the existing release gates.
 
 ### Risks / dependencies
 - community contributions increasing rights ambiguity
