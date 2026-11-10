@@ -35,7 +35,11 @@ on IA (maintainer decision ``planning/decisions/2026-11-09-internet-archive-libr
 metadata passes the IA gate (``hocrgen.fetchers.ia_iiif.decide_ia_rights``) instead of the NLI gate, and its saved IIIF
 v3 manifest is read through ``ia_v3_canvases``. The report's ``scan`` then carries ``source: "internet_archive"``,
 ``record_id`` (the IA identifier), the contributing library, ``source_class``, the item's ``rights``, ``licenseurl``
-and ``possible-copyright-status`` as found, and the gate evidence. NLI runs and their outputs are unchanged.
+and ``possible-copyright-status`` as found, and the gate evidence. Google-digitized and NLI-origin IA items are
+accepted too (2026-11-10 legal strategy), and every accepted IA scan carries ``scan.rights_justification``, built
+from evidence by ``hocrgen.fetchers.ia_justification`` (PBY catalogue row, saved Wikidata entity snapshots
+``--wikidata-snapshots``, an optional saved NLI manifest ``--nli-snapshot``, and ``--as-of``); an item whose
+justification cannot be filled is rejected. NLI runs and their outputs are unchanged.
 
 The NLI key is read only from ``NLI_API_KEY`` and is never printed, logged or written. CI never runs the
 network or OCR paths; tests use pinned fixtures and synthetic input.
@@ -47,6 +51,7 @@ import argparse
 import bisect
 import csv
 import dataclasses
+import datetime as dt
 import hashlib
 import html
 import json
@@ -74,6 +79,13 @@ from hocrgen.fetchers.ia_iiif import (
     ia_v3_canvases,
     manifest_label,
     manifest_provider,
+)
+from hocrgen.fetchers.ia_justification import (
+    NliSnapshot,
+    WikidataSnapshot,
+    build_ia_rights_justification,
+    load_nli_snapshot,
+    load_wikidata_snapshots,
 )
 from hocrgen.fetchers.nli_iiif import (
     NLI_CAPTURE_FORMAT,
@@ -1560,8 +1572,14 @@ def ia_scan_record(
     manifest_url: str,
     manifest_sha256: str,
     metadata_sha256: str,
+    catalogue_row: dict[str, str],
+    wikidata: dict[str, WikidataSnapshot],
+    as_of: dt.date,
+    canvas_indices: Sequence[int] | None = None,
+    nli_snapshot: NliSnapshot | None = None,
 ) -> dict[str, Any] | str:
-    """The report's ``scan`` for an IA item, or an error string when the IA gate rejects it or the ids disagree."""
+    """The report's ``scan`` for an IA item, or an error string when the IA gate rejects it, the ids disagree, or
+    its rights justification cannot be filled. ``canvas_indices`` are the canvases aligned (default all)."""
 
     decision = decide_ia_rights(metadata)
     if decision.identifier != identifier:
@@ -1569,6 +1587,24 @@ def ia_scan_record(
     if not decision.accepted:
         return f"scan rejected by the IA gate: {decision.reason}"
     evidence = decision.evidence()
+    canvases = ia_v3_canvases(manifest)
+    indices = range(len(canvases)) if canvas_indices is None else canvas_indices
+    image_urls = [service for service in (canvas_image_service(canvases[index]) for index in indices) if service]
+    justification = build_ia_rights_justification(
+        metadata,
+        catalogue_row=catalogue_row,
+        wikidata=wikidata,
+        as_of=as_of,
+        metadata_sha256=metadata_sha256,
+        manifest_url=manifest_url,
+        manifest_sha256=manifest_sha256,
+        canvas_count=len(canvases),
+        image_urls=image_urls,
+        nli_snapshot=nli_snapshot,
+        decision=decision,
+    )
+    if not justification.accepted:
+        return f"scan rejected by the IA rights justification: {justification.reason}"
     return {
         "source": IA_SOURCE,
         "record_id": identifier,
@@ -1582,16 +1618,19 @@ def ia_scan_record(
         "metadata_snapshot_sha256": metadata_sha256,
         "manifest_url": manifest_url,
         "manifest_upstream_sha256": manifest_sha256,
-        "canvas_count": len(ia_v3_canvases(manifest)),
+        "canvas_count": len(canvases),
         "rights_decision": evidence,
+        "rights_justification": justification.record,
         "label": manifest_label(manifest),
         "attribution": manifest_provider(manifest),
     }
 
 
-def ia_scan(args: argparse.Namespace, manifest: dict[str, Any], manifest_bytes: bytes) -> dict[str, Any] | str:  # pragma: no cover - operator path
+def ia_scan(args: argparse.Namespace, manifest: dict[str, Any], manifest_bytes: bytes, row: dict[str, str], indices: Sequence[int]) -> dict[str, Any] | str:  # pragma: no cover - operator path
     if not args.ia_identifier or args.ia_metadata is None:
         return "--ia-identifier and --ia-metadata are required for an IA scan."
+    if args.wikidata_snapshots is None or args.as_of is None:
+        return "--wikidata-snapshots and --as-of are required for an IA scan (its rights justification)."
     metadata_bytes = args.ia_metadata.read_bytes()
     return ia_scan_record(
         json.loads(metadata_bytes),
@@ -1600,6 +1639,11 @@ def ia_scan(args: argparse.Namespace, manifest: dict[str, Any], manifest_bytes: 
         manifest_url=args.manifest_url or IA_MANIFEST_URL.format(identifier=args.ia_identifier),
         manifest_sha256=hashlib.sha256(manifest_bytes).hexdigest(),
         metadata_sha256=hashlib.sha256(metadata_bytes).hexdigest(),
+        catalogue_row=row,
+        wikidata=load_wikidata_snapshots(args.wikidata_snapshots),
+        as_of=dt.date.fromisoformat(args.as_of),
+        canvas_indices=indices,
+        nli_snapshot=load_nli_snapshot(args.nli_snapshot) if args.nli_snapshot is not None else None,
     )
 
 
@@ -1610,12 +1654,12 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
     manifest_bytes = args.manifest.read_bytes()
     manifest = json.loads(manifest_bytes)
     if args.source == "ia":
-        scan_or_error = ia_scan(args, manifest, manifest_bytes)
+        canvases = ia_v3_canvases(manifest)
+        scan_or_error = ia_scan(args, manifest, manifest_bytes, row, _parse_range(args.canvases, len(canvases)))
         if isinstance(scan_or_error, str):
             sys.stderr.write(scan_or_error + "\n")
             return 2
         scan = scan_or_error
-        canvases = ia_v3_canvases(manifest)
     else:
         if not args.nli_record_id or not args.manifest_url:
             sys.stderr.write("--nli-record-id and --manifest-url are required for an NLI scan.\n")
@@ -1800,6 +1844,14 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     align.add_argument("--nli-record-id", help="The NLI record id (required for --source nli).")
     align.add_argument("--ia-identifier", help="The IA item identifier (required for --source ia).")
     align.add_argument("--ia-metadata", type=Path, help="A saved copy of https://archive.org/metadata/<identifier> (required for --source ia).")
+    align.add_argument(
+        "--wikidata-snapshots",
+        type=Path,
+        help="A directory of saved Wikidata entity snapshots (<QID>.json from Special:EntityData) for the work's author and "
+        "translator QIDs (required for --source ia: the rights justification reads death years from them).",
+    )
+    align.add_argument("--nli-snapshot", type=Path, help="A saved NLI IIIF manifest of an NLI-origin IA item (optional; records NLI's label).")
+    align.add_argument("--as-of", help="The date the rights justification is made, YYYY-MM-DD (required for --source ia).")
     align.add_argument("--canvases", help="Canvas index range start:end (default all).")
     align.add_argument("--image-width", type=int, default=1600)
     align.add_argument("--work-dir", type=Path, required=True)

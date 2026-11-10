@@ -247,7 +247,8 @@ def test_build_v2_fails_closed_on_unclassified_pointed_edition(tmp_path, root):
     assert v1["schema"].endswith(".v1")
 
 
-def _as_ia(root: Path, pby: str, identifier: str, *, gate: str = bl.IA_GATE, decision: str = "accepted") -> None:
+def _as_ia(root: Path, pby: str, identifier: str, *, gate: str = bl.IA_GATE, decision: str = "accepted",
+           justified: bool = True) -> None:
     """Rewrite one fixture record's alignment as an Internet Archive scan (``scan.record_id`` = identifier)."""
     path = root / "out" / pby / "alignment.json"
     al = json.loads(path.read_text(encoding="utf-8"))
@@ -255,6 +256,8 @@ def _as_ia(root: Path, pby: str, identifier: str, *, gate: str = bl.IA_GATE, dec
     al["scan"] = {"source": "internet_archive", "record_id": identifier, "ia_identifier": identifier,
                   "source_class": "ia_library_scan_no_licence_field",
                   "rights_decision": {"gate": gate, "decision": decision}}
+    if justified:
+        al["scan"]["rights_justification"] = {"id": f"rj:{identifier}:0123456789ab", "summary": "s"}
     path.write_text(json.dumps(al, ensure_ascii=False), encoding="utf-8")
     (root / "work" / old).rename(root / "work" / identifier)
 
@@ -301,6 +304,21 @@ def test_build_reads_ia_alignments_and_skips_ia_items_the_gate_did_not_accept(tm
     assert len(ia_rows) == 4 and all(r["id"].startswith("ia_sefer00test_c0000_l") for r in ia_rows)
     assert all(r["split"] == "train" for r in ia_rows)
     assert all(r["scan_source"] == "internet_archive" and r["source_class"] == "ia_library_scan_no_licence_field" for r in ia_rows)
-    assert not any("scan_source" in r or "source_class" in r for r in rows if r["record_id"] != "sefer00test")
+    assert all(r["rights_justification_id"] == "rj:sefer00test:0123456789ab" for r in ia_rows)
+    assert not any("scan_source" in r or "source_class" in r or "rights_justification_id" in r for r in rows if r["record_id"] != "sefer00test")
     assert not any(r["record_id"] == "google00goog" for r in rows)
     assert summary["lines_by_book_and_ocr_placer"]["sefer00test sefer00test"] == {"tessdata:r6": 4}
+
+
+def test_ia_scan_without_a_rights_justification_gives_no_lines(tmp_path, root):
+    _as_ia(root, "2", "sefer00test", justified=False)
+    summary, rows = _build(tmp_path, root, "--keep-pointed", "--no-images")
+    assert not any(r["record_id"] == "sefer00test" for r in rows)
+    assert summary["dropped"]["ia_rights_justification_missing"] == 4
+
+
+def test_nli_rows_and_summary_are_unchanged_by_the_ia_justification(tmp_path, root):
+    # NLI-only roots: no IA keys on any row and no IA drop counter.
+    summary, rows = _build(tmp_path, root, "--keep-pointed", "--no-images")
+    assert rows and not any({"scan_source", "source_class", "rights_justification_id"} & set(r) for r in rows)
+    assert "ia_rights_justification_missing" not in summary["dropped"]

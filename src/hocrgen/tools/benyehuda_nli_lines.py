@@ -19,8 +19,10 @@ in ``alignment.json`` are IIIF canvas pixels; Tesseract boxes are image pixels (
 ``build`` keeps lines of class ``matched`` with score >= ``--min-score`` on ``aligned`` pages of records whose rights
 decision is ``accepted``: with license ``public-domain-free-use`` for an NLI scan, or by the IA gate
 (``hocrgen.fetchers.ia_iiif.decide_ia_rights``) for an Internet Archive scan (``scan.source: "internet_archive"``,
-whose record is ``scan.record_id``, the IA identifier; its line ids start ``ia_`` instead of ``nli`` (by ``scan.source``), and each IA row carries ``scan_source`` and ``source_class`` so a
-release can be rebuilt without IA lines). The alignment's line span is approximate at the
+whose record is ``scan.record_id``, the IA identifier; its line ids start ``ia_`` instead of ``nli`` (by ``scan.source``), and each IA row carries ``scan_source``, ``source_class`` and
+``rights_justification_id`` so a release can be rebuilt without IA lines and every line points to its scan's rights
+justification). An IA scan without a ``scan.rights_justification`` (an alignment made before the 2026-11-10 legal
+strategy, not yet back-filled) gives no lines; its matched lines are counted as ``ia_rights_justification_missing``. The alignment's line span is approximate at the
 edges, so it is snapped to word (or after-hyphen) boundaries within two units of each edge, keeping the span whose
 label best matches Tesseract's reading of that line. Dropped: lines taller than 1.6x the page's median line (two printed
 lines), lines whose best label still matches the line OCR below 0.7, ``[n]`` footnote markers, characters outside
@@ -87,13 +89,20 @@ def record_id(scan: Mapping[str, Any]) -> str:
 
 
 def rights_accepted(scan: Mapping[str, Any]) -> bool:
-    """NLI: accepted ``public-domain-free-use``. IA: accepted by the IA gate."""
+    """NLI: accepted ``public-domain-free-use``. IA: accepted by the IA gate (its justification is checked apart)."""
     decision = scan.get("rights_decision") or {}
     if decision.get("decision") != "accepted":
         return False
     if scan.get("source") == IA_SOURCE:
         return decision.get("gate") == IA_GATE
     return scan.get("license_slug") == ACCEPTED_LICENSE
+
+
+def rights_justification_id(scan: Mapping[str, Any]) -> str | None:
+    """The id of an IA scan's ``rights_justification`` (2026-11-10 legal strategy), or None when it has none."""
+    record = scan.get("rights_justification")
+    value = record.get("id") if isinstance(record, Mapping) else None
+    return value if isinstance(value, str) and value else None
 
 
 def label(raw: str, *, keep_niqqud: bool = False) -> str:
@@ -257,6 +266,12 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
         rec = record_id(scan)
         if not rights_accepted(scan):
             continue
+        justification_id = rights_justification_id(scan) if scan.get("source") == IA_SOURCE else None
+        if scan.get("source") == IA_SOURCE and justification_id is None:
+            drops["ia_rights_justification_missing"] += sum(
+                1 for page in al["pages"] if page["status"] == "aligned"
+                for line in page["lines"] if line.get("class") == "matched" and line.get("pby_span"))
+            continue
         method = al.get("method") or {}
         placer, ocr_sub = ocr_placer(method), ocr_subdir(method)
         source = str(ap_path.relative_to(root))
@@ -321,6 +336,7 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
                 if scan.get("source") == IA_SOURCE:  # NLI rows stay byte-identical
                     cand["scan_source"] = IA_SOURCE
                     cand["source_class"] = scan.get("source_class")
+                    cand["rights_justification_id"] = justification_id
                 if key in best:
                     drops["aligned_twice"] += 1
                     if cand["alignment_score"] <= best[key]["alignment_score"]:
