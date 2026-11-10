@@ -38,7 +38,7 @@ from hocrgen.core.errors import StageExecutionError
 
 BANK_SCHEMA = "printed_glyph_bank.v1"
 TOOL_NAME = "hocrgen.tools.glyph_harvest"
-TOOL_VERSION = "s16-glyph-harvest-v3"
+TOOL_VERSION = "s16-glyph-harvest-v4"
 
 HEBREW_LETTERS = frozenset(chr(code) for code in range(0x05D0, 0x05EB))
 DIGITS = frozenset("0123456789")
@@ -48,6 +48,13 @@ HARVESTABLE = HEBREW_LETTERS | DIGITS | PUNCTUATION
 X_HEIGHT_LETTERS = frozenset("אבגדהחטכמסעפצשתם")
 DESCENDERS = frozenset("ךןףץק")
 DOUBLE_MARKS = frozenset("\"״")
+
+# NLI's credit line, required on every product built from its public-domain-free-use scans (heocr-lead, 2026-11-10).
+NLI_CREDIT = "From the collections of the National Library of Israel / מאוסף הספרייה הלאומית"
+
+
+def nli_attribution(record: str) -> str:
+    return f"{NLI_CREDIT} (NLI record {record})"
 SINGLE_MARKS = frozenset("'׳")
 # Characters whose bottom is not on the baseline, so they do not vote for it.
 OFF_BASELINE = DESCENDERS | frozenset("'\"״׳-–—־()[]י")
@@ -886,7 +893,14 @@ def benyehuda_units(f8f_root: Path, *, min_line_score: float = 0.85) -> tuple[li
         style_id = f"nli-{record}"
         styles.setdefault(
             style_id,
-            StyleSource(style_id=style_id, source_id="benyehuda_nli_free_use", work_id=record, licence="PD", match_key=f"nli_record:{record}"),
+            StyleSource(
+                style_id=style_id,
+                source_id="benyehuda_nli_free_use",
+                work_id=record,
+                licence="PD",
+                attribution=nli_attribution(record),
+                match_key=f"nli_record:{record}",
+            ),
         )
         for page in alignment["pages"]:
             lines = [line for line in page.get("lines", []) if line.get("class") == "matched" and (line.get("score") or 0) >= min_line_score and line.get("pby_span")]

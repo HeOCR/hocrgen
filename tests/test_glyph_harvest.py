@@ -248,8 +248,10 @@ def test_benyehuda_units_convert_canvas_line_boxes_to_image_pixels(tmp_path):
     }
     (root / "out" / "7" / "alignment.json").write_text(json.dumps(alignment, ensure_ascii=False), encoding="utf-8")
 
-    _, units = gh.benyehuda_units(root)
+    styles, units = gh.benyehuda_units(root)
     units = list(units)
 
     assert [unit.reference_text for unit in units] == ["אבס בא", "סבא אב"]
+    # Every NLI style carries NLI's credit line with its record id.
+    assert [style.attribution for style in styles] == [f"{gh.NLI_CREDIT} (NLI record {record})"]
     assert [[word.text for word in unit.ocr_words] for unit in units] == [["אבס", "בא"], ["סבא", "אב"]]
