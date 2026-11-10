@@ -35,6 +35,7 @@ from typing import Iterable, Iterator, Sequence
 from PIL import Image
 
 from hocrgen.core.errors import StageExecutionError
+from hocrgen.fetchers.ia_justification import ia_derivation_blocker
 
 BANK_SCHEMA = "printed_glyph_bank.v1"
 TOOL_NAME = "hocrgen.tools.glyph_harvest"
@@ -883,6 +884,10 @@ def benyehuda_units(f8f_root: Path, *, min_line_score: float = 0.85) -> tuple[li
     for alignment_path in sorted((f8f_root / "out").glob("*/alignment.json")):
         alignment = json.loads(alignment_path.read_text(encoding="utf-8"))
         scan = alignment.get("scan") or {}
+        # Fails closed on IA scans (no rights justification, or Google hygiene pending). This path takes only NLI
+        # free-use scans today, so it changes nothing yet; an IA glyph source must keep this call.
+        if ia_derivation_blocker(scan) is not None:
+            continue
         if scan.get("license_slug") != "public-domain-free-use" or (scan.get("rights_decision") or {}).get("decision") != "accepted":
             continue
         record = scan["nli_record_id"]

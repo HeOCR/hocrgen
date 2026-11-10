@@ -83,3 +83,26 @@ def test_hygiene_record_fills_the_google_justification() -> None:
                           "manifest_upstream_sha256": "m" * 64, "canvas_count": 3, "google_hygiene": hygiene}}
     again = ij.justify_existing_alignment(alignment, metadata_bytes, WIKIDATA, dt.date(2026, 11, 10), catalogue_row=ROW)
     assert again.accepted and again.record["hygiene"] == hygiene
+
+
+def test_ia_derivation_blocker_fails_closed() -> None:
+    justified = {"id": "rj:x:0123456789ab", "source_class": "ia_library_scan_no_licence_field", "hygiene": "none"}
+    library = {"source": "internet_archive", "source_class": "ia_library_scan_no_licence_field", "rights_justification": justified}
+    assert ij.ia_derivation_blocker(library) is None
+    assert ij.ia_derivation_blocker({**library, "rights_justification": None}) == "ia_rights_justification_missing"
+    google = {"source": "internet_archive", "source_class": "ia_google_digitized_scan",
+              "rights_justification": {**justified, "source_class": "ia_google_digitized_scan", "hygiene": "pending"}}
+    assert ij.ia_derivation_blocker(google) == "google_hygiene_pending"
+    # "none" is the non-Google value; on a Google scan it is not a hygiene record either.
+    assert ij.ia_derivation_blocker({**google, "rights_justification": {**google["rights_justification"], "hygiene": "none"}}) == "google_hygiene_pending"
+    done = gh.hygiene_record([], {0: [1, 2, 3, 4]})
+    assert ij.ia_derivation_blocker({**google, "rights_justification": {**google["rights_justification"], "hygiene": done}}) is None
+    # The back-fill of a Google scan without a hygiene pass leaves "pending", so the scan stays blocked.
+    metadata = _metadata(identifier="bub_gb_AbCdEf123", contributor=None, sponsor="Google")
+    backfilled = ij.justify_existing_alignment(
+        {"work": {"pby_id": ROW["ID"]}, "pages": [], "scan": {"source": "internet_archive", "ia_identifier": "bub_gb_AbCdEf123",
+         "manifest_url": "u", "manifest_upstream_sha256": "m" * 64, "canvas_count": 3}},
+        json.dumps(metadata).encode(), WIKIDATA, AS_OF, catalogue_row=ROW)
+    scan = {"source": "internet_archive", "source_class": "ia_google_digitized_scan", "rights_justification": backfilled.record}
+    assert backfilled.record["hygiene"] == "pending" and ij.ia_derivation_blocker(scan) == "google_hygiene_pending"
+    assert ij.ia_derivation_blocker({"nli_record_id": "99", "license_slug": "public-domain-free-use"}) is None
