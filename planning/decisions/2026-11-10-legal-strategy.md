@@ -14,6 +14,7 @@
   - heocr-engine decision 0014.
 - **Supersedes:**
   - condition 2 of the 2026-11-09 Internet Archive decision ("not a Google scan");
+  - condition 4 of the same decision ("files that came from NLI … stay under NLI's gate"), for files fetched from the Internet Archive or Wikimedia Commons (see the maintainer's ruling below);
   - item 2 of the 2026-11-10 open-release decision ("published without an explicit licence"), for the licence only. The NOTICE part stays.
 - **Resolves:** the conflict between hocrgen decision 9 (2026-11-06, Google-digitized Commons files accepted) and the 2026-11-09 IA rule. Decision 9 stands.
 
@@ -57,20 +58,26 @@ HeOCR:
 - **It opens older printed Hebrew.** Most pre-1900 Hebrew scans at NLI were digitized by Google; earlier, 77 of 104 NLI candidates were Google-class. Many of the same editions are on the Internet Archive (`bub_gb_…`, `…goog`) or on Commons, and Routes B and C make them usable. Recognizing old print is HeOCR's main weakness.
 - **It is one reference for every contributor.** Rights gates, adapters, NOTICEs and model cards follow this record instead of re-deciding rights case by case.
 
+## Maintainer ruling on NLI-origin files (2026-11-10)
+
+The strategy discusses only Google-digitized files on Routes B and C. Asked whether NLI's own scans that reached Wikimedia Commons or the Internet Archive may be used in the same way, the maintainer answered: "Yes, same logic" (Shay Palachy Affek, 2026-11-10).
+
+- **Condition 4 of the 2026-11-09 IA decision no longer applies to files fetched from IA or Commons.** An NLI-origin scan fetched there is accepted like any other Route B or C file, whatever NLI's own label for it, because HeOCR has no contract with NLI on those routes. Its NLI origin is recorded in its provenance, and NLI is credited.
+- **Route A is unchanged.** A file fetched through NLI's own API still follows NLI's gate.
+
 ## Still open
 
-- **Condition 4 of the 2026-11-09 IA decision** ("files that came from NLI, for example through Wikimedia Commons, stay under NLI's gate"). The strategy's reasoning, which is no contract on Routes B and C, also covers NLI-origin files on Commons or IA, but the strategy discusses only Google-digitized files there. Until the maintainer confirms, condition 4 stands.
 - **The citations in the strategy have not been independently verified.** Check each one against its primary source before it appears in a public NOTICE.
 
 ## Consequences
 
-- **The IA gate (`hocrgen.fetchers.ia_iiif.decide_ia_rights`)** accepts Google-digitized items (`bub_gb_…`, `…goog`, Google scanner or sponsor) with their own `source_class`. It records the digitizer, and still applies conditions 1, 3, 4 and 5.
+- **The IA gate (`hocrgen.fetchers.ia_iiif.decide_ia_rights`)** accepts Google-digitized items (`bub_gb_…`, `…goog`, Google scanner or sponsor) with their own `source_class`. It records the digitizer, and still applies conditions 1, 3 and 5. Condition 4 is lifted by the ruling above, so NLI-origin items are accepted and their NLI origin is recorded.
 - **The NLI gate (`decide_nli_rights`) is unchanged.** It still rejects `public-domain-non-commercial-use`, which is Route A.
 - **Line building, glyph harvesting and benchmark export** drop Google cover pages and crop Google watermarks, and carry the provenance fields above.
 - **The F8f scouting pass** searches IA and Commons for the Google-class NLI editions, the pre-1900 ones first.
 - **pgb-v1 and pgb-v1b:**
   - Their Google-digitized source (Index 260883, via IA) becomes acceptable.
-  - Their 2 Commons files from NLI wait on the condition-4 question.
+  - Their 2 Commons files from NLI (Indexes 288180 and 288182) become acceptable under the ruling above.
   - The unnamed-scanner IA upload and the two unlicensed local files still lack evidence.
   - The banks stay quarantined in any case, because of eval contamination.
 - **The pools get CC0 1.0** in place of the `PROJECT-SYNTHETIC` placeholder, with a NOTICE crediting NLI for the glyphs and Project Ben-Yehuda for the text.
