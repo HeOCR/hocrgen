@@ -65,6 +65,28 @@ The strategy discusses only Google-digitized files on Routes B and C. Asked whet
 - **Condition 4 of the 2026-11-09 IA decision no longer applies to files fetched from IA or Commons.** An NLI-origin scan fetched there is accepted like any other Route B or C file, whatever NLI's own label for it, because HeOCR has no contract with NLI on those routes. Its NLI origin is recorded in its provenance, and NLI is credited.
 - **Route A is unchanged.** A file fetched through NLI's own API still follows NLI's gate.
 
+## Per-item rights justification (maintainer, 2026-11-10)
+
+The maintainer asked that this be documented clearly, with its justification recorded for every item that comes in through this route. So **every scan accepted through Route B or C** carries its own `rights_justification` record, in `scan` and in `editions.json`, and every line, glyph or page derived from that scan points to it. Route B is the Internet Archive and Route C is Wikimedia Commons. A scan whose digitizer or origin is Google or NLI must have one; no exceptions.
+
+The gate generates the record from evidence; nobody writes it by hand. If the gate cannot fill a required field, it rejects the item. Required fields:
+
+| Field | What it records |
+|---|---|
+| `route` | `internet_archive` or `wikimedia_commons`, plus the exact URL the file was fetched from and its sha256 |
+| `work_public_domain` | Author or authors with death years, publication year and place, Israeli status (author died over 70 years ago), and US status (published before the current US cutoff, or the reason it is PD in the US). Every source is cited, for example the PBY catalogue or NLI authority dates. |
+| `faithful_reproduction` | That the file is a faithful scan of a 2D printed page, so no new right arises. Cites strategy §1: *Feist* / *Bridgeman* in the US, *Interlego* in Israel. |
+| `digitizer` | Who scanned it: Google, NLI or a named library. Gives the evidence, such as metadata fields, an identifier pattern (`bub_gb_`, `…goog`) or a Commons template. |
+| `origin_label` | Any restriction the original holder attached, recorded as found. Examples: NLI's `public-domain-non-commercial-use`, or Google's front-page usage guidelines. Null when there is none. |
+| `why_not_binding` | Why that label does not bind HeOCR or its users: HeOCR fetched the file from IA or Commons, accepted no terms from Google or NLI for it, and is not in privity with them (strategy §2(a) and §2(c)). The text is fixed and filled in from the fields above. |
+| `route_terms` | The terms of the route itself: IA's terms for public-domain items, or the file's Commons licence or PD template. None of these restrict reuse. |
+| `hygiene` | The Google front-matter canvases excluded, and the watermark boxes cropped (or `none`). |
+| `decision_refs` | This record (including the ruling on NLI-origin files, where it applies), `docs/legal/2026-11-10_legal_strategy.md`, and the 2026-11-09 IA decision. |
+| `summary` | One plain sentence for the NOTICE and the dataset card. Example: "Public-domain book (author d. 1875, printed 1868); faithful scan digitized by Google; fetched from the Internet Archive (bub_gb_…), not from Google or NLI; no new right in the scan and no contract binds its reuse." |
+
+- **Releases:** a release ships the `rights_justification` of every source item in its provenance file. The NOTICE summarises it per route.
+- **Takedown:** a takedown request is answered from this record.
+
 ## Still open
 
 - **The citations in the strategy have not been independently verified.** Check each one against its primary source before it appears in a public NOTICE.
