@@ -19,7 +19,7 @@ in ``alignment.json`` are IIIF canvas pixels; Tesseract boxes are image pixels (
 ``build`` keeps lines of class ``matched`` with score >= ``--min-score`` on ``aligned`` pages of records whose rights
 decision is ``accepted``: with license ``public-domain-free-use`` for an NLI scan, or by the IA gate
 (``hocrgen.fetchers.ia_iiif.decide_ia_rights``) for an Internet Archive scan (``scan.source: "internet_archive"``,
-whose record is ``scan.record_id``, the IA identifier; its line ids start ``ia_`` instead of ``nli``, and each IA row carries ``scan_source`` and ``source_class`` so a
+whose record is ``scan.record_id``, the IA identifier; its line ids start ``ia_`` instead of ``nli`` (by ``scan.source``), and each IA row carries ``scan_source`` and ``source_class`` so a
 release can be rebuilt without IA lines). The alignment's line span is approximate at the
 edges, so it is snapped to word (or after-hyphen) boundaries within two units of each edge, keeping the span whose
 label best matches Tesseract's reading of that line. Dropped: lines taller than 1.6x the page's median line (two printed
@@ -229,9 +229,9 @@ def crop_box(image_size: tuple[int, int], bbox_canvas: Sequence[float], canvas_w
     return scale, (x, y, w, h), box
 
 
-def line_id(record: str, canvas_index: int, line_index: int) -> str:
-    """``nli<record>_…`` for an NLI record (always numeric), ``ia_<identifier>_…`` for an IA item."""
-    prefix = "nli" if record.isdigit() else "ia_"
+def line_id(record: str, canvas_index: int, line_index: int, source: str | None = None) -> str:
+    """``ia_<identifier>_…`` for an Internet Archive scan (``source`` is ``scan.source``), else ``nli<record>_…``."""
+    prefix = "ia_" if source == IA_SOURCE else "nli"
     return f"{prefix}{record}_c{canvas_index:04d}_l{line_index:03d}"
 
 
@@ -349,8 +349,10 @@ def pointed_book_gate(best: dict, drops: Counter) -> dict[str, dict[str, Any]]:
     return report
 
 
-def cap_per_book(keys: list, cap: int, exempt: Iterable[str]) -> tuple[list, Counter]:
+def cap_per_book(keys: list, cap: int, exempt: Iterable[str], sources: Mapping[str, str | None] | None = None) -> tuple[list, Counter]:
+    """Keep at most ``cap`` lines per record by sha256 of the line id; ``sources`` maps a record to its scan source."""
     exempt = set(exempt)
+    sources = sources or {}
     by_rec = defaultdict(list)
     for k in keys:
         by_rec[k[0]].append(k)
@@ -359,7 +361,7 @@ def cap_per_book(keys: list, cap: int, exempt: Iterable[str]) -> tuple[list, Cou
         if rec in exempt:
             keep |= set(ks)
             continue
-        order = sorted(ks, key=lambda k: hashlib.sha256(line_id(*k).encode()).hexdigest())
+        order = sorted(ks, key=lambda k: hashlib.sha256(line_id(*k, source=sources.get(k[0])).encode()).hexdigest())
         keep |= set(order[:cap])
         capped[rec] = max(0, len(ks) - cap)
     return [k for k in keys if k in keep], capped
@@ -389,7 +391,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     keys = sorted(best)
     capped: Counter = Counter()
     if args.max_lines_per_book:
-        keys, capped = cap_per_book(keys, args.max_lines_per_book, () if args.cap_dev else dev)
+        keys, capped = cap_per_book(keys, args.max_lines_per_book, () if args.cap_dev else dev,
+                                    {k[0]: best[k].get("scan_source") for k in best})
     v2 = args.schema == "v2"
     rows = []
     counts: dict[str, Counter] = defaultdict(Counter)
@@ -402,7 +405,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         alignment, page_ocr = r.pop("_alignment"), r.pop("_page_ocr")
         rec = r["record_id"]
         split = "dev" if rec in dev else "train"
-        lid = line_id(*key)
+        lid = line_id(*key, source=r.get("scan_source"))
         rel = Path(split) / rec / f"{lid}.png"
         with Image.open(root / "work" / rec / "img" / f"c{r['canvas_index']:04d}.jpg") as im:
             scale, (x, y, w, h), box = crop_box(im.size, r["bbox_canvas"], r["canvas_size"][0])

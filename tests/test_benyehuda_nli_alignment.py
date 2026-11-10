@@ -696,3 +696,62 @@ def test_page_record_notes_a_size_taken_from_info_json() -> None:
     assert record["canvas_size_source"] == "info.json"
     plain = tool.page_record([], "", canvas={"@id": "c1", "width": 10, "height": 10}, canvas_index=0, gap_before=None)
     assert "canvas_size_source" not in plain
+
+
+# --- reversed canvas order (back-to-front scans) -----------------------------------------------------------
+
+
+def _three_page_scan() -> tuple[str, list[list[tool.OcrLine]], list[dict]]:
+    """A text over three pages, scanned back to front: canvas 0 holds the last page, canvas 2 the first."""
+    text = tool.pby_body(_excerpt())
+    lines = _lines(_ocr_like(text))
+    third = len(lines) // 3
+    reading = [_page(lines[:third]), _page(lines[third : 2 * third]), _page(lines[2 * third :])]
+    scan = list(reversed(reading))
+    canvases = [{"@id": f"c{index}", "label": str(index), "width": 1000, "height": 1500} for index in range(3)]
+    return text, scan, canvases
+
+
+def _report(text, pages, canvases, indices, **kwargs):
+    return tool.alignment_report(work={"pby_id": "1", "title": "t"}, scan={"source": "internet_archive", "record_id": "x"},
+                                 pby_text=text, pages=pages, canvases=canvases, canvas_indices=indices, ocr_engine="e",
+                                 image_width=1600, generated_on="2026-11-10", **kwargs)
+
+
+def test_reversed_canvas_order_aligns_a_back_to_front_scan_and_keeps_true_indices() -> None:
+    text, scan, canvases = _three_page_scan()
+    order = [2, 1, 0]
+    reversed_report = _report(text, [scan[i] for i in order], [canvases[i] for i in order], order, canvas_order="reversed")
+    scan_report = _report(text, scan, canvases, [0, 1, 2])
+    assert reversed_report["method"]["canvas_order"] == "reversed"
+    assert reversed_report["summary"]["aligned_pages"] == 3
+    assert scan_report["summary"]["aligned_pages"] < 3
+    # Page records keep the true canvas index (images, OCR and the line builder use it) in reading order.
+    assert [page["canvas_index"] for page in reversed_report["pages"]] == [2, 1, 0]
+    assert [page["canvas_id"] for page in reversed_report["pages"]] == ["c2", "c1", "c0"]
+    starts = [page["pby_span"]["start"] for page in reversed_report["pages"]]
+    assert starts == sorted(starts)
+
+
+def test_default_scan_order_is_not_recorded() -> None:
+    text, scan, canvases = _three_page_scan()
+    assert "canvas_order" not in _report(text, scan, canvases, [0, 1, 2])["method"]
+    assert "canvas_order" not in _report(text, scan, canvases, [0, 1, 2], canvas_order="scan")["method"]
+
+
+def test_interior_missing_pages_are_found_in_either_order() -> None:
+    text, scan, canvases = _three_page_scan()
+    blank = _page(["קטע מיצירה אחרת שאין לה קשר לטקסט הזה בכלל"] * 16)
+    # Four canvases read back to front; canvas 2 (between aligned canvases 3 and 1) carries text PBY lacks.
+    pages = [scan[2], blank, scan[1], scan[0]]
+    four = [*canvases, {"@id": "c3", "label": "3", "width": 1000, "height": 1500}]
+    order = [3, 2, 1, 0]
+    report = _report(text, pages, [four[i] for i in order], order, canvas_order="reversed")
+    assert report["summary"]["interior_text_pages_not_in_pby"] == [2]
+
+
+def test_reverse_canvases_flag() -> None:
+    base = ["align", "--catalogue", "c", "--pby-id", "1", "--pby-text", "t", "--manifest", "m", "--work-dir", "w", "--out-dir", "o",
+            "--generated-on", "2026-11-10"]
+    assert tool.parse_args(base).reverse_canvases is False
+    assert tool.parse_args([*base, "--reverse-canvases"]).reverse_canvases is True

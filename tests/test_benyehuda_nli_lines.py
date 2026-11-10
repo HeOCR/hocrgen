@@ -269,7 +269,28 @@ def test_record_id_and_rights_for_both_sources():
     assert not bl.rights_accepted({**ia, "rights_decision": {"decision": "accepted"}})
     assert not bl.rights_accepted({**ia, "rights_decision": {"gate": bl.IA_GATE, "decision": "rejected"}})
     assert bl.line_id("990012", 3, 7) == "nli990012_c0003_l007"
-    assert bl.line_id("abc00x", 3, 7) == "ia_abc00x_c0003_l007"
+    assert bl.line_id("abc00x", 3, 7, source="internet_archive") == "ia_abc00x_c0003_l007"
+
+
+def test_line_id_prefix_follows_the_scan_source_not_the_id_shape():
+    # An all-digit IA identifier still gets the ia_ prefix; an NLI record keeps nli.
+    assert bl.line_id("1234567", 0, 1, source=bl.IA_SOURCE) == "ia_1234567_c0000_l001"
+    assert bl.line_id("1234567", 0, 1) == bl.line_id("1234567", 0, 1, source=None) == "nli1234567_c0000_l001"
+    assert bl.line_id("abc00x", 0, 1) == "nliabc00x_c0000_l001"  # no source given: the NLI default
+
+
+def test_cap_per_book_ranks_ia_lines_by_their_ia_line_ids():
+    keys = [("12345", 0, n) for n in range(6)]
+    as_ia, _ = bl.cap_per_book(keys, 3, (), {"12345": bl.IA_SOURCE})
+    as_nli, _ = bl.cap_per_book(keys, 3, ())
+    rank = lambda prefix: sorted(keys, key=lambda k: bl.hashlib.sha256(f"{prefix}12345_c0000_l{k[2]:03d}".encode()).hexdigest())[:3]  # noqa: E731
+    assert set(as_ia) == set(rank("ia_")) and set(as_nli) == set(rank("nli"))
+
+
+def test_build_names_an_all_digit_ia_identifier_by_its_source(tmp_path, root):
+    _as_ia(root, "2", "20191010")
+    _, rows = _build(tmp_path, root, "--keep-pointed", "--no-images")
+    assert {r["id"][:12] for r in rows if r["record_id"] == "20191010"} == {"ia_20191010_"}
 
 
 def test_build_reads_ia_alignments_and_skips_ia_items_the_gate_did_not_accept(tmp_path, root):
