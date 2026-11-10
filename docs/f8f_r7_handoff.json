@@ -1,0 +1,525 @@
+{
+ "format": "heocr.f8f_r7_handoff.v1",
+ "generated_on": "2026-11-11",
+ "hocrgen_commit": "bf3c1ff",
+ "decision": "heocr-lead 2026-11-11 00:45 (R7 timing delegated by the maintainer): hand off f8f3 7 books + f8f_ia 26 books now; stragglers to R8",
+ "line_build": {
+  "command": "python -I -m hocrgen.tools.benyehuda_nli_lines build <out> --root f8f/f8f3 --root f8f/f8f_ia --prefer-placer stock --keep-pointed --pointed 990013297040205171=hiawatha-nli-1922 990018346960205171=meyuhas-bat-hayil-1901 990020403130205171=pines-sefer-hakoah-1894 eretsyiraelsefer00goor nirdavid01coheuoft shirathayaatahme00long_0 --unpointed mimitsrayimhusef00fran --dev 990010684570205171=bodek-1870 990010106660205171=bodek-1865 nirdavid01coheuoft=nir-david-1834 990020250940205171=silman-1929 990018546440205171=brainin-1928",
+  "dry_run": "--no-images; manifest_sha256 is for that run (image_sha256 null)",
+  "summary": {
+   "schema": "s16c_benyehuda_nli_lines.v2",
+   "min_score": 0.9,
+   "labels": "Ben-Yehuda edition text placed by F8f alignment; never OCR output",
+   "label_folds": {
+    "…": "...",
+    "„": "\"",
+    "­": ""
+   },
+   "min_ocr_similarity": 0.7,
+   "max_height_ratio": 1.6,
+   "dev_records": {
+    "990010684570205171": "bodek-1870",
+    "990010106660205171": "bodek-1865",
+    "nirdavid01coheuoft": "nir-david-1834",
+    "990020250940205171": "silman-1929",
+    "990018546440205171": "brainin-1928"
+   },
+   "pointed_records": {
+    "990013297040205171": "hiawatha-nli-1922",
+    "990018346960205171": "meyuhas-bat-hayil-1901",
+    "990020403130205171": "pines-sefer-hakoah-1894",
+    "eretsyiraelsefer00goor": "eretsyiraelsefer00goor",
+    "nirdavid01coheuoft": "nirdavid01coheuoft",
+    "shirathayaatahme00long_0": "shirathayaatahme00long_0"
+   },
+   "lines": {
+    "dev": {
+     "990010684570205171 bodek-1870": 21,
+     "nirdavid01coheuoft nir-david-1834": 823
+    },
+    "train": {
+     "990013297040205171 hiawatha-nli-1922": 1074,
+     "990017640460205171 990017640460205171": 7945,
+     "990018346960205171 meyuhas-bat-hayil-1901": 785,
+     "990020403130205171 pines-sefer-hakoah-1894": 1965,
+     "990020466440205171 990020466440205171": 72,
+     "ademataidibruivr00benyuoft ademataidibruivr00benyuoft": 2980,
+     "agadothatanaim11bach agadothatanaim11bach": 2977,
+     "anshekayruan00pozn anshekayruan00pozn": 1218,
+     "atn3681.0001.001.umich.edu atn3681.0001.001.umich.edu": 4128,
+     "eretsyiraelsefer00goor eretsyiraelsefer00goor": 606,
+     "hegyoneshpinozah00rubi hegyoneshpinozah00rubi": 557,
+     "igrothaasirmeiha00drey igrothaasirmeiha00drey": 2498,
+     "imanuelharomimon0000tche imanuelharomimon0000tche": 2572,
+     "kolsifreperetsbe01smoluoft kolsifreperetsbe01smoluoft": 16188,
+     "kolsifreperetsbe03smoluoft kolsifreperetsbe03smoluoft": 19885,
+     "kolsifreperetsbe05smoluoft kolsifreperetsbe05smoluoft": 5489,
+     "ldpd_15772050_000 ldpd_15772050_000": 4639,
+     "maamarmagenetsin00mode maamarmagenetsin00mode": 1145,
+     "mabeothayehudims00raff mabeothayehudims00raff": 4137,
+     "maloketravseadya00bornuoft maloketravseadya00bornuoft": 3658,
+     "masaleeretsyirae00lewi masaleeretsyirae00lewi": 1918,
+     "mimitsrayimhusef00fran mimitsrayimhusef00fran": 3590,
+     "mishnatrishonimt0000klat mishnatrishonimt0000klat": 2553,
+     "miyarketetevel008800 miyarketetevel008800": 4760,
+     "motsaegolahzikhr00rabbuoft motsaegolahzikhr00rabbuoft": 2853,
+     "peereakhmemedina00gree peereakhmemedina00gree": 2777,
+     "reginahashkenazi00ginsuoft reginahashkenazi00ginsuoft": 1305,
+     "sepherhayyeyehud01mode sepherhayyeyehud01mode": 1491,
+     "sifrehazikhronot00mont sifrehazikhronot00mont": 8204
+    }
+   },
+   "totals": {
+    "dev": 844,
+    "train": 113969
+   },
+   "dropped": {
+    "below_min_score": 7041,
+    "label_disagrees_with_line_ocr": 14550,
+    "pointed_print_label_unpointed": 613,
+    "taller_than_one_line": 1315,
+    "outside_repertoire": 1171,
+    "aligned_twice": 2924,
+    "footnote_marker": 1,
+    "pointed_line_underpointed": 194
+   },
+   "manifest_sha256": "4c96d926a680defa8c17d0670bd14767fa8e8091570125d02dc1d9f0ff70ab82",
+   "roots": [
+    "f8f/f8f3",
+    "f8f/f8f_ia"
+   ],
+   "strata": {
+    "dev": {
+     "unpointed": 21,
+     "pointed": 823
+    },
+    "train": {
+     "pointed": 4430,
+     "unpointed": 109539
+    }
+   },
+   "lines_by_book_and_stratum": {
+    "dev": {
+     "990010684570205171 bodek-1870": {
+      "unpointed": 21
+     },
+     "nirdavid01coheuoft nir-david-1834": {
+      "pointed": 823
+     }
+    },
+    "train": {
+     "990013297040205171 hiawatha-nli-1922": {
+      "pointed": 1074
+     },
+     "990017640460205171 990017640460205171": {
+      "unpointed": 7945
+     },
+     "990018346960205171 meyuhas-bat-hayil-1901": {
+      "pointed": 785
+     },
+     "990020403130205171 pines-sefer-hakoah-1894": {
+      "pointed": 1965
+     },
+     "990020466440205171 990020466440205171": {
+      "unpointed": 72
+     },
+     "ademataidibruivr00benyuoft ademataidibruivr00benyuoft": {
+      "unpointed": 2980
+     },
+     "agadothatanaim11bach agadothatanaim11bach": {
+      "unpointed": 2977
+     },
+     "anshekayruan00pozn anshekayruan00pozn": {
+      "unpointed": 1218
+     },
+     "atn3681.0001.001.umich.edu atn3681.0001.001.umich.edu": {
+      "unpointed": 4128
+     },
+     "eretsyiraelsefer00goor eretsyiraelsefer00goor": {
+      "pointed": 606
+     },
+     "hegyoneshpinozah00rubi hegyoneshpinozah00rubi": {
+      "unpointed": 557
+     },
+     "igrothaasirmeiha00drey igrothaasirmeiha00drey": {
+      "unpointed": 2498
+     },
+     "imanuelharomimon0000tche imanuelharomimon0000tche": {
+      "unpointed": 2572
+     },
+     "kolsifreperetsbe01smoluoft kolsifreperetsbe01smoluoft": {
+      "unpointed": 16188
+     },
+     "kolsifreperetsbe03smoluoft kolsifreperetsbe03smoluoft": {
+      "unpointed": 19885
+     },
+     "kolsifreperetsbe05smoluoft kolsifreperetsbe05smoluoft": {
+      "unpointed": 5489
+     },
+     "ldpd_15772050_000 ldpd_15772050_000": {
+      "unpointed": 4639
+     },
+     "maamarmagenetsin00mode maamarmagenetsin00mode": {
+      "unpointed": 1145
+     },
+     "mabeothayehudims00raff mabeothayehudims00raff": {
+      "unpointed": 4137
+     },
+     "maloketravseadya00bornuoft maloketravseadya00bornuoft": {
+      "unpointed": 3658
+     },
+     "masaleeretsyirae00lewi masaleeretsyirae00lewi": {
+      "unpointed": 1918
+     },
+     "mimitsrayimhusef00fran mimitsrayimhusef00fran": {
+      "unpointed": 3590
+     },
+     "mishnatrishonimt0000klat mishnatrishonimt0000klat": {
+      "unpointed": 2553
+     },
+     "miyarketetevel008800 miyarketetevel008800": {
+      "unpointed": 4760
+     },
+     "motsaegolahzikhr00rabbuoft motsaegolahzikhr00rabbuoft": {
+      "unpointed": 2853
+     },
+     "peereakhmemedina00gree peereakhmemedina00gree": {
+      "unpointed": 2777
+     },
+     "reginahashkenazi00ginsuoft reginahashkenazi00ginsuoft": {
+      "unpointed": 1305
+     },
+     "sepherhayyeyehud01mode sepherhayyeyehud01mode": {
+      "unpointed": 1491
+     },
+     "sifrehazikhronot00mont sifrehazikhronot00mont": {
+      "unpointed": 8204
+     }
+    }
+   },
+   "lines_by_book_and_ocr_placer": {
+    "990010684570205171 bodek-1870": {
+     "stock": 21
+    },
+    "990013297040205171 hiawatha-nli-1922": {
+     "stock": 1074
+    },
+    "990017640460205171 990017640460205171": {
+     "stock": 7945
+    },
+    "990018346960205171 meyuhas-bat-hayil-1901": {
+     "stock": 785
+    },
+    "990020403130205171 pines-sefer-hakoah-1894": {
+     "stock": 1965
+    },
+    "990020466440205171 990020466440205171": {
+     "stock": 72
+    },
+    "ademataidibruivr00benyuoft ademataidibruivr00benyuoft": {
+     "stock": 2980
+    },
+    "agadothatanaim11bach agadothatanaim11bach": {
+     "stock": 2977
+    },
+    "anshekayruan00pozn anshekayruan00pozn": {
+     "stock": 1218
+    },
+    "atn3681.0001.001.umich.edu atn3681.0001.001.umich.edu": {
+     "stock": 4128
+    },
+    "eretsyiraelsefer00goor eretsyiraelsefer00goor": {
+     "stock": 606
+    },
+    "hegyoneshpinozah00rubi hegyoneshpinozah00rubi": {
+     "stock": 557
+    },
+    "igrothaasirmeiha00drey igrothaasirmeiha00drey": {
+     "stock": 2498
+    },
+    "imanuelharomimon0000tche imanuelharomimon0000tche": {
+     "stock": 2572
+    },
+    "kolsifreperetsbe01smoluoft kolsifreperetsbe01smoluoft": {
+     "stock": 16188
+    },
+    "kolsifreperetsbe03smoluoft kolsifreperetsbe03smoluoft": {
+     "stock": 19885
+    },
+    "kolsifreperetsbe05smoluoft kolsifreperetsbe05smoluoft": {
+     "stock": 5489
+    },
+    "ldpd_15772050_000 ldpd_15772050_000": {
+     "stock": 4639
+    },
+    "maamarmagenetsin00mode maamarmagenetsin00mode": {
+     "stock": 1145
+    },
+    "mabeothayehudims00raff mabeothayehudims00raff": {
+     "stock": 4137
+    },
+    "maloketravseadya00bornuoft maloketravseadya00bornuoft": {
+     "stock": 3658
+    },
+    "masaleeretsyirae00lewi masaleeretsyirae00lewi": {
+     "stock": 1918
+    },
+    "mimitsrayimhusef00fran mimitsrayimhusef00fran": {
+     "stock": 3590
+    },
+    "mishnatrishonimt0000klat mishnatrishonimt0000klat": {
+     "stock": 2553
+    },
+    "miyarketetevel008800 miyarketetevel008800": {
+     "stock": 4760
+    },
+    "motsaegolahzikhr00rabbuoft motsaegolahzikhr00rabbuoft": {
+     "stock": 2853
+    },
+    "nirdavid01coheuoft nir-david-1834": {
+     "stock": 823
+    },
+    "peereakhmemedina00gree peereakhmemedina00gree": {
+     "stock": 2777
+    },
+    "reginahashkenazi00ginsuoft reginahashkenazi00ginsuoft": {
+     "stock": 1305
+    },
+    "sepherhayyeyehud01mode sepherhayyeyehud01mode": {
+     "stock": 1491
+    },
+    "sifrehazikhronot00mont sifrehazikhronot00mont": {
+     "stock": 8204
+    }
+   },
+   "prefer_placer": [
+    "stock"
+   ],
+   "ocr_placer_choice": {
+    "nirdavid01coheuoft": {
+     "chosen": {
+      "root": "f8f/f8f_ia",
+      "dir": "out",
+      "ocr_placer": [
+       "stock"
+      ],
+      "pby_ids": [
+       "31893"
+      ]
+     },
+     "skipped": [
+      {
+       "root": "f8f/f8f_ia",
+       "dir": "out_r6",
+       "ocr_placer": [
+        "r6@73eb18e0"
+       ],
+       "pby_ids": [
+        "31893"
+       ]
+      }
+     ]
+    }
+   },
+   "max_lines_per_book": 0,
+   "cap_dev": false,
+   "capped_lines": {},
+   "min_pointed_density": 0.3,
+   "max_undotted_shin": 0.05,
+   "max_bare_words": 0.01,
+   "pointed_edition_check": {
+    "990013297040205171": {
+     "lines": 1081,
+     "bare_word_rate": 0.0005,
+     "undotted_shin_rate": 0.0076,
+     "edition_fully_pointed": true
+    },
+    "990018346960205171": {
+     "lines": 799,
+     "bare_word_rate": 0.0002,
+     "undotted_shin_rate": 0.0141,
+     "edition_fully_pointed": true
+    },
+    "990020403130205171": {
+     "lines": 2096,
+     "bare_word_rate": 0.0051,
+     "undotted_shin_rate": 0.0195,
+     "edition_fully_pointed": true
+    },
+    "eretsyiraelsefer00goor": {
+     "lines": 640,
+     "bare_word_rate": 0.006,
+     "undotted_shin_rate": 0.0074,
+     "edition_fully_pointed": true
+    },
+    "nirdavid01coheuoft": {
+     "lines": 831,
+     "bare_word_rate": 0.0,
+     "undotted_shin_rate": 0.0079,
+     "edition_fully_pointed": true
+    }
+   },
+   "edition_niqqud_density": {
+    "990010684570205171": 0.005,
+    "990013297040205171": 0.706,
+    "990017640460205171": 0.003,
+    "990018346960205171": 0.58,
+    "990020403130205171": 0.734,
+    "990020466440205171": 0.043,
+    "ademataidibruivr00benyuoft": 0.01,
+    "agadothatanaim11bach": 0.003,
+    "anshekayruan00pozn": 0.002,
+    "atn3681.0001.001.umich.edu": 0.018,
+    "eretsyiraelsefer00goor": 0.789,
+    "hegyoneshpinozah00rubi": 0.0,
+    "igrothaasirmeiha00drey": 0.006,
+    "imanuelharomimon0000tche": 0.096,
+    "kolsifreperetsbe01smoluoft": 0.003,
+    "kolsifreperetsbe03smoluoft": 0.004,
+    "kolsifreperetsbe05smoluoft": 0.001,
+    "ldpd_15772050_000": 0.0,
+    "maamarmagenetsin00mode": 0.0,
+    "mabeothayehudims00raff": 0.0,
+    "maloketravseadya00bornuoft": 0.001,
+    "masaleeretsyirae00lewi": 0.0,
+    "mimitsrayimhusef00fran": 0.15,
+    "mishnatrishonimt0000klat": 0.018,
+    "miyarketetevel008800": 0.007,
+    "motsaegolahzikhr00rabbuoft": 0.009,
+    "nirdavid01coheuoft": 0.799,
+    "peereakhmemedina00gree": 0.002,
+    "reginahashkenazi00ginsuoft": 0.001,
+    "sepherhayyeyehud01mode": 0.009,
+    "sifrehazikhronot00mont": 0.002
+   },
+   "check_pointed_density": 0.1,
+   "unpointed_records": [
+    "mimitsrayimhusef00fran"
+   ],
+   "unpointed_with_pointed_edition": [
+    "mimitsrayimhusef00fran"
+   ],
+   "images_written": false
+  },
+  "ia_rows": 102951,
+  "ia_rows_missing_rights_justification_id": 0,
+  "ia_rights_justification_missing_drops": 0
+ },
+ "rights_justification_backfill": {
+  "as_of": "2026-11-10",
+  "hocrgen_commit": "d614c6e",
+  "works_accepted": 268,
+  "excluded": [
+   {
+    "ia_id": "seferhaatsamim00ibne",
+    "pby_id": "17928",
+    "reason": "justification_publication_place_missing"
+   },
+   {
+    "ia_id": "hakhmatshimonben00kohn",
+    "pby_id": "25753",
+    "reason": "justification_missing_death_year:שמעון בן סירא"
+   },
+   {
+    "ia_id": "p1toldothaemunot03menz",
+    "pby_id": "58581",
+    "reason": "justification_missing_death_year:יעקב פרנקל"
+   },
+   {
+    "ia_id": "hayehudimbelodzo00frenuoft",
+    "pby_id": "58907",
+    "reason": "justification_missing_death_year:יעקב פרנקל"
+   }
+  ]
+ },
+ "not_built": {
+  "out_alt": [
+   "990010106660205171 (Bodek 1865, dev, NLI)",
+   "shirathayaatahme00long_0 (IA copy of Hiawatha; the NLI copy probed at least as well)"
+  ],
+  "why": "the line builder reads only <pby_id>/ alignment dirs; out_alt/<pby>@<record> is skipped"
+ },
+ "skipped_ia_books": [
+  {
+   "ia_id": "givatyerushalayi00wies",
+   "year": "1870",
+   "reason": "probe: neither direction clears 2/6 (scan 0, reversed 0); tightened rule applied after alignment; outputs moved to superseded_direction_rule/"
+  },
+  {
+   "ia_id": "MN41838ucmf_3",
+   "year": "1893",
+   "reason": "probe: neither direction clears 2/6 (scan 0, reversed 0; per-page edition probe 0/6)"
+  },
+  {
+   "ia_id": "harimonsipur00brau",
+   "year": "1890",
+   "reason": "probe: neither direction clears 2/6 (scan 1, reversed 1; per-page edition probe 1/6)"
+  },
+  {
+   "ia_id": "yediothateva06bernuoft",
+   "year": "1883",
+   "reason": "probe: neither direction clears 2/6 (scan 0, reversed 0; per-page edition probe 0/6)"
+  },
+  {
+   "ia_id": "divreyemeolam02schuuoft",
+   "year": "1868",
+   "reason": "probe: neither direction clears 2/6 (scan 0, reversed 0; per-page edition probe 0/6)"
+  },
+  {
+   "ia_id": "kolkitveylkatsen018800",
+   "year": "1905",
+   "reason": "probe: neither direction clears 2/6 (scan 0, reversed 0; per-page edition probe 0/6)"
+  },
+  {
+   "ia_id": "kolsifreperetsbe06smoluoft",
+   "year": "1905",
+   "reason": "probe: neither direction clears 2/6 (scan 1, reversed 1; per-page edition probe 3/6)"
+  },
+  {
+   "ia_id": "kolkitvereuvenbe11brai",
+   "year": "1922",
+   "reason": "probe: neither direction clears 2/6 (scan 0, reversed 0; per-page edition probe 0/6)"
+  },
+  {
+   "ia_id": "seferhademaotmeo0000bern",
+   "year": [
+    "1923",
+    "1923",
+    "1923",
+    "1923"
+   ],
+   "reason": "probe: neither direction clears 2/6 (scan 0, reversed 0; per-page edition probe 0/6)"
+  },
+  {
+   "ia_id": "yotsrehasifrutha00zitr",
+   "year": "1922",
+   "reason": "probe: neither direction clears 2/6 (scan 1, reversed 1; per-page edition probe 1/6)"
+  },
+  {
+   "ia_id": "32882013393312-kitveyhtavyovke",
+   "year": null,
+   "reason": "probe: neither direction clears 2/6 (scan 1, reversed 1; per-page edition probe 1/6)"
+  }
+ ],
+ "deferred_to_r8": {
+  "f8f3": [
+   "Bachrach 1884 (990026910840205171, PBY 26111), confirmed, not aligned",
+   "221 shortlisted groups not yet through the NLI gate",
+   "the R6 second pass on f8f3"
+  ],
+  "f8f_ia": [
+   "bioretletoldotha01gott",
+   "kevarpirezikhron00haco",
+   "sifruthahisoriya11kaha"
+  ],
+  "f8f_g": "all (14 candidates + probe-promoted near misses)"
+ },
+ "release_notices": {
+  "f8f3": {
+   "rule": "heocr-lead 2026-11-10: everything is released openly; the NLI free-use gate (F8c decide_nli_rights, licence slug public-domain-free-use only) enforces it",
+   "scans": "Page images: from the collection of the National Library of Israel (מאוסף הספרייה הלאומית), each under the NLI 'public domain - free use' terms (https://www.nli.org.il/contenteditors/pages-for-terms-of-use/public-domain-free-use). Each book's provenance carries its NLI record id, manifest URL and the manifest's attribution.",
+   "texts": "Text: Project Ben-Yehuda public-domain dump, release 2026-03 (data files 'in the public domain'); credit 'Project Ben-Yehuda volunteers', https://benyehuda.org"
+  },
+  "f8f_ia": "Maintainer rule 2026-11-10 (via heocr-lead): everything is released openly. The Internet Archive items used here are published without an explicit licence (every item's source_class is ia_library_scan_no_licence_field: no licenseurl or rights field), and each item's original IA conditions still apply. Items are non-Google library scans of public-domain books, gated by hocrgen.fetchers.ia_iiif.decide_ia_rights (decision record planning/decisions/2026-11-09-internet-archive-library-scans.md); per-line provenance (scan_source, source_class, record_id) is kept by the line builder."
+ }
+}
