@@ -1914,7 +1914,7 @@ A run without the new flags is byte-identical to one before E2e. The plan is in 
 
 ## E2f — Evaluation-reserved units
 
-**Direction: heocr-engine decisions 0017 and 0018. `E2f1` is merged (#178), `E2f2` (#187) and `E2f3` (#188) are in review, and `E2f4` is planned.**
+**Direction: heocr-engine decisions 0017 and 0018. `E2f1` (#178) and `E2f3` (#188) are merged, `E2f2` is in review (#187), and `E2f4` is planned.**
 
 - **`E2f1`.** heocr-eval's P-mod unit split file is recorded as `eval_reserved_units.v1`. Eval and unassigned units are pinned to the `eval_reserved` release split, and every training-input builder refuses them.
 - **`E2f2`.** Governs `reshumot_scanned` (its own `reshumot_scanned:` unit prefix; one booklet, one Reshumot source) and `knesset_plenary_k1_12` (`plenary:K<knesset>_<sitting>`). Their rows are unassigned, and so refused, until a split version lists them.
