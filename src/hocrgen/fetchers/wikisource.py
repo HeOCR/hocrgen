@@ -69,6 +69,16 @@ WORK_RIGHTS_BASES = {
 SCAN_RIGHTS_BASES = {"faithful_reproduction_of_pd_work", "explicit_open_licence"}
 OPEN_SCAN_LICENCES = {"CC0-1.0", "PDM-1.0", "CC-BY-4.0", "CC-BY-SA-4.0"}
 ANONYMOUS_CREATOR_ROLES = {"anonymous", "pseudonymous"}
+# Team lead, hocrgen#171 review (2026-11-11): a cited floruit counts as an *author's* basis. A person active at the
+# latest in year F died by F + FLORUIT_LIFESPAN_MARGIN; every other contributor still needs a cited death year
+# (or a printing on or before 1855).
+FLORUIT_LIFESPAN_MARGIN = 100
+# Team lead, hocrgen#171 review: every commentary printed on the edition's pages must be named, with a cited death
+# year (decision 10's 1855 presumption covers the death year only), and an edition that may be a later reprint with
+# added material is not admitted until evidence clears it. Both fail closed.
+PRINTED_COMMENTARY_REASONS = ("printed_commentary_unnamed", "printed_commentary_unattributed",
+                              "printed_commentary_death_year_missing")
+REPRINT_REASON = "possible_later_reprint"
 # Team-lead decision (F8b3, 2026-11-06): the source is Hebrew. The Index's recorded language must be ``he``.
 INDEX_LANGUAGE = "he"
 # Page reasons that mean the pinned snapshot itself is broken; source health reports them as errors.
@@ -188,9 +198,59 @@ def index_exclusion_reasons(index: dict[str, Any]) -> list[str]:
         reasons.append("commons_file_unpinned")
     # Decision 10: the Commons licence template (PD-US-only, missing or other) never decides the work's status.
     reasons.extend(_work_rights_reasons(index))
+    reasons.extend(_printed_commentary_reasons(index))
+    reasons.extend(_reprint_reasons(index))
     reasons.extend(_scan_rights_reasons(index))
     reasons.extend(_language_reasons(index))
     return reasons
+
+
+def floruit_basis(creator: dict[str, Any]) -> bool:
+    """An author with no death year but a cited floruit early enough that they died by 1955 (hocrgen#171)."""
+
+    floruit = creator.get("floruit") or {}
+    latest = floruit.get("latest_year")
+    return (
+        creator.get("role") == "author"
+        and isinstance(latest, int)
+        and bool(floruit.get("evidence_url"))
+        and latest + FLORUIT_LIFESPAN_MARGIN <= PD_ISRAEL_DEATH_CUTOFF_YEAR
+    )
+
+
+def _cited_death(creator: dict[str, Any]) -> bool:
+    return isinstance(creator.get("death_year"), int) and bool(creator.get("death_year_evidence_url"))
+
+
+def _printed_commentary_reasons(index: dict[str, Any]) -> list[str]:
+    """Every commentary printed on the edition's pages is named and attributed to a contributor with a cited death
+    year (``work.printed_commentaries``, recorded by the inventory). A printing on or before 1855 needs the name only."""
+
+    work = index.get("work") or {}
+    record = work.get("printed_commentaries") or {}
+    detected = record.get("detected") or []
+    if not detected:
+        return []
+    reasons: list[str] = []
+    if any(signal.get("kind") == "unnamed" for signal in detected) and not record.get("complete"):
+        reasons.append("printed_commentary_unnamed")
+    year = work.get("published_year")
+    early = isinstance(year, int) and year <= PD_ISRAEL_PRESUMPTION_PUBLICATION_CUTOFF_YEAR
+    creators = {str(c.get("name")): c for c in work.get("creators") or []}
+    attributions = record.get("attributed") or []
+    for title in sorted({str(s["title"]) for s in detected if s.get("kind") == "named" and s.get("title")}):
+        attribution = next((a for a in attributions if title in (a.get("titles") or [])), None)
+        named = [creators.get(name) for name in (attribution or {}).get("creators") or []]
+        if attribution is None or not named or any(c is None for c in named):
+            reasons.append("printed_commentary_unattributed")
+        elif not early and not all(_cited_death(c) or floruit_basis(c) for c in named if c is not None):
+            reasons.append("printed_commentary_death_year_missing")
+    return sorted(set(reasons), key=reasons.index)
+
+
+def _reprint_reasons(index: dict[str, Any]) -> list[str]:
+    check = (index.get("work") or {}).get("reprint_check") or {}
+    return [REPRINT_REASON] if check.get("suspected") and not check.get("cleared") else []
 
 
 def _language_reasons(index: dict[str, Any]) -> list[str]:
@@ -229,7 +289,8 @@ def _work_rights_reasons(index: dict[str, Any]) -> list[str]:
         for creator in creators:
             death_year = creator.get("death_year")
             if not isinstance(death_year, int) or not creator.get("death_year_evidence_url"):
-                reasons.append("creator_death_year_missing")
+                if not floruit_basis(creator):
+                    reasons.append("creator_death_year_missing")
             elif death_year > PD_ISRAEL_DEATH_CUTOFF_YEAR:
                 reasons.append("creator_died_after_1955")
     elif basis == "presumed_pd_by_publication_age":

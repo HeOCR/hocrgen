@@ -15,7 +15,8 @@ Subcommands:
   - the **Google hygiene pass** (strategy rule 5) for every file where Google is not ruled out: an ``eng`` Tesseract
     pass on each checked page render (Google's usage-guidelines boilerplate, ``detect_google_front_matter``) and on its
     foot band, upscaled 3x (the "Digitized by Google" line, ``detect_google_watermark``). The checked pages are scan
-    pages 1-3 (where Google's front page sits) and every page of the file in the tranche snapshot (``--snapshot``).
+    pages 1-3 (where Google's front page sits), every page of the file in the tranche snapshot (``--snapshot``) and
+    every quality-3/4 page the full inventory checked.
     Page renders come from the snapshot, then the render caches (``--render-cache``), then Commons (``--fetch``).
 
   Downloads go to their own folders under ``--work-dir``, at most one request per second, with the User-Agent
@@ -57,6 +58,7 @@ from hocrgen.fetchers.wikisource_justification import (
     GENERATOR,
     REGISTRY_PATH,
     REGISTRY_SCHEMA,
+    RIGHTS_RULE_REASONS,
     build_wikisource_rights_justification,
     justification_key,
     wikisource_hygiene_record,
@@ -263,7 +265,13 @@ def cached_renders(directories: Sequence[Path]) -> dict[tuple[str, int], Path]:
 
 def gather_evidence(args: argparse.Namespace, log: Callable[[str], None] = print) -> dict[str, Any]:  # pragma: no cover - operator
     inventory = json.loads(args.inventory.read_text(encoding="utf-8"))
-    full = {i["index_key"]: i for i in json.loads(args.full_inventory.read_text(encoding="utf-8"))["indexes"]}
+    full_inventory = json.loads(args.full_inventory.read_text(encoding="utf-8"))
+    full = {i["index_key"]: i for i in full_inventory["indexes"]}
+    inventory_pages: dict[str, set[int]] = {}
+    for page in full_inventory.get("pages") or []:
+        number = re.search(r"/(\d+)$", str(page.get("page_title") or ""))
+        if number:
+            inventory_pages.setdefault(page["index_key"], set()).add(int(number.group(1)))
     admitted = [i for i in inventory["indexes"] if (i.get("gate") or {}).get("admitted")]
     imageinfo = cached_imageinfo(args.api_cache)
     ia_cache = json.loads(args.ia_metadata.read_text(encoding="utf-8")) if args.ia_metadata else {}
@@ -328,6 +336,8 @@ def gather_evidence(args: argparse.Namespace, log: Callable[[str], None] = print
         # A single-image file (no page count) is checked as its one page, scan page 1.
         wanted = set(range(1, FRONT_MATTER_MAX_CANVASES + 1)) if commons.get("page_count") else {1}
         wanted |= {page for (sha, page) in snapshot if sha == commons["sha1"]}
+        # Every quality-3/4 page the inventory checked, so a page not yet in a tranche is covered too.
+        wanted |= inventory_pages.get(key, set())
         for page in sorted(wanted):
             if commons.get("page_count") and page > commons["page_count"]:
                 continue
@@ -385,7 +395,9 @@ def backfill(inventory: Mapping[str, Any], evidence: Mapping[str, Any], *, as_of
     by_key = {entry["index_key"]: entry for entry in evidence.get("indexes") or []}
     items = []
     for index in sorted(inventory.get("indexes") or [], key=lambda i: i["index_key"]):
-        if not (index.get("gate") or {}).get("admitted"):
+        gate = index.get("gate") or {}
+        # Admitted Indexes, and those the rights rules (printed commentaries, later reprints) reject: not justified.
+        if not gate.get("admitted") and not set(gate.get("reasons") or []) & set(RIGHTS_RULE_REASONS):
             continue
         result = build_wikisource_rights_justification(index, by_key.get(index["index_key"]), as_of=as_of)
         items.append({
@@ -414,10 +426,11 @@ def counts(items: Iterable[Mapping[str, Any]]) -> dict[str, Any]:
         "record" if isinstance(r["hygiene"], Mapping) else str(r["hygiene"]) for r in accepted
     )
     return {
-        "admitted_indexes": len(items),
+        "indexes": len(items),
         "accepted": len(accepted),
         "rejected": len(items) - len(accepted),
         "by_reason": dict(sorted(Counter(i["reason"] for i in items).items())),
+        "rejections_by_failure": dict(sorted(Counter(f for i in items for f in i["failures"]).items())),
         "by_digitizer": dict(sorted(Counter(r["digitizer"]["name"] for r in accepted).items())),
         "by_digitizer_kind": dict(sorted(Counter(r["digitizer"]["kind"] for r in accepted).items())),
         "by_google_status": dict(sorted(Counter(r["digitizer"]["google"]["status"] for r in accepted).items())),

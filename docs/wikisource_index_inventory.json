@@ -3100,7 +3100,18 @@
             "death_year": 1295,
             "death_year_evidence_url": "https://he.wikisource.org/w/index.php?oldid=547504"
           }
-        ]
+        ],
+        "reprint_check": {
+          "suspected": true,
+          "signals": [
+            {
+              "source": "commons_description",
+              "match": "Reprinted",
+              "snippet": "{{en|1=''Sefer ha-Mevaqqesh'' (\"The Book of the Seeker\") by Shem-Tov ben Joseph ibn Falaquera (1225–1290). Reprinted Warsaw, 1924.}}"
+            }
+          ],
+          "cleared": null
+        }
       },
       "work_rights": {
         "basis": "author_died_by_1955",
@@ -3128,93 +3139,12 @@
         }
       },
       "gate": {
-        "admitted": true,
-        "reasons": []
+        "admitted": false,
+        "reasons": [
+          "possible_later_reprint"
+        ]
       },
-      "page_gate": {
-        "checked": 1,
-        "converts": {
-          "3": 1,
-          "4": 0
-        },
-        "eligible": {
-          "3": 1,
-          "4": 0
-        },
-        "cropped": {
-          "3": 0,
-          "4": 0
-        },
-        "cropped_review_recommended": {
-          "3": 0,
-          "4": 0
-        },
-        "cropped_regions": {
-          "3": 0,
-          "4": 0
-        },
-        "cropped_reviewed": {
-          "3": 0,
-          "4": 0
-        },
-        "crop_unresolved": {
-          "3": 0,
-          "4": 0
-        },
-        "needs_crop": {
-          "3": 0,
-          "4": 0
-        },
-        "pending_coverage_only": {
-          "3": 0,
-          "4": 0
-        },
-        "coverage_unresolved": {
-          "3": 0,
-          "4": 0
-        },
-        "footnote_marks_bracketed": {
-          "3": 0,
-          "4": 0
-        },
-        "transcluding_pages": 0,
-        "reference_eligible_q4": 0,
-        "reference_eligible_now_q4": 0,
-        "render_checks": {
-          "by_tool": 1,
-          "checked": 1,
-          "full_page": 1,
-          "partial_page": 0,
-          "stale": 0
-        },
-        "crop_unresolved_pages": [],
-        "pending_coverage_pages": [],
-        "text_not_on_page": {
-          "3": 0,
-          "4": 0
-        },
-        "text_not_on_page_pages": [],
-        "footnote_checks": {},
-        "footnote_flagged_reviewed": 0,
-        "footnote_unchecked_reviewed": 0,
-        "unprinted_notes_pages": {
-          "3": 0,
-          "4": 0
-        },
-        "unprinted_notes_dropped": 0,
-        "editor_standin_pages": {
-          "3": 0,
-          "4": 0
-        },
-        "editor_standins": {},
-        "excluded_span_pages": {
-          "3": 0,
-          "4": 0
-        },
-        "adjusted_pages": [],
-        "rejected_by_first_reason": {},
-        "unsupported_markup": {}
-      }
+      "page_gate": null
     },
     {
       "index_key": "ws_index_344397",
@@ -6450,7 +6380,23 @@
             "death_year": null,
             "death_year_evidence_url": null
           }
-        ]
+        ],
+        "printed_commentaries": {
+          "detected": [
+            {
+              "kind": "unnamed",
+              "title": null,
+              "source": "commons_description",
+              "snippet": "{{en|1=The Scroll of Antiochus translated into Hebrew (with vocalization) and Hungarian, with commentary.}}"
+            }
+          ],
+          "attributed": [],
+          "checked": [
+            "Commons file description and author fields",
+            "Index title and author fields",
+            "headings of the pinned page wikitext (quality 3/4 pages of an otherwise admitted Index)"
+          ]
+        }
       },
       "work_rights": {
         "basis": "author_died_by_1955",
@@ -6480,6 +6426,7 @@
         "admitted": false,
         "reasons": [
           "creator_death_year_missing",
+          "printed_commentary_unnamed",
           "index_language_unrecorded"
         ]
       },
@@ -7281,7 +7228,40 @@
             "death_year": null,
             "death_year_evidence_url": null
           }
-        ]
+        ],
+        "printed_commentaries": {
+          "detected": [
+            {
+              "kind": "unnamed",
+              "title": null,
+              "source": "commons_description",
+              "snippet": "{{en|1=[[:en:Joseph ben Ephraim Karo|Joseph Karo]]'s [[:en:Shulchan Aruch|''Shulhan Arukh'']] with glosses by [[:en:Moses Isserles|Moses Isserles]], and many other classic commentaries surrounding th…"
+            },
+            {
+              "kind": "unnamed",
+              "title": null,
+              "source": "commons_author",
+              "snippet": "[[:en:Joseph ben Ephraim Karo|Joseph Karo]] and other multiple authors of commentaries on his work."
+            }
+          ],
+          "attributed": [],
+          "checked": [
+            "Commons file description and author fields",
+            "Index title and author fields",
+            "headings of the pinned page wikitext (quality 3/4 pages of an otherwise admitted Index)"
+          ]
+        },
+        "reprint_check": {
+          "suspected": true,
+          "signals": [
+            {
+              "source": "recorded",
+              "match": null,
+              "snippet": "Team-lead review of hocrgen#171: the scan (HebrewBooks 9145, dated 1880 Vilna by the Commons date field only) may be a later, 20th-century reprint with added material; no evidence of the printing actually scanned clears it, so it stays not justified until such evidence is recorded. (recorded by agent, 2026-11-11)"
+            }
+          ],
+          "cleared": null
+        }
       },
       "work_rights": {
         "basis": "author_died_by_1955",
@@ -7310,7 +7290,9 @@
       "gate": {
         "admitted": false,
         "reasons": [
-          "creator_death_year_missing"
+          "creator_death_year_missing",
+          "printed_commentary_unnamed",
+          "possible_later_reprint"
         ]
       },
       "page_gate": null
@@ -13752,7 +13734,34 @@
             "death_year": 1528,
             "death_year_evidence_url": "https://www.wikidata.org/wiki/Q3019027"
           }
-        ]
+        ],
+        "printed_commentaries": {
+          "detected": [
+            {
+              "kind": "named",
+              "title": "Qav ve-Naqi",
+              "source": "commons_description",
+              "snippet": "{{en|1=Proverbs with the commentary ''Qav ve-Naqi'' (קב ונקי), by [[:W:EN:David ben Solomon ibn Yahya|David ben Solomon ibn Yaḥya]] (1455-1528)}}"
+            }
+          ],
+          "attributed": [
+            {
+              "titles": [
+                "Qav ve-Naqi",
+                "קב ונקי"
+              ],
+              "creators": [
+                "David ben Solomon ibn Yahya"
+              ],
+              "evidence": "The Commons description names the commentary and its author: 'Proverbs with the commentary Qav ve-Naqi, by David ben Solomon ibn Yahya' (Lisbon 1492); he is the recorded author (Wikidata Q3019027, P570 1528). (recorded by agent, 2026-11-11)"
+            }
+          ],
+          "checked": [
+            "Commons file description and author fields",
+            "Index title and author fields",
+            "headings of the pinned page wikitext (quality 3/4 pages of an otherwise admitted Index)"
+          ]
+        }
       },
       "work_rights": {
         "basis": "author_died_by_1955",
@@ -13914,7 +13923,82 @@
             "death_year": 1204,
             "death_year_evidence_url": "https://www.wikidata.org/wiki/Q127398"
           }
-        ]
+        ],
+        "printed_commentaries": {
+          "detected": [
+            {
+              "kind": "unnamed",
+              "title": null,
+              "source": "commons_author",
+              "snippet": "'''[[:en:Maimonides|Maimonides]]''' (accompanied by multiple authors of classic commentaries on his work)."
+            },
+            {
+              "kind": "named",
+              "title": "השגות הראב\"ד",
+              "source": "page_heading",
+              "snippet": "השגות הראב\"ד",
+              "pages": 8,
+              "examples": [
+                "עמוד:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf/2",
+                "עמוד:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf/3",
+                "עמוד:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf/4"
+              ]
+            },
+            {
+              "kind": "named",
+              "title": "כסף משנה",
+              "source": "page_heading",
+              "snippet": "כסף משנה",
+              "pages": 5,
+              "examples": [
+                "עמוד:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf/2",
+                "עמוד:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf/3",
+                "עמוד:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf/4"
+              ]
+            },
+            {
+              "kind": "named",
+              "title": "מגדל עוז",
+              "source": "page_heading",
+              "snippet": "מגדל עוז",
+              "pages": 3,
+              "examples": [
+                "עמוד:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf/16",
+                "עמוד:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf/17",
+                "עמוד:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf/18"
+              ]
+            },
+            {
+              "kind": "unnamed",
+              "title": null,
+              "source": "page_generic_heading",
+              "snippet": "פירוש",
+              "pages": 3,
+              "examples": [
+                "עמוד:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf/16",
+                "עמוד:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf/17",
+                "עמוד:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf/18"
+              ]
+            }
+          ],
+          "attributed": [],
+          "checked": [
+            "Commons file description and author fields",
+            "Index title and author fields",
+            "headings of the pinned page wikitext (quality 3/4 pages of an otherwise admitted Index)"
+          ]
+        },
+        "reprint_check": {
+          "suspected": true,
+          "signals": [
+            {
+              "source": "commons_source",
+              "match": "reprint",
+              "snippet": "'''[http://hebrewbooks.org/39979 HebrewBooks.org 39979]'''. The Warsaw-Vilna edition of ''Mishneh Torah'', whose scan is available at Internet Archive, contains only volumes 2-4 and is missing volume…"
+            }
+          ],
+          "cleared": null
+        }
       },
       "work_rights": {
         "basis": "author_died_by_1955",
@@ -13941,97 +14025,14 @@
         }
       },
       "gate": {
-        "admitted": true,
-        "reasons": []
+        "admitted": false,
+        "reasons": [
+          "printed_commentary_unnamed",
+          "printed_commentary_unattributed",
+          "possible_later_reprint"
+        ]
       },
-      "page_gate": {
-        "checked": 15,
-        "converts": {
-          "3": 15,
-          "4": 0
-        },
-        "eligible": {
-          "3": 12,
-          "4": 0
-        },
-        "cropped": {
-          "3": 3,
-          "4": 0
-        },
-        "cropped_review_recommended": {
-          "3": 0,
-          "4": 0
-        },
-        "cropped_regions": {
-          "3": 0,
-          "4": 0
-        },
-        "cropped_reviewed": {
-          "3": 0,
-          "4": 0
-        },
-        "crop_unresolved": {
-          "3": 0,
-          "4": 0
-        },
-        "needs_crop": {
-          "3": 3,
-          "4": 0
-        },
-        "pending_coverage_only": {
-          "3": 0,
-          "4": 0
-        },
-        "coverage_unresolved": {
-          "3": 0,
-          "4": 0
-        },
-        "footnote_marks_bracketed": {
-          "3": 5,
-          "4": 0
-        },
-        "transcluding_pages": 0,
-        "reference_eligible_q4": 0,
-        "reference_eligible_now_q4": 0,
-        "render_checks": {
-          "by_agent": 12,
-          "by_tool": 3,
-          "checked": 15,
-          "full_page": 12,
-          "partial_page": 3,
-          "stale": 0
-        },
-        "crop_unresolved_pages": [],
-        "pending_coverage_pages": [],
-        "text_not_on_page": {
-          "3": 0,
-          "4": 0
-        },
-        "text_not_on_page_pages": [],
-        "footnote_checks": {
-          "flagged": 3,
-          "unchecked": 2
-        },
-        "footnote_flagged_reviewed": 3,
-        "footnote_unchecked_reviewed": 2,
-        "unprinted_notes_pages": {
-          "3": 0,
-          "4": 0
-        },
-        "unprinted_notes_dropped": 0,
-        "editor_standin_pages": {
-          "3": 0,
-          "4": 0
-        },
-        "editor_standins": {},
-        "excluded_span_pages": {
-          "3": 0,
-          "4": 0
-        },
-        "adjusted_pages": [],
-        "rejected_by_first_reason": {},
-        "unsupported_markup": {}
-      }
+      "page_gate": null
     },
     {
       "index_key": "ws_index_1711487",
@@ -14068,7 +14069,34 @@
             "death_year": 1204,
             "death_year_evidence_url": "https://www.wikidata.org/wiki/Q127398"
           }
-        ]
+        ],
+        "printed_commentaries": {
+          "detected": [
+            {
+              "kind": "unnamed",
+              "title": null,
+              "source": "commons_author",
+              "snippet": "'''[[:en:Maimonides|Maimonides]]''' (accompanied by multiple authors of classic commentaries on his work)."
+            }
+          ],
+          "attributed": [],
+          "checked": [
+            "Commons file description and author fields",
+            "Index title and author fields",
+            "headings of the pinned page wikitext (quality 3/4 pages of an otherwise admitted Index)"
+          ]
+        },
+        "reprint_check": {
+          "suspected": true,
+          "signals": [
+            {
+              "source": "commons_source",
+              "match": "reprint",
+              "snippet": "'''[http://hebrewbooks.org/14278 HebrewBooks.org 14278]'''. The Warsaw-Vilna edition of ''Mishneh Torah'', whose scan is available at Internet Archive, contains only volumes 2-4 and is missing volume…"
+            }
+          ],
+          "cleared": null
+        }
       },
       "work_rights": {
         "basis": "author_died_by_1955",
@@ -14094,92 +14122,13 @@
         }
       },
       "gate": {
-        "admitted": true,
-        "reasons": []
+        "admitted": false,
+        "reasons": [
+          "printed_commentary_unnamed",
+          "possible_later_reprint"
+        ]
       },
-      "page_gate": {
-        "checked": 0,
-        "converts": {
-          "3": 0,
-          "4": 0
-        },
-        "eligible": {
-          "3": 0,
-          "4": 0
-        },
-        "cropped": {
-          "3": 0,
-          "4": 0
-        },
-        "cropped_review_recommended": {
-          "3": 0,
-          "4": 0
-        },
-        "cropped_regions": {
-          "3": 0,
-          "4": 0
-        },
-        "cropped_reviewed": {
-          "3": 0,
-          "4": 0
-        },
-        "crop_unresolved": {
-          "3": 0,
-          "4": 0
-        },
-        "needs_crop": {
-          "3": 0,
-          "4": 0
-        },
-        "pending_coverage_only": {
-          "3": 0,
-          "4": 0
-        },
-        "coverage_unresolved": {
-          "3": 0,
-          "4": 0
-        },
-        "footnote_marks_bracketed": {
-          "3": 0,
-          "4": 0
-        },
-        "transcluding_pages": 0,
-        "reference_eligible_q4": 0,
-        "reference_eligible_now_q4": 0,
-        "render_checks": {
-          "checked": 0,
-          "full_page": 0,
-          "partial_page": 0,
-          "stale": 0
-        },
-        "crop_unresolved_pages": [],
-        "pending_coverage_pages": [],
-        "text_not_on_page": {
-          "3": 0,
-          "4": 0
-        },
-        "text_not_on_page_pages": [],
-        "footnote_checks": {},
-        "footnote_flagged_reviewed": 0,
-        "footnote_unchecked_reviewed": 0,
-        "unprinted_notes_pages": {
-          "3": 0,
-          "4": 0
-        },
-        "unprinted_notes_dropped": 0,
-        "editor_standin_pages": {
-          "3": 0,
-          "4": 0
-        },
-        "editor_standins": {},
-        "excluded_span_pages": {
-          "3": 0,
-          "4": 0
-        },
-        "adjusted_pages": [],
-        "rejected_by_first_reason": {},
-        "unsupported_markup": {}
-      }
+      "page_gate": null
     },
     {
       "index_key": "ws_index_1711490",
@@ -14216,7 +14165,23 @@
             "death_year": 1204,
             "death_year_evidence_url": "https://www.wikidata.org/wiki/Q127398"
           }
-        ]
+        ],
+        "printed_commentaries": {
+          "detected": [
+            {
+              "kind": "unnamed",
+              "title": null,
+              "source": "commons_author",
+              "snippet": "'''[[:en:Maimonides|Maimonides]]''' (accompanied by multiple authors of classic commentaries on his work)."
+            }
+          ],
+          "attributed": [],
+          "checked": [
+            "Commons file description and author fields",
+            "Index title and author fields",
+            "headings of the pinned page wikitext (quality 3/4 pages of an otherwise admitted Index)"
+          ]
+        }
       },
       "work_rights": {
         "basis": "author_died_by_1955",
@@ -14240,92 +14205,12 @@
         "quality_counts": {}
       },
       "gate": {
-        "admitted": true,
-        "reasons": []
+        "admitted": false,
+        "reasons": [
+          "printed_commentary_unnamed"
+        ]
       },
-      "page_gate": {
-        "checked": 0,
-        "converts": {
-          "3": 0,
-          "4": 0
-        },
-        "eligible": {
-          "3": 0,
-          "4": 0
-        },
-        "cropped": {
-          "3": 0,
-          "4": 0
-        },
-        "cropped_review_recommended": {
-          "3": 0,
-          "4": 0
-        },
-        "cropped_regions": {
-          "3": 0,
-          "4": 0
-        },
-        "cropped_reviewed": {
-          "3": 0,
-          "4": 0
-        },
-        "crop_unresolved": {
-          "3": 0,
-          "4": 0
-        },
-        "needs_crop": {
-          "3": 0,
-          "4": 0
-        },
-        "pending_coverage_only": {
-          "3": 0,
-          "4": 0
-        },
-        "coverage_unresolved": {
-          "3": 0,
-          "4": 0
-        },
-        "footnote_marks_bracketed": {
-          "3": 0,
-          "4": 0
-        },
-        "transcluding_pages": 0,
-        "reference_eligible_q4": 0,
-        "reference_eligible_now_q4": 0,
-        "render_checks": {
-          "checked": 0,
-          "full_page": 0,
-          "partial_page": 0,
-          "stale": 0
-        },
-        "crop_unresolved_pages": [],
-        "pending_coverage_pages": [],
-        "text_not_on_page": {
-          "3": 0,
-          "4": 0
-        },
-        "text_not_on_page_pages": [],
-        "footnote_checks": {},
-        "footnote_flagged_reviewed": 0,
-        "footnote_unchecked_reviewed": 0,
-        "unprinted_notes_pages": {
-          "3": 0,
-          "4": 0
-        },
-        "unprinted_notes_dropped": 0,
-        "editor_standin_pages": {
-          "3": 0,
-          "4": 0
-        },
-        "editor_standins": {},
-        "excluded_span_pages": {
-          "3": 0,
-          "4": 0
-        },
-        "adjusted_pages": [],
-        "rejected_by_first_reason": {},
-        "unsupported_markup": {}
-      }
+      "page_gate": null
     },
     {
       "index_key": "ws_index_1711489",
@@ -14369,7 +14254,23 @@
             "death_year": null,
             "death_year_evidence_url": null
           }
-        ]
+        ],
+        "printed_commentaries": {
+          "detected": [
+            {
+              "kind": "unnamed",
+              "title": null,
+              "source": "commons_author",
+              "snippet": "'''[[:en:Maimonides|Maimonides]]''' (accompanied by multiple authors of classic commentaries on his work."
+            }
+          ],
+          "attributed": [],
+          "checked": [
+            "Commons file description and author fields",
+            "Index title and author fields",
+            "headings of the pinned page wikitext (quality 3/4 pages of an otherwise admitted Index)"
+          ]
+        }
       },
       "work_rights": {
         "basis": "author_died_by_1955",
@@ -14395,7 +14296,8 @@
       "gate": {
         "admitted": false,
         "reasons": [
-          "creator_death_year_missing"
+          "creator_death_year_missing",
+          "printed_commentary_unnamed"
         ]
       },
       "page_gate": null
@@ -14442,7 +14344,23 @@
             "death_year": null,
             "death_year_evidence_url": null
           }
-        ]
+        ],
+        "printed_commentaries": {
+          "detected": [
+            {
+              "kind": "unnamed",
+              "title": null,
+              "source": "commons_author",
+              "snippet": "'''[[:en:Maimonides|Maimonides]]''' (accompanied by multiple authors of classic commentaries on his work."
+            }
+          ],
+          "attributed": [],
+          "checked": [
+            "Commons file description and author fields",
+            "Index title and author fields",
+            "headings of the pinned page wikitext (quality 3/4 pages of an otherwise admitted Index)"
+          ]
+        }
       },
       "work_rights": {
         "basis": "author_died_by_1955",
@@ -14470,7 +14388,8 @@
       "gate": {
         "admitted": false,
         "reasons": [
-          "creator_death_year_missing"
+          "creator_death_year_missing",
+          "printed_commentary_unnamed"
         ]
       },
       "page_gate": null
@@ -15963,7 +15882,16 @@
             "role": "author",
             "wikidata": "Q94949710",
             "death_year": null,
-            "death_year_evidence_url": null
+            "death_year_evidence_url": null,
+            "floruit": {
+              "kind": "floruit",
+              "source": "wikidata_P1317",
+              "value": "+1300-00-00T00:00:00Z",
+              "label": "13th century",
+              "precision": 7,
+              "latest_year": 1400,
+              "evidence_url": "https://www.wikidata.org/wiki/Q94949710"
+            }
           },
           {
             "name": "שלמה בובר",
@@ -15971,19 +15899,12 @@
             "wikidata": "Q982067",
             "death_year": 1906,
             "death_year_evidence_url": "https://www.wikidata.org/wiki/Q982067"
-          },
-          {
-            "name": "שמואל מסנות",
-            "role": "author",
-            "wikidata": null,
-            "death_year": null,
-            "death_year_evidence_url": null
           }
         ]
       },
       "work_rights": {
         "basis": "author_died_by_1955",
-        "evidence": "Creators: שמואל מסנות (author, death year not evidenced); שלמה בובר (editor, died 1906); שמואל מסנות (author, death year not evidenced)."
+        "evidence": "Creators: שמואל מסנות (author, floruit 13th century (Wikidata P1317), active by 1400 at the latest); שלמה בובר (editor, died 1906)."
       },
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",
@@ -16008,12 +15929,108 @@
         }
       },
       "gate": {
-        "admitted": false,
-        "reasons": [
-          "creator_death_year_missing"
-        ]
+        "admitted": true,
+        "reasons": []
       },
-      "page_gate": null
+      "page_gate": {
+        "checked": 3,
+        "converts": {
+          "3": 2,
+          "4": 1
+        },
+        "eligible": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_review_recommended": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_regions": {
+          "3": 0,
+          "4": 0
+        },
+        "cropped_reviewed": {
+          "3": 0,
+          "4": 0
+        },
+        "crop_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "needs_crop": {
+          "3": 0,
+          "4": 0
+        },
+        "pending_coverage_only": {
+          "3": 2,
+          "4": 1
+        },
+        "coverage_unresolved": {
+          "3": 0,
+          "4": 0
+        },
+        "footnote_marks_bracketed": {
+          "3": 0,
+          "4": 0
+        },
+        "transcluding_pages": 0,
+        "reference_eligible_q4": 1,
+        "reference_eligible_now_q4": 0,
+        "render_checks": {
+          "checked": 0,
+          "full_page": 0,
+          "partial_page": 0,
+          "stale": 0
+        },
+        "crop_unresolved_pages": [],
+        "pending_coverage_pages": [
+          {
+            "page_title": "עמוד:פירוש מעין גנים על ספר איוב.pdf/10",
+            "quality": 3,
+            "checked_by": null
+          },
+          {
+            "page_title": "עמוד:פירוש מעין גנים על ספר איוב.pdf/11",
+            "quality": 3,
+            "checked_by": null
+          },
+          {
+            "page_title": "עמוד:פירוש מעין גנים על ספר איוב.pdf/9",
+            "quality": 4,
+            "checked_by": null
+          }
+        ],
+        "text_not_on_page": {
+          "3": 0,
+          "4": 0
+        },
+        "text_not_on_page_pages": [],
+        "footnote_checks": {},
+        "footnote_flagged_reviewed": 0,
+        "footnote_unchecked_reviewed": 0,
+        "unprinted_notes_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "unprinted_notes_dropped": 0,
+        "editor_standin_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "editor_standins": {},
+        "excluded_span_pages": {
+          "3": 0,
+          "4": 0
+        },
+        "adjusted_pages": [],
+        "rejected_by_first_reason": {},
+        "unsupported_markup": {}
+      }
     },
     {
       "index_key": "ws_index_1728070",
@@ -16617,7 +16634,40 @@
             "death_year": null,
             "death_year_evidence_url": null
           }
-        ]
+        ],
+        "printed_commentaries": {
+          "detected": [
+            {
+              "kind": "unnamed",
+              "title": null,
+              "source": "commons_description",
+              "snippet": "{{en|1=[[:en:Joseph Karo|Joseph Karo]] and [[:en:Moses Isserles|Moses Isserles]]' [[:en:Shulchan Aruch|Shulhan Aruch]], [[:en:Orach Chayim|Orah Hayyim]] (volume I). Printed with classic commentaries …"
+            },
+            {
+              "kind": "unnamed",
+              "title": null,
+              "source": "commons_author",
+              "snippet": "[[:en:Joseph Karo|Joseph Karo]] and [[:en:Moses Isserles|Moses Isserles]] accompanied by other multiple authors of commentaries on their work."
+            }
+          ],
+          "attributed": [],
+          "checked": [
+            "Commons file description and author fields",
+            "Index title and author fields",
+            "headings of the pinned page wikitext (quality 3/4 pages of an otherwise admitted Index)"
+          ]
+        },
+        "reprint_check": {
+          "suspected": true,
+          "signals": [
+            {
+              "source": "commons_date",
+              "match": "reprint",
+              "snippet": "Jerusalem, 1958-1961 (mechanical reprint of the Lemberg, 1893 edition)"
+            }
+          ],
+          "cleared": null
+        }
       },
       "work_rights": {
         "basis": "author_died_by_1955",
@@ -16645,7 +16695,9 @@
       "gate": {
         "admitted": false,
         "reasons": [
-          "creator_death_year_missing"
+          "creator_death_year_missing",
+          "printed_commentary_unnamed",
+          "possible_later_reprint"
         ]
       },
       "page_gate": null
@@ -16699,7 +16751,40 @@
             "death_year": null,
             "death_year_evidence_url": null
           }
-        ]
+        ],
+        "printed_commentaries": {
+          "detected": [
+            {
+              "kind": "unnamed",
+              "title": null,
+              "source": "commons_description",
+              "snippet": "{{en|1=[[:en:Joseph Karo|Joseph Karo]] and [[:en:Moses Isserles|Moses Isserles]]' [[:en:Shulchan Aruch|Shulhan Aruch]], [[:en:Orach Chayim|Orah Hayyim]] (volume II). Printed with classic commentaries…"
+            },
+            {
+              "kind": "unnamed",
+              "title": null,
+              "source": "commons_author",
+              "snippet": "[[:en:Joseph Karo|Joseph Karo]] and [[:en:Moses Isserles|Moses Isserles]] accompanied by other multiple authors of commentaries on their work."
+            }
+          ],
+          "attributed": [],
+          "checked": [
+            "Commons file description and author fields",
+            "Index title and author fields",
+            "headings of the pinned page wikitext (quality 3/4 pages of an otherwise admitted Index)"
+          ]
+        },
+        "reprint_check": {
+          "suspected": true,
+          "signals": [
+            {
+              "source": "commons_date",
+              "match": "reprint",
+              "snippet": "Jerusalem, 1958-1961 (mechanical reprint of the Lemberg, 1893 edition)"
+            }
+          ],
+          "cleared": null
+        }
       },
       "work_rights": {
         "basis": "author_died_by_1955",
@@ -16727,7 +16812,9 @@
       "gate": {
         "admitted": false,
         "reasons": [
-          "creator_death_year_missing"
+          "creator_death_year_missing",
+          "printed_commentary_unnamed",
+          "possible_later_reprint"
         ]
       },
       "page_gate": null

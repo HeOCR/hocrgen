@@ -272,6 +272,13 @@
         "recorded_by": "agent",
         "recorder": "Claude Code (claude-opus-5-5), F8b3",
         "checked_at": "2026-11-06"
+      },
+      "reprint": {
+        "status": "suspected",
+        "evidence": "Team-lead review of hocrgen#171: the scan (HebrewBooks 9145, dated 1880 Vilna by the Commons date field only) may be a later, 20th-century reprint with added material; no evidence of the printing actually scanned clears it, so it stays not justified until such evidence is recorded.",
+        "recorded_by": "agent",
+        "recorder": "Claude Code (claude-opus-5-5), F8b8",
+        "checked_at": "2026-11-11"
       }
     },
     {
@@ -804,6 +811,26 @@
           ],
           "correction": "not_a_creator",
           "evidence": "Fragments of one inverted name, 'הלוי, יצחק איזיק, 1847-1914' (Yitzhak Isaac Halevy, recorded above with his cited death year), split by the parser at the comma.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b8",
+          "checked_at": "2026-11-11"
+        }
+      ]
+    },
+    {
+      "index_title": "מפתח:משלי עם פירוש קב ונקי.pdf",
+      "commons_file_sha1": "75ea06c9b57b4e5184b8499d1d9ce4d2684624db",
+      "creators": [],
+      "printed_commentaries": [
+        {
+          "titles": [
+            "Qav ve-Naqi",
+            "קב ונקי"
+          ],
+          "creators": [
+            "David ben Solomon ibn Yahya"
+          ],
+          "evidence": "The Commons description names the commentary and its author: 'Proverbs with the commentary Qav ve-Naqi, by David ben Solomon ibn Yahya' (Lisbon 1492); he is the recorded author (Wikidata Q3019027, P570 1528).",
           "recorded_by": "agent",
           "recorder": "Claude Code (claude-opus-5-5), F8b8",
           "checked_at": "2026-11-11"

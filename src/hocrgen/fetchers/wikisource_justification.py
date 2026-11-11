@@ -81,7 +81,11 @@ from hocrgen.fetchers.ia_justification import (
     JustificationResult,
 )
 from hocrgen.fetchers.wikisource import (
+    FLORUIT_LIFESPAN_MARGIN,
+    PRINTED_COMMENTARY_REASONS,
+    REPRINT_REASON,
     crop_mask_fill,
+    floruit_basis,
     index_exclusion_reasons,
     scan_source_origin,
 )
@@ -122,6 +126,14 @@ REASON_JUSTIFICATION_MISSING = "wikisource_rights_justification_missing"
 REASON_GOOGLE_FRONT_MATTER = EXCLUDED_GOOGLE_FRONT_MATTER
 HYGIENE_SCOPE = "wikisource_commons_pages"
 BOX_UNITS = "fraction of the page render: [x, y, width, height]"
+
+# hocrgen#171: what the gate read for printed commentaries and later reprints (none found is recorded too).
+PRINTED_COMMENTARY_SOURCES = ["Commons file description and author fields", "Index title and author fields",
+                              "headings of the pinned page wikitext (quality 3/4 pages)"]
+REPRINT_SOURCES = ["Commons file description, date, source and author fields", "Index title, year and publisher fields",
+                   "recorded facts (docs/wikisource_index_evidence.json)"]
+# Index gate reasons of the rights rules: an Index they reject is listed in the registry as not justified.
+RIGHTS_RULE_REASONS = (*PRINTED_COMMENTARY_REASONS, REPRINT_REASON)
 
 ROLES_COUNTED = ["author", "translator", "editor", "annotator", "illustrator", "anonymous", "pseudonymous"]
 
@@ -326,15 +338,22 @@ def _contributors(index: Mapping[str, Any]) -> list[dict[str, Any]]:
     out = []
     for creator in (index.get("work") or {}).get("creators") or []:
         url = creator.get("death_year_evidence_url")
+        floruit = creator.get("floruit") if not url else None
+        source = None
+        if url:
+            source = {"url": url, "kind": "wikidata_p570" if "wikidata.org" in str(url) else "cited_source"}
+        elif floruit and floruit_basis(dict(creator)):
+            # hocrgen#171: a cited floruit is the author's basis (kind ``floruit``).
+            source = {"url": floruit["evidence_url"], "kind": "floruit", "source": floruit.get("source"),
+                      "value": floruit.get("value"), "label": floruit.get("label"), "latest_year": floruit["latest_year"],
+                      "rule": f"active by {floruit['latest_year']} at the latest, so died by "
+                              f"{floruit['latest_year'] + FLORUIT_LIFESPAN_MARGIN}"}
         out.append({
             "name": creator.get("name"),
             "role": creator.get("role"),
             "wikidata": creator.get("wikidata"),
             "death_year": creator.get("death_year"),
-            "death_year_source": None if not url else {
-                "url": url,
-                "kind": "wikidata_p570" if "wikidata.org" in str(url) else "cited_source",
-            },
+            "death_year_source": source,
         })
     return out
 
@@ -345,6 +364,11 @@ def _join_years(contributors: Sequence[Mapping[str, Any]]) -> str:
         years = sorted({c["death_year"] for c in contributors if c["role"] == role and isinstance(c.get("death_year"), int)})
         if years:
             parts.append(f"{role if len(years) == 1 else role + 's'} d. " + " and ".join(str(y) for y in sorted(years)))
+        floruits = sorted({str((c.get("death_year_source") or {}).get("label") or (c.get("death_year_source") or {}).get("value"))
+                           for c in contributors if c["role"] == role and c.get("death_year") is None
+                           and (c.get("death_year_source") or {}).get("kind") == "floruit"})
+        if floruits:
+            parts.append(f"{role} fl. " + " and ".join(floruits))
     return ", ".join(parts)
 
 
@@ -364,8 +388,13 @@ def _israel_status(index: Mapping[str, Any], contributors: list[dict[str, Any]],
     if not contributors:
         failures.append("justification_no_contributor_listed")
     presumed = []
+    floruit_for = []
     for c in contributors:
         death = c.get("death_year")
+        source = c.get("death_year_source") or {}
+        if death is None and source.get("kind") == "floruit":
+            floruit_for.append(f"{c['name']} (floruit {source.get('label') or source.get('value')})")
+            continue
         if isinstance(death, int):
             if c.get("death_year_source") is None:
                 failures.append(f"justification_death_year_uncited:{c['name']}")
@@ -387,10 +416,18 @@ def _israel_status(index: Mapping[str, Any], contributors: list[dict[str, Any]],
             "law": "Copyright Act 2007, s. 38",
             "decision": DECISION_10_RECORD,
         }, []
-    latest = max(c["death_year"] for c in contributors)
-    return {"status": "pd_il", "basis": "author_died_over_70_years_ago",
-            "reason": f"every contributor died by {latest}; {latest} + {ISRAEL_TERM_YEARS} < {as_of.year}",
-            "law": "Copyright Act 2007, s. 38"}, []
+    deaths = [c["death_year"] for c in contributors if isinstance(c.get("death_year"), int)]
+    deaths += [c["death_year_source"]["latest_year"] + FLORUIT_LIFESPAN_MARGIN for c in contributors
+               if c.get("death_year") is None and (c.get("death_year_source") or {}).get("kind") == "floruit"]
+    latest = max(deaths)
+    status = {"status": "pd_il", "basis": "author_died_over_70_years_ago",
+              "reason": f"every contributor died by {latest}; {latest} + {ISRAEL_TERM_YEARS} < {as_of.year}",
+              "law": "Copyright Act 2007, s. 38"}
+    if floruit_for:
+        status["floruit_for"] = floruit_for
+        status["reason"] += ("; the author's death year is bounded by a cited floruit (hocrgen#171: active by year F,"
+                             f" so died by F + {FLORUIT_LIFESPAN_MARGIN}); every other contributor has a cited death year")
+    return status, []
 
 
 def _route_text(repository: str, title: str) -> str:
@@ -410,8 +447,8 @@ def build_wikisource_rights_justification(
 
     reasons = index_exclusion_reasons(dict(index))
     if reasons:
-        reason = f"justification_index_not_admitted:{reasons[0]}"
-        return JustificationResult(False, reason, [reason], None)
+        failures = [f"justification_index_not_admitted:{reason}" for reason in reasons]
+        return JustificationResult(False, failures[0], failures, None)
     if evidence is None:
         reason = "justification_rights_evidence_missing"
         return JustificationResult(False, reason, [reason], None)
@@ -566,6 +603,9 @@ def build_wikisource_rights_justification(
             "publication_year": {"year": year, "evidence": work.get("published_year_evidence")},
             "place": evidence.get("place"),
             "language": work.get("language"),
+            # hocrgen#171: the commentaries printed on the pages and the reprint check, as the gate read them.
+            "printed_commentaries": work.get("printed_commentaries") or {"detected": [], "checked": PRINTED_COMMENTARY_SOURCES},
+            "reprint_check": work.get("reprint_check") or {"suspected": False, "checked": REPRINT_SOURCES},
             "inventory_gate": {"work_rights": dict(index.get("work_rights") or {}),
                                **({"additional_grounds": work["additional_grounds"]} if work.get("additional_grounds") else {})},
             "israel_status": israel_status,

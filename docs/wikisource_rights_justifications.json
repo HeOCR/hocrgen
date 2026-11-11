@@ -5,36 +5,46 @@
  "inputs": {
   "inventory": {
    "path": "docs/wikisource_index_inventory.json",
-   "sha256": "d17a408b95c0b6114890c73d905727eeadb66b1d4c9be061a8edbdaa5bc82a1f"
+   "sha256": "7d4fa83c7b07fa0ab241d3979462d61e5bad39191b9a21bf13d41b75e69a38cb"
   },
   "evidence": {
    "path": "docs/wikisource_rights_evidence.json",
-   "sha256": "29708acf57a7af28bdd5a58d0ace69c3d5f6f7e3efa6fc4414a0e30142da6b4a"
+   "sha256": "ca004e2d95bc27d81312129d9470c4cace38c7c44462e05522dc65f84de34e7d"
   }
  },
  "counts": {
-  "admitted_indexes": 77,
-  "accepted": 77,
-  "rejected": 0,
+  "indexes": 84,
+  "accepted": 74,
+  "rejected": 10,
   "by_reason": {
-   "rights_justified": 77
+   "justification_index_not_admitted:creator_death_year_missing": 6,
+   "justification_index_not_admitted:possible_later_reprint": 1,
+   "justification_index_not_admitted:printed_commentary_unnamed": 3,
+   "rights_justified": 74
+  },
+  "rejections_by_failure": {
+   "justification_index_not_admitted:creator_death_year_missing": 6,
+   "justification_index_not_admitted:index_language_unrecorded": 1,
+   "justification_index_not_admitted:possible_later_reprint": 6,
+   "justification_index_not_admitted:printed_commentary_unattributed": 1,
+   "justification_index_not_admitted:printed_commentary_unnamed": 9
   },
   "by_digitizer": {
    "Google": 6,
-   "HebrewBooks": 30,
+   "HebrewBooks": 28,
    "Internet Archive, from a copy at Duke University Libraries": 1,
    "Internet Archive, from a copy at National Yiddish Book Center": 1,
    "Internet Archive, from a copy at Robarts - University of Toronto": 5,
    "Internet Archive, from a copy at University Library, University of North Carolina at Chapel Hill": 2,
-   "Internet Archive, from a copy at University of Illinois Urbana-Champaign": 2,
+   "Internet Archive, from a copy at University of Illinois Urbana-Champaign": 1,
    "National Library of Israel": 4,
    "Open Siddur Project": 3,
    "unrecorded": 23
   },
   "by_digitizer_kind": {
    "google": 6,
-   "hebrewbooks": 30,
-   "internet_archive_library_scan": 11,
+   "hebrewbooks": 28,
+   "internet_archive_library_scan": 10,
    "named_source": 6,
    "national_library_of_israel": 4,
    "open_siddur_project": 3,
@@ -43,23 +53,23 @@
   "by_google_status": {
    "google": 6,
    "not_detected": 24,
-   "not_google": 47
+   "not_google": 44
   },
   "by_israel_basis": {
    "anonymous_published_over_70_years_ago": 1,
-   "author_died_over_70_years_ago": 69,
+   "author_died_over_70_years_ago": 66,
    "presumption_decision_10": 7
   },
   "by_us_status": {
    "not_established": 13,
-   "pd_us": 64
+   "pd_us": 61
   },
   "by_file_repository": {
-   "commons": 70,
+   "commons": 67,
    "he.wikisource": 7
   },
   "hygiene": {
-   "none": 47,
+   "none": 44,
    "record": 30
   }
  },
@@ -72,7 +82,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_1705960:e91311d7eed6",
+    "id": "rj:ws_index_1705960:a73fb0f81869",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -151,6 +161,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "presumed_pd_by_publication_age",
@@ -273,420 +299,61 @@
    "index_key": "ws_index_1711486",
    "commons_file": "File:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf",
    "commons_file_sha1": "0f72c9120352145291ce7c19996d5c71d7079d46",
-   "accepted": true,
-   "reason": "rights_justified",
-   "failures": [],
-   "rights_justification": {
-    "id": "rj:ws_index_1711486:366c22aae13d",
-    "format": "hocrgen.rights_justification.v1",
-    "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
-    "as_of": "2026-11-11",
-    "index_key": "ws_index_1711486",
-    "index_title": "מפתח:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf",
-    "commons_file": "File:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf",
-    "route": {
-     "name": "wikimedia_commons",
-     "file_repository": "commons",
-     "url": [
-      "https://upload.wikimedia.org/wikipedia/commons/4/49/%D7%9E%D7%A9%D7%A0%D7%94_%D7%AA%D7%95%D7%A8%D7%94_%D7%93%D7%A4%D7%95%D7%A1_%D7%95%D7%95%D7%90%D7%A8%D7%A9%D7%90-%D7%95%D7%95%D7%99%D7%9C%D7%A0%D7%90_%D7%9B%D7%A8%D7%9A_%D7%A8%D7%90%D7%A9%D7%95%D7%9F_1.pdf",
-      "https://commons.wikimedia.org/wiki/File:%D7%9E%D7%A9%D7%A0%D7%94_%D7%AA%D7%95%D7%A8%D7%94_%D7%93%D7%A4%D7%95%D7%A1_%D7%95%D7%95%D7%90%D7%A8%D7%A9%D7%90-%D7%95%D7%95%D7%99%D7%9C%D7%A0%D7%90_%D7%9B%D7%A8%D7%9A_%D7%A8%D7%90%D7%A9%D7%95%D7%9F_1.pdf"
-     ],
-     "sha1": {
-      "file": "0f72c9120352145291ce7c19996d5c71d7079d46"
-     },
-     "sha256": null,
-     "sha256_note": "The whole file was never downloaded. The file is pinned by its SHA-1 (Commons imageinfo) and its file-page revision; every page render used is pinned by sha256 in its page record (image.rendered_from.render_sha256).",
-     "file_page_revision_id": 464480834
-    },
-    "work_public_domain": {
-     "title": "משנה תורה לרמב\"ם",
-     "contributors": [
-      {
-       "name": "Maimonides",
-       "role": "author",
-       "wikidata": "Q127398",
-       "death_year": 1204,
-       "death_year_source": {
-        "url": "https://www.wikidata.org/wiki/Q127398",
-        "kind": "wikidata_p570"
-       }
-      }
-     ],
-     "contributors_basis": {
-      "checked": [
-       "Wikisource Index fields (author, translator, editor, illustrator, and role markers in the title and notes)",
-       "Commons file page fields (Author, Translator, Editor, Illustrator)",
-       "cited facts in docs/wikisource_index_evidence.json"
-      ],
-      "counted_roles": [
-       "author",
-       "translator",
-       "editor",
-       "annotator",
-       "illustrator",
-       "anonymous",
-       "pseudonymous"
-      ],
-      "death_year_sources": [
-       "wikidata_p570",
-       "Wikisource author page",
-       "cited source (index evidence file)"
-      ]
-     },
-     "publication_year": {
-      "year": 1900,
-      "evidence": "Commons date field: 1900; Index page field שנה: 1900"
-     },
-     "place": {
-      "place": "ווארשא-ווילנא",
-      "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
-     },
-     "language": "he",
-     "inventory_gate": {
-      "work_rights": {
-       "basis": "author_died_by_1955",
-       "evidence": "Creators: Maimonides (author, died 1204)."
-      }
-     },
-     "israel_status": {
-      "status": "pd_il",
-      "basis": "author_died_over_70_years_ago",
-      "reason": "every contributor died by 1204; 1204 + 70 < 2026",
-      "law": "Copyright Act 2007, s. 38"
-     },
-     "us_status": {
-      "status": "pd_us",
-      "reason": "published before 1931",
-      "publication_year": 1900
-     }
-    },
-    "faithful_reproduction": {
-     "text": "A faithful photographic or mechanical scan of a two-dimensional printed page carries no new copyright: in the US a slavish copy lacks originality (Feist v. Rural, 499 U.S. 340 (1991); Bridgeman v. Corel, 36 F. Supp. 2d 191 (S.D.N.Y. 1999)), and in Israel sweat of the brow is not enough (CA 513/89 Interlego v. Exin-Lines, Copyright Act 2007). Strategy section 1.",
-     "evidence": {
-      "mime": "application/pdf",
-      "page_count": 381,
-      "scan_rights_basis": "faithful_reproduction_of_pd_work",
-      "scan_rights_evidence": "Commons licence templates ['PD-old-100-1996'] (a public-domain tag): a flat scan of a printed work, a faithful reproduction (decision 10).",
-      "explicit_open_licence": null
-     }
-    },
-    "digitizer": {
-     "name": "HebrewBooks",
-     "kind": "hebrewbooks",
-     "evidence": [
-      "Commons source field: '''[http://hebrewbooks.org/39979 HebrewBooks.org 39979]'''. The Warsaw-Vilna edition of ''Mishneh Torah'', whose scan is available at Internet Archive, contains only volumes 2-4 and is missing volume…",
-      "inventory Google check: Automated (F8b2 inventory): the file's embedded metadata and text layer (3610300 characters) contain no 'Google'; page renders were not inspected."
-     ],
-     "google": {
-      "status": "not_google",
-      "evidence": [
-       "inventory Google check: Automated (F8b2 inventory): the file's embedded metadata and text layer (3610300 characters) contain no 'Google'; page renders were not inspected."
-      ]
-     },
-     "scan_source_origin": "hebrewbooks"
-    },
-    "origin_label": {
-     "holder": "HebrewBooks",
-     "label": "hebrewbooks_site_terms",
-     "as_found": "HebrewBooks' site terms: a personal-use, non-commercial licence that bans automated access (maintainer decision 3, 2026-11-06)",
-     "evidence": "the Commons file record names HebrewBooks as its source"
-    },
-    "why_not_binding": "HeOCR fetched this file from Wikimedia Commons (File:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf), not from HebrewBooks. It accepted no terms from HebrewBooks for it and is not in privity with HebrewBooks, so HebrewBooks' site terms: a personal-use, non-commercial licence that bans automated access (maintainer decision 3, 2026-11-06) binds neither HeOCR nor the users of its releases (strategy section 2(a) and 2(c)). With no copyright in the public-domain text or in the faithful scan, no right travels with the file.",
-    "route_terms": {
-     "reference": "Wikimedia Terms of Use, and the file's licence or public-domain template on its file page (recorded as found; decision 10: a missing or PD-US-only template never decides the work's status). Strategy section 2(a): Commons offers public-domain files free of all restrictions.",
-     "url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
-     "licence_templates": [
-      "PD-old-100-1996"
-     ],
-     "file_page": "https://commons.wikimedia.org/wiki/File:%D7%9E%D7%A9%D7%A0%D7%94_%D7%AA%D7%95%D7%A8%D7%94_%D7%93%D7%A4%D7%95%D7%A1_%D7%95%D7%95%D7%90%D7%A8%D7%A9%D7%90-%D7%95%D7%95%D7%99%D7%9C%D7%A0%D7%90_%D7%9B%D7%A8%D7%9A_%D7%A8%D7%90%D7%A9%D7%95%D7%9F_1.pdf",
-     "file_page_revision_id": 464480834
-    },
-    "hygiene": "none",
-    "decision_refs": [
-     "planning/decisions/2026-11-10-legal-strategy.md",
-     "docs/legal/2026-11-10_legal_strategy.md",
-     "planning/decisions/2026-11-06-f8-real-source-decisions.md (decision 3: HebrewBooks-sourced Commons files; decision 10: data gaps are not rights problems)"
-    ],
-    "summary": "Public-domain work (author d. 1204, recorded publication year 1900); faithful scan, digitized by HebrewBooks; fetched from Wikimedia Commons (File:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf), not from HebrewBooks; no new right in the scan and no contract binds its reuse."
-   }
+   "accepted": false,
+   "reason": "justification_index_not_admitted:printed_commentary_unnamed",
+   "failures": [
+    "justification_index_not_admitted:printed_commentary_unnamed",
+    "justification_index_not_admitted:printed_commentary_unattributed",
+    "justification_index_not_admitted:possible_later_reprint"
+   ],
+   "rights_justification": null
   },
   {
    "index_key": "ws_index_1711487",
    "commons_file": "File:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 2.pdf",
    "commons_file_sha1": "573a0eb4019e51d143bb6e8648aa91e21d260343",
-   "accepted": true,
-   "reason": "rights_justified",
-   "failures": [],
-   "rights_justification": {
-    "id": "rj:ws_index_1711487:d799258bfe35",
-    "format": "hocrgen.rights_justification.v1",
-    "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
-    "as_of": "2026-11-11",
-    "index_key": "ws_index_1711487",
-    "index_title": "מפתח:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 2.pdf",
-    "commons_file": "File:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 2.pdf",
-    "route": {
-     "name": "wikimedia_commons",
-     "file_repository": "commons",
-     "url": [
-      "https://upload.wikimedia.org/wikipedia/commons/5/5e/%D7%9E%D7%A9%D7%A0%D7%94_%D7%AA%D7%95%D7%A8%D7%94_%D7%93%D7%A4%D7%95%D7%A1_%D7%95%D7%95%D7%90%D7%A8%D7%A9%D7%90-%D7%95%D7%95%D7%99%D7%9C%D7%A0%D7%90_%D7%9B%D7%A8%D7%9A_%D7%A8%D7%90%D7%A9%D7%95%D7%9F_2.pdf",
-      "https://commons.wikimedia.org/wiki/File:%D7%9E%D7%A9%D7%A0%D7%94_%D7%AA%D7%95%D7%A8%D7%94_%D7%93%D7%A4%D7%95%D7%A1_%D7%95%D7%95%D7%90%D7%A8%D7%A9%D7%90-%D7%95%D7%95%D7%99%D7%9C%D7%A0%D7%90_%D7%9B%D7%A8%D7%9A_%D7%A8%D7%90%D7%A9%D7%95%D7%9F_2.pdf"
-     ],
-     "sha1": {
-      "file": "573a0eb4019e51d143bb6e8648aa91e21d260343"
-     },
-     "sha256": null,
-     "sha256_note": "The whole file was never downloaded. The file is pinned by its SHA-1 (Commons imageinfo) and its file-page revision; every page render used is pinned by sha256 in its page record (image.rendered_from.render_sha256).",
-     "file_page_revision_id": 464480525
-    },
-    "work_public_domain": {
-     "title": "משנה תורה לרמב\"ם",
-     "contributors": [
-      {
-       "name": "Maimonides",
-       "role": "author",
-       "wikidata": "Q127398",
-       "death_year": 1204,
-       "death_year_source": {
-        "url": "https://www.wikidata.org/wiki/Q127398",
-        "kind": "wikidata_p570"
-       }
-      }
-     ],
-     "contributors_basis": {
-      "checked": [
-       "Wikisource Index fields (author, translator, editor, illustrator, and role markers in the title and notes)",
-       "Commons file page fields (Author, Translator, Editor, Illustrator)",
-       "cited facts in docs/wikisource_index_evidence.json"
-      ],
-      "counted_roles": [
-       "author",
-       "translator",
-       "editor",
-       "annotator",
-       "illustrator",
-       "anonymous",
-       "pseudonymous"
-      ],
-      "death_year_sources": [
-       "wikidata_p570",
-       "Wikisource author page",
-       "cited source (index evidence file)"
-      ]
-     },
-     "publication_year": {
-      "year": 1900,
-      "evidence": "Commons date field: 1900; Index page field שנה: 1900"
-     },
-     "place": {
-      "place": "ווארשא-ווילנא",
-      "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
-     },
-     "language": "he",
-     "inventory_gate": {
-      "work_rights": {
-       "basis": "author_died_by_1955",
-       "evidence": "Creators: Maimonides (author, died 1204)."
-      }
-     },
-     "israel_status": {
-      "status": "pd_il",
-      "basis": "author_died_over_70_years_ago",
-      "reason": "every contributor died by 1204; 1204 + 70 < 2026",
-      "law": "Copyright Act 2007, s. 38"
-     },
-     "us_status": {
-      "status": "pd_us",
-      "reason": "published before 1931",
-      "publication_year": 1900
-     }
-    },
-    "faithful_reproduction": {
-     "text": "A faithful photographic or mechanical scan of a two-dimensional printed page carries no new copyright: in the US a slavish copy lacks originality (Feist v. Rural, 499 U.S. 340 (1991); Bridgeman v. Corel, 36 F. Supp. 2d 191 (S.D.N.Y. 1999)), and in Israel sweat of the brow is not enough (CA 513/89 Interlego v. Exin-Lines, Copyright Act 2007). Strategy section 1.",
-     "evidence": {
-      "mime": "application/pdf",
-      "page_count": 460,
-      "scan_rights_basis": "faithful_reproduction_of_pd_work",
-      "scan_rights_evidence": "Commons licence templates ['PD-old-100-1996'] (a public-domain tag): a flat scan of a printed work, a faithful reproduction (decision 10).",
-      "explicit_open_licence": null
-     }
-    },
-    "digitizer": {
-     "name": "HebrewBooks",
-     "kind": "hebrewbooks",
-     "evidence": [
-      "Commons source field: '''[http://hebrewbooks.org/14278 HebrewBooks.org 14278]'''. The Warsaw-Vilna edition of ''Mishneh Torah'', whose scan is available at Internet Archive, contains only volumes 2-4 and is missing volume…",
-      "inventory Google check: Automated (F8b2 inventory): the file's embedded metadata and text layer (4354389 characters) contain no 'Google'; page renders were not inspected."
-     ],
-     "google": {
-      "status": "not_google",
-      "evidence": [
-       "inventory Google check: Automated (F8b2 inventory): the file's embedded metadata and text layer (4354389 characters) contain no 'Google'; page renders were not inspected."
-      ]
-     },
-     "scan_source_origin": "hebrewbooks"
-    },
-    "origin_label": {
-     "holder": "HebrewBooks",
-     "label": "hebrewbooks_site_terms",
-     "as_found": "HebrewBooks' site terms: a personal-use, non-commercial licence that bans automated access (maintainer decision 3, 2026-11-06)",
-     "evidence": "the Commons file record names HebrewBooks as its source"
-    },
-    "why_not_binding": "HeOCR fetched this file from Wikimedia Commons (File:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 2.pdf), not from HebrewBooks. It accepted no terms from HebrewBooks for it and is not in privity with HebrewBooks, so HebrewBooks' site terms: a personal-use, non-commercial licence that bans automated access (maintainer decision 3, 2026-11-06) binds neither HeOCR nor the users of its releases (strategy section 2(a) and 2(c)). With no copyright in the public-domain text or in the faithful scan, no right travels with the file.",
-    "route_terms": {
-     "reference": "Wikimedia Terms of Use, and the file's licence or public-domain template on its file page (recorded as found; decision 10: a missing or PD-US-only template never decides the work's status). Strategy section 2(a): Commons offers public-domain files free of all restrictions.",
-     "url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
-     "licence_templates": [
-      "PD-old-100-1996"
-     ],
-     "file_page": "https://commons.wikimedia.org/wiki/File:%D7%9E%D7%A9%D7%A0%D7%94_%D7%AA%D7%95%D7%A8%D7%94_%D7%93%D7%A4%D7%95%D7%A1_%D7%95%D7%95%D7%90%D7%A8%D7%A9%D7%90-%D7%95%D7%95%D7%99%D7%9C%D7%A0%D7%90_%D7%9B%D7%A8%D7%9A_%D7%A8%D7%90%D7%A9%D7%95%D7%9F_2.pdf",
-     "file_page_revision_id": 464480525
-    },
-    "hygiene": "none",
-    "decision_refs": [
-     "planning/decisions/2026-11-10-legal-strategy.md",
-     "docs/legal/2026-11-10_legal_strategy.md",
-     "planning/decisions/2026-11-06-f8-real-source-decisions.md (decision 3: HebrewBooks-sourced Commons files; decision 10: data gaps are not rights problems)"
-    ],
-    "summary": "Public-domain work (author d. 1204, recorded publication year 1900); faithful scan, digitized by HebrewBooks; fetched from Wikimedia Commons (File:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 2.pdf), not from HebrewBooks; no new right in the scan and no contract binds its reuse."
-   }
+   "accepted": false,
+   "reason": "justification_index_not_admitted:printed_commentary_unnamed",
+   "failures": [
+    "justification_index_not_admitted:printed_commentary_unnamed",
+    "justification_index_not_admitted:possible_later_reprint"
+   ],
+   "rights_justification": null
+  },
+  {
+   "index_key": "ws_index_1711488",
+   "commons_file": "File:משנה תורה דפוס ווארשא-ווילנא כרך שני.pdf",
+   "commons_file_sha1": "5d53bff3c5264d118e869b12cdd8f43225ec4968",
+   "accepted": false,
+   "reason": "justification_index_not_admitted:creator_death_year_missing",
+   "failures": [
+    "justification_index_not_admitted:creator_death_year_missing",
+    "justification_index_not_admitted:printed_commentary_unnamed"
+   ],
+   "rights_justification": null
+  },
+  {
+   "index_key": "ws_index_1711489",
+   "commons_file": "File:משנה תורה דפוס ווארשא-ווילנא כרך שלישי.pdf",
+   "commons_file_sha1": "1a2779fecf10d1957fa5feab905cf7b87fb8c82e",
+   "accepted": false,
+   "reason": "justification_index_not_admitted:creator_death_year_missing",
+   "failures": [
+    "justification_index_not_admitted:creator_death_year_missing",
+    "justification_index_not_admitted:printed_commentary_unnamed"
+   ],
+   "rights_justification": null
   },
   {
    "index_key": "ws_index_1711490",
    "commons_file": "File:משנה תורה דפוס ווארשא-ווילנא כרך רביעי.pdf",
    "commons_file_sha1": "9c312603581e9c95146c152a0f038348516ab94c",
-   "accepted": true,
-   "reason": "rights_justified",
-   "failures": [],
-   "rights_justification": {
-    "id": "rj:ws_index_1711490:34a64e210771",
-    "format": "hocrgen.rights_justification.v1",
-    "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
-    "as_of": "2026-11-11",
-    "index_key": "ws_index_1711490",
-    "index_title": "מפתח:משנה תורה דפוס ווארשא-ווילנא כרך רביעי.pdf",
-    "commons_file": "File:משנה תורה דפוס ווארשא-ווילנא כרך רביעי.pdf",
-    "route": {
-     "name": "wikimedia_commons",
-     "file_repository": "commons",
-     "url": [
-      "https://upload.wikimedia.org/wikipedia/commons/b/b7/%D7%9E%D7%A9%D7%A0%D7%94_%D7%AA%D7%95%D7%A8%D7%94_%D7%93%D7%A4%D7%95%D7%A1_%D7%95%D7%95%D7%90%D7%A8%D7%A9%D7%90-%D7%95%D7%95%D7%99%D7%9C%D7%A0%D7%90_%D7%9B%D7%A8%D7%9A_%D7%A8%D7%91%D7%99%D7%A2%D7%99.pdf",
-      "https://commons.wikimedia.org/wiki/File:%D7%9E%D7%A9%D7%A0%D7%94_%D7%AA%D7%95%D7%A8%D7%94_%D7%93%D7%A4%D7%95%D7%A1_%D7%95%D7%95%D7%90%D7%A8%D7%A9%D7%90-%D7%95%D7%95%D7%99%D7%9C%D7%A0%D7%90_%D7%9B%D7%A8%D7%9A_%D7%A8%D7%91%D7%99%D7%A2%D7%99.pdf"
-     ],
-     "sha1": {
-      "file": "9c312603581e9c95146c152a0f038348516ab94c"
-     },
-     "sha256": null,
-     "sha256_note": "The whole file was never downloaded. The file is pinned by its SHA-1 (Commons imageinfo) and its file-page revision; every page render used is pinned by sha256 in its page record (image.rendered_from.render_sha256).",
-     "file_page_revision_id": 1123420531
-    },
-    "work_public_domain": {
-     "title": "משנה תורה לרמב\"ם",
-     "contributors": [
-      {
-       "name": "Maimonides",
-       "role": "author",
-       "wikidata": "Q127398",
-       "death_year": 1204,
-       "death_year_source": {
-        "url": "https://www.wikidata.org/wiki/Q127398",
-        "kind": "wikidata_p570"
-       }
-      }
-     ],
-     "contributors_basis": {
-      "checked": [
-       "Wikisource Index fields (author, translator, editor, illustrator, and role markers in the title and notes)",
-       "Commons file page fields (Author, Translator, Editor, Illustrator)",
-       "cited facts in docs/wikisource_index_evidence.json"
-      ],
-      "counted_roles": [
-       "author",
-       "translator",
-       "editor",
-       "annotator",
-       "illustrator",
-       "anonymous",
-       "pseudonymous"
-      ],
-      "death_year_sources": [
-       "wikidata_p570",
-       "Wikisource author page",
-       "cited source (index evidence file)"
-      ]
-     },
-     "publication_year": {
-      "year": 1900,
-      "evidence": "Commons date field: 1900; Index page field שנה: 1900"
-     },
-     "place": {
-      "place": "ווארשא-ווילנא",
-      "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
-     },
-     "language": "he",
-     "inventory_gate": {
-      "work_rights": {
-       "basis": "author_died_by_1955",
-       "evidence": "Creators: Maimonides (author, died 1204)."
-      }
-     },
-     "israel_status": {
-      "status": "pd_il",
-      "basis": "author_died_over_70_years_ago",
-      "reason": "every contributor died by 1204; 1204 + 70 < 2026",
-      "law": "Copyright Act 2007, s. 38"
-     },
-     "us_status": {
-      "status": "pd_us",
-      "reason": "published before 1931",
-      "publication_year": 1900
-     }
-    },
-    "faithful_reproduction": {
-     "text": "A faithful photographic or mechanical scan of a two-dimensional printed page carries no new copyright: in the US a slavish copy lacks originality (Feist v. Rural, 499 U.S. 340 (1991); Bridgeman v. Corel, 36 F. Supp. 2d 191 (S.D.N.Y. 1999)), and in Israel sweat of the brow is not enough (CA 513/89 Interlego v. Exin-Lines, Copyright Act 2007). Strategy section 1.",
-     "evidence": {
-      "mime": "application/pdf",
-      "page_count": 904,
-      "scan_rights_basis": "faithful_reproduction_of_pd_work",
-      "scan_rights_evidence": "Commons licence templates ['PD-old-100-1996'] (a public-domain tag): a flat scan of a printed work, a faithful reproduction (decision 10).",
-      "explicit_open_licence": null
-     }
-    },
-    "digitizer": {
-     "name": "Internet Archive, from a copy at University of Illinois Urbana-Champaign",
-     "kind": "internet_archive_library_scan",
-     "evidence": [
-      "Commons source field: '''[https://archive.org/details/sefermishnehtora048800 Internet Archive]'''",
-      "Internet Archive item sefermishnehtora048800: contributor 'University of Illinois Urbana-Champaign', sponsor 'University of Illinois Urbana-Champaign Alternates', scanning centre 'il'",
-      "inventory Google check: Automated (F8b2 inventory): the file's embedded metadata and text layer (373605 characters) contain no 'Google'; page renders were not inspected."
-     ],
-     "google": {
-      "status": "not_google",
-      "evidence": [
-       "inventory Google check: Automated (F8b2 inventory): the file's embedded metadata and text layer (373605 characters) contain no 'Google'; page renders were not inspected."
-      ]
-     },
-     "scan_source_origin": "internet_archive"
-    },
-    "origin_label": null,
-    "why_not_binding": null,
-    "route_terms": {
-     "reference": "Wikimedia Terms of Use, and the file's licence or public-domain template on its file page (recorded as found; decision 10: a missing or PD-US-only template never decides the work's status). Strategy section 2(a): Commons offers public-domain files free of all restrictions.",
-     "url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
-     "licence_templates": [
-      "PD-old-100-1996"
-     ],
-     "file_page": "https://commons.wikimedia.org/wiki/File:%D7%9E%D7%A9%D7%A0%D7%94_%D7%AA%D7%95%D7%A8%D7%94_%D7%93%D7%A4%D7%95%D7%A1_%D7%95%D7%95%D7%90%D7%A8%D7%A9%D7%90-%D7%95%D7%95%D7%99%D7%9C%D7%A0%D7%90_%D7%9B%D7%A8%D7%9A_%D7%A8%D7%91%D7%99%D7%A2%D7%99.pdf",
-     "file_page_revision_id": 1123420531
-    },
-    "hygiene": "none",
-    "decision_refs": [
-     "planning/decisions/2026-11-10-legal-strategy.md",
-     "docs/legal/2026-11-10_legal_strategy.md",
-     "planning/decisions/2026-11-06-f8-real-source-decisions.md (decision 10: data gaps are not rights problems)"
-    ],
-    "summary": "Public-domain work (author d. 1204, recorded publication year 1900); faithful scan, digitized by Internet Archive, from a copy at University of Illinois Urbana-Champaign; fetched from Wikimedia Commons (File:משנה תורה דפוס ווארשא-ווילנא כרך רביעי.pdf); no new right in the scan and no contract binds its reuse."
-   }
+   "accepted": false,
+   "reason": "justification_index_not_admitted:printed_commentary_unnamed",
+   "failures": [
+    "justification_index_not_admitted:printed_commentary_unnamed"
+   ],
+   "rights_justification": null
   },
   {
    "index_key": "ws_index_1715516",
@@ -696,7 +363,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_1715516:943d912b609f",
+    "id": "rj:ws_index_1715516:4ea4bbf5bab8",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -761,6 +428,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -834,7 +517,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_1717857:d8ad22097f20",
+    "id": "rj:ws_index_1717857:e52c7b4551d1",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -899,6 +582,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -1020,7 +719,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_1720479:edd4eb8465ab",
+    "id": "rj:ws_index_1720479:17a73350c8ce",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -1082,6 +781,41 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [
+       {
+        "kind": "named",
+        "title": "Qav ve-Naqi",
+        "source": "commons_description",
+        "snippet": "{{en|1=Proverbs with the commentary ''Qav ve-Naqi'' (קב ונקי), by [[:W:EN:David ben Solomon ibn Yahya|David ben Solomon ibn Yaḥya]] (1455-1528)}}"
+       }
+      ],
+      "attributed": [
+       {
+        "titles": [
+         "Qav ve-Naqi",
+         "קב ונקי"
+        ],
+        "creators": [
+         "David ben Solomon ibn Yahya"
+        ],
+        "evidence": "The Commons description names the commentary and its author: 'Proverbs with the commentary Qav ve-Naqi, by David ben Solomon ibn Yahya' (Lisbon 1492); he is the recorded author (Wikidata Q3019027, P570 1528). (recorded by agent, 2026-11-11)"
+       }
+      ],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages of an otherwise admitted Index)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -1322,7 +1056,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_1720553:25ad1ca26963",
+    "id": "rj:ws_index_1720553:41f8654d171c",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -1384,6 +1118,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -1517,6 +1267,32 @@
    }
   },
   {
+   "index_key": "ws_index_1723233",
+   "commons_file": "File:שולחן ערוך אורח חיים חלק ראשון.pdf",
+   "commons_file_sha1": "8a44ff43bfcc1b2b3e3bcc1f07e099bf91fd58fd",
+   "accepted": false,
+   "reason": "justification_index_not_admitted:creator_death_year_missing",
+   "failures": [
+    "justification_index_not_admitted:creator_death_year_missing",
+    "justification_index_not_admitted:printed_commentary_unnamed",
+    "justification_index_not_admitted:possible_later_reprint"
+   ],
+   "rights_justification": null
+  },
+  {
+   "index_key": "ws_index_1723923",
+   "commons_file": "File:שולחן ערוך אורח חיים חלק שני.pdf",
+   "commons_file_sha1": "62a3723aa868f3f07b12852779f63d6c39fd6e97",
+   "accepted": false,
+   "reason": "justification_index_not_admitted:creator_death_year_missing",
+   "failures": [
+    "justification_index_not_admitted:creator_death_year_missing",
+    "justification_index_not_admitted:printed_commentary_unnamed",
+    "justification_index_not_admitted:possible_later_reprint"
+   ],
+   "rights_justification": null
+  },
+  {
    "index_key": "ws_index_1723956",
    "commons_file": "File:חפץ ה' עמ' א.png",
    "commons_file_sha1": "47ef0af7b852089b43708a10d98ab5581949006d",
@@ -1524,7 +1300,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_1723956:b4ee9d18e102",
+    "id": "rj:ws_index_1723956:1bb944cc4525",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -1583,6 +1359,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "presumed_pd_by_publication_age",
@@ -1685,7 +1477,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_1725211:96e0dbccfda5",
+    "id": "rj:ws_index_1725211:796c17a60ec1",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -1751,6 +1543,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -1820,7 +1628,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_1725257:984c84a61b3b",
+    "id": "rj:ws_index_1725257:5456ce1be780",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -1883,6 +1691,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -1955,7 +1779,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_1726695:608b6608f499",
+    "id": "rj:ws_index_1726695:97694fa567d3",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -2017,6 +1841,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "anonymous_published_by_1955",
@@ -2130,7 +1970,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_1734574:f41a1d212065",
+    "id": "rj:ws_index_1734574:81d50dc4b6c0",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -2235,6 +2075,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -2311,7 +2167,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_1734711:96bc27ac9233",
+    "id": "rj:ws_index_1734711:ac878092983a",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -2383,6 +2239,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "presumed_pd_by_publication_age",
@@ -2462,7 +2334,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_1734721:bb4e4034a1d6",
+    "id": "rj:ws_index_1734721:4a5afdd61678",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -2541,6 +2413,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "presumed_pd_by_publication_age",
@@ -2619,7 +2507,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_1735107:a66894537bb5",
+    "id": "rj:ws_index_1735107:636942878b6f",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -2691,6 +2579,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "presumed_pd_by_publication_age",
@@ -2764,6 +2668,255 @@
    }
   },
   {
+   "index_key": "ws_index_1735193",
+   "commons_file": "File:פירוש מעין גנים על ספר איוב.pdf",
+   "commons_file_sha1": "2fceaed5d9984a61ed6c8969b9d4994b56173f64",
+   "accepted": true,
+   "reason": "rights_justified",
+   "failures": [],
+   "rights_justification": {
+    "id": "rj:ws_index_1735193:b4b314f29657",
+    "format": "hocrgen.rights_justification.v1",
+    "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
+    "as_of": "2026-11-11",
+    "index_key": "ws_index_1735193",
+    "index_title": "מפתח:פירוש מעין גנים על ספר איוב.pdf",
+    "commons_file": "File:פירוש מעין גנים על ספר איוב.pdf",
+    "route": {
+     "name": "wikimedia_commons",
+     "file_repository": "commons",
+     "url": [
+      "https://upload.wikimedia.org/wikipedia/commons/1/1b/%D7%A4%D7%99%D7%A8%D7%95%D7%A9_%D7%9E%D7%A2%D7%99%D7%9F_%D7%92%D7%A0%D7%99%D7%9D_%D7%A2%D7%9C_%D7%A1%D7%A4%D7%A8_%D7%90%D7%99%D7%95%D7%91.pdf",
+      "https://commons.wikimedia.org/wiki/File:%D7%A4%D7%99%D7%A8%D7%95%D7%A9_%D7%9E%D7%A2%D7%99%D7%9F_%D7%92%D7%A0%D7%99%D7%9D_%D7%A2%D7%9C_%D7%A1%D7%A4%D7%A8_%D7%90%D7%99%D7%95%D7%91.pdf"
+     ],
+     "sha1": {
+      "file": "2fceaed5d9984a61ed6c8969b9d4994b56173f64"
+     },
+     "sha256": null,
+     "sha256_note": "The whole file was never downloaded. The file is pinned by its SHA-1 (Commons imageinfo) and its file-page revision; every page render used is pinned by sha256 in its page record (image.rendered_from.render_sha256).",
+     "file_page_revision_id": 1288741978
+    },
+    "work_public_domain": {
+     "title": "פירוש מעין גנים על ספר איוב",
+     "contributors": [
+      {
+       "name": "שמואל מסנות",
+       "role": "author",
+       "wikidata": "Q94949710",
+       "death_year": null,
+       "death_year_source": {
+        "url": "https://www.wikidata.org/wiki/Q94949710",
+        "kind": "floruit",
+        "source": "wikidata_P1317",
+        "value": "+1300-00-00T00:00:00Z",
+        "label": "13th century",
+        "latest_year": 1400,
+        "rule": "active by 1400 at the latest, so died by 1500"
+       }
+      },
+      {
+       "name": "שלמה בובר",
+       "role": "editor",
+       "wikidata": "Q982067",
+       "death_year": 1906,
+       "death_year_source": {
+        "url": "https://www.wikidata.org/wiki/Q982067",
+        "kind": "wikidata_p570"
+       }
+      }
+     ],
+     "contributors_basis": {
+      "checked": [
+       "Wikisource Index fields (author, translator, editor, illustrator, and role markers in the title and notes)",
+       "Commons file page fields (Author, Translator, Editor, Illustrator)",
+       "cited facts in docs/wikisource_index_evidence.json"
+      ],
+      "counted_roles": [
+       "author",
+       "translator",
+       "editor",
+       "annotator",
+       "illustrator",
+       "anonymous",
+       "pseudonymous"
+      ],
+      "death_year_sources": [
+       "wikidata_p570",
+       "Wikisource author page",
+       "cited source (index evidence file)"
+      ]
+     },
+     "publication_year": {
+      "year": 1899,
+      "evidence": "Commons date field: 1899; Index page field שנה: 1899"
+     },
+     "place": {
+      "place": "ברלין",
+      "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
+     },
+     "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
+     "inventory_gate": {
+      "work_rights": {
+       "basis": "author_died_by_1955",
+       "evidence": "Creators: שמואל מסנות (author, floruit 13th century (Wikidata P1317), active by 1400 at the latest); שלמה בובר (editor, died 1906)."
+      }
+     },
+     "israel_status": {
+      "status": "pd_il",
+      "basis": "author_died_over_70_years_ago",
+      "reason": "every contributor died by 1906; 1906 + 70 < 2026; the author's death year is bounded by a cited floruit (hocrgen#171: active by year F, so died by F + 100); every other contributor has a cited death year",
+      "law": "Copyright Act 2007, s. 38",
+      "floruit_for": [
+       "שמואל מסנות (floruit 13th century)"
+      ]
+     },
+     "us_status": {
+      "status": "pd_us",
+      "reason": "published before 1931",
+      "publication_year": 1899
+     }
+    },
+    "faithful_reproduction": {
+     "text": "A faithful photographic or mechanical scan of a two-dimensional printed page carries no new copyright: in the US a slavish copy lacks originality (Feist v. Rural, 499 U.S. 340 (1991); Bridgeman v. Corel, 36 F. Supp. 2d 191 (S.D.N.Y. 1999)), and in Israel sweat of the brow is not enough (CA 513/89 Interlego v. Exin-Lines, Copyright Act 2007). Strategy section 1.",
+     "evidence": {
+      "mime": "application/pdf",
+      "page_count": 162,
+      "scan_rights_basis": "faithful_reproduction_of_pd_work",
+      "scan_rights_evidence": "Commons licence templates ['PD-Scan', 'PD-old-auto-expired'] (a public-domain tag): a flat scan of a printed work, a faithful reproduction (decision 10).",
+      "explicit_open_licence": null
+     }
+    },
+    "digitizer": {
+     "name": "unrecorded",
+     "kind": "unrecorded",
+     "evidence": [
+      "Commons source field: [https://archive.org/details/job-mayan-ganim-1899-images/page/n3/mode/2up Internet Archive]",
+      "Internet Archive item job-mayan-ganim-1899-images: uploaded with Internet Archive HTML5 Uploader 1.7.0; the digitizer is not named",
+      "inventory Google check: Not decided: the file has no usable text layer and its metadata does not name the digitizer; page renders were not inspected.",
+      "hygiene pass: no Google usage-guidelines page and no 'Digitized by Google' watermark on 6 checked page renders"
+     ],
+     "google": {
+      "status": "not_detected",
+      "evidence": [
+       "inventory Google check: Not decided: the file has no usable text layer and its metadata does not name the digitizer; page renders were not inspected.",
+       "hygiene pass: no Google usage-guidelines page and no 'Digitized by Google' watermark on 6 checked page renders"
+      ]
+     },
+     "scan_source_origin": "internet_archive",
+     "note": "No scanning body is recorded for this file (decision 10: a faithful reproduction of a public-domain work needs no recorded scan source)."
+    },
+    "origin_label": null,
+    "why_not_binding": null,
+    "route_terms": {
+     "reference": "Wikimedia Terms of Use, and the file's licence or public-domain template on its file page (recorded as found; decision 10: a missing or PD-US-only template never decides the work's status). Strategy section 2(a): Commons offers public-domain files free of all restrictions.",
+     "url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
+     "licence_templates": [
+      "PD-Scan|PD-old-auto-expired|deathyear=1300"
+     ],
+     "file_page": "https://commons.wikimedia.org/wiki/File:%D7%A4%D7%99%D7%A8%D7%95%D7%A9_%D7%9E%D7%A2%D7%99%D7%9F_%D7%92%D7%A0%D7%99%D7%9D_%D7%A2%D7%9C_%D7%A1%D7%A4%D7%A8_%D7%90%D7%99%D7%95%D7%91.pdf",
+     "file_page_revision_id": 1288741978
+    },
+    "hygiene": {
+     "format": "hocrgen.google_hygiene.v1",
+     "scope": "wikisource_commons_pages",
+     "box_units": "fraction of the page render: [x, y, width, height]",
+     "render_source": "6 from Commons thumbnail",
+     "excluded_front_matter": [],
+     "watermark_boxes": [],
+     "pages_without_watermark": [
+      1,
+      2,
+      3,
+      9,
+      10,
+      11
+     ],
+     "pages": [
+      {
+       "scan_page": 1,
+       "render_sha256": "034c42c4bef1982a8869a3e9e4495d28979925c89bec77b5f038a2b146f5fd93",
+       "render_width": 960,
+       "render_height": 1505,
+       "front_matter": false,
+       "google_watermark_bbox": null,
+       "watermark_band": null
+      },
+      {
+       "scan_page": 2,
+       "render_sha256": "33a5d5a14d28c9a0c9c44d735c6516f5a90796735ee296efdc220a6a02bba098",
+       "render_width": 960,
+       "render_height": 1670,
+       "front_matter": false,
+       "google_watermark_bbox": null,
+       "watermark_band": null
+      },
+      {
+       "scan_page": 3,
+       "render_sha256": "22cf7296e803a8dbfa6d208b09d82067585fd4dde498e2198ce1a1fe7987e49d",
+       "render_width": 960,
+       "render_height": 1670,
+       "front_matter": false,
+       "google_watermark_bbox": null,
+       "watermark_band": null
+      },
+      {
+       "scan_page": 9,
+       "render_sha256": "2e4e6776fae6f8d418966335ffa169734b028153691ec2ad64b3d138faa37e21",
+       "render_width": 960,
+       "render_height": 1670,
+       "front_matter": false,
+       "google_watermark_bbox": null,
+       "watermark_band": null
+      },
+      {
+       "scan_page": 10,
+       "render_sha256": "381e2a9ecf28caf3f647e37859caddbb895a6a730b8cb1f1b2776c2431afee3b",
+       "render_width": 960,
+       "render_height": 1670,
+       "front_matter": false,
+       "google_watermark_bbox": null,
+       "watermark_band": null
+      },
+      {
+       "scan_page": 11,
+       "render_sha256": "1b162c0c65d12ca8b1973450dd7233524ff1d605595e653214360c5bd841e9ab",
+       "render_width": 960,
+       "render_height": 1670,
+       "front_matter": false,
+       "google_watermark_bbox": null,
+       "watermark_band": null
+      }
+     ],
+     "method": {
+      "front_matter": "tesseract -l eng --psm 3 on the first canvases; Google usage-guidelines boilerplate phrases",
+      "watermark": "tesseract -l eng --psm 6 on the bottom band of each page (10%, then 6%, then 15% until found); 'Digitized by Google' line (band upscaled 3x)"
+     }
+    },
+    "decision_refs": [
+     "planning/decisions/2026-11-10-legal-strategy.md",
+     "docs/legal/2026-11-10_legal_strategy.md",
+     "planning/decisions/2026-11-06-f8-real-source-decisions.md (decision 10: data gaps are not rights problems)"
+    ],
+    "summary": "Public-domain work (author fl. 13th century, editor d. 1906, recorded publication year 1899); faithful scan, digitizer unrecorded; fetched from Wikimedia Commons (File:פירוש מעין גנים על ספר איוב.pdf); no new right in the scan and no contract binds its reuse."
+   }
+  },
+  {
    "index_key": "ws_index_1735654",
    "commons_file": "File:משפטי הטעמים רעדעלהיים תקס\"ח.pdf",
    "commons_file_sha1": "ebe8a9db1913c3386c5d5b85653e1da10a2e3938",
@@ -2771,7 +2924,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_1735654:b0c2f6e9884b",
+    "id": "rj:ws_index_1735654:b1c519a50043",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -2846,6 +2999,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -2881,13 +3050,13 @@
       "Commons source field: [https://archive.org/details/heidenheim-mishpetei-ha-teamim-rodelheim-1818-images/page/n3/mode/2up Internet Archive]",
       "Internet Archive item heidenheim-mishpetei-ha-teamim-rodelheim-1818-images: uploaded with Internet Archive HTML5 Uploader 1.7.0; the digitizer is not named",
       "inventory Google check: Not decided: the file has no usable text layer and its metadata does not name the digitizer; page renders were not inspected.",
-      "hygiene pass: no Google usage-guidelines page and no 'Digitized by Google' watermark on 12 checked page renders"
+      "hygiene pass: no Google usage-guidelines page and no 'Digitized by Google' watermark on 13 checked page renders"
      ],
      "google": {
       "status": "not_detected",
       "evidence": [
        "inventory Google check: Not decided: the file has no usable text layer and its metadata does not name the digitizer; page renders were not inspected.",
-       "hygiene pass: no Google usage-guidelines page and no 'Digitized by Google' watermark on 12 checked page renders"
+       "hygiene pass: no Google usage-guidelines page and no 'Digitized by Google' watermark on 13 checked page renders"
       ]
      },
      "scan_source_origin": "internet_archive",
@@ -2908,7 +3077,7 @@
      "format": "hocrgen.google_hygiene.v1",
      "scope": "wikisource_commons_pages",
      "box_units": "fraction of the page render: [x, y, width, height]",
-     "render_source": "2 from Commons thumbnail, 1 from operator render cache, 9 from tranche snapshot",
+     "render_source": "2 from Commons thumbnail, 2 from operator render cache, 9 from tranche snapshot",
      "excluded_front_matter": [],
      "watermark_boxes": [],
      "pages_without_watermark": [
@@ -2920,6 +3089,7 @@
       8,
       9,
       13,
+      14,
       15,
       16,
       17,
@@ -2999,6 +3169,15 @@
        "watermark_band": null
       },
       {
+       "scan_page": 14,
+       "render_sha256": "48d713a2e4c4d199edf82929b575fb92c598c9cf9f94d20f587a7795d48ff46c",
+       "render_width": 960,
+       "render_height": 1664,
+       "front_matter": false,
+       "google_watermark_bbox": null,
+       "watermark_band": null
+      },
+      {
        "scan_page": 15,
        "render_sha256": "b88f8ae3b75508229dd72583e4cceecc326c07ca9284460045578830c0d55239",
        "render_width": 960,
@@ -3056,7 +3235,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_1744568:55f082257e4d",
+    "id": "rj:ws_index_1744568:7a01c8c4c0bf",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -3128,6 +3307,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "presumed_pd_by_publication_age",
@@ -3204,7 +3399,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_1745039:4fbca56154c5",
+    "id": "rj:ws_index_1745039:daabc5aefbb3",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -3279,6 +3474,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -3918,7 +4129,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_214041:868c9c5adac3",
+    "id": "rj:ws_index_214041:814d4ae14907",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -3981,6 +4192,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -4144,7 +4371,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_220713:0db473458ea6",
+    "id": "rj:ws_index_220713:ef242464b31b",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -4207,6 +4434,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -4280,7 +4523,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_223060:037dd425ef47",
+    "id": "rj:ws_index_223060:300689c42958",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -4345,6 +4588,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -4474,7 +4733,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_223203:bdbeacf0ed82",
+    "id": "rj:ws_index_223203:5aa3ee90f45a",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -4547,6 +4806,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -4620,7 +4895,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_255445:4eca325199b0",
+    "id": "rj:ws_index_255445:abbcd4221cb6",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -4682,6 +4957,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -5080,7 +5371,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_256391:5f73742c371b",
+    "id": "rj:ws_index_256391:939181690c32",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -5142,6 +5433,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -5213,7 +5520,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_256394:db4df36c600b",
+    "id": "rj:ws_index_256394:b2663b59efd3",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -5275,6 +5582,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -5595,7 +5918,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_257961:a78d1aee510a",
+    "id": "rj:ws_index_257961:e4fb4b7ce25b",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -5657,6 +5980,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -5775,7 +6114,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_260883:614e7a5330c1",
+    "id": "rj:ws_index_260883:8b5ba9ba6fc1",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -5837,6 +6176,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -5906,7 +6261,7 @@
      "format": "hocrgen.google_hygiene.v1",
      "scope": "wikisource_commons_pages",
      "box_units": "fraction of the page render: [x, y, width, height]",
-     "render_source": "3 from Commons thumbnail, 91 from tranche snapshot",
+     "render_source": "3 from Commons thumbnail, 1 from operator render cache, 91 from tranche snapshot",
      "excluded_front_matter": [
       {
        "scan_page": 1,
@@ -6619,7 +6974,8 @@
       128,
       130,
       134,
-      493
+      493,
+      499
      ],
      "pages": [
       {
@@ -7842,6 +8198,15 @@
        "front_matter": false,
        "google_watermark_bbox": null,
        "watermark_band": null
+      },
+      {
+       "scan_page": 499,
+       "render_sha256": "364b15d71246d3d226f9786219e47487b303ee4927a645cdbcff39c48cdf0839",
+       "render_width": 500,
+       "render_height": 782,
+       "front_matter": false,
+       "google_watermark_bbox": null,
+       "watermark_band": null
       }
      ],
      "method": {
@@ -7858,6 +8223,19 @@
    }
   },
   {
+   "index_key": "ws_index_273240",
+   "commons_file": "File:Megilasz Maiszjahu Chanuka Története.pdf",
+   "commons_file_sha1": "8a9bf970fae40281121d935f31a160020c36c606",
+   "accepted": false,
+   "reason": "justification_index_not_admitted:creator_death_year_missing",
+   "failures": [
+    "justification_index_not_admitted:creator_death_year_missing",
+    "justification_index_not_admitted:printed_commentary_unnamed",
+    "justification_index_not_admitted:index_language_unrecorded"
+   ],
+   "rights_justification": null
+  },
+  {
    "index_key": "ws_index_274837",
    "commons_file": "File:Or hashem vilna 1905.pdf",
    "commons_file_sha1": "fd21ef439515b51f310bcba7a6c52f8d95762b85",
@@ -7865,7 +8243,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_274837:c9e6bef12ba1",
+    "id": "rj:ws_index_274837:0c4d29c0fe63",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -7937,6 +8315,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -8008,7 +8402,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_275916:96beff678eba",
+    "id": "rj:ws_index_275916:d710081b77a6",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -8070,6 +8464,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -8193,7 +8603,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_286280:9c8f80c49491",
+    "id": "rj:ws_index_286280:20496e7fe441",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -8265,6 +8675,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -8341,7 +8767,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_288180:28be28e850a5",
+    "id": "rj:ws_index_288180:33048f3573ac",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -8423,6 +8849,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -8499,7 +8941,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_288182:25f7724bacd0",
+    "id": "rj:ws_index_288182:3200d321f839",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -8564,6 +9006,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -8640,7 +9098,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_288183:ed9a0ab7c835",
+    "id": "rj:ws_index_288183:96e172a2c691",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -8715,6 +9173,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -8791,7 +9265,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_288444:af6db9ac7bce",
+    "id": "rj:ws_index_288444:f8c180ae1d8c",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -8866,6 +9340,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -8942,7 +9432,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_288767:3bdd60ecf699",
+    "id": "rj:ws_index_288767:50fddce36d73",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -9004,6 +9494,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -9080,7 +9586,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_314831:81431752428b",
+    "id": "rj:ws_index_314831:0f7e76ee34a7",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -9142,6 +9648,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -9175,13 +9697,13 @@
      "kind": "unrecorded",
      "evidence": [
       "inventory Google check: Not decided: the file has no usable text layer and its metadata does not name the digitizer; page renders were not inspected.",
-      "hygiene pass: no Google usage-guidelines page and no 'Digitized by Google' watermark on 17 checked page renders"
+      "hygiene pass: no Google usage-guidelines page and no 'Digitized by Google' watermark on 18 checked page renders"
      ],
      "google": {
       "status": "not_detected",
       "evidence": [
        "inventory Google check: Not decided: the file has no usable text layer and its metadata does not name the digitizer; page renders were not inspected.",
-       "hygiene pass: no Google usage-guidelines page and no 'Digitized by Google' watermark on 17 checked page renders"
+       "hygiene pass: no Google usage-guidelines page and no 'Digitized by Google' watermark on 18 checked page renders"
       ]
      },
      "scan_source_origin": "unrecorded",
@@ -9202,7 +9724,7 @@
      "format": "hocrgen.google_hygiene.v1",
      "scope": "wikisource_commons_pages",
      "box_units": "fraction of the page render: [x, y, width, height]",
-     "render_source": "17 from tranche snapshot",
+     "render_source": "1 from operator render cache, 17 from tranche snapshot",
      "excluded_front_matter": [],
      "watermark_boxes": [],
      "pages_without_watermark": [
@@ -9222,7 +9744,8 @@
       14,
       15,
       16,
-      17
+      17,
+      47
      ],
      "pages": [
       {
@@ -9377,6 +9900,15 @@
        "front_matter": false,
        "google_watermark_bbox": null,
        "watermark_band": null
+      },
+      {
+       "scan_page": 47,
+       "render_sha256": "462edfd6a80e90f3ec321a10836de03a10ba0b20bb35fc6eac32ce7819d62c09",
+       "render_width": 960,
+       "render_height": 1542,
+       "front_matter": false,
+       "google_watermark_bbox": null,
+       "watermark_band": null
       }
      ],
      "method": {
@@ -9400,7 +9932,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_327706:78eaf286bad3",
+    "id": "rj:ws_index_327706:becf46574913",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -9462,6 +9994,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -9538,7 +10086,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_328113:cf9f63a0a0fb",
+    "id": "rj:ws_index_328113:33d48f23b7de",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -9603,6 +10151,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -9680,7 +10244,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_328114:61b4c2bc003f",
+    "id": "rj:ws_index_328114:a1cc15eac3d9",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -9745,6 +10309,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -9822,7 +10402,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_328115:eb42a792a201",
+    "id": "rj:ws_index_328115:1ccd92ed96f0",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -9887,6 +10467,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -9964,7 +10560,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_328435:222db6778c3d",
+    "id": "rj:ws_index_328435:2acc2f165bdb",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -10026,6 +10622,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -10189,7 +10801,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_331268:fdba500b8bed",
+    "id": "rj:ws_index_331268:7355964ba0a7",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -10264,6 +10876,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -10394,7 +11022,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_331297:629c1651273a",
+    "id": "rj:ws_index_331297:e66bcc2979b3",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -10456,6 +11084,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -10529,7 +11173,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_331308:61a7a7406001",
+    "id": "rj:ws_index_331308:ededf6517326",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -10594,6 +11238,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -10670,7 +11330,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_331492:0a9746e45ff3",
+    "id": "rj:ws_index_331492:b75f23bcc0b0",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -10735,6 +11395,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -10940,7 +11616,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_331738:5cbdb4462811",
+    "id": "rj:ws_index_331738:e49dc8d54c04",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -11002,6 +11678,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -11120,7 +11812,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_332476:cd5fca58c18d",
+    "id": "rj:ws_index_332476:a7a84e02d3c3",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -11185,6 +11877,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -11262,7 +11970,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_332490:b6fa77408aaa",
+    "id": "rj:ws_index_332490:0b20c1d7e01b",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -11337,6 +12045,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -11477,7 +12201,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_332590:240d9693bdc8",
+    "id": "rj:ws_index_332590:a089678ff864",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -11552,6 +12276,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -12222,7 +12962,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_332597:ab7e5e5db455",
+    "id": "rj:ws_index_332597:721583983c79",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -12297,6 +13037,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -12417,7 +13173,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_332868:d2f5bd658ae3",
+    "id": "rj:ws_index_332868:28517317a2a0",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -12479,6 +13235,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -12638,7 +13410,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_332869:63371b1bc306",
+    "id": "rj:ws_index_332869:8c212f434491",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -12700,6 +13472,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -12773,7 +13561,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_332870:8325c83865ee",
+    "id": "rj:ws_index_332870:6aa5ae1a0975",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -12835,6 +13623,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -12955,7 +13759,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_332871:9e04f42a8001",
+    "id": "rj:ws_index_332871:d32470b47397",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -13017,6 +13821,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -13090,7 +13910,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_332872:abd87e4a83fe",
+    "id": "rj:ws_index_332872:752ec9ca7b37",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -13152,6 +13972,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -13225,7 +14061,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_332873:49dbeddab603",
+    "id": "rj:ws_index_332873:9c05e451428a",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -13287,6 +14123,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -13360,7 +14212,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_336412:b8f5eb9fc461",
+    "id": "rj:ws_index_336412:0e4e614d5f44",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -13432,6 +14284,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -13468,13 +14336,13 @@
      "kind": "unrecorded",
      "evidence": [
       "inventory Google check: Not decided: the file has no usable text layer and its metadata does not name the digitizer; page renders were not inspected.",
-      "hygiene pass: no Google usage-guidelines page and no 'Digitized by Google' watermark on 212 checked page renders"
+      "hygiene pass: no Google usage-guidelines page and no 'Digitized by Google' watermark on 216 checked page renders"
      ],
      "google": {
       "status": "not_detected",
       "evidence": [
        "inventory Google check: Not decided: the file has no usable text layer and its metadata does not name the digitizer; page renders were not inspected.",
-       "hygiene pass: no Google usage-guidelines page and no 'Digitized by Google' watermark on 212 checked page renders"
+       "hygiene pass: no Google usage-guidelines page and no 'Digitized by Google' watermark on 216 checked page renders"
       ]
      },
      "scan_source_origin": "unrecorded",
@@ -13495,7 +14363,7 @@
      "format": "hocrgen.google_hygiene.v1",
      "scope": "wikisource_commons_pages",
      "box_units": "fraction of the page render: [x, y, width, height]",
-     "render_source": "2 from Commons thumbnail, 210 from tranche snapshot",
+     "render_source": "2 from Commons thumbnail, 4 from operator render cache, 210 from tranche snapshot",
      "excluded_front_matter": [],
      "watermark_boxes": [],
      "pages_without_watermark": [
@@ -13506,6 +14374,7 @@
       12,
       14,
       16,
+      18,
       20,
       22,
       24,
@@ -13574,6 +14443,7 @@
       150,
       152,
       154,
+      156,
       158,
       160,
       162,
@@ -13586,6 +14456,7 @@
       176,
       178,
       180,
+      182,
       184,
       186,
       188,
@@ -13701,6 +14572,7 @@
       408,
       410,
       412,
+      414,
       416,
       418,
       420,
@@ -13770,6 +14642,15 @@
       {
        "scan_page": 16,
        "render_sha256": "239ac24bf038c6dfbfcd5ad0599cd9760d860079a8288466df04814737259f8c",
+       "render_width": 960,
+       "render_height": 1435,
+       "front_matter": false,
+       "google_watermark_bbox": null,
+       "watermark_band": null
+      },
+      {
+       "scan_page": 18,
+       "render_sha256": "b533227ce7d636d0ee7fe2b5bf77de4e1d35deefdb23c84c417778b268e00deb",
        "render_width": 960,
        "render_height": 1435,
        "front_matter": false,
@@ -14389,6 +15270,15 @@
        "watermark_band": null
       },
       {
+       "scan_page": 156,
+       "render_sha256": "34f60e8a0226c69142ff4c1526949a7afe8cdae41c46ae33866261f6d6fef27d",
+       "render_width": 960,
+       "render_height": 1435,
+       "front_matter": false,
+       "google_watermark_bbox": null,
+       "watermark_band": null
+      },
+      {
        "scan_page": 158,
        "render_sha256": "2db5794181fd44a4e4ff348b6fce84b8b0e8dc390074ae68e7ffbc5a6167bc6c",
        "render_width": 960,
@@ -14490,6 +15380,15 @@
       {
        "scan_page": 180,
        "render_sha256": "28cec6435d98f8447be620c02e0c79a72f6e0a229a01ee37d2d8efd6ea79365e",
+       "render_width": 960,
+       "render_height": 1435,
+       "front_matter": false,
+       "google_watermark_bbox": null,
+       "watermark_band": null
+      },
+      {
+       "scan_page": 182,
+       "render_sha256": "d84f1710676b8fff6bd23d4d4bc471b84f783a05a275e9d8ff512085851fa319",
        "render_width": 960,
        "render_height": 1435,
        "front_matter": false,
@@ -15532,6 +16431,15 @@
        "watermark_band": null
       },
       {
+       "scan_page": 414,
+       "render_sha256": "0a53cf1aff6c1d29d29c67e8fff763a1466bd8308c9a379496fa7a9bef5c2c6b",
+       "render_width": 960,
+       "render_height": 1435,
+       "front_matter": false,
+       "google_watermark_bbox": null,
+       "watermark_band": null
+      },
+      {
        "scan_page": 416,
        "render_sha256": "db48e331c05a6b914d30d08274a5d861ef8ac4eebc3d23050d7b291a63bd6364",
        "render_width": 960,
@@ -15643,7 +16551,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_336448:d2a9595c33b5",
+    "id": "rj:ws_index_336448:6fe183ac000b",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -15718,6 +16626,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -15795,7 +16719,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_336509:92448a7aaaab",
+    "id": "rj:ws_index_336509:9edd4fb7e8cf",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -15870,6 +16794,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -15947,7 +16887,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_336536:ff3535cca479",
+    "id": "rj:ws_index_336536:046c07aa3b4b",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -16022,6 +16962,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -16099,7 +17055,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_336537:d2d1fe0a7392",
+    "id": "rj:ws_index_336537:7c60bfb0a42e",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -16174,6 +17130,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -16251,7 +17223,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_336538:13e42f712b9a",
+    "id": "rj:ws_index_336538:d05ba0a8b2a8",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -16326,6 +17298,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -16403,7 +17391,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_336554:4b05957619ca",
+    "id": "rj:ws_index_336554:b1c2103a899f",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -16478,6 +17466,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -16555,7 +17559,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_337855:5c3df72a3f23",
+    "id": "rj:ws_index_337855:bb015cc2b2e0",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -16620,6 +17624,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -16692,7 +17712,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_344382:91877cdcfb7a",
+    "id": "rj:ws_index_344382:5bed35af638a",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -16767,6 +17787,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -16886,7 +17922,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_344397:d6ec93d0c6db",
+    "id": "rj:ws_index_344397:3d3bf9ba8f02",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -16951,6 +17987,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -17071,7 +18123,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_359833:b6ac1f9f4161",
+    "id": "rj:ws_index_359833:1f278d60eb06",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -17133,6 +18185,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -17202,196 +18270,28 @@
    }
   },
   {
+   "index_key": "ws_index_368531",
+   "commons_file": "File:SA-YD1a-1880-Vilna.pdf",
+   "commons_file_sha1": "e09b27f3c1ab7d7b9d290bb1fdc4194ed8f7bcc0",
+   "accepted": false,
+   "reason": "justification_index_not_admitted:creator_death_year_missing",
+   "failures": [
+    "justification_index_not_admitted:creator_death_year_missing",
+    "justification_index_not_admitted:printed_commentary_unnamed",
+    "justification_index_not_admitted:possible_later_reprint"
+   ],
+   "rights_justification": null
+  },
+  {
    "index_key": "ws_index_370788",
    "commons_file": "File:Falaquera Sefer ha-Mevaqqesh Warsaw 1924.pdf",
    "commons_file_sha1": "100008d8f76b490e4d6ae54a0733fabb5d9585cf",
-   "accepted": true,
-   "reason": "rights_justified",
-   "failures": [],
-   "rights_justification": {
-    "id": "rj:ws_index_370788:5c0a102b97d0",
-    "format": "hocrgen.rights_justification.v1",
-    "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
-    "as_of": "2026-11-11",
-    "index_key": "ws_index_370788",
-    "index_title": "מפתח:Falaquera Sefer ha-Mevaqqesh Warsaw 1924.pdf",
-    "commons_file": "File:Falaquera Sefer ha-Mevaqqesh Warsaw 1924.pdf",
-    "route": {
-     "name": "wikimedia_commons",
-     "file_repository": "commons",
-     "url": [
-      "https://upload.wikimedia.org/wikipedia/commons/c/c4/Falaquera_Sefer_ha-Mevaqqesh_Warsaw_1924.pdf",
-      "https://commons.wikimedia.org/wiki/File:Falaquera_Sefer_ha-Mevaqqesh_Warsaw_1924.pdf"
-     ],
-     "sha1": {
-      "file": "100008d8f76b490e4d6ae54a0733fabb5d9585cf"
-     },
-     "sha256": null,
-     "sha256_note": "The whole file was never downloaded. The file is pinned by its SHA-1 (Commons imageinfo) and its file-page revision; every page render used is pinned by sha256 in its page record (image.rendered_from.render_sha256).",
-     "file_page_revision_id": 1093416847
-    },
-    "work_public_domain": {
-     "title": "ספר המבקש",
-     "contributors": [
-      {
-       "name": "שם טוב בן יוסף אבן פלקירה",
-       "role": "author",
-       "wikidata": "Q1383938",
-       "death_year": 1295,
-       "death_year_source": {
-        "url": "https://he.wikisource.org/w/index.php?oldid=547504",
-        "kind": "cited_source"
-       }
-      }
-     ],
-     "contributors_basis": {
-      "checked": [
-       "Wikisource Index fields (author, translator, editor, illustrator, and role markers in the title and notes)",
-       "Commons file page fields (Author, Translator, Editor, Illustrator)",
-       "cited facts in docs/wikisource_index_evidence.json"
-      ],
-      "counted_roles": [
-       "author",
-       "translator",
-       "editor",
-       "annotator",
-       "illustrator",
-       "anonymous",
-       "pseudonymous"
-      ],
-      "death_year_sources": [
-       "wikidata_p570",
-       "Wikisource author page",
-       "cited source (index evidence file)"
-      ]
-     },
-     "publication_year": {
-      "year": 1924,
-      "evidence": "Commons date field: 1924; Index page field שנה: תרפ\"ד (1924) (Hebrew year, Gregorian upper bound 1924)"
-     },
-     "place": null,
-     "language": "he",
-     "inventory_gate": {
-      "work_rights": {
-       "basis": "author_died_by_1955",
-       "evidence": "Creators: שם טוב בן יוסף אבן פלקירה (author, died 1295)."
-      }
-     },
-     "israel_status": {
-      "status": "pd_il",
-      "basis": "author_died_over_70_years_ago",
-      "reason": "every contributor died by 1295; 1295 + 70 < 2026",
-      "law": "Copyright Act 2007, s. 38"
-     },
-     "us_status": {
-      "status": "pd_us",
-      "reason": "published before 1931",
-      "publication_year": 1924
-     }
-    },
-    "faithful_reproduction": {
-     "text": "A faithful photographic or mechanical scan of a two-dimensional printed page carries no new copyright: in the US a slavish copy lacks originality (Feist v. Rural, 499 U.S. 340 (1991); Bridgeman v. Corel, 36 F. Supp. 2d 191 (S.D.N.Y. 1999)), and in Israel sweat of the brow is not enough (CA 513/89 Interlego v. Exin-Lines, Copyright Act 2007). Strategy section 1.",
-     "evidence": {
-      "mime": "application/pdf",
-      "page_count": 163,
-      "scan_rights_basis": "faithful_reproduction_of_pd_work",
-      "scan_rights_evidence": "Commons licence templates ['PD-old-100-1996'] (a public-domain tag): a flat scan of a printed work, a faithful reproduction (decision 10).",
-      "explicit_open_licence": null
-     }
-    },
-    "digitizer": {
-     "name": "unrecorded",
-     "kind": "unrecorded",
-     "evidence": [
-      "Commons source field: https://archive.org/details/falaqueraseferhamevaqqeshwarsaw1924",
-      "Internet Archive item falaqueraseferhamevaqqeshwarsaw1924: uploaded with Internet Archive HTML5 Uploader 1.6.4; the digitizer is not named",
-      "inventory Google check: Not decided: the file has no usable text layer and its metadata does not name the digitizer; page renders were not inspected.",
-      "hygiene pass: no Google usage-guidelines page and no 'Digitized by Google' watermark on 4 checked page renders"
-     ],
-     "google": {
-      "status": "not_detected",
-      "evidence": [
-       "inventory Google check: Not decided: the file has no usable text layer and its metadata does not name the digitizer; page renders were not inspected.",
-       "hygiene pass: no Google usage-guidelines page and no 'Digitized by Google' watermark on 4 checked page renders"
-      ]
-     },
-     "scan_source_origin": "internet_archive",
-     "note": "No scanning body is recorded for this file (decision 10: a faithful reproduction of a public-domain work needs no recorded scan source)."
-    },
-    "origin_label": null,
-    "why_not_binding": null,
-    "route_terms": {
-     "reference": "Wikimedia Terms of Use, and the file's licence or public-domain template on its file page (recorded as found; decision 10: a missing or PD-US-only template never decides the work's status). Strategy section 2(a): Commons offers public-domain files free of all restrictions.",
-     "url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use",
-     "licence_templates": [
-      "PD-old-100-1996"
-     ],
-     "file_page": "https://commons.wikimedia.org/wiki/File:Falaquera_Sefer_ha-Mevaqqesh_Warsaw_1924.pdf",
-     "file_page_revision_id": 1093416847
-    },
-    "hygiene": {
-     "format": "hocrgen.google_hygiene.v1",
-     "scope": "wikisource_commons_pages",
-     "box_units": "fraction of the page render: [x, y, width, height]",
-     "render_source": "3 from Commons thumbnail, 1 from tranche snapshot",
-     "excluded_front_matter": [],
-     "watermark_boxes": [],
-     "pages_without_watermark": [
-      1,
-      2,
-      3,
-      9
-     ],
-     "pages": [
-      {
-       "scan_page": 1,
-       "render_sha256": "23a3c0ed893ae13434dbecd8219174864f65c5452e247543019309abe15ed2ce",
-       "render_width": 960,
-       "render_height": 1318,
-       "front_matter": false,
-       "google_watermark_bbox": null,
-       "watermark_band": null
-      },
-      {
-       "scan_page": 2,
-       "render_sha256": "fd9d7299eae228ad649e4b2525bf4a2f1ea2530be13a44dbd2a93b2963d05fda",
-       "render_width": 960,
-       "render_height": 1318,
-       "front_matter": false,
-       "google_watermark_bbox": null,
-       "watermark_band": null
-      },
-      {
-       "scan_page": 3,
-       "render_sha256": "b5dbc49497a935dd7af41fad7c244facecfd44e3bde9ac16ea80313ec6e46b69",
-       "render_width": 960,
-       "render_height": 1318,
-       "front_matter": false,
-       "google_watermark_bbox": null,
-       "watermark_band": null
-      },
-      {
-       "scan_page": 9,
-       "render_sha256": "99d518c5a9927e12c01fd71a05a0b1a0e86df4c7e5cce19201db3af7553dff29",
-       "render_width": 960,
-       "render_height": 1318,
-       "front_matter": false,
-       "google_watermark_bbox": null,
-       "watermark_band": null
-      }
-     ],
-     "method": {
-      "front_matter": "tesseract -l eng --psm 3 on the first canvases; Google usage-guidelines boilerplate phrases",
-      "watermark": "tesseract -l eng --psm 6 on the bottom band of each page (10%, then 6%, then 15% until found); 'Digitized by Google' line (band upscaled 3x)"
-     }
-    },
-    "decision_refs": [
-     "planning/decisions/2026-11-10-legal-strategy.md",
-     "docs/legal/2026-11-10_legal_strategy.md",
-     "planning/decisions/2026-11-06-f8-real-source-decisions.md (decision 10: data gaps are not rights problems)"
-    ],
-    "summary": "Public-domain work (author d. 1295, recorded publication year 1924); faithful scan, digitizer unrecorded; fetched from Wikimedia Commons (File:Falaquera Sefer ha-Mevaqqesh Warsaw 1924.pdf); no new right in the scan and no contract binds its reuse."
-   }
+   "accepted": false,
+   "reason": "justification_index_not_admitted:possible_later_reprint",
+   "failures": [
+    "justification_index_not_admitted:possible_later_reprint"
+   ],
+   "rights_justification": null
   },
   {
    "index_key": "ws_index_376016",
@@ -17401,7 +18301,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_376016:4a7000f5daed",
+    "id": "rj:ws_index_376016:d3ce145aa50e",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -17463,6 +18363,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -17539,7 +18455,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_376147:3f5457acef75",
+    "id": "rj:ws_index_376147:853b27d74a83",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -17601,6 +18517,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -17677,7 +18609,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_378494:52180082cd16",
+    "id": "rj:ws_index_378494:b2b491e0edd7",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -17740,6 +18672,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -17811,7 +18759,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_381649:b28ceec99fa2",
+    "id": "rj:ws_index_381649:4ddd1688144c",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -17891,6 +18839,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "presumed_pd_by_publication_age",
@@ -17974,7 +18938,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_398671:1c539aced62a",
+    "id": "rj:ws_index_398671:12b6526aada1",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -18037,6 +19001,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -18106,7 +19086,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_398674:555f747377fb",
+    "id": "rj:ws_index_398674:5677e9a4b3db",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -18169,6 +19149,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -18238,7 +19234,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_458756:593eecd6ea21",
+    "id": "rj:ws_index_458756:6aa350e5a255",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -18300,6 +19296,22 @@
      },
      "place": null,
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",
@@ -18376,7 +19388,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_468593:f2d1ac77c677",
+    "id": "rj:ws_index_468593:85c091b070f9",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -18461,6 +19473,22 @@
       "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
      },
      "language": "he",
+     "printed_commentaries": {
+      "detected": [],
+      "checked": [
+       "Commons file description and author fields",
+       "Index title and author fields",
+       "headings of the pinned page wikitext (quality 3/4 pages)"
+      ]
+     },
+     "reprint_check": {
+      "suspected": false,
+      "checked": [
+       "Commons file description, date, source and author fields",
+       "Index title, year and publisher fields",
+       "recorded facts (docs/wikisource_index_evidence.json)"
+      ]
+     },
      "inventory_gate": {
       "work_rights": {
        "basis": "author_died_by_1955",

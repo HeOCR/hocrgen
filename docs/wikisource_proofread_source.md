@@ -35,6 +35,8 @@ Real protection still excludes:
 | `work_rights_basis_unsupported`, `work_rights_evidence_missing`, `state_work_evidence_missing`, `state_work_after_1975`, `named_creator_on_anonymous_basis`, `anonymous_work_after_1955` | Work evidence missing or outside Israel's terms. |
 | `commons_file_unpinned` | No Commons SHA-1 or file-page revision id: the scan cannot be identified. |
 | `scan_rights_basis_unsupported`, `scan_rights_evidence_missing`, `scan_licence_not_open` | The scan record is malformed. |
+| `printed_commentary_unnamed`, `printed_commentary_unattributed`, `printed_commentary_death_year_missing` | A commentary printed on the edition's pages is not named, or not attributed to a recorded contributor with a cited death year (the name is enough for a printing on or before 1855). See [Printed commentaries, later reprints and floruits](#printed-commentaries-later-reprints-and-floruits-hocrgen171). |
+| `possible_later_reprint` | The scan may be a later reprint with added material, and no recorded evidence clears it. |
 
 `pd_us_only_licence`, `no_licence_template`, `scan_provenance_unrecorded`, `google_digitized_scan_pending` and `google_digitization_unchecked` are no longer reasons (F8b3). Scans that came from HebrewBooks are admitted on the same check (maintainer decision 3).
 
@@ -59,6 +61,19 @@ The back-fill writes every admitted Index's record, or its rejection, to [`wikis
 | `route_terms` | The Wikimedia Terms of Use and the file's licence or PD template as found. A missing template is recorded and is not a rejection (decision 10). A restrictive template (non-free, NC, ND, fair use) rejects. |
 | `hygiene` | `none` when Google is ruled out; the hygiene record when the pass ran; otherwise `pending`. |
 | `decision_refs`, `summary` | The legal strategy record (with the NLI ruling where it applies), the strategy text, and the F8 decisions used (3, 9 and 10); one sentence for the NOTICE. |
+
+### Printed commentaries, later reprints and floruits (hocrgen#171)
+
+The team lead's review of #171 added three rules. Each is applied in the Index gate (`index_exclusion_reasons`) and therefore in the justification, which replays the gate and records the evidence it read in `work_public_domain.printed_commentaries` and `work_public_domain.reprint_check`. An Index these rules reject is listed in the justification registry as not justified.
+
+1. **Commentaries printed on the page.** Every commentary printed on the edition's pages must be named and attributed to a contributor with a cited death year, or the edition fails. For a printing on or before 1855 the name is enough, since decision 10's presumption covers the death year. The inventory records each signal with its source (`work.printed_commentaries.detected`):
+   - the Commons description and author fields: "commentaries", "glosses", "surrounding the main text", "with commentary" (unnamed), or "with the commentary ''X''" (named);
+   - the Index title and author fields: "עם פירוש X" (named), "ועליו", "נושאי כלים", "ומפרשיו", "עם פירושים" (unnamed);
+   - the headings of the pinned page wikitext: a known commentary title (`PRINTED_COMMENTARY_TITLES`, such as כסף משנה or מגדל עוז) or an inline gloss marker (השגת הראב"ד) is named; a generic heading (פירוש, ביאור, הגהות, השגות) is unnamed.
+
+   A cross-reference to another Index, or a description of the work itself as a commentary, is not a signal. Attributions and a complete list of a printing's commentaries are recorded facts in [`wikisource_index_evidence.json`](./wikisource_index_evidence.json) (`printed_commentaries`, `printed_commentaries_complete`), each with its evidence and recorder.
+2. **Possible later reprints.** An edition whose Commons or Index record says the scan is a later reprint ("reprint", "photo-offset", "דפוס צילום", "ד\"צ", …), or for which a suspicion is recorded (`reprint: {status: suspected}`), stays rejected with `possible_later_reprint` until evidence of the printing actually scanned is recorded (`reprint: {status: cleared}`).
+3. **A cited floruit counts as an author's basis.** An author with no death year but a cited floruit (Wikidata P1317, kept as `floruit` on the creator with its source, value and `kind: floruit`) active at the latest in year F is taken to have died by F + 100, which must be 1955 or earlier. It applies to authors only. Every other contributor to the printing (editor, annotator, translator) still needs a cited death year, unless the printing is on or before 1855. The same name in the same role is one person, so a plain mention and a Wikidata mention of it merge into one creator.
 
 If a required field cannot be filled, the Index is rejected with a `justification_…` reason, and none of its pages is derived. The reasons are: the Index gate fails, the evidence entry is missing, the file URL is missing, the SHA-1 does not match, the file is not a scan, a death year is missing or uncited, a contributor is not PD in Israel, or the route terms are restrictive.
 

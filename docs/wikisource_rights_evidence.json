@@ -72,69 +72,6 @@
    }
   },
   {
-   "index_key": "ws_index_1711486",
-   "commons_file": "File:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf",
-   "commons_file_sha1": "0f72c9120352145291ce7c19996d5c71d7079d46",
-   "file": {
-    "repository": "commons",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/4/49/%D7%9E%D7%A9%D7%A0%D7%94_%D7%AA%D7%95%D7%A8%D7%94_%D7%93%D7%A4%D7%95%D7%A1_%D7%95%D7%95%D7%90%D7%A8%D7%A9%D7%90-%D7%95%D7%95%D7%99%D7%9C%D7%A0%D7%90_%D7%9B%D7%A8%D7%9A_%D7%A8%D7%90%D7%A9%D7%95%D7%9F_1.pdf",
-    "description_url": "https://commons.wikimedia.org/wiki/File:%D7%9E%D7%A9%D7%A0%D7%94_%D7%AA%D7%95%D7%A8%D7%94_%D7%93%D7%A4%D7%95%D7%A1_%D7%95%D7%95%D7%90%D7%A8%D7%A9%D7%90-%D7%95%D7%95%D7%99%D7%9C%D7%A0%D7%90_%D7%9B%D7%A8%D7%9A_%D7%A8%D7%90%D7%A9%D7%95%D7%9F_1.pdf",
-    "sha1": "0f72c9120352145291ce7c19996d5c71d7079d46",
-    "mime": "application/pdf",
-    "size": 35986548,
-    "imageinfo_source": "inventory API cache ea7821013be13243518d0ed4e5739653.json"
-   },
-   "place": {
-    "place": "ווארשא-ווילנא",
-    "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
-   }
-  },
-  {
-   "index_key": "ws_index_1711487",
-   "commons_file": "File:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 2.pdf",
-   "commons_file_sha1": "573a0eb4019e51d143bb6e8648aa91e21d260343",
-   "file": {
-    "repository": "commons",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/5/5e/%D7%9E%D7%A9%D7%A0%D7%94_%D7%AA%D7%95%D7%A8%D7%94_%D7%93%D7%A4%D7%95%D7%A1_%D7%95%D7%95%D7%90%D7%A8%D7%A9%D7%90-%D7%95%D7%95%D7%99%D7%9C%D7%A0%D7%90_%D7%9B%D7%A8%D7%9A_%D7%A8%D7%90%D7%A9%D7%95%D7%9F_2.pdf",
-    "description_url": "https://commons.wikimedia.org/wiki/File:%D7%9E%D7%A9%D7%A0%D7%94_%D7%AA%D7%95%D7%A8%D7%94_%D7%93%D7%A4%D7%95%D7%A1_%D7%95%D7%95%D7%90%D7%A8%D7%A9%D7%90-%D7%95%D7%95%D7%99%D7%9C%D7%A0%D7%90_%D7%9B%D7%A8%D7%9A_%D7%A8%D7%90%D7%A9%D7%95%D7%9F_2.pdf",
-    "sha1": "573a0eb4019e51d143bb6e8648aa91e21d260343",
-    "mime": "application/pdf",
-    "size": 43097068,
-    "imageinfo_source": "inventory API cache ea7821013be13243518d0ed4e5739653.json"
-   },
-   "place": {
-    "place": "ווארשא-ווילנא",
-    "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
-   }
-  },
-  {
-   "index_key": "ws_index_1711490",
-   "commons_file": "File:משנה תורה דפוס ווארשא-ווילנא כרך רביעי.pdf",
-   "commons_file_sha1": "9c312603581e9c95146c152a0f038348516ab94c",
-   "file": {
-    "repository": "commons",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/b/b7/%D7%9E%D7%A9%D7%A0%D7%94_%D7%AA%D7%95%D7%A8%D7%94_%D7%93%D7%A4%D7%95%D7%A1_%D7%95%D7%95%D7%90%D7%A8%D7%A9%D7%90-%D7%95%D7%95%D7%99%D7%9C%D7%A0%D7%90_%D7%9B%D7%A8%D7%9A_%D7%A8%D7%91%D7%99%D7%A2%D7%99.pdf",
-    "description_url": "https://commons.wikimedia.org/wiki/File:%D7%9E%D7%A9%D7%A0%D7%94_%D7%AA%D7%95%D7%A8%D7%94_%D7%93%D7%A4%D7%95%D7%A1_%D7%95%D7%95%D7%90%D7%A8%D7%A9%D7%90-%D7%95%D7%95%D7%99%D7%9C%D7%A0%D7%90_%D7%9B%D7%A8%D7%9A_%D7%A8%D7%91%D7%99%D7%A2%D7%99.pdf",
-    "sha1": "9c312603581e9c95146c152a0f038348516ab94c",
-    "mime": "application/pdf",
-    "size": 100458089,
-    "imageinfo_source": "inventory API cache ea7821013be13243518d0ed4e5739653.json"
-   },
-   "place": {
-    "place": "ווארשא-ווילנא",
-    "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
-   },
-   "ia_item": {
-    "identifier": "sefermishnehtora048800",
-    "contributor": "University of Illinois Urbana-Champaign",
-    "sponsor": "University of Illinois Urbana-Champaign Alternates",
-    "scanner": "scribe1.il.archive.org",
-    "scanningcenter": "il",
-    "date": "1900",
-    "possible-copyright-status": null
-   }
-  },
-  {
    "index_key": "ws_index_1715516",
    "commons_file": "File:Meishiv Davar (Warsaw, 1894).pdf",
    "commons_file_sha1": "ec0e8ab6d2c2df9001cf04adab562f254e64aecd",
@@ -724,6 +661,109 @@
    }
   },
   {
+   "index_key": "ws_index_1735193",
+   "commons_file": "File:פירוש מעין גנים על ספר איוב.pdf",
+   "commons_file_sha1": "2fceaed5d9984a61ed6c8969b9d4994b56173f64",
+   "file": {
+    "repository": "commons",
+    "url": "https://upload.wikimedia.org/wikipedia/commons/1/1b/%D7%A4%D7%99%D7%A8%D7%95%D7%A9_%D7%9E%D7%A2%D7%99%D7%9F_%D7%92%D7%A0%D7%99%D7%9D_%D7%A2%D7%9C_%D7%A1%D7%A4%D7%A8_%D7%90%D7%99%D7%95%D7%91.pdf",
+    "description_url": "https://commons.wikimedia.org/wiki/File:%D7%A4%D7%99%D7%A8%D7%95%D7%A9_%D7%9E%D7%A2%D7%99%D7%9F_%D7%92%D7%A0%D7%99%D7%9D_%D7%A2%D7%9C_%D7%A1%D7%A4%D7%A8_%D7%90%D7%99%D7%95%D7%91.pdf",
+    "sha1": "2fceaed5d9984a61ed6c8969b9d4994b56173f64",
+    "mime": "application/pdf",
+    "size": 135536913,
+    "imageinfo_source": "inventory API cache e2f15652903d3f2bbad5036ffccab0b7.json"
+   },
+   "place": {
+    "place": "ברלין",
+    "source": "Commons {{Book}} city field, else the Index page Address field (wikisource_inventory)"
+   },
+   "ia_item": {
+    "identifier": "job-mayan-ganim-1899-images",
+    "contributor": null,
+    "sponsor": null,
+    "scanner": "Internet Archive HTML5 Uploader 1.7.0",
+    "scanningcenter": null,
+    "date": "1899",
+    "possible-copyright-status": null
+   },
+   "google_hygiene": {
+    "format": "hocrgen.google_hygiene.v1",
+    "scope": "wikisource_commons_pages",
+    "box_units": "fraction of the page render: [x, y, width, height]",
+    "render_source": "6 from Commons thumbnail",
+    "excluded_front_matter": [],
+    "watermark_boxes": [],
+    "pages_without_watermark": [
+     1,
+     2,
+     3,
+     9,
+     10,
+     11
+    ],
+    "pages": [
+     {
+      "scan_page": 1,
+      "render_sha256": "034c42c4bef1982a8869a3e9e4495d28979925c89bec77b5f038a2b146f5fd93",
+      "render_width": 960,
+      "render_height": 1505,
+      "front_matter": false,
+      "google_watermark_bbox": null,
+      "watermark_band": null
+     },
+     {
+      "scan_page": 2,
+      "render_sha256": "33a5d5a14d28c9a0c9c44d735c6516f5a90796735ee296efdc220a6a02bba098",
+      "render_width": 960,
+      "render_height": 1670,
+      "front_matter": false,
+      "google_watermark_bbox": null,
+      "watermark_band": null
+     },
+     {
+      "scan_page": 3,
+      "render_sha256": "22cf7296e803a8dbfa6d208b09d82067585fd4dde498e2198ce1a1fe7987e49d",
+      "render_width": 960,
+      "render_height": 1670,
+      "front_matter": false,
+      "google_watermark_bbox": null,
+      "watermark_band": null
+     },
+     {
+      "scan_page": 9,
+      "render_sha256": "2e4e6776fae6f8d418966335ffa169734b028153691ec2ad64b3d138faa37e21",
+      "render_width": 960,
+      "render_height": 1670,
+      "front_matter": false,
+      "google_watermark_bbox": null,
+      "watermark_band": null
+     },
+     {
+      "scan_page": 10,
+      "render_sha256": "381e2a9ecf28caf3f647e37859caddbb895a6a730b8cb1f1b2776c2431afee3b",
+      "render_width": 960,
+      "render_height": 1670,
+      "front_matter": false,
+      "google_watermark_bbox": null,
+      "watermark_band": null
+     },
+     {
+      "scan_page": 11,
+      "render_sha256": "1b162c0c65d12ca8b1973450dd7233524ff1d605595e653214360c5bd841e9ab",
+      "render_width": 960,
+      "render_height": 1670,
+      "front_matter": false,
+      "google_watermark_bbox": null,
+      "watermark_band": null
+     }
+    ],
+    "method": {
+     "front_matter": "tesseract -l eng --psm 3 on the first canvases; Google usage-guidelines boilerplate phrases",
+     "watermark": "tesseract -l eng --psm 6 on the bottom band of each page (10%, then 6%, then 15% until found); 'Digitized by Google' line (band upscaled 3x)"
+    }
+   }
+  },
+  {
    "index_key": "ws_index_1735654",
    "commons_file": "File:משפטי הטעמים רעדעלהיים תקס\"ח.pdf",
    "commons_file_sha1": "ebe8a9db1913c3386c5d5b85653e1da10a2e3938",
@@ -753,7 +793,7 @@
     "format": "hocrgen.google_hygiene.v1",
     "scope": "wikisource_commons_pages",
     "box_units": "fraction of the page render: [x, y, width, height]",
-    "render_source": "2 from Commons thumbnail, 1 from operator render cache, 9 from tranche snapshot",
+    "render_source": "2 from Commons thumbnail, 2 from operator render cache, 9 from tranche snapshot",
     "excluded_front_matter": [],
     "watermark_boxes": [],
     "pages_without_watermark": [
@@ -765,6 +805,7 @@
      8,
      9,
      13,
+     14,
      15,
      16,
      17,
@@ -837,6 +878,15 @@
      {
       "scan_page": 13,
       "render_sha256": "43cdffaa0b7218ac028f73f956ba97dff622677109f4a347817b85cb07a58198",
+      "render_width": 960,
+      "render_height": 1664,
+      "front_matter": false,
+      "google_watermark_bbox": null,
+      "watermark_band": null
+     },
+     {
+      "scan_page": 14,
+      "render_sha256": "48d713a2e4c4d199edf82929b575fb92c598c9cf9f94d20f587a7795d48ff46c",
       "render_width": 960,
       "render_height": 1664,
       "front_matter": false,
@@ -2422,7 +2472,7 @@
     "format": "hocrgen.google_hygiene.v1",
     "scope": "wikisource_commons_pages",
     "box_units": "fraction of the page render: [x, y, width, height]",
-    "render_source": "3 from Commons thumbnail, 91 from tranche snapshot",
+    "render_source": "3 from Commons thumbnail, 1 from operator render cache, 91 from tranche snapshot",
     "excluded_front_matter": [
      {
       "scan_page": 1,
@@ -3135,7 +3185,8 @@
      128,
      130,
      134,
-     493
+     493,
+     499
     ],
     "pages": [
      {
@@ -4358,6 +4409,15 @@
       "front_matter": false,
       "google_watermark_bbox": null,
       "watermark_band": null
+     },
+     {
+      "scan_page": 499,
+      "render_sha256": "364b15d71246d3d226f9786219e47487b303ee4927a645cdbcff39c48cdf0839",
+      "render_width": 500,
+      "render_height": 782,
+      "front_matter": false,
+      "google_watermark_bbox": null,
+      "watermark_band": null
      }
     ],
     "method": {
@@ -4559,7 +4619,7 @@
     "format": "hocrgen.google_hygiene.v1",
     "scope": "wikisource_commons_pages",
     "box_units": "fraction of the page render: [x, y, width, height]",
-    "render_source": "17 from tranche snapshot",
+    "render_source": "1 from operator render cache, 17 from tranche snapshot",
     "excluded_front_matter": [],
     "watermark_boxes": [],
     "pages_without_watermark": [
@@ -4579,7 +4639,8 @@
      14,
      15,
      16,
-     17
+     17,
+     47
     ],
     "pages": [
      {
@@ -4731,6 +4792,15 @@
       "render_sha256": "a2f92e661fb0946fd8902238175e16635f1eb3cb43a85b942f17e048467fe39e",
       "render_width": 960,
       "render_height": 1650,
+      "front_matter": false,
+      "google_watermark_bbox": null,
+      "watermark_band": null
+     },
+     {
+      "scan_page": 47,
+      "render_sha256": "462edfd6a80e90f3ec321a10836de03a10ba0b20bb35fc6eac32ce7819d62c09",
+      "render_width": 960,
+      "render_height": 1542,
       "front_matter": false,
       "google_watermark_bbox": null,
       "watermark_band": null
@@ -6280,7 +6350,7 @@
     "format": "hocrgen.google_hygiene.v1",
     "scope": "wikisource_commons_pages",
     "box_units": "fraction of the page render: [x, y, width, height]",
-    "render_source": "2 from Commons thumbnail, 210 from tranche snapshot",
+    "render_source": "2 from Commons thumbnail, 4 from operator render cache, 210 from tranche snapshot",
     "excluded_front_matter": [],
     "watermark_boxes": [],
     "pages_without_watermark": [
@@ -6291,6 +6361,7 @@
      12,
      14,
      16,
+     18,
      20,
      22,
      24,
@@ -6359,6 +6430,7 @@
      150,
      152,
      154,
+     156,
      158,
      160,
      162,
@@ -6371,6 +6443,7 @@
      176,
      178,
      180,
+     182,
      184,
      186,
      188,
@@ -6486,6 +6559,7 @@
      408,
      410,
      412,
+     414,
      416,
      418,
      420,
@@ -6555,6 +6629,15 @@
      {
       "scan_page": 16,
       "render_sha256": "239ac24bf038c6dfbfcd5ad0599cd9760d860079a8288466df04814737259f8c",
+      "render_width": 960,
+      "render_height": 1435,
+      "front_matter": false,
+      "google_watermark_bbox": null,
+      "watermark_band": null
+     },
+     {
+      "scan_page": 18,
+      "render_sha256": "b533227ce7d636d0ee7fe2b5bf77de4e1d35deefdb23c84c417778b268e00deb",
       "render_width": 960,
       "render_height": 1435,
       "front_matter": false,
@@ -7174,6 +7257,15 @@
       "watermark_band": null
      },
      {
+      "scan_page": 156,
+      "render_sha256": "34f60e8a0226c69142ff4c1526949a7afe8cdae41c46ae33866261f6d6fef27d",
+      "render_width": 960,
+      "render_height": 1435,
+      "front_matter": false,
+      "google_watermark_bbox": null,
+      "watermark_band": null
+     },
+     {
       "scan_page": 158,
       "render_sha256": "2db5794181fd44a4e4ff348b6fce84b8b0e8dc390074ae68e7ffbc5a6167bc6c",
       "render_width": 960,
@@ -7275,6 +7367,15 @@
      {
       "scan_page": 180,
       "render_sha256": "28cec6435d98f8447be620c02e0c79a72f6e0a229a01ee37d2d8efd6ea79365e",
+      "render_width": 960,
+      "render_height": 1435,
+      "front_matter": false,
+      "google_watermark_bbox": null,
+      "watermark_band": null
+     },
+     {
+      "scan_page": 182,
+      "render_sha256": "d84f1710676b8fff6bd23d4d4bc471b84f783a05a275e9d8ff512085851fa319",
       "render_width": 960,
       "render_height": 1435,
       "front_matter": false,
@@ -8317,6 +8418,15 @@
       "watermark_band": null
      },
      {
+      "scan_page": 414,
+      "render_sha256": "0a53cf1aff6c1d29d29c67e8fff763a1466bd8308c9a379496fa7a9bef5c2c6b",
+      "render_width": 960,
+      "render_height": 1435,
+      "front_matter": false,
+      "google_watermark_bbox": null,
+      "watermark_band": null
+     },
+     {
       "scan_page": 416,
       "render_sha256": "db48e331c05a6b914d30d08274a5d861ef8ac4eebc3d23050d7b291a63bd6364",
       "render_width": 960,
@@ -8708,86 +8818,6 @@
     "imageinfo_source": "inventory API cache 9947baf9b52d457dfdd62defb5f98f7e.json"
    },
    "place": null
-  },
-  {
-   "index_key": "ws_index_370788",
-   "commons_file": "File:Falaquera Sefer ha-Mevaqqesh Warsaw 1924.pdf",
-   "commons_file_sha1": "100008d8f76b490e4d6ae54a0733fabb5d9585cf",
-   "file": {
-    "repository": "commons",
-    "url": "https://upload.wikimedia.org/wikipedia/commons/c/c4/Falaquera_Sefer_ha-Mevaqqesh_Warsaw_1924.pdf",
-    "description_url": "https://commons.wikimedia.org/wiki/File:Falaquera_Sefer_ha-Mevaqqesh_Warsaw_1924.pdf",
-    "sha1": "100008d8f76b490e4d6ae54a0733fabb5d9585cf",
-    "mime": "application/pdf",
-    "size": 277854507,
-    "imageinfo_source": "inventory API cache 9947baf9b52d457dfdd62defb5f98f7e.json"
-   },
-   "place": null,
-   "ia_item": {
-    "identifier": "falaqueraseferhamevaqqeshwarsaw1924",
-    "contributor": null,
-    "sponsor": null,
-    "scanner": "Internet Archive HTML5 Uploader 1.6.4",
-    "scanningcenter": null,
-    "date": "1924",
-    "possible-copyright-status": null
-   },
-   "google_hygiene": {
-    "format": "hocrgen.google_hygiene.v1",
-    "scope": "wikisource_commons_pages",
-    "box_units": "fraction of the page render: [x, y, width, height]",
-    "render_source": "3 from Commons thumbnail, 1 from tranche snapshot",
-    "excluded_front_matter": [],
-    "watermark_boxes": [],
-    "pages_without_watermark": [
-     1,
-     2,
-     3,
-     9
-    ],
-    "pages": [
-     {
-      "scan_page": 1,
-      "render_sha256": "23a3c0ed893ae13434dbecd8219174864f65c5452e247543019309abe15ed2ce",
-      "render_width": 960,
-      "render_height": 1318,
-      "front_matter": false,
-      "google_watermark_bbox": null,
-      "watermark_band": null
-     },
-     {
-      "scan_page": 2,
-      "render_sha256": "fd9d7299eae228ad649e4b2525bf4a2f1ea2530be13a44dbd2a93b2963d05fda",
-      "render_width": 960,
-      "render_height": 1318,
-      "front_matter": false,
-      "google_watermark_bbox": null,
-      "watermark_band": null
-     },
-     {
-      "scan_page": 3,
-      "render_sha256": "b5dbc49497a935dd7af41fad7c244facecfd44e3bde9ac16ea80313ec6e46b69",
-      "render_width": 960,
-      "render_height": 1318,
-      "front_matter": false,
-      "google_watermark_bbox": null,
-      "watermark_band": null
-     },
-     {
-      "scan_page": 9,
-      "render_sha256": "99d518c5a9927e12c01fd71a05a0b1a0e86df4c7e5cce19201db3af7553dff29",
-      "render_width": 960,
-      "render_height": 1318,
-      "front_matter": false,
-      "google_watermark_bbox": null,
-      "watermark_band": null
-     }
-    ],
-    "method": {
-     "front_matter": "tesseract -l eng --psm 3 on the first canvases; Google usage-guidelines boilerplate phrases",
-     "watermark": "tesseract -l eng --psm 6 on the bottom band of each page (10%, then 6%, then 15% until found); 'Digitized by Google' line (band upscaled 3x)"
-    }
-   }
   },
   {
    "index_key": "ws_index_376016",

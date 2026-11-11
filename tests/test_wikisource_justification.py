@@ -241,8 +241,10 @@ def test_the_committed_justifications_replay_from_the_committed_inputs() -> None
     evidence = json.loads((ROOT / "docs" / "wikisource_rights_evidence.json").read_text(encoding="utf-8"))
     rebuilt = tool.backfill(inventory, evidence, as_of=dt.date.fromisoformat(committed["as_of"]), inputs=committed["inputs"])
     assert rebuilt == committed
-    admitted = {i["index_key"] for i in inventory["indexes"] if i["gate"]["admitted"]}
-    assert {item["index_key"] for item in committed["items"]} == admitted
+    # Every admitted Index, and every Index the rights rules (printed commentaries, later reprints) reject.
+    rules = set(wj.RIGHTS_RULE_REASONS)
+    listed = {i["index_key"] for i in inventory["indexes"] if i["gate"]["admitted"] or set(i["gate"]["reasons"]) & rules}
+    assert {item["index_key"] for item in committed["items"]} == listed
     for item in committed["items"]:
         record = item["rights_justification"]
         if item["accepted"]:

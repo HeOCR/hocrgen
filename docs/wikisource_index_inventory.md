@@ -15,12 +15,12 @@ Quality-3 / quality-4 pages at each stage. Each column is the run before the nex
 | Stage | F8b2 | F8b3 | F8b4 | F8b5 | F8b6 | F8b7 |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
 | Indexes; their quality-3 / quality-4 pages | 141; 1823 / 268 | 141; 1823 / 268 | 141; 1823 / 268 | 141; 1823 / 268 | 141; 1823 / 268 | 141; 1823 / 268 |
-| Indexes admitted by the Index gate | 29 | 68 | 68 | 72 | 77 | 77 |
-| Pages in admitted Indexes | 624 / 27 | 1184 / 48 | 1184 / 48 | 1190 / 48 | 1411 / 62 | 1411 / 62 |
-| Pages the converter renders (`wikisource_plain_text`) | 231 / 12 | 1171 / 48 | 1184 / 48 | 1190 / 48 | 1411 / 62 | 1411 / 62 |
-| Pages passing every other gate (attestation, checksums) | 231 / 12 | 1154 / 48 | 1167 / 48 | 1188 / 48 | 1397 / 61 | 1395 / 58 |
-| **Eligible as full pages** (`full_page`) | 0 / 0 | 82 / 43 | 837 / 43 | 946 / 43 | 1161 / 56 | 1158 / 54 |
-| **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | 0 / 0 | 196 / 4 | 241 / 5 | 235 / 5 | 236 / 4 |
+| Indexes admitted by the Index gate | 29 | 68 | 68 | 72 | 77 | 74 |
+| Pages in admitted Indexes | 624 / 27 | 1184 / 48 | 1184 / 48 | 1190 / 48 | 1411 / 62 | 1397 / 63 |
+| Pages the converter renders (`wikisource_plain_text`) | 231 / 12 | 1171 / 48 | 1184 / 48 | 1190 / 48 | 1411 / 62 | 1397 / 63 |
+| Pages passing every other gate (attestation, checksums) | 231 / 12 | 1154 / 48 | 1167 / 48 | 1188 / 48 | 1397 / 61 | 1381 / 59 |
+| **Eligible as full pages** (`full_page`) | 0 / 0 | 82 / 43 | 837 / 43 | 946 / 43 | 1161 / 56 | 1145 / 54 |
+| **Eligible as cropped pages** (`partial_page`, resolved crop) | 0 / 0 | 0 / 0 | 196 / 4 | 241 / 5 | 235 / 5 | 233 / 4 |
 | Of those, crop placed or confirmed by an agent or human | — | — | 25 / 4 | 96 / 2 | 90 / 2 | 92 / 2 |
 | Of those, multi-region crop (rest of the box masked) | — | — | 0 / 0 | 29 / 0 | 26 / 0 | 26 / 0 |
 | Of those, tool crop flagged and not reviewed (`review_recommended`: a poorly read page, or tool regions) | — | — | 52 / 1 | 0 / 0 | 0 / 0 | 0 / 0 |
@@ -28,10 +28,10 @@ Quality-3 / quality-4 pages at each stage. Each column is the run before the nex
 | Pairs whose text maps editors' stand-ins to the printed character (`editor_standins`, F8b7) | — | — | — | — | — | 20 / 1 |
 | Pairs with text excluded from scoring as not visible on the scan (`illegible_on_scan`, F8b7) | — | — | — | — | — | 2 / 0 |
 | `partial_page` without a resolved crop (`crop_unresolved`, listed below) | 0 / 0 | 25 / 5 | 60 / 1 | 0 / 0 | 0 / 0 | 0 / 0 |
-| Coverage not decided (no check; of them, tool alignment too poor) | 231 / 12; — | 1047 / 0; — | 74 / 0; 74 / 0 | 1 / 0; 1 / 0 | 1 / 0; 1 / 0 | 1 / 0; 1 / 0 |
+| Coverage not decided (no check; of them, tool alignment too poor) | 231 / 12; — | 1047 / 0; — | 74 / 0; 74 / 0 | 1 / 0; 1 / 0 | 1 / 0; 1 / 0 | 3 / 1; 1 / 0 |
 | Not a pair: words in the text the page does not show (`text_not_on_page`, listed below) | — | — | — | — | 12 / 1 | 14 / 4 |
 | Not a pair yet: a footnote the tool did not find on the page, not reviewed (`footnote_not_located`, F8b7) | — | — | — | — | — | 0 |
-| Reference-eligible quality-4 pages (adjudication-eligible), every gate but coverage | 4 | 29 | 29 | 29 | 35 | 33 |
+| Reference-eligible quality-4 pages (adjudication-eligible), every gate but coverage | 4 | 29 | 29 | 29 | 35 | 34 |
 | Of those, eligible now (full page or cropped) | 0 | 25 | 28 | 29 | 35 | 33 |
 
 In F8b2 the converter column counts pages that also passed the other page gates; the F8b2 run did not count them apart.
@@ -44,14 +44,14 @@ page render only to get line boxes, aligns the human text to them, and records `
 partial page, the crop: the transcribed region (decision 12). OCR text is never stored or used as text. A partial page
 pairs its text with the cropped image; one whose crop could not be placed is `crop_unresolved` and listed, never dropped
 silently. The checks record scope facts only; they never change a quality level or an attestation.
-92 / 2 converting pages carry footnotes, written `[n]`
+87 / 2 converting pages carry footnotes, written `[n]`
 (`reference_normalization.footnote_marker_style: bracketed_index`; the print's own marks are not typed by editors).
 13 pages transclude labelled sections of other pages, pinned by revision (`transclusions`).
 
 Footnotes (F8b7): the coverage tool looks for each footnote of the text on the page, among the OCR lines aligned to the
-text (boxes only). Of 132 pages with footnotes, 42 have every note located, 47 were flagged (a note not found,
-or no printed footnote band) and 43 could not be checked (short notes or a poorly read page). An agent compared
-the footnotes with the page on 47 flagged and 43 unchecked pages. 37 footnotes on pairs have no printed
+text (boxes only). Of 127 pages with footnotes, 42 have every note located, 44 were flagged (a note not found,
+or no printed footnote band) and 41 could not be checked (short notes or a poorly read page). An agent compared
+the footnotes with the page on 44 flagged and 41 unchecked pages. 37 footnotes on pairs have no printed
 counterpart (unsigned editors' notes) and are dropped from the pair text with their marks; the page keeps the faithful
 conversion's checksum (`text_adjustments.converted_text_sha256`). Editors' stand-ins mapped to the printed character: `typed_pipe_as_paseq.v1` 44.
 
@@ -62,12 +62,15 @@ Pages are quality-3 plus quality-4 pages.
 
 | Reason code | Indexes (first reason) | Pages (first reason) | Indexes (any reason) | Pages (any reason) |
 | --- | ---: | ---: | ---: | ---: |
-| admitted | 77 | 1473 | 77 | 1473 |
+| admitted | 74 | 1460 | 74 | 1460 |
 | `creator_died_after_1955` | 8 | 4 | 10 | 476 |
 | `excluded_birnbaum_work` | 2 | 472 | 2 | 472 |
-| `creator_death_year_missing` | 32 | 79 | 43 | 83 |
+| `creator_death_year_missing` | 31 | 76 | 42 | 80 |
 | `index_language_not_hebrew` | 2 | 63 | 2 | 63 |
 | `index_language_unrecorded` | 3 | 0 | 19 | 25 |
+| `printed_commentary_unnamed` | 3 | 15 | 9 | 24 |
+| `possible_later_reprint` | 1 | 1 | 6 | 19 |
+| `printed_commentary_unattributed` | 0 | 0 | 1 | 15 |
 | `commons_file_unpinned` | 11 | 0 | 11 | 0 |
 | `creators_missing` | 6 | 0 | 14 | 0 |
 
@@ -75,16 +78,16 @@ Pages are quality-3 plus quality-4 pages.
 
 | Result | Quality 3 / quality 4 |
 | --- | ---: |
-| eligible as full pages (`full_page`) | 1158 / 54 |
-| eligible as cropped pages (`partial_page`, resolved crop) | 236 / 4 |
+| eligible as full pages (`full_page`) | 1145 / 54 |
+| eligible as cropped pages (`partial_page`, resolved crop) | 233 / 4 |
 | `crop_unresolved` (`partial_page`, no crop placed) | 0 / 0 |
-| passes every gate but its coverage is not decided | 1 / 0 |
+| passes every gate but its coverage is not decided | 3 / 1 |
 | rejected: `text_not_on_page` | 18 |
 | rejected: `page_text_empty` | 2 |
 
 ## Page render checks
 
-1471 pages checked: 1221 `full_page`, 250 `partial_page` (deciding check by a human 0, an agent 378, the tool 1093); the tool could not decide 2 more.
+1455 pages checked: 1208 `full_page`, 247 `partial_page` (deciding check by a human 0, an agent 366, the tool 1089); the tool could not decide 2 more.
 
 | Index | Pages checked | `full_page` | `partial_page` | Eligible full (Q3 / Q4) | Eligible cropped (Q3 / Q4) |
 | --- | ---: | ---: | ---: | ---: | ---: |
@@ -100,7 +103,6 @@ Pages are quality-3 plus quality-4 pages.
 | מפתח:Chotam Tocnit.pdf | 38 | 36 | 2 | 36 / 0 | 2 / 0 |
 | מפתח:Dorot Rishonim part 3, Hebrewbooks org 20125.pdf | 1 | 1 | 0 | 1 / 0 | 0 / 0 |
 | מפתח:Eden Ha-Yeladim.pdf | 3 | 2 | 1 | 2 / 0 | 1 / 0 |
-| מפתח:Falaquera Sefer ha-Mevaqqesh Warsaw 1924.pdf | 1 | 1 | 0 | 1 / 0 | 0 / 0 |
 | מפתח:Hanokh-B.pdf | 1 | 1 | 0 | 1 / 0 | 0 / 0 |
 | מפתח:Hebrewbooks org 19784.pdf | 11 | 10 | 1 | 5 / 3 | 0 / 0 |
 | מפתח:Hebrewbooks org 38168.djvu | 7 | 6 | 1 | 4 / 2 | 1 / 0 |
@@ -138,7 +140,6 @@ Pages are quality-3 plus quality-4 pages.
 | מפתח:יצחק זקיל פרנקל. אפוקריפא. כתובים אחרונים.pdf | 3 | 2 | 1 | 2 / 0 | 1 / 0 |
 | מפתח:משא בערב.pdf | 34 | 34 | 0 | 22 / 12 | 0 / 0 |
 | מפתח:משלי עם פירוש קב ונקי.pdf | 12 | 11 | 1 | 11 / 0 | 1 / 0 |
-| מפתח:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf | 15 | 12 | 3 | 12 / 0 | 3 / 0 |
 | מפתח:משפטי הטעמים רעדעלהיים תקס"ח.pdf | 10 | 8 | 2 | 7 / 0 | 2 / 0 |
 | מפתח:סיפורי המעשיות - נחמן בן שמחה - לעמבערג - תרסב.pdf | 55 | 34 | 21 | 34 / 0 | 21 / 0 |
 | מפתח:ספר דורות הראשונים א'.pdf | 10 | 10 | 0 | 2 / 8 | 0 / 0 |
@@ -162,6 +163,9 @@ Pages that pass every other gate but that no check decides, with who last checke
 | Page | Quality | Last check |
 | --- | ---: | --- |
 | עמוד:ויכוח על חכמת הקבלה.pdf/47 | 3 | tool |
+| עמוד:פירוש מעין גנים על ספר איוב.pdf/10 | 3 | — |
+| עמוד:פירוש מעין גנים על ספר איוב.pdf/11 | 3 | — |
+| עמוד:פירוש מעין גנים על ספר איוב.pdf/9 | 4 | — |
 
 ## Pages whose text is not all on the page (`text_not_on_page`)
 
@@ -254,19 +258,20 @@ kept in the reference but excluded from primary scoring (`illegible_on_scan` spa
 
 - Shown to be protected in Israel (a creator died after 1955, or the Birnbaum works): 10 Indexes, 476 quality-3/4 pages.
 - Not Hebrew (`index_language_not_hebrew`): 2 Indexes, 63 pages.
-- Unresolved data gaps (decision 10's residual): 10 Indexes with quality-3/4 pages, 79 pages. The highest-yield ones, with what is missing:
+- Unresolved data gaps (decision 10's residual): 11 Indexes with quality-3/4 pages, 92 pages. The highest-yield ones, with what is missing:
 
 | Index | Q3 / Q4 pages | Gate reasons | What is missing |
 | --- | ---: | --- | --- |
 | מפתח:Sefer ha-Tapuah Lemberg 1873.pdf | 14 / 7 | `creator_death_year_missing` | death year for Pseudo-Aristotle, י. מוזען (published 1873, after 1855) |
 | מפתח:Sefer Shimush Tehillim.pdf | 16 / 0 | `creator_death_year_missing`, `index_language_unrecorded` | death year for Elias Klein Békéscsaba (published 2014, after 1855); the Index language |
+| מפתח:משנה תורה דפוס ווארשא-ווילנא כרך ראשון 1.pdf | 15 / 0 | `printed_commentary_unnamed`, `printed_commentary_unattributed`, `possible_later_reprint` |  |
 | מפתח:הוולגאטה והפרשנות הנוצרית הקדומה לבראשית לאור פרשנות רשי, רשבם, רדק וחזקוני.pdf | 14 / 0 | `creator_death_year_missing` | death year for יעקב ר. גרסון (published 2009, after 1855) |
 | מפתח:צניעותא דרות שמירת העיניים לנשים.pdf | 11 / 0 | `creator_death_year_missing` | death year for יב"י הלוי (published 2025, after 1855) |
-| מפתח:Megilasz Maiszjahu Chanuka Története.pdf | 6 / 0 | `creator_death_year_missing`, `index_language_unrecorded` | death year for Miklós Welcz (published 2013, after 1855); the Index language |
-| מפתח:SA-YD1a-1880-Vilna.pdf | 3 / 0 | `creator_death_year_missing` | death year for unnamed further creators (other multiple authors of commentaries on his work) (published 1880, after 1855) |
-| מפתח:פירוש מעין גנים על ספר איוב.pdf | 2 / 1 | `creator_death_year_missing` | death year for שמואל מסנות, שמואל מסנות (published 1899, after 1855) |
+| מפתח:Megilasz Maiszjahu Chanuka Története.pdf | 6 / 0 | `creator_death_year_missing`, `printed_commentary_unnamed`, `index_language_unrecorded` | death year for Miklós Welcz (published 2013, after 1855); the Index language |
+| מפתח:SA-YD1a-1880-Vilna.pdf | 3 / 0 | `creator_death_year_missing`, `printed_commentary_unnamed`, `possible_later_reprint` | death year for unnamed further creators (other multiple authors of commentaries on his work) (published 1880, after 1855) |
 | מפתח:Tehilim, o los Salmos, trezladados del leshon ha-ḳodesh en la lingua Sefaradit.pdf | 2 / 0 | `creator_death_year_missing`, `index_language_unrecorded` | death year for Ǧ. Griffit, Estampado por Ǧ. Griffit (published 2015, after 1855); the Index language |
 | מפתח:Пінкас релігійної школи «Талмуд-Тора», Копичинці, 1873—1889.pdf | 2 / 0 | `creator_death_year_missing` | death year for אברהם יעקב בן משה בלנדר (published 1873, after 1855) |
+| מפתח:Falaquera Sefer ha-Mevaqqesh Warsaw 1924.pdf | 1 / 0 | `possible_later_reprint` |  |
 | מפתח:The Daily Prayers translated from Hebrew to Marathi.pdf | 1 / 0 | `creator_death_year_missing`, `index_language_unrecorded` | death year for ספר תפילת החדש, Rajpurkar, Joseph Ezekiel (published 2013, after 1855); the Index language |
 
 ## Method
