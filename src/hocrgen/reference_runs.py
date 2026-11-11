@@ -34,7 +34,7 @@ import re
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from hocrgen import __version__
+from hocrgen import __version__, eval_slices
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.hocrsyngen_manifest import LEGACY_SOURCE_ITEM_ID_PREFIX, _source_item_id, validate_hocrsyngen_batch
 from pydantic import ValidationError
@@ -452,7 +452,8 @@ def load_unreviewed_texts(path: Path) -> dict[str, Any]:
 def _score(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any] | None,
            adjudicated: Mapping[str, Any] | None, unreviewed: Mapping[str, Any] | None, profiles: list[str],
            alignment_masked: bool, cell_view: Mapping[str, Any] | None = None,
-           modality: str | None = None) -> dict[str, Any]:
+           modality: str | None = None, slicing: Mapping[str, Any] | None = None,
+           lines: Mapping[str, Any] | None = None, line_slicing: Mapping[str, Any] | None = None) -> dict[str, Any]:
     gold_texts = dict(gold["texts"]) if gold else {}
     references = dict(adjudicated["references"]) if adjudicated else {}
     overlap = sorted(gold_texts.keys() & references.keys())
@@ -475,6 +476,13 @@ def _score(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any
         if within_line:
             scored["adjudicated_reference"]["reading_order_within_line_items"] = sorted(within_line)
             scored["adjudicated_reference"]["reading_order_within_line_view"] = LINE_MATCHED_VIEW_ID
+        if slicing is not None:
+            _add_eval_slices(scored["adjudicated_reference"], slicing, profiles, predictions=predictions,
+                             references={k: reference_text(v) for k, v in ordered.items()}, all_ids=references)
+    if lines is not None:
+        scored["line_reference"] = eval_slices.line_reference_report(
+            predictions, lines, track=track, profile_ids=profiles, labels=(line_slicing or {}).get("labels"),
+            bootstrap=(line_slicing or {}).get("bootstrap"))
     for report in scored.values():
         report["track"] = track
     if modality is not None and "adjudicated_reference" in scored:
@@ -493,6 +501,10 @@ def _score(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any
             predictions, track=track, ids=ids, texts={item_id: reference_text(references[item_id]) for item_id in ids},
             strata={item_id: _item_strata(references[item_id], adjudicated["strata"][item_id]) for item_id in ids},
             profiles=profiles, scope="adjudicated items whose reference declares reading_order_verified: within_line")
+        if slicing is not None:
+            block = views["adjudicated_reference"][LINE_MATCHED_VIEW_ID]
+            _add_eval_slices(block["views"][LINE_MATCHED_VIEW_ID], slicing, profiles,
+                             order=eval_slices.within_line_rows(block))
     if views:
         result["reference_views"] = views
     if unreviewed and unreviewed["texts"]:
@@ -512,6 +524,32 @@ def _score(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any
                 strata={item_id: unreviewed["strata"][item_id] for item_id in ids}, profiles=profiles,
                 scope="unreviewed texts that declare reading_order_verified: within_line")}
     return result
+
+
+def _add_eval_slices(report: dict[str, Any], slicing: Mapping[str, Any], profiles: list[str], *,
+                     predictions: Mapping[str, str] | None = None, references: Mapping[str, str] | None = None,
+                     all_ids: Iterable[str] | None = None,
+                     order: Mapping[str, Mapping[str, Any]] | None = None) -> None:
+    """Decisions 0017 and 0018: label strata and the ``eval_slices`` block on one adjudicated profile report."""
+    labels = slicing.get("labels")
+    if labels is not None:
+        eval_slices.require_labels(all_ids if all_ids is not None else [i["item_id"] for i in report["items"]],
+                                   labels["labels"], "adjudicated reference")
+        eval_slices.apply_label_strata(report, labels["labels"])
+    if order is None and predictions is not None and references is not None:
+        order = eval_slices.page_order_rows(report, predictions, references)
+    report["eval_slices"] = eval_slices.slice_report(
+        report["items"], profile_ids=profiles, labels=labels, clusters=slicing.get("clusters"),
+        bootstrap=slicing.get("bootstrap"), order=order)
+
+
+def _slice_deltas(delta: dict[str, Any], base_report: Mapping[str, Any], cand_report: Mapping[str, Any],
+                  slicing: Mapping[str, Any] | None) -> dict[str, Any]:
+    if slicing is not None and "eval_slices" in cand_report:
+        delta["eval_slices"] = eval_slices.paired_slice_report(
+            base_report["items"], cand_report["items"], profile_ids=cand_report["eval_slices"]["profiles"],
+            labels=slicing.get("labels"), clusters=slicing.get("clusters"), bootstrap=slicing.get("bootstrap"))
+    return delta
 
 
 def _line_matched_view_reports(predictions: Mapping[str, str], *, track: str, ids: list[str], texts: Mapping[str, str],
@@ -786,15 +824,25 @@ def _comparison_context(base_set: dict, cand_set: dict) -> dict[str, Any]:
 
 
 def _comparison(baseline: dict[str, Any], candidate: dict[str, Any], base_set: dict, cand_set: dict,
-                bootstrap: Mapping[str, int] | None = None) -> dict[str, Any]:
+                bootstrap: Mapping[str, int] | None = None, slicing: Mapping[str, Any] | None = None,
+                lines: Mapping[str, Any] | None = None,
+                line_slicing: Mapping[str, Any] | None = None) -> dict[str, Any]:
     context = _comparison_context(base_set, cand_set)
-    deltas = {origin: _report_deltas(baseline["scored"][origin], report, bootstrap)
-              for origin, report in candidate["scored"].items() if origin in baseline["scored"]}
+    deltas = {origin: _slice_deltas(_report_deltas(baseline["scored"][origin], report, bootstrap),
+                                    baseline["scored"][origin], report, slicing)
+              for origin, report in candidate["scored"].items()
+              if origin in baseline["scored"] and origin != "line_reference"}
+    if "line_reference" in candidate["scored"]:
+        deltas["line_reference"] = eval_slices.paired_line_reference_report(
+            baseline["scored"]["line_reference"], candidate["scored"]["line_reference"],
+            profile_ids=candidate["scored"]["line_reference"]["measures"]["profiles"],
+            labels=(line_slicing or {}).get("labels"), lines=lines, bootstrap=(line_slicing or {}).get("bootstrap"))
     comparison = {"track": context.pop("track"), "deltas": deltas, **context}
     if "reference_views" in candidate:
         comparison["reference_view_deltas"] = {
-            origin: {view_id: {name: _report_deltas(baseline["reference_views"][origin][view_id]["views"][name], report,
-                                                    bootstrap)
+            origin: {view_id: {name: _slice_deltas(
+                _report_deltas(baseline["reference_views"][origin][view_id]["views"][name], report, bootstrap),
+                baseline["reference_views"][origin][view_id]["views"][name], report, slicing)
                                for name, report in block["views"].items()}
                      for view_id, block in by_view.items()}
             for origin, by_view in candidate["reference_views"].items()
@@ -826,6 +874,7 @@ def run_reference_evaluation(
     baseline_predictions_dir: Path | None = None, profiles: Iterable[str] = DEFAULT_PROFILE_IDS,
     alignment_masked: bool = False, diagnostic_only: bool = False, modality: str | None = None,
     bootstrap_resamples: int = 0, bootstrap_seed: int = 0, bootstrap_clusters: Path | None = None,
+    eval_labels: Path | None = None, line_references: Path | None = None,
 ) -> dict[str, Any]:
     if diagnostic_only:
         if synthetic_batch is not None or reference_manifest is not None:
@@ -838,14 +887,29 @@ def run_reference_evaluation(
         if alignment_masked:
             raise StageExecutionError("--alignment-masked applies only to adjudicated references, "
                                       "not to --diagnostic-only runs")
-    elif synthetic_batch is None and reference_manifest is None:
-        raise StageExecutionError("a scored set is required: --synthetic-batch and/or --reference-manifest "
-                                  "(or use --diagnostic-only with --unreviewed-texts)")
+        if eval_labels is not None or line_references is not None:
+            raise StageExecutionError("--eval-labels and --line-references apply to scored sets, "
+                                      "not to --diagnostic-only runs")
+    elif synthetic_batch is None and reference_manifest is None and line_references is None:
+        raise StageExecutionError("a scored set is required: --synthetic-batch, --reference-manifest and/or "
+                                  "--line-references (or use --diagnostic-only with --unreviewed-texts)")
+    if line_references is not None and mapping_path is None and asset_index_path is None:
+        raise StageExecutionError("--line-references needs --mapping or --asset-index from each line item to its "
+                                  "line-crop prediction page")
+    if eval_labels is not None and reference_manifest is None and line_references is None:
+        raise StageExecutionError("--eval-labels slices adjudicated references and needs --reference-manifest "
+                                  "or --line-references")
     if modality is not None and (reference_manifest is None or diagnostic_only):
         raise StageExecutionError("--modality selects a modality track of adjudicated references and needs "
                                   "--reference-manifest (not --diagnostic-only)")
-    if bootstrap_resamples < 0 or (bootstrap_resamples and baseline_predictions_dir is None):
-        raise StageExecutionError("--bootstrap-resamples must be a non-negative count and needs --baseline-predictions")
+    # Single-engine intervals (decisions 0017, 0018) need clusters: --bootstrap-clusters, or the line's source unit.
+    single_engine = bool(bootstrap_resamples) and baseline_predictions_dir is None
+    if bootstrap_resamples < 0 or (single_engine and bootstrap_clusters is None and line_references is None):
+        raise StageExecutionError("--bootstrap-resamples must be a non-negative count and needs --baseline-predictions "
+                                  "(or --bootstrap-clusters or --line-references for single-engine cluster intervals)")
+    if single_engine and bootstrap_clusters is not None and reference_manifest is None:
+        raise StageExecutionError("single-engine --bootstrap-clusters intervals slice adjudicated references and "
+                                  "need --reference-manifest")
     if bootstrap_clusters is not None and not bootstrap_resamples:
         raise StageExecutionError("--bootstrap-clusters needs --bootstrap-resamples")
     bootstrap: dict[str, Any] | None = (
@@ -855,6 +919,14 @@ def run_reference_evaluation(
     profile_ids = list(profiles)
     if PRIMARY_PROFILE_ID not in profile_ids or set(profile_ids) - NORMALIZATION_PROFILES.keys():
         raise StageExecutionError(f"profiles must be known and include {PRIMARY_PROFILE_ID}")
+    labels = eval_slices.load_eval_labels(eval_labels) if eval_labels is not None else None
+    lines = eval_slices.load_line_references(line_references) if line_references is not None else None
+    # Slices are added only when their flags are used, so runs without them are byte-identical to earlier ones.
+    slicing: dict[str, Any] | None = None
+    if labels is not None or (single_engine and bootstrap_clusters is not None) or lines is not None:
+        slicing = {"labels": labels, "clusters": bootstrap.get("clusters") if bootstrap else None,
+                   "bootstrap": {"resamples": bootstrap["resamples"], "seed": bootstrap["seed"]} if bootstrap else None}
+    page_slicing = slicing if labels is not None or (single_engine and bootstrap_clusters is not None) else None
     gold = load_synthetic_gold(synthetic_batch) if synthetic_batch else None
     cell_view = load_per_cell_view(synthetic_batch, gold) if synthetic_batch else None
     adjudicated = load_adjudicated_references(reference_manifest, modality=modality) if reference_manifest else None
@@ -875,7 +947,8 @@ def run_reference_evaluation(
     predictions, assembly = _assemble(mapping, candidate_set)
     try:
         result = _score(predictions, track=candidate_set["track"], gold=gold, adjudicated=adjudicated, unreviewed=unreviewed,
-                        profiles=profile_ids, alignment_masked=alignment_masked, cell_view=cell_view, modality=modality)
+                        profiles=profile_ids, alignment_masked=alignment_masked, cell_view=cell_view, modality=modality,
+                        slicing=page_slicing, lines=lines, line_slicing=slicing)
         comparison = None
         baseline_set = None
         if baseline_predictions_dir is not None:
@@ -883,9 +956,13 @@ def run_reference_evaluation(
             baseline_predictions, _ = _assemble(mapping, baseline_set)
             baseline = _score(baseline_predictions, track=baseline_set["track"], gold=gold, adjudicated=adjudicated,
                               unreviewed=unreviewed if diagnostic_only else None,
-                              profiles=profile_ids, alignment_masked=False, cell_view=cell_view, modality=modality)
-            compare = _diagnostic_comparison if diagnostic_only else _comparison
-            comparison = compare(baseline, result, baseline_set, candidate_set, bootstrap)
+                              profiles=profile_ids, alignment_masked=False, cell_view=cell_view, modality=modality,
+                              slicing=page_slicing, lines=lines, line_slicing=slicing)
+            if diagnostic_only:
+                comparison = _diagnostic_comparison(baseline, result, baseline_set, candidate_set, bootstrap)
+            else:
+                comparison = _comparison(baseline, result, baseline_set, candidate_set, bootstrap,
+                                         slicing=page_slicing, lines=lines, line_slicing=slicing)
     except ValueError as exc:
         raise StageExecutionError(str(exc)) from exc
     references = [identity for identity in (gold and gold["identity"], adjudicated and adjudicated["identity"]) if identity]
@@ -940,7 +1017,7 @@ def run_reference_evaluation(
     if modality is not None:
         run_record["modality"] = modality
         run_record["modality_scope"] = "adjudicated_reference items declaring this modality; distinct from track"
-    if bootstrap is not None:
+    if bootstrap is not None and baseline_set is not None:
         run_record["paired_bootstrap"] = {"resamples": bootstrap["resamples"], "seed": bootstrap["seed"],
                                           "confidence": BOOTSTRAP_CONFIDENCE, "unit": "item"}
         if "clusters" in bootstrap:
@@ -950,6 +1027,20 @@ def run_reference_evaluation(
                 "unit": "cluster", "cluster_key": cluster_map["cluster_key"], "clusters_sha256": cluster_map["sha256"],
                 "mapped_items": len(cluster_map["clusters"]),
             }
+    if bootstrap is not None and baseline_set is None:
+        run_record["single_engine_cluster_bootstrap"] = {
+            "resamples": bootstrap["resamples"], "seed": bootstrap["seed"], "confidence": BOOTSTRAP_CONFIDENCE,
+            "unit": "cluster", "scope": "eval_slices of adjudicated references and line references",
+            **({"cluster_key": bootstrap["clusters"]["cluster_key"], "clusters_sha256": bootstrap["clusters"]["sha256"]}
+               if "clusters" in bootstrap else {}),
+        }
+    if labels is not None:
+        run_record["eval_labels"] = {"schema_version": eval_slices.EVAL_LABELS_SCHEMA, "sha256": labels["sha256"],
+                                     "rule": labels["rule"], "provenance": labels["provenance"],
+                                     "labelled_items": len(labels["labels"])}
+    if lines is not None:
+        run_record["line_references"] = {**lines["identity"], "cluster_key": eval_slices.LINE_CLUSTER_KEY,
+                                         "excluded_lines": len(lines["excluded"])}
     if diagnostic_only:
         run_record["benchmark_ready"] = False
         run_record["scored_set_policy"] = "diagnostic only: no scored set; unreviewed text under unreviewed_diagnostics"
