@@ -31,6 +31,8 @@ SPLIT_FILE_PATTERN = re.compile(r"^pmod_unit_split_(?P<version>v\d+)\.json$")
 UNIT_NAMES = {
     "reshumot_born_digital": "one Reshumot booklet (reshumot:<series>_<booklet number>)",
     "knesset_committee_protocols_pre1976": "one Knesset committee protocol (knesset_protocol:<document id>)",
+    "reshumot_scanned": "one scanned Reshumot booklet (reshumot_scanned:<series>_<booklet number>)",
+    "knesset_plenary_k1_12": "one Knesset plenary sitting (plenary:K<knesset>_<sitting>)",
 }
 UNASSIGNED_SENTENCE = re.compile(r"[^.]*\bneither list\b[^.]*\.")
 HEADER = """\

@@ -347,3 +347,127 @@ def test_glyph_harvest_refuses_a_reserved_unit_and_style(tmp_path: Path) -> None
         gh.write_bank(tmp_path / "bank", bank_id="b", config={}, sources=[], exclusions=[], styles=[style],
                       glyphs_by_style={}, stats_by_style={})
     assert not (tmp_path / "bank").exists()
+
+
+# --- scanned Reshumot and Knesset plenary (decisions 0017/0018) ----------------------------------------------------
+
+SCANNED, PLENARY = "reshumot_scanned", "knesset_plenary_k1_12"
+
+
+def _with_sources(registry: EvalReservedUnitsRegistry, **extra: dict) -> EvalReservedUnitsRegistry:
+    """The packaged registry plus fixture sources: {source_id: {"eval": [...], "non_eval": [...]}}."""
+    data = registry.model_dump(mode="json")
+    for source_id, lists in extra.items():
+        data["sources"].append({"source_id": source_id, "unit": tool.UNIT_NAMES[source_id],
+                                "eval_units": sorted(lists.get("eval", [])),
+                                "non_eval_units": sorted(lists.get("non_eval", []))})
+    return EvalReservedUnitsRegistry.model_validate(data)
+
+
+@pytest.fixture(scope="module")
+def extended(registry: EvalReservedUnitsRegistry) -> EvalReservedUnitsRegistry:
+    return _with_sources(
+        registry,
+        reshumot_scanned={"eval": ["reshumot_scanned:sefer_hachukim_501"],
+                          "non_eval": ["reshumot_scanned:sefer_hachukim_500"]},
+        knesset_plenary_k1_12={"eval": ["plenary:K1_2"], "non_eval": ["plenary:K1_1"]},
+    )
+
+
+@pytest.mark.parametrize(
+    ("identifier", "expected"),
+    [
+        ("reshumot_scanned:sefer_hachukim_500", (SCANNED, "reshumot_scanned:sefer_hachukim_500")),
+        ("reshumot_scanned:kovetz_hatakanot:0042", (SCANNED, "reshumot_scanned:kovetz_hatakanot_42")),
+        ("reshumot_scanned_sefer_hachukim_500__p0003", (SCANNED, "reshumot_scanned:sefer_hachukim_500")),
+        ("reshumot_scanned:reshumot_scanned_sefer_hachukim_500__p0003", (SCANNED, "reshumot_scanned:sefer_hachukim_500")),
+        ("plenary:K1_1", (PLENARY, "plenary:K1_1")),
+        ("plenary_K12_340__p0001", (PLENARY, "plenary:K12_340")),
+        ("knesset_plenary_k1_12:plenary_K1_01__p0002", (PLENARY, "plenary:K1_1")),
+        # The born-digital and committee shapes are unchanged and never collide with the new ones.
+        ("reshumot:sefer_hachukim_500", (RESHUMOT, "reshumot:sefer_hachukim_500")),
+        ("reshumot_sefer_hachukim_500__p0001", (RESHUMOT, "reshumot:sefer_hachukim_500")),
+        ("knesset_committee_398637__p0001", (KNESSET, "knesset_protocol:398637")),
+        ("plenary:K1", None),  # a look-alike: not a unit id (the guard still governs it, below)
+    ],
+)
+def test_scanned_and_plenary_unit_ids(identifier, expected) -> None:
+    assert unit_from_identifier(identifier) == expected
+
+
+def test_registry_accepts_the_new_sources_and_refuses_a_booklet_in_both_reshumot_sources(
+        registry: EvalReservedUnitsRegistry, extended: EvalReservedUnitsRegistry) -> None:
+    assert extended.status(SCANNED, "reshumot_scanned:sefer_hachukim_500") is EvalUnitStatus.non_eval
+    born_digital = next(source for source in registry.sources if source.source_id == RESHUMOT)
+    shared = born_digital.non_eval_units[0].removeprefix("reshumot:")
+    for category in ("eval", "non_eval"):
+        with pytest.raises(ValidationError, match=f"booklet {shared} is listed in both"):
+            _with_sources(registry, reshumot_scanned={category: [f"reshumot_scanned:{shared}"]})
+    with pytest.raises(ValidationError, match="must start with 'reshumot_scanned:'"):
+        _with_sources(registry, reshumot_scanned={"non_eval": ["reshumot:sefer_hachukim_500"]})
+    with pytest.raises(ValidationError, match="must start with 'plenary:'"):
+        _with_sources(registry, knesset_plenary_k1_12={"eval": ["knesset_protocol:1"]})
+
+
+def test_scanned_booklets_pass_when_non_eval_and_are_refused_when_eval_or_unassigned(
+        extended: EvalReservedUnitsRegistry) -> None:
+    open_rows = [{"source_id": SCANNED, "page_id": "reshumot_scanned_sefer_hachukim_500__p0001"},
+                 {"item_id": "reshumot_scanned:reshumot_scanned_sefer_hachukim_500__p0002"}]
+    assert refuse_eval_reserved_training_input(open_rows, builder="test", registry=extended) == 2
+    for row in ({"page_id": "reshumot_scanned_sefer_hachukim_501__p0001"},  # eval
+                {"page_id": "reshumot_scanned_sefer_hachukim_502__p0001"},  # in neither list
+                {"source_id": SCANNED, "page_id": "page-7"},  # no unit derivable
+                {"page_id": "reshumot_scanned_other_series_5__p0001"}):  # a look-alike
+        with pytest.raises(EvalReservedUnitError):
+            refuse_eval_reserved_training_input([row], builder="test", registry=extended)
+    # Metadata gives a scanned row its own unit, never a born-digital one.
+    unit = governed_unit({"source_id": SCANNED, "metadata": {"reshumot_series": "sefer_hachukim",
+                                                             "reshumot_booklet_number": "500"}})
+    assert (unit.source_id, unit.unit_id) == (SCANNED, "reshumot_scanned:sefer_hachukim_500")
+    # A row that names a scanned and a born-digital booklet is ambiguous and refused.
+    with pytest.raises(EvalReservedUnitError, match="more than one governed"):
+        governed_unit({"page_id": "reshumot_scanned_sefer_hachukim_500__p0001",
+                       "unit_id": "reshumot:sefer_hachukim_500"})
+
+
+def test_plenary_sittings_follow_eval_non_eval_and_unassigned(extended: EvalReservedUnitsRegistry) -> None:
+    assert unit_status({"page_id": "plenary_K1_1__p0001"}, extended)[1] is EvalUnitStatus.non_eval
+    assert unit_status({"unit_id": "plenary:K1_2"}, extended)[1] is EvalUnitStatus.eval
+    assert unit_status({"page_id": "plenary_K1_3__p0001"}, extended)[1] is EvalUnitStatus.unassigned
+    assert refuse_eval_reserved_training_input([{"page_id": "plenary_K1_1__p0004"}], builder="t", registry=extended) == 1
+    for row in ({"page_id": "plenary_K1_2__p0001"}, {"page_id": "plenary_K1_3__p0001"},
+                {"source_id": PLENARY, "page_id": "page-1"}, {"page_id": "plenary:K1"}, {"page_id": "plenary_k1_1__p0001"}):
+        with pytest.raises(EvalReservedUnitError):
+            refuse_eval_reserved_training_input([row], builder="test", registry=extended)
+
+
+def test_until_the_split_lists_them_new_source_rows_are_unassigned(registry: EvalReservedUnitsRegistry) -> None:
+    """With the packaged registry (v1 and v2 list no scanned or plenary source), their rows fail closed as unassigned."""
+    assert registry.source(SCANNED) is None and registry.source(PLENARY) is None
+    for row in ({"page_id": "reshumot_scanned_sefer_hachukim_500__p0001"}, {"page_id": "plenary_K1_1__p0001"}):
+        assert unit_status(row, registry)[1] is EvalUnitStatus.unassigned
+        with pytest.raises(EvalReservedUnitError, match="unassigned"):
+            refuse_eval_reserved_training_input([row], builder="test", registry=registry)
+
+
+def test_born_digital_and_committee_rows_behave_as_before(registry: EvalReservedUnitsRegistry,
+                                                         extended: EvalReservedUnitsRegistry) -> None:
+    rows = [{"page_id": f"{unit.removeprefix('reshumot:')}__p0001"}
+            for source in registry.sources if source.source_id == RESHUMOT
+            for unit in (*source.eval_units[:3], *source.non_eval_units[:3])]
+    rows += [{"page_id": f"knesset_committee_{unit.removeprefix('knesset_protocol:')}__p0001"}
+             for source in registry.sources if source.source_id == KNESSET
+             for unit in (*source.eval_units[:3], *source.non_eval_units[:3])]
+    rows += [{"page_id": "sefer_hachukim_999999__p0001"}, {"item_id": "ws_index_1__p0001"}]
+    assert [unit_status(row, registry) for row in rows] == [unit_status(row, extended) for row in rows]
+    assert tool.registry_data(_split_copy().read_bytes(), _split_copy().name) == registry.model_dump(mode="json")
+
+
+def test_sync_maps_split_files_listing_the_new_sources() -> None:
+    payload = _split_json(reshumot_scanned={"eval": [], "non_eval": [{"unit_id": "reshumot_scanned:sefer_hachukim_500"}]},
+                          knesset_plenary_k1_12={"eval": [{"unit_id": "plenary:K1_2"}],
+                                                 "non_eval": [{"unit_id": "plenary:K1_1"}]})
+    data = tool.registry_data(payload, _split_copy().name)
+    sources = {source["source_id"]: source for source in data["sources"]}
+    assert sources[SCANNED]["non_eval_units"] == ["reshumot_scanned:sefer_hachukim_500"]
+    assert sources[PLENARY]["eval_units"] == ["plenary:K1_2"] and sources[PLENARY]["unit"].startswith("one Knesset plenary")
