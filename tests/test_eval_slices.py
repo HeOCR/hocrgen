@@ -1,4 +1,4 @@
-"""Decision 0017: per-domain eval labels, cluster intervals, page, order and line measures (synthetic fixtures only)."""
+"""Decisions 0017 and 0018: per-node eval labels, cluster intervals, page, order and line measures (synthetic fixtures only)."""
 from __future__ import annotations
 
 import json
@@ -22,12 +22,14 @@ TEXTS = {
     "ws:mod-1": "עיתון חדש", "ws:mod-2": "רשומות היום", "ws:mod-3": "שָׁלוֹם עוֹלָם",
 }
 SHA = {item_id: f"{index:02d}" * 32 for index, item_id in enumerate(sorted(TEXTS), start=10)}
-DOMAIN = {"h": "H", "hist": "P-hist", "mod": "P-mod"}
+NODE = {"h": "handwritten/new", "hist": "printed/old_printed", "mod": "printed/new_printed"}
+H, OLD, NEW = NODE["h"], NODE["hist"], NODE["mod"]
 
 
 def _label(item_id: str) -> dict:
     kind, number = item_id.split(":")[1].split("-")
-    return {"eval_domain": DOMAIN[kind], "eval_substratum": "a" if number != "3" else "b",
+    facets = {"genre": "laws" if number == "3" else "books", **({"font": "modern_sans"} if number == "2" else {})}
+    return {"node": NODE[kind], "facets": facets,
             "niqqud": "pointed" if item_id == "ws:mod-3" else ("light" if number == "2" else "unpointed")}
 
 
@@ -66,12 +68,16 @@ def _run(inputs: dict, **kwargs) -> dict:
 
 def test_labels_load_and_fail_closed(tmp_path: Path) -> None:
     loaded = eval_slices.load_eval_labels(_labels(tmp_path / "ok.json"))
-    assert loaded["labels"]["ws:mod-3"]["niqqud"] == "pointed" and len(loaded["sha256"]) == 64
+    assert loaded["labels"]["ws:mod-3"] == {"node": NEW, "genre": "laws", "font": "unset", "niqqud": "pointed"}
+    assert len(loaded["sha256"]) == 64 and eval_slices.VERTICAL == NEW
     bad = [
-        ({"labels": {"x": {"eval_domain": "Q", "eval_substratum": "a", "niqqud": "pointed"}}}, "eval_domain"),
-        ({"labels": {"x": {"eval_domain": "H", "eval_substratum": "a", "niqqud": "full"}}}, "niqqud"),
-        ({"labels": {"x": {"eval_domain": "H", "eval_substratum": "ALL", "niqqud": "light"}}}, "eval_substratum"),
-        ({"labels": {"x": {"eval_domain": "H", "niqqud": "light"}}}, "exactly"),
+        ({"labels": {"x": {"node": "P-mod", "niqqud": "pointed"}}}, "node must be one of"),
+        ({"labels": {"x": {"node": NEW, "niqqud": "full"}}}, "niqqud"),
+        ({"labels": {"x": {"node": NEW, "niqqud": "light", "facets": {"font": "frank_ruehl"}}}}, "facets.font"),
+        ({"labels": {"x": {"node": NEW, "niqqud": "light", "facets": {"genre": ""}}}}, "facets.genre"),
+        ({"labels": {"x": {"node": NEW, "niqqud": "light", "facets": {"era": "x"}}}}, "facets must be"),
+        ({"labels": {"x": {"node": NEW, "niqqud": "light", "eval_domain": "H"}}}, "optionally facets"),
+        ({"labels": {"x": {"niqqud": "light"}}}, "must have node and niqqud"),
         ({"labels": {}}, "non-empty"),
         ({"rule": ""}, "rule"),
         ({"provenance": None}, "provenance"),
@@ -86,39 +92,54 @@ def test_labels_load_and_fail_closed(tmp_path: Path) -> None:
 def test_runs_without_the_new_flags_add_no_new_keys(inputs: dict) -> None:
     plain = _run(inputs)
     text = json.dumps(plain, ensure_ascii=False)
-    assert "eval_slices" not in text and "eval_domain" not in text and "line_reference" not in text
+    assert "eval_slices" not in text and "eval_labels" not in text and "line_reference" not in text
     assert "single_engine_cluster_bootstrap" not in plain["run_record"]
 
 
-def test_eval_labels_add_strata_and_domain_slices(inputs: dict) -> None:
+def test_eval_labels_add_strata_and_node_slices(inputs: dict) -> None:
     report = _run(inputs, eval_labels=inputs["labels"])
     scored = report["scored"]["adjudicated_reference"]
-    assert set(scored["strata"]["eval_domain"]) == {"H", "P-hist", "P-mod"}
-    assert scored["items"][0]["strata"]["eval_domain"] in eval_slices.EVAL_DOMAINS
+    assert set(scored["strata"]["node"]) == {H, OLD, NEW} and set(scored["strata"]["font"]) == {"modern_sans", "unset"}
+    assert scored["items"][0]["strata"]["node"] in eval_slices.NODES
     block = scored["eval_slices"]
     assert block["labels"]["rule"] == "fixture rule" and "cluster_bootstrap" not in block
+    assert "overall" not in block  # decision 0018 §5: no blended number
     slices = block["slices"]
-    # P-mod: the pointed item enters no P-mod number but its own pointed slice, on consonantal.v1 only.
-    assert set(slices["P-mod"]["ALL"]) == {"excluding_pointed", "unpointed", "light", "pointed"}
-    headline = slices["P-mod"]["ALL"]["excluding_pointed"]
+    # The vertical: the pointed item enters no number but its own pointed slice, on consonantal.v1 only.
+    assert set(slices[NEW]["ALL"]) == {"excluding_pointed", "unpointed", "light", "pointed"}
+    headline = slices[NEW]["ALL"]["excluding_pointed"]
     assert headline["headline"] and headline["items"] == 2
-    pointed = slices["P-mod"]["ALL"]["pointed"]
+    pointed = slices[NEW]["ALL"]["pointed"]
     assert list(pointed["profiles"]) == ["consonantal.v1"] and pointed["profile_scope"] == "consonantal_only"
     assert pointed["profiles"]["consonantal.v1"]["cer"] == 0.0
-    # H and P-hist also report with pointed items (here none), and sub-strata.
-    assert set(slices["H"]) == {"ALL", "a", "b"} and "ALL" in slices["H"]["ALL"]
-    assert not slices["H"]["a"]["excluding_pointed"].get("headline")
-    h = slices["H"]["ALL"]["excluding_pointed"]["profiles"]["primary.v1"]
+    assert slices[NEW]["genre=laws"]["excluding_pointed"]["items"] == 0
+    # Every other node also reports 'ALL' with pointed items, and facet slices for the values present.
+    assert set(slices[H]) == {"ALL", "genre=books", "genre=laws", "font=modern_sans"} and "ALL" in slices[H]["ALL"]
+    assert slices[H]["font=modern_sans"]["ALL"]["items"] == 1
+    assert not slices[H]["genre=books"]["excluding_pointed"].get("headline")
+    assert slices[OLD]["ALL"]["excluding_pointed"]["headline"]
+    h = slices[H]["ALL"]["excluding_pointed"]["profiles"]["primary.v1"]
     assert h["item_count"] == 3 and h["character_edits"] > 0
     distribution = h["page_cer_distribution"]
     assert distribution["units"] == 3 and distribution["median"] == pytest.approx(1 / 18)
     assert distribution["share_cer_lt_0.02"] == pytest.approx(1 / 3) and distribution["p90"] > 0.1
-    assert block["overall"]["items"] == 9 and set(block["strata"]) >= {"eval_domain", "niqqud", "source_id"}
+    assert set(block["strata"]) >= {"node", "genre", "font", "niqqud", "source_id"}
     # order diagnostic: h-2's swapped lines cost page-order edits that line_matched.v1 does not count.
-    order = slices["H"]["ALL"]["excluding_pointed"]["order_diagnostic"]
+    order = slices[H]["ALL"]["excluding_pointed"]["order_diagnostic"]
     assert order["diagnostic_only"] and order["items"] == 2 and order["order_cost"] > 0 and order["line_matched_cer"] < order["page_order_cer"]
     assert "missed_line_rate" not in order  # page references: lines are not declared physical
     assert report["run_record"]["eval_labels"]["labelled_items"] == 9
+
+
+def test_unclassified_items_are_not_a_set_and_have_no_headline(inputs: dict) -> None:
+    labels = {k: (_label(k) if not k.startswith("ws:hist") else {"node": "unclassified", "niqqud": "unpointed"})
+              for k in TEXTS}
+    slices = _run(inputs, eval_labels=_labels(inputs["tmp"] / "unclassified.json", labels))[
+        "scored"]["adjudicated_reference"]["eval_slices"]["slices"]
+    node = slices["unclassified"]
+    assert set(node) == {"ALL"} and set(node["ALL"]) == {"excluding_pointed", "ALL", "unpointed"}
+    assert all("not_a_set" in record["flags"] and not record.get("headline") for record in node["ALL"].values())
+    assert slices[NEW]["ALL"]["excluding_pointed"]["headline"] and "not_a_set" not in slices[NEW]["ALL"]["excluding_pointed"]["flags"]
 
 
 def test_unlabelled_scored_item_fails_the_run(inputs: dict) -> None:
@@ -134,19 +155,19 @@ def test_single_engine_cluster_intervals_and_flags(inputs: dict) -> None:
                   bootstrap_clusters=inputs["clusters"])
     block = report["scored"]["adjudicated_reference"]["eval_slices"]
     assert block["cluster_bootstrap"]["resamples"] == 200 and block["cluster_bootstrap"]["seed"] == 4
-    overall = block["overall"]
-    assert overall["clusters"] == 9 and overall["flags"] == []
-    primary = overall["profiles"]["primary.v1"]
+    everything = block["strata"]["reference_origin"]["adjudicated_reference"]
+    assert everything["clusters"] == 9 and everything["flags"] == []
+    primary = everything["profiles"]["primary.v1"]
     low, high = primary["cer_ci"]
     assert low <= primary["cer"] <= high and primary["interval_flags"] == []
-    h = block["slices"]["H"]["ALL"]["excluding_pointed"]
+    h = block["slices"][H]["ALL"]["excluding_pointed"]
     assert h["clusters"] == 3 and h["flags"] == ["low_cluster_count"]
     assert h["profiles"]["primary.v1"]["cer_ci"] is not None
-    tiny = block["slices"]["H"]["b"]["excluding_pointed"]
+    tiny = block["slices"][H]["genre=laws"]["excluding_pointed"]
     assert tiny["flags"] == ["too_few_clusters"] and tiny["profiles"]["primary.v1"]["cer_ci"] is None
     assert report["run_record"]["single_engine_cluster_bootstrap"]["cluster_key"] == "book"
     assert "paired_bootstrap" not in report["run_record"] and "comparison" not in report
-    # Deterministic for a seed; without labels the block still gives strata and overall, but no slices.
+    # Deterministic for a seed; without labels the block still gives strata, but no slices.
     again = _run(inputs, eval_labels=inputs["labels"], bootstrap_resamples=200, bootstrap_seed=4,
                  bootstrap_clusters=inputs["clusters"])
     assert again["scored"]["adjudicated_reference"]["eval_slices"] == block
@@ -165,14 +186,16 @@ def test_paired_slice_intervals(inputs: dict) -> None:
     assert "paired_cluster_bootstrap" in deltas["profiles"]["primary.v1"]  # existing behaviour kept
     paired = deltas["eval_slices"]
     assert paired["paired"] and paired["common_item_count"] == 9
-    overall = paired["overall"]["profiles"]["primary.v1"]
+    assert "overall" not in paired
+    overall = paired["strata"]["reference_origin"]["adjudicated_reference"]["profiles"]["primary.v1"]
     low, high = overall["delta_cer_ci"]
     assert overall["delta_cer"] < 0 and low <= overall["delta_cer"] <= high
     assert overall["cer_separated"] is (high < 0 or low > 0)
-    tiny = paired["slices"]["P-hist"]["b"]["excluding_pointed"]["profiles"]["primary.v1"]
+    tiny = paired["slices"][OLD]["genre=laws"]["excluding_pointed"]["profiles"]["primary.v1"]
     assert tiny["delta_cer_ci"] is None and tiny["cer_separated"] is None and tiny["interval_flags"] == ["too_few_clusters"]
     # The candidate still gets its own single-engine interval beside the paired ones.
-    assert report["scored"]["adjudicated_reference"]["eval_slices"]["overall"]["profiles"]["primary.v1"]["cer_ci"]
+    single = report["scored"]["adjudicated_reference"]["eval_slices"]["slices"][H]["ALL"]["excluding_pointed"]
+    assert single["profiles"]["primary.v1"]["cer_ci"]
     no_labels = _run(inputs, baseline_predictions_dir=inputs["base"], bootstrap_resamples=20,
                      bootstrap_clusters=inputs["clusters"])
     assert "eval_slices" not in no_labels["comparison"]["deltas"]["adjudicated_reference"]
@@ -183,15 +206,15 @@ def test_within_line_items_get_slices_with_missed_line_rate(tmp_path: Path) -> N
                {"item_id": "rs:p-2", "text": "שורה אחת\nשורה שתיים", "sha": "e2" * 32}]
     manifest = _manifest(tmp_path / "refs", entries)
     cand = _predictions(tmp_path / "cand", {"e1" * 32: "גוף שני\nכותרת", "e2" * 32: "שורה אחת\nשורה שתיים"})
-    labels = _labels(tmp_path / "labels.json", {e["item_id"]: {"eval_domain": "P-mod", "eval_substratum": "reshumot",
+    labels = _labels(tmp_path / "labels.json", {e["item_id"]: {"node": NEW, "facets": {"genre": "laws"},
                                                                 "niqqud": "unpointed"} for e in entries})
     report = run_reference_evaluation(predictions_dir=cand, reference_manifest=manifest,
                                       asset_index_path=tmp_path / "refs" / "asset_index.json", eval_labels=labels)
     view = report["reference_views"]["adjudicated_reference"]["line_matched.v1"]["views"]["line_matched.v1"]
-    order = view["eval_slices"]["slices"]["P-mod"]["ALL"]["excluding_pointed"]["order_diagnostic"]
+    order = view["eval_slices"]["slices"][NEW]["ALL"]["excluding_pointed"]["order_diagnostic"]
     assert order["missed_line_rate"] == pytest.approx(1 / 3) and order["missed_line_items"] == 1
     assert order["order_cost"] > 0
-    page = report["scored"]["adjudicated_reference"]["eval_slices"]["overall"]
+    page = report["scored"]["adjudicated_reference"]["eval_slices"]["slices"][NEW]["ALL"]["excluding_pointed"]
     assert page["items"] == 1 and page["order_diagnostic"]["order_cost"] == 0
     with pytest.raises(StageExecutionError, match="no label for 1"):
         run_reference_evaluation(predictions_dir=cand, reference_manifest=manifest,
@@ -251,7 +274,8 @@ def test_line_reference_mode_scores_lines_and_honours_reference_views(tmp_path: 
     lines = report["scored"]["line_reference"]
     assert lines["unit"] == "line" and lines["evaluated_line_count"] == 5
     assert lines["excluded_lines"] == [{"item_id": "l6", "reason": "line reference is not adjudicated and reference-eligible"}]
-    measures = lines["measures"]["overall"]["profiles"]
+    assert "overall" not in lines["measures"]
+    measures = lines["measures"]["strata"]["source"]["wikisource_he_proofread"]["profiles"]
     # The pointed_print line enters consonantal.v1 only: primary counts 4 lines, consonantal 5.
     assert measures["primary.v1"]["item_count"] == 4 and measures["consonantal.v1"]["item_count"] == 5
     assert measures["primary.v1"]["exact_line_rate"] == 0.5 and measures["consonantal.v1"]["exact_line_rate"] == 0.6
@@ -259,7 +283,7 @@ def test_line_reference_mode_scores_lines_and_honours_reference_views(tmp_path: 
     assert measures["primary.v1"]["line_cer"] == measures["primary.v1"]["cer"]
     assert measures["primary.v1"]["interval_clusters"] == 3 and measures["primary.v1"]["interval_flags"] == ["low_cluster_count"]
     assert measures["consonantal.v1"]["interval_clusters"] == 4 and measures["consonantal.v1"]["cer_ci"] is not None
-    assert lines["measures"]["overall"]["clusters"] == 4
+    assert lines["measures"]["strata"]["source"]["wikisource_he_proofread"]["clusters"] == 4
     pointed = next(item for item in lines["items"] if item["item_id"] == "l5")
     assert list(pointed["profiles"]) == ["consonantal.v1"]
     assert report["run_record"]["line_references"]["scored_line_count"] == 5
@@ -274,15 +298,16 @@ def test_line_reference_mode_scores_lines_and_honours_reference_views(tmp_path: 
 def test_line_reference_mode_with_labels_and_baseline(tmp_path: Path) -> None:
     line_set, index, cand = _line_inputs(tmp_path, CAND_LINES)
     _, _, base = _line_inputs(tmp_path, {k: "שורה" for k in CAND_LINES})
-    labels = _labels(tmp_path / "labels.json", {i: {"eval_domain": "P-hist", "eval_substratum": "books",
+    labels = _labels(tmp_path / "labels.json", {i: {"node": NEW, "facets": {"font": "modern_serif"},
                                                     "niqqud": "pointed" if i == "l5" else "unpointed"}
                                                 for i in ["l1", "l2", "l3", "l4", "l5", "l6"]})
     report = run_reference_evaluation(predictions_dir=cand, baseline_predictions_dir=base, line_references=line_set,
                                       asset_index_path=index, eval_labels=labels, bootstrap_resamples=50)
-    slices = report["scored"]["line_reference"]["measures"]["slices"]["P-hist"]["ALL"]
+    slices = report["scored"]["line_reference"]["measures"]["slices"][NEW]["ALL"]
     assert slices["excluding_pointed"]["headline"] and list(slices["pointed"]["profiles"]) == ["consonantal.v1"]
+    assert "ALL" not in slices  # the vertical: pointed lines only in the pointed slice
     delta = report["comparison"]["deltas"]["line_reference"]
-    overall = delta["overall"]["profiles"]["primary.v1"]
+    overall = delta["strata"]["source"]["wikisource_he_proofread"]["profiles"]["primary.v1"]
     assert delta["unit"] == "line" and overall["delta_cer"] < 0 and overall["interval_clusters"] == 3
     with pytest.raises(StageExecutionError, match="no label for 1 scored line reference"):
         run_reference_evaluation(predictions_dir=cand, line_references=line_set, asset_index_path=index,
@@ -329,7 +354,7 @@ def test_cli_passes_eval_labels_and_line_references(inputs: dict, capsys: pytest
                  "--bootstrap-resamples", "20", "--bootstrap-clusters", str(inputs["clusters"]),
                  "--output", str(out)]) == 0
     report = json.loads(out.read_text(encoding="utf-8"))
-    assert report["scored"]["adjudicated_reference"]["eval_slices"]["slices"]["H"]["ALL"]["excluding_pointed"]["headline"]
+    assert report["scored"]["adjudicated_reference"]["eval_slices"]["slices"][H]["ALL"]["excluding_pointed"]["headline"]
     capsys.readouterr()
     lines_dir = inputs["tmp"] / "lines"
     lines_dir.mkdir()

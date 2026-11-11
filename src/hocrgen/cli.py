@@ -179,12 +179,12 @@ def build_parser() -> argparse.ArgumentParser:
                                             help="hocrgen_bootstrap_clusters.v1 JSON (item id -> cluster id, e.g. a "
                                                  "book): also add paired cluster-bootstrap intervals")
     evaluate_references_parser.add_argument("--eval-labels", type=Path, default=None,
-                                            help="hocrgen_eval_labels.v1 JSON (item id -> eval_domain, eval_substratum, "
-                                                 "niqqud): add per-domain eval_slices (decision 0017); an unlabelled "
-                                                 "scored item fails the run")
+                                            help="hocrgen_eval_labels.v1 JSON (item id -> node of the decision-0018 "
+                                                 "tree, optional facets genre/font, niqqud): add per-node eval_slices "
+                                                 "(decisions 0017, 0018); an unlabelled scored item fails the run")
     evaluate_references_parser.add_argument("--line-references", type=Path, default=None,
                                             help="line_verify_line_references.v1 line set: score each verified line "
-                                                 "crop (exact-line rate, line CER, distribution; decision 0017)")
+                                                 "crop (exact-line rate, line CER, distribution; decisions 0017, 0018)")
     evaluate_references_parser.add_argument("--write-mapping", type=Path, default=None,
                                             help="Write the mapping used to this path")
     evaluate_references_parser.add_argument("--output", type=Path, default=None, help="Optional path for the JSON report")

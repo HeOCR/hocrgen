@@ -530,7 +530,7 @@ def _add_eval_slices(report: dict[str, Any], slicing: Mapping[str, Any], profile
                      predictions: Mapping[str, str] | None = None, references: Mapping[str, str] | None = None,
                      all_ids: Iterable[str] | None = None,
                      order: Mapping[str, Mapping[str, Any]] | None = None) -> None:
-    """Decision 0017: label strata and the ``eval_slices`` block on one adjudicated profile report."""
+    """Decisions 0017 and 0018: label strata and the ``eval_slices`` block on one adjudicated profile report."""
     labels = slicing.get("labels")
     if labels is not None:
         eval_slices.require_labels(all_ids if all_ids is not None else [i["item_id"] for i in report["items"]],
@@ -902,7 +902,7 @@ def run_reference_evaluation(
     if modality is not None and (reference_manifest is None or diagnostic_only):
         raise StageExecutionError("--modality selects a modality track of adjudicated references and needs "
                                   "--reference-manifest (not --diagnostic-only)")
-    # Single-engine intervals (decision 0017) need clusters: --bootstrap-clusters, or the line's source unit.
+    # Single-engine intervals (decisions 0017, 0018) need clusters: --bootstrap-clusters, or the line's source unit.
     single_engine = bool(bootstrap_resamples) and baseline_predictions_dir is None
     if bootstrap_resamples < 0 or (single_engine and bootstrap_clusters is None and line_references is None):
         raise StageExecutionError("--bootstrap-resamples must be a non-negative count and needs --baseline-predictions "

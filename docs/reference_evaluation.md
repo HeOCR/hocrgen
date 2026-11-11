@@ -212,26 +212,29 @@ The text is the post-F8b7 pair text. F8b7 `illegible_on_scan` spans are honoured
 
 `python -m hocrgen.tools.eval_text_leakage` checks reference texts against training corpora (word 8-gram exclusion, 3-gram share flag above 20%) and writes the `--hold-out` list. The first run is in [`e2d2_real_printed_evaluation.md`](./e2d2_real_printed_evaluation.md).
 
-## Per-domain slices, cluster intervals, page, order and line measures (decision 0017)
+## Per-node slices, cluster intervals, page, order and line measures (decisions 0017, 0018)
 
 These blocks appear only when their flags are used. A run without `--eval-labels`, `--line-references` or a single-engine `--bootstrap-resamples` is byte-identical to one before them. The code is `hocrgen.eval_slices`.
 
-**Labels.** `--eval-labels FILE` (`hocrgen_eval_labels.v1`) needs `--reference-manifest` or `--line-references`. The file looks like this: `{"schema_version": "hocrgen_eval_labels.v1", "rule": ..., "provenance": ..., "labels": {item_id: {"eval_domain": "H" | "P-hist" | "P-mod", "eval_substratum": ..., "niqqud": "pointed" | "light" | "unpointed"}}}`.
-- Every scored adjudicated item (page-order and `within_line` items) and every scored line must have a label. An unlabelled item fails the run; it is never counted as unknown.
-- The three label dimensions are added to each item's `strata` and to the report's `strata`.
+**Labels.** `--eval-labels FILE` (`hocrgen_eval_labels.v1`) needs `--reference-manifest` or `--line-references`. The file looks like this: `{"schema_version": "hocrgen_eval_labels.v1", "rule": ..., "provenance": ..., "labels": {item_id: {"node": ..., "facets": {"genre": ..., "font": ...}, "niqqud": "pointed" | "light" | "unpointed"}}}`.
+- `node` is a node of the decision-0018 document tree: `printed/new_printed`, `printed/old_printed`, `modern_mixed/forms`, `handwritten/new`, `handwritten/old` or `unclassified`.
+- `facets` is optional. `genre` is free text; `font` is `modern_serif`, `modern_sans`, `typewriter` or null.
+- Every scored adjudicated item (page-order and `within_line` items) and every scored line, keyed by its line item id, must have a label. An unlabelled item fails the run; it is never counted as unknown.
+- The label dimensions `node`, `genre`, `font` and `niqqud` are added to each item's `strata` and to the report's `strata`. An unset facet is `unset`.
 - `synthetic_gold` is not sliced.
 
-**`eval_slices`.** This block sits on `scored.adjudicated_reference`, and on `reference_views.adjudicated_reference."line_matched.v1".views."line_matched.v1"` for `within_line` items, so the two are never mixed. It has three parts:
-- `overall`;
-- `strata[dimension][value]`;
-- with labels, `slices[eval_domain][eval_substratum | "ALL"][niqqud key]`.
+**`eval_slices`.** This block sits on `scored.adjudicated_reference`, and on `reference_views.adjudicated_reference."line_matched.v1".views."line_matched.v1"` for `within_line` items, so the two are never mixed. It has `strata[dimension][value]` and, with labels, `slices[node][facet | "ALL"][niqqud key]`. The facet keys are `genre=<value>` and `font=<value>` for the values present.
 
 The niqqud keys are:
-- `excluding_pointed`. At `[domain]["ALL"]` it is the domain's `headline`. There is no blended cross-domain headline.
-- `ALL`, which includes pointed items (H and P-hist only).
-- Each niqqud value present. The `pointed` slice is scored on `consonantal.v1` only.
+- `excluding_pointed`. At `[node]["ALL"]` it is the node's `headline`, on `primary.v1`.
+- `ALL`, which includes pointed items. It is reported for every node except the vertical, `printed/new_printed` (`eval_slices.VERTICAL`), so pointed text stays out of all of the vertical's numbers except its pointed slice.
+- Each niqqud value present. The `pointed` slice is scored on `consonantal.v1` only, in every node.
+
+`unclassified` is reported with the flag `not_a_set` and has no headline.
 
 Each slice reports its `items`, `clusters`, `flags`, and per profile the micro CER and WER plus `page_cer_distribution`. The distribution gives the median, the nearest-rank p90, and `share_cer_lt_0.02`, `_0.05` and `_0.10` (the share of items below each).
+
+**No blended numbers (decision 0018 §5).** There is no overall or cross-node score. Any aggregate added later (all printed, then all Hebrew) must state the weight or ratio of every subset it averages. Aggregates are not implemented yet.
 
 **Order diagnostic** (`order_diagnostic`, diagnostic only). It is computed over items with at least two reference lines:
 - `order_cost` is the page-order `primary.v1` CER minus the `line_matched.v1` CER.
@@ -243,7 +246,7 @@ Each slice reports its `items`, `clusters`, `flags`, and per profile the micro C
 - The existing paired item and cluster bootstraps are unchanged.
 
 **Line references.** `--line-references FILE` scores a line_verify line set (`line_verify_line_references.v1`, written by `python -m hocrgen.tools.line_verify ingest --line-set-out`) under `scored.line_reference`.
-- Each adjudicated, reference-eligible line is an item. `--mapping` or `--asset-index` maps it to the engine's prediction for the line crop.
+- Each adjudicated, reference-eligible line is an item, labelled by its line item id like a page. `--mapping` or `--asset-index` maps it to the engine's prediction for the line crop.
 - A line whose `reference_views` are consonantal only (`pointed_print`) is scored on `consonantal.v1` only. Every other profile counts only the lines that also serve primary views, and `consonantal.v1` is required.
 - `measures` has the same shape as `eval_slices`. Each profile gives `line_cer` (micro), `exact_line_rate` and `line_cer_distribution` (median, p90, `share_cer_le_0.02`, `share_cer_le_0.05`).
 - `unreadable` and `misaligned` lines are never in a line set.

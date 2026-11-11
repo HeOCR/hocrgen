@@ -1,16 +1,20 @@
-"""Decision 0017: per-domain evaluation slices, cluster intervals, page, order and line measures.
+"""Decisions 0017 and 0018: per-node evaluation slices, cluster intervals, page, order and line measures.
 
 The report blocks built here are added to ``evaluate-references`` output only when their flags are used
 (``--eval-labels``, single-engine ``--bootstrap-resamples`` with ``--bootstrap-clusters``, ``--line-references``); a run
 without them is byte-identical to one before this module existed.
 
-- **Labels** (``hocrgen_eval_labels.v1``) give every scored item an ``eval_domain`` (``H``, ``P-hist``, ``P-mod``), an
-  ``eval_substratum`` and a ``niqqud`` stratum (``pointed``, ``light``, ``unpointed``). A scored item without a label
-  fails the run: it is never counted as "unknown".
-- **Slices** are ``slices[eval_domain][eval_substratum | "ALL"][niqqud key]``. The niqqud keys are
-  ``excluding_pointed`` (the headline at ``[domain]["ALL"]``), ``ALL`` (with pointed items; H and P-hist only, since
-  pointed items never enter the P-mod numbers but its own pointed slice) and each niqqud value present. The ``pointed``
-  slice is scored on ``consonantal.v1`` only. There is never a blended cross-domain headline.
+- **Labels** (``hocrgen_eval_labels.v1``) place every scored item on a node of the decision-0018 document tree
+  (``printed/new_printed``, ``printed/old_printed``, ``modern_mixed/forms``, ``handwritten/new``, ``handwritten/old`` or
+  ``unclassified``), with optional ``facets`` (``genre``, ``font``) and a ``niqqud`` stratum (``pointed``, ``light``,
+  ``unpointed``). A scored item without a label fails the run: it is never counted as "unknown".
+- **Slices** are ``slices[node][facet | "ALL"][niqqud key]``; facet keys are ``genre=<v>`` and ``font=<v>`` for the
+  values present. The niqqud keys are ``excluding_pointed`` (the node's headline at ``[node]["ALL"]``, on primary.v1),
+  ``ALL`` (with pointed items; every node except the vertical, ``printed/new_printed``, whose numbers never include
+  pointed text) and each niqqud value present. The ``pointed`` slice is scored on ``consonantal.v1`` only.
+  ``unclassified`` is flagged ``not_a_set`` and has no headline.
+- **No blended numbers** (decision 0018 §5): there is no cross-node aggregate. An aggregate, when one is added, must
+  state the weight of every subset it averages.
 - **Intervals** are 95% percentile cluster bootstraps of each engine's own CER and WER (the existing
   ``paired_bootstrap_interval`` with a ``(0, units)`` baseline), and paired intervals of every comparison delta. A slice
   with fewer than 3 clusters gets no interval (``too_few_clusters``); fewer than 8 is flagged ``low_cluster_count``.
@@ -19,9 +23,9 @@ without them is byte-identical to one before this module existed.
   items with at least two reference lines, and, only where reference lines are physical lines
   (``reading_order_verified: within_line``), ``missed_line_rate``. Diagnostic only; never a recognition score.
 - **Line references** (``line_verify_line_references.v1``, a line_verify ``line_set``): each verified line crop is an
-  item. Exact-line rate, line CER and the line-CER distribution (median, p90, share <= 0.02 and <= 0.05). A line whose
-  ``reference_views`` are consonantal only (``pointed_print``) is scored on ``consonantal.v1`` only. Clusters are the
-  line's source unit (``book_id``).
+  item, labelled like a page by its line item id. Exact-line rate, line CER and the line-CER distribution (median,
+  p90, share <= 0.02 and <= 0.05). A line whose ``reference_views`` are consonantal only (``pointed_print``) is scored
+  on ``consonantal.v1`` only. Clusters are the line's source unit (``book_id``).
 """
 from __future__ import annotations
 
@@ -43,9 +47,15 @@ from hocrgen.reference_evaluation import (
 )
 
 EVAL_LABELS_SCHEMA = "hocrgen_eval_labels.v1"
-EVAL_DOMAINS = ("H", "P-hist", "P-mod")
+VERTICAL = "printed/new_printed"  # decision 0018 §4: the vertical; its numbers never include pointed text
+UNCLASSIFIED = "unclassified"
+NODES = (VERTICAL, "printed/old_printed", "modern_mixed/forms", "handwritten/new", "handwritten/old", UNCLASSIFIED)
 NIQQUD_VALUES = ("pointed", "light", "unpointed")
-LABEL_DIMENSIONS = ("eval_domain", "eval_substratum", "niqqud")
+FONT_VALUES = ("modern_serif", "modern_sans", "typewriter")
+FACETS = ("genre", "font")
+LABEL_KEYS = ("node", "niqqud")
+LABEL_DIMENSIONS = ("node", *FACETS, "niqqud")  # strata added to items; an unset facet is "unset"
+UNSET = "unset"
 CONSONANTAL_PROFILE_ID = "consonantal.v1"
 POINTED = "pointed"
 ALL = "ALL"
@@ -59,9 +69,10 @@ LINE_REFERENCE_VIEWS = frozenset({"primary", "consonantal"})
 LINE_CLUSTER_KEY = "book_id"
 SLICES_KIND = "eval_slices.v1"
 CONFIDENCE = 0.95
-HEADLINE_RULE = ("one headline per eval_domain: slices[domain]['ALL']['excluding_pointed'] on primary.v1; never a blended "
-                 "headline; pointed items are reported separately on consonantal.v1 only and enter no P-mod number but "
-                 "the pointed slice; H and P-hist also report them inside 'ALL'")
+HEADLINE_RULE = ("one headline per node of the decision-0018 tree: slices[node]['ALL']['excluding_pointed'] on primary.v1; "
+                 "no blended cross-node number; pointed items are scored on consonantal.v1 only in their own pointed "
+                 f"slice, and also inside 'ALL' for every node but the vertical ({VERTICAL}); {UNCLASSIFIED} is "
+                 "not_a_set and has no headline")
 
 
 # --- labels -----------------------------------------------------------------------------------------------------
@@ -86,17 +97,28 @@ def load_eval_labels(path: Path) -> dict[str, Any]:
     for item_id, label in labels.items():
         if not isinstance(item_id, str) or not item_id or not isinstance(label, dict):
             raise StageExecutionError(f"{where}: each label must be an object keyed by a non-empty item id")
-        if set(label) != set(LABEL_DIMENSIONS):
-            raise StageExecutionError(f"{where}: label for {item_id} must have exactly {list(LABEL_DIMENSIONS)}")
-        if label["eval_domain"] not in EVAL_DOMAINS:
-            raise StageExecutionError(f"{where}: {item_id} eval_domain must be one of {list(EVAL_DOMAINS)}")
+        if not set(LABEL_KEYS) <= set(label) or not set(label) <= {*LABEL_KEYS, "facets"}:
+            raise StageExecutionError(f"{where}: label for {item_id} must have node and niqqud, and optionally facets")
+        if label["node"] not in NODES:
+            raise StageExecutionError(f"{where}: {item_id} node must be one of {list(NODES)}")
         if label["niqqud"] not in NIQQUD_VALUES:
             raise StageExecutionError(f"{where}: {item_id} niqqud must be one of {list(NIQQUD_VALUES)}")
-        substratum = label["eval_substratum"]
-        if not isinstance(substratum, str) or not substratum or substratum == ALL:
-            raise StageExecutionError(f"{where}: {item_id} eval_substratum must be a non-empty string other than {ALL}")
-    return {"labels": {k: dict(v) for k, v in labels.items()}, "rule": rule, "provenance": provenance,
+        facets = label.get("facets") or {}
+        if not isinstance(facets, dict) or not set(facets) <= set(FACETS):
+            raise StageExecutionError(f"{where}: {item_id} facets must be an object with keys from {list(FACETS)}")
+        genre, font = facets.get("genre"), facets.get("font")
+        if genre is not None and (not isinstance(genre, str) or not genre.strip() or genre == UNSET):
+            raise StageExecutionError(f"{where}: {item_id} facets.genre must be a non-empty string or null")
+        if font is not None and font not in FONT_VALUES:
+            raise StageExecutionError(f"{where}: {item_id} facets.font must be one of {list(FONT_VALUES)} or null")
+    return {"labels": {k: label_strata(v) for k, v in labels.items()}, "rule": rule, "provenance": provenance,
             "sha256": hashlib.sha256(raw).hexdigest()}
+
+
+def label_strata(label: Mapping[str, Any]) -> dict[str, str]:
+    """A validated label as flat strata: node, genre, font, niqqud (an unset facet is ``"unset"``)."""
+    facets = label.get("facets") or {}
+    return {"node": label["node"], **{facet: facets.get(facet) or UNSET for facet in FACETS}, "niqqud": label["niqqud"]}
 
 
 def require_labels(item_ids: Iterable[str], labels: Mapping[str, Any], where: str) -> None:
@@ -127,41 +149,46 @@ class _Group:
     ids: tuple[str, ...]
     profiles: tuple[str, ...] | None = None  # None: every evaluated profile
     headline: bool = False
+    not_a_set: bool = False
 
 
 def _group_tree(items: list[dict[str, Any]], *, dimensions: Iterable[str], labelled: bool) -> dict[str, Any]:
-    tree: dict[str, Any] = {"overall": _Group(tuple(item["item_id"] for item in items)), "strata": {}}
+    tree: dict[str, Any] = {"strata": {}}
     for dimension in dimensions:
         values = sorted({item["strata"][dimension] for item in items})
         tree["strata"][dimension] = {value: _Group(tuple(i["item_id"] for i in items if i["strata"][dimension] == value))
                                      for value in values}
     if labelled:
-        tree["slices"] = _domain_tree(items)
+        tree["slices"] = _node_tree(items)
     return tree
 
 
-def _domain_tree(items: list[dict[str, Any]]) -> dict[str, Any]:
+def _node_tree(items: list[dict[str, Any]]) -> dict[str, Any]:
+    def ids(selected: list[dict[str, Any]]) -> tuple[str, ...]:
+        return tuple(item["item_id"] for item in selected)
+
     tree: dict[str, Any] = {}
-    for domain in EVAL_DOMAINS:
-        in_domain = [item for item in items if item["strata"]["eval_domain"] == domain]
-        if not in_domain:
+    for node_id in NODES:
+        in_node = [item for item in items if item["strata"]["node"] == node_id]
+        if not in_node:
             continue
-        substrata = {ALL: in_domain}
-        for value in sorted({item["strata"]["eval_substratum"] for item in in_domain}):
-            substrata[value] = [item for item in in_domain if item["strata"]["eval_substratum"] == value]
-        tree[domain] = {}
-        for substratum, members in substrata.items():
-            def ids(selected: list[dict[str, Any]]) -> tuple[str, ...]:
-                return tuple(item["item_id"] for item in selected)
+        unclassified = node_id == UNCLASSIFIED
+        subsets = {ALL: in_node}
+        for facet in FACETS:
+            for value in sorted({item["strata"][facet] for item in in_node} - {UNSET}):
+                subsets[f"{facet}={value}"] = [item for item in in_node if item["strata"][facet] == value]
+        tree[node_id] = {}
+        for key, members in subsets.items():
             node = {EXCLUDING_POINTED: _Group(ids([i for i in members if i["strata"]["niqqud"] != POINTED]),
-                                              headline=substratum == ALL)}
-            if domain != "P-mod":
-                node[ALL] = _Group(ids(members))
+                                              headline=key == ALL and not unclassified, not_a_set=unclassified)}
+            if node_id != VERTICAL:
+                node[ALL] = _Group(ids(members), not_a_set=unclassified)
             for value in NIQQUD_VALUES:
                 selected = [item for item in members if item["strata"]["niqqud"] == value]
                 if selected:
-                    node[value] = _Group(ids(selected), profiles=(CONSONANTAL_PROFILE_ID,) if value == POINTED else None)
-            tree[domain][substratum] = node
+                    node[value] = _Group(ids(selected), profiles=(CONSONANTAL_PROFILE_ID,) if value == POINTED else None,
+                                         not_a_set=unclassified)
+            tree[node_id][key] = node
     return tree
 
 
@@ -224,7 +251,7 @@ def _slice_header(group: _Group, profile_ids: list[str], clusters: Mapping[str, 
     record: dict[str, Any] = {"items": len(group.ids)}
     if group.headline:
         record["headline"] = True
-    flags: list[str] = []
+    flags: list[str] = ["not_a_set"] if group.not_a_set else []
     selected = [pid for pid in profile_ids if group.profiles is None or pid in group.profiles]
     if group.profiles is not None:
         record["profile_scope"] = "consonantal_only"
@@ -261,7 +288,7 @@ def _order_record(item_ids: Iterable[str], order: Mapping[str, Mapping[str, Any]
 
 def _settings_block(*, labels: Mapping[str, Any] | None, clusters: Mapping[str, Any] | None,
                     bootstrap: Mapping[str, int] | None, profile_ids: list[str], mode: str) -> dict[str, Any]:
-    block: dict[str, Any] = {"kind": SLICES_KIND, "decision": "heocr-engine planning/decisions/0017", "unit": mode,
+    block: dict[str, Any] = {"kind": SLICES_KIND, "decisions": ["heocr-engine planning/decisions/0017", "heocr-engine planning/decisions/0018"], "unit": mode,
                              "profiles": profile_ids, "aggregation": "micro: summed edits over summed reference units"}
     if labels is not None:
         block["headline_rule"] = HEADLINE_RULE
@@ -451,7 +478,7 @@ def line_items(predictions: Mapping[str, str], lines: Mapping[str, Any], profile
             continue
         strata = dict(lines["strata"][item_id])
         if labels is not None:
-            strata.update(labels["labels"][item_id])
+            strata.update(labels["labels"][item_id])  # already flat (label_strata)
         items.append({"item_id": item_id, "strata": strata, "reference_views": list(lines["views"][item_id]),
                       "profiles": {p.profile_id: _pair(p.apply(predictions[item_id]), p.apply(lines["texts"][item_id]))
                                    for p in resolved if _line_profile_allowed(p.profile_id, lines["views"][item_id])}})
@@ -491,7 +518,7 @@ def paired_line_reference_report(base: Mapping[str, Any], cand: Mapping[str, Any
 
 
 __all__ = [
-    "EVAL_DOMAINS", "EVAL_LABELS_SCHEMA", "LINE_REFERENCES_SCHEMA", "NIQQUD_VALUES", "apply_label_strata",
+    "EVAL_LABELS_SCHEMA", "NODES", "VERTICAL", "LINE_REFERENCES_SCHEMA", "NIQQUD_VALUES", "apply_label_strata",
     "cer_distribution", "cluster_flags", "line_reference_report", "load_eval_labels", "load_line_references",
     "paired_line_reference_report", "paired_slice_report", "require_labels", "slice_report",
 ]
