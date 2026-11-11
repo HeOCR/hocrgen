@@ -102,7 +102,9 @@ ancient compilation with a traditional attribution only, `anonymous_work` (a not
   `text_version_title`, `text_version_source`, `text_licence`, `text_api_url`, `text_snapshot_sha256`, `script` and
   `parenthetical_similarity`. A line whose parenthesised group (a citation) does not match the line OCR at that place
   (< 0.85) is dropped as `parenthetical_differs_from_print`: Sefaria re-types citations, so the print's
-  `(בר' ט' י"ג)` is `(בראשית ט' י"ג)` in the text. PBY rows are unchanged.
+  `(בר' ט' י"ג)` is `(בראשית ט' י"ג)` in the text. A line whose OCR shows a parenthesis, bracket or digit where the
+  label has none is dropped as `print_marker_missing_from_label`: Sefaria keeps the print's note references
+  (`(מ)`, `1)`) as anchors or footnotes, which the normaliser removes. PBY rows are unchanged.
 
 ## Reserved editions
 

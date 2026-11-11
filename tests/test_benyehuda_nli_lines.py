@@ -551,3 +551,28 @@ def test_reserved_edition_gives_no_lines_in_any_split(tmp_path, root):
 def test_reserve_and_dev_must_not_overlap(tmp_path, root):
     with pytest.raises(SystemExit, match="both --reserve and --dev"):
         _build(tmp_path, root, "--reserve", "111")
+
+
+def test_unlabelled_print_marker_and_parenthetical_helpers():
+    assert bl.unlabelled_print_marker("להיות אם מכאן אמרו", "להיות אם(מ) מכאן אמרו") == "(מ)"
+    assert bl.unlabelled_print_marker("הבא: כל הענין", "הבא (ס): כל הענין") is not None
+    assert bl.unlabelled_print_marker("וגחלי (אש) כנגד", "וגחלי (אש) כנגד") is None
+    assert bl.unlabelled_print_marker("שלום עולם", "שלום עולמ") is None  # an OCR letter error is not a marker
+    assert bl.parenthetical_similarity("שלום עולם", "שלום עולם") is None
+    assert bl.parenthetical_similarity("הקשת שנ' (בראשית ט' י\"ג) את", "הקשת שנ' (בר' ט' י\"ג) את") < bl.MIN_PAREN_SIMILARITY
+    assert bl.parenthetical_similarity("שנ' (שם י\"ז י\"ג) והיתה", "שנ' (שם י\"ז י\"ג) והיתה") == 1.0
+
+
+def test_text_source_lines_with_print_markers_or_retyped_citations_are_dropped(tmp_path):
+    r = tmp_path / "f8f"
+    _record(r, "888", "8", ["הקשת שנ' (בראשית ט) את קשתי", "להיות אם מכאן אמרו", "ילד קטן הלך לבית"])
+    tsv = r / "work" / "888" / "ocr" / "c0000.tsv"
+    ocr = [([10, 10, 180, 15], ["הקשת", "שנ'", "(בר'", "ט)", "את", "קשתי"]), ([10, 30, 180, 15], ["להיות", "אם(מ)", "מכאן", "אמרו"]),
+           ([10, 50, 180, 15], ["ילד", "קטן", "הלך", "לבית"])]
+    tsv.write_text(_tsv(ocr), encoding="utf-8")
+    _as_text_source(r, "8", "sefaria_mekhilta_test", "mekh00x")
+    summary, rows = _build(tmp_path, r, "--no-images")
+    assert [row["text"] for row in rows] == ["ילד קטן הלך לבית"]
+    assert summary["dropped"]["parenthetical_differs_from_print"] == 1
+    assert summary["dropped"]["print_marker_missing_from_label"] == 1
+    assert rows[0]["parenthetical_similarity"] is None

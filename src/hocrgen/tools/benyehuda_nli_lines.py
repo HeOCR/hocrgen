@@ -66,8 +66,10 @@ must equal its text record's (``work.text_record.text_sha256``) or ``build`` sto
 ``mixed``, from the text record); the summary adds ``lines_by_script`` and ``text_provenance`` per record. A text-source line
 whose label has a parenthesised group (a citation, mostly) that matches the line OCR at its place below
 ``MIN_PAREN_SIMILARITY`` is dropped as ``parenthetical_differs_from_print``: Sefaria re-types citations (the print's
-``(בר' ט' י"ג)`` as ``(בראשית ט' י"ג)``). Each kept row records ``parenthetical_similarity``. PBY rows are
-unchanged. ``--reserve REC[=name]`` holds an edition out whole, from train and dev alike (an eval reserve): its lines
+``(בר' ט' י"ג)`` as ``(בראשית ט' י"ג)``). A text-source line whose OCR shows a parenthesis, bracket or digit where
+the label has none is dropped as ``print_marker_missing_from_label``: Sefaria keeps the print's note references
+(``(מ)``, ``1)``) as anchors or footnotes, which the normaliser removes. Each kept row records
+``parenthetical_similarity``. PBY rows are unchanged. ``--reserve REC[=name]`` holds an edition out whole, from train and dev alike (an eval reserve): its lines
 are counted as ``reserved_edition`` and never written, and the summary lists it under ``reserved_records``.
 """
 
@@ -121,6 +123,20 @@ TEXT_WORK_DIR = re.compile(r"^(sefaria|gutenberg)_[a-z0-9_]+$")
 # through at 0.9; such a line is dropped as ``parenthetical_differs_from_print``.
 PAREN_GROUP = re.compile(r"\([^()]*\)")
 MIN_PAREN_SIMILARITY = 0.85
+
+
+MARKER_CHARS = re.compile(r"[()\[\]0-9]")
+
+
+def unlabelled_print_marker(text: str, ocr: str) -> str | None:
+    """A note marker the print shows and the label lacks: an OCR-side stretch, inserted or replaced in the whole-line
+    alignment, that holds a parenthesis, bracket or digit while the label's side holds none. Sefaria drops the print's
+    note references (``(מ)``, ``1)``) into anchors and footnotes, so a line that keeps one would be mislabelled. Returns
+    the OCR stretch, or None."""
+    for op, a0, a1, b0, b1 in difflib.SequenceMatcher(None, text, ocr, autojunk=False).get_opcodes():
+        if op in ("insert", "replace") and MARKER_CHARS.search(ocr[b0:b1]) and not MARKER_CHARS.search(text[a0:a1]):
+            return ocr[b0:b1]
+    return None
 
 
 def parenthetical_similarity(text: str, ocr: str) -> float | None:
@@ -460,9 +476,13 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
                     continue
                 paren_sim = None
                 if text_source != TEXT_SOURCE_PBY:
-                    paren_sim = parenthetical_similarity(plain, label(" ".join(wd[0] for wd in inside)))
+                    line_ocr = label(" ".join(wd[0] for wd in inside))
+                    paren_sim = parenthetical_similarity(plain, line_ocr)
                     if paren_sim is not None and paren_sim < MIN_PAREN_SIMILARITY:
                         drops["parenthetical_differs_from_print"] += 1
+                        continue
+                    if unlabelled_print_marker(plain, line_ocr) is not None:
+                        drops["print_marker_missing_from_label"] += 1
                         continue
                 if not plain or not LETTER.search(plain) or not ALLOWED.match(plain):
                     drops["outside_repertoire"] += 1
