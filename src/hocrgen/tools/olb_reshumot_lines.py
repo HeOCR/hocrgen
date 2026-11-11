@@ -1093,9 +1093,11 @@ def capture(plan_doc: Mapping[str, Any], cache: Path, *, series: Sequence[str], 
             and ((b.get("priority") if min_priority else b["olb_candidates"]) or not only_candidates)
             and b.get("priority", 0) >= min_priority]
     todo.sort(key=lambda b: (series.index(b["series"]), -b.get("priority", 0), -len(b["olb_candidates"]), b["number"]))
+    registry = training_registry()
     for b in todo[:limit]:
-        if b["split_status"] != "non_eval":  # never fetch a held-out booklet
-            raise SystemExit(f"{b['unit_id']} is {b['split_status']}")
+        status = registry.status(SOURCE_ID, b["unit_id"])
+        if b["split_status"] != "non_eval" or status is None or status.value != "non_eval":  # never fetch a held-out booklet
+            raise SystemExit(f"{b['unit_id']} is {b['split_status']} / {status}; refusing to fetch it")
         target = pdf_dir / f"{booklet_slug(b['series'], b['number'])}.pdf"
         if target.is_file():
             counts["cached"] += 1
@@ -1655,7 +1657,11 @@ def build(args: argparse.Namespace, *, registry: Any = None) -> dict[str, Any]: 
         "match_evidence_tiers": dict(tiers),
         "dropped": dict(sorted(drops.items())), "dropped_definitions": DROP_DEFINITIONS,
         "booklets": dict(sorted(summary_booklets.items())), "dev_selection": dev,
-        "eval_ngram_rule": {**ngram_info, "dropped_lines": drops.get("eval_ngram_overlap", 0)},
+        "line_set_condition": {
+            "condition": json.loads(Path(args.pmod_split).read_text(encoding="utf-8")).get("line_set_condition"),
+            "pmod_split": str(Path(args.pmod_split).resolve()),
+            "pmod_split_sha256": hashlib.sha256(Path(args.pmod_split).read_bytes()).hexdigest(),
+            **ngram_info, "dropped_lines": drops.get("eval_ngram_overlap", 0)},
         "held_out": {"midcentury_split": str(Path(args.split).resolve()), "midcentury_split_sha256": split_digest,
                      "source_id": SOURCE_ID, "unit_id_pattern": UNIT_PREFIX + "<series>_<number>",
                      "registry": registry_provenance(registry),
@@ -1737,7 +1743,7 @@ def add_build_arguments(sub: Any) -> None:
     b.add_argument("--plan", required=True)
     b.add_argument("--split", required=True, help="heocr-eval's midcentury_unit_split_v0.json")
     b.add_argument("--split-sha256", required=True)
-    b.add_argument("--pmod-split", required=True, help="heocr-eval's pmod_unit_split_v1.json (the 6-gram rule)")
+    b.add_argument("--pmod-split", required=True, help="heocr-eval's current pmod_unit_split (its line_set_condition and eval booklets)")
     b.add_argument("--tasks", required=True, help="the HeOCR tasks directory (wave-1 manifest, tranche text)")
     b.add_argument("--olb", required=True)
     b.add_argument("--cache", required=True)
