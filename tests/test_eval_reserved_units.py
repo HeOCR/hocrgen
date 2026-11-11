@@ -467,7 +467,7 @@ def test_sync_maps_split_files_listing_the_new_sources() -> None:
     payload = _split_json(reshumot_scanned={"eval": [], "non_eval": [{"unit_id": "reshumot_scanned:sefer_hachukim_500"}]},
                           knesset_plenary_k1_12={"eval": [{"unit_id": "plenary:K1_2"}],
                                                  "non_eval": [{"unit_id": "plenary:K1_1"}]})
-    data = tool.registry_data(payload, "pmod_unit_split_v1.json")
+    data = tool.registry_data(payload, _split_copy().name)
     sources = {source["source_id"]: source for source in data["sources"]}
     assert sources[SCANNED]["non_eval_units"] == ["reshumot_scanned:sefer_hachukim_500"]
     assert sources[PLENARY]["eval_units"] == ["plenary:K1_2"] and sources[PLENARY]["unit"].startswith("one Knesset plenary")
