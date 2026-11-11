@@ -137,11 +137,14 @@ report §2.2), and `PublishDate` is empty for most 2005 ספר החוקים list
    (series, number, sha256). A booklet listed twice (the 2015 PDFsharp rescan and the InDesign original) keeps both.
    Each file is decided born digital from the PDF itself (`reshumot_pdf_born_digital`, reusing `born_digital_check`),
    never from `PublishDate`.
-3. `knesset-dates`: when the API's `PublishDate` is empty, the Knesset's `KNS_Law.PublicationDate` for the booklet
-   number gives the date (laws only). A booklet whose laws disagree gets no date and is left out. The date source is
-   recorded on the entry (`booklet.publish_date_source`) and on the expected phrase the gate checks against the running
-   footer.
-4. `select`, `materialize --extract-only`, `outline-table`, `materialize`. The span's snapshot is built with no
+3. `select`: per booklet, the one born-digital file and its date. When the API's `PublishDate` is empty (most 2005
+   ספר החוקים listings), the date is the one the cover prints. It is accepted only when it fits the number order of the
+   series' API-dated booklets, and the gate then checks it against each inner page's running footer. The source is
+   recorded on the entry (`booklet.publish_date_source`) and on that expected phrase. The Knesset's `KNS_Law` holds no
+   primary laws, so it cannot fill the date. An operator decisions file records any file excluded as not the
+   gazette's print (ספר החוקים 1978: a 2013 Word re-typeset with reversed digits) and any API date typo corrected
+   (קובץ התקנות 6391: 2006-06-08 for 8.6.2005).
+4. `materialize --extract-only`, `outline-table`, `materialize`. The span's snapshot is built with no
    packaged fixture. The F8e2 method and the page gate are unchanged except for the era floor, which moves from 2006 to
    2005 (`RESHUMOT_BORN_DIGITAL_FROM`; the PDF decides). The snapshot's glyph outline table is the packaged one,
    unchanged, plus the outlines it lacks. A new outline with conflicting readings stays unresolved, so its glyphs are

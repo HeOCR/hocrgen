@@ -5,14 +5,12 @@ from __future__ import annotations
 
 import json
 import random
-from pathlib import Path
 
 import pytest
 
 from hocrgen.tools import government_print_tranche as gp
 from hocrgen.tools import reshumot_capture as rc
 
-FIXTURES = Path(__file__).parent / "fixtures" / "reshumot_capture"
 INDESIGN = {"Creator": "Adobe InDesign CS (3.0.1)", "Producer": "Adobe PDF Library 6.0", "Pages": "2"}
 RESCAN = {"Creator": "", "Producer": "PDFsharp 1.32.2608-g (www.pdfsharp.net)", "Pages": "2"}
 ABBYY = {"Creator": "ABBYY FineReader Engine 12", "Producer": "ABBYY FineReader Engine 12", "Pages": "2"}
@@ -139,25 +137,32 @@ def test_duplicate_listings_are_keyed_by_sha256_and_the_born_digital_file_wins()
     assert gp.reshumot_booklet_key("sefer_hachukim", "1976", "b" * 64) != gp.reshumot_booklet_key("sefer_hachukim", "1976", "a" * 64)
 
 
-def test_knesset_dates_fill_an_empty_publish_date_and_conflicts_stay_unknown() -> None:
-    laws = json.loads((FIXTURES / "kns_law_rows.json").read_text(encoding="utf-8"))
-    dates = gp.knesset_booklet_dates(laws)
-    assert dates["1976"]["date"] == "2005-01-25"
-    assert dates["1999"]["date"] is None and dates["1999"]["dates_seen"] == ["2005-04-01", "2005-04-02"]
-    assert "6400" not in dates  # another series
+def test_cover_dates_fill_an_empty_publish_date_within_the_number_order() -> None:
+    assert gp.reshumot_cover_date("\u202b\u202a 26\u202cבינואר \u202a2005\u202c\u202c") == "2005-01-26"
+    assert gp.reshumot_cover_date("ט\"ו בשבט, 26 בינואר 2005 ... 26 בינואר 2005") == "2005-01-26"
+    assert gp.reshumot_cover_date("91 בינואר 7002") is None  # digits reversed (a re-typeset file): no valid date
+    assert gp.reshumot_cover_date("1 במרס 2005, 3 במרס 2005") is None  # two dates: never guessed
+    dated = {"2010": "2005-06-30", "2011": "2005-07-05"}
+    assert gp.reshumot_date_in_number_order("1999", "2005-04-12", dated, floor="2004-09-16")
+    assert not gp.reshumot_date_in_number_order("1999", "2005-07-12", dated, floor="2004-09-16")
+    assert not gp.reshumot_date_in_number_order("1999", "2004-01-12", dated, floor="2004-09-16")
     files = [_file("1976", "a" * 64, RESCAN, pages=1), _file("1976", "b" * 64, INDESIGN),
-             _file("1999", "d" * 64, INDESIGN), _file("2010", "e" * 64, INDESIGN, publish="2005-06-30T00:00:00+03:00"),
+             _file("1999", "d" * 64, INDESIGN), _file("2001", "8" * 64, INDESIGN),
+             _file("2010", "e" * 64, INDESIGN, publish="2005-06-30T00:00:00+03:00"),
              _file("2100", "f" * 64, INDESIGN, publish="2006-01-02T00:00:00+02:00"), _file("1977", "9" * 64, RESCAN, pages=1)]
-    selected, decisions = rc.select_booklets(files, dates, date_from="2005-01-01", date_to="2005-12-31")
+    covers = {"b" * 64: "2005-01-26", "d" * 64: "2005-08-01", "8" * 64: None, "e" * 64: "2005-06-30", "f" * 64: "2006-01-02"}
+    api = {"sefer_hachukim": {"2010": "2005-06-30", "2100": "2006-01-02"}}
+    selected, decisions = rc.select_booklets(files, covers, api, date_from="2005-01-01", date_to="2005-12-31")
     by = {d["booklet_number"]: d for d in decisions}
-    assert by["1976"]["selected"] and by["1976"]["publish_date_source"] == rc.KNESSET_DATE_SOURCE
-    assert by["1999"]["reason"] == "publish_date_unknown"
+    assert by["1976"]["selected"] and by["1976"]["publish_date_source"] == rc.COVER_DATE_SOURCE
+    assert by["1999"]["reason"] == "publish_date_unknown" and by["1999"]["cover_date_in_number_order"] is False
+    assert by["2001"]["reason"] == "publish_date_unknown"
     assert by["2010"]["selected"] and by["2010"]["publish_date_source"] == "gazette API PublishDate"
     assert by["2100"]["reason"] == "outside_span" and by["1977"]["reason"] == "no_born_digital_file"
     assert [row["BookletNum"] for row in selected] == ["1976", "2010"]
-    assert selected[0]["publish_date"] == "2005-01-25" and selected[0]["pdf_sha256"] == "b" * 64
+    assert selected[0]["publish_date"] == "2005-01-26" and selected[0]["pdf_sha256"] == "b" * 64
     assert "publish_date" not in selected[1]  # the API date is kept as the API's
-    assert gp.reshumot_publish_date(selected[0]) == "2005-01-25" and gp.reshumot_publish_date(selected[1]) == "2005-06-30"
+    assert gp.reshumot_publish_date(selected[0]) == "2005-01-26" and gp.reshumot_publish_date(selected[1]) == "2005-06-30"
     rows = rc.new_booklet_rows(decisions)
     assert [(r["number"], r["sha256"][:1], r["role"]) for r in rows] == [
         ("1976", "a", "rescan_or_other"), ("1976", "b", "born_digital_original"), ("2010", "e", "born_digital_original")]
@@ -165,10 +170,10 @@ def test_knesset_dates_fill_an_empty_publish_date_and_conflicts_stay_unknown() -
 
 
 def test_expected_phrases_name_the_date_source() -> None:
-    data = {**_data("1976", publish=None), "publish_date": "2005-01-25", "publish_date_source": rc.KNESSET_DATE_SOURCE,
+    data = {**_data("1976", publish=None), "publish_date": "2005-01-25", "publish_date_source": rc.COVER_DATE_SOURCE,
             "DocSummary": {"DescriptionHtmlString": ""}}
     phrases = gp.reshumot_expected_phrases(data, 2, "ספר החוקים 1976, 25.1.2005\n")
-    assert {"text": "25.1.2005", "source": rc.KNESSET_DATE_SOURCE} in phrases
+    assert {"text": "25.1.2005", "source": rc.COVER_DATE_SOURCE} in phrases
 
 
 def test_ranges_and_outline_table_merge() -> None:
@@ -183,4 +188,25 @@ def test_ranges_and_outline_table_merge() -> None:
            "outlines": {"aa": {"char": "ב", "accept": ["ב"]}, "bb": {"char": None, "accept": [], "tounicode": {".": 1, " ": 1, "פ": 1}}}}
     merged = rc.merge_outline_tables(base, new, built_from="v1 + 2005")
     assert merged["outlines"]["aa"] == base["outlines"]["aa"]  # a known outline is never redefined
-    assert merged["extends"] == {"base_outlines": 1, "added_outlines": 1, "added_unresolved": 1}
+    assert merged["extends"] == {"base_outlines": 1, "added_outlines": 1, "added_unresolved": 1, "added_shape_checked": 0}
+    new["outlines"]["cc"] = {"char": None, "accept": [], "shape": "(", "tounicode": {"(": 2}}
+    assert rc.merge_outline_tables(base, new, built_from="x")["extends"]["added_shape_checked"] == 1
+
+
+def test_operator_decisions_exclude_a_retypeset_file_and_correct_a_typo_date() -> None:
+    word = {"Creator": "Microsoft Word 2010", "Producer": "Microsoft Word 2010", "Pages": "2"}
+    files = [_file("1978", "a" * 64, RESCAN, pages=1), _file("1978", "b" * 64, word),
+             _file("6391", "c" * 64, INDESIGN, publish="2006-06-08T11:57:32+03:00", series="kovetz_hatakanot")]
+    files[2]["listing"]["FolderType"] = "3"
+    covers = {"b" * 64: "2005-01-27", "c" * 64: "2005-06-08"}
+    plain = {d["booklet_number"]: d for d in rc.select_booklets(files, covers, {}, date_from="2005-01-01", date_to="2005-12-31")[1]}
+    assert plain["1978"]["selected"] and plain["6391"]["reason"] == "outside_span"
+    decisions = {"excluded_files": {"b" * 64: "2013 Word re-typeset, not the gazette print"},
+                 "date_corrections": {"kovetz_hatakanot_6391": {"date": "2005-06-08", "evidence": "cover and footer print 8.6.2005"}}}
+    selected, made = rc.select_booklets(files, covers, {}, date_from="2005-01-01", date_to="2005-12-31",
+                                        decisions_file=decisions)
+    by = {d["booklet_number"]: d for d in made}
+    assert by["1978"]["reason"] == "no_born_digital_file" and by["1978"]["operator_excluded_files"] == {"b" * 64: "2013 Word re-typeset, not the gazette print"}
+    assert by["6391"]["selected"] and by["6391"]["publish_date"] == "2005-06-08"
+    assert by["6391"]["publish_date_source"].startswith("operator correction")
+    assert gp.reshumot_publish_date(selected[0]) == "2005-06-08" and selected[0]["PublishDate"].startswith("2006")

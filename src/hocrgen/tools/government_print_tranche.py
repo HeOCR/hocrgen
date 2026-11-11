@@ -347,34 +347,40 @@ def reshumot_pick_born_digital_file(files: list[dict[str, Any]]) -> tuple[dict[s
     return next(iter(passing.values())), "born_digital"
 
 
-# --- publication dates the gazette API leaves empty (Knesset OData; pure) --------------------------------------------
+# --- publication dates the gazette API leaves empty (from the cover; pure) -----------------------------------------
 
-KNESSET_LAW_SERIES_SEFER_HACHUKIM = "ספר החוקים"
+HEBREW_MONTHS = {"ינואר": 1, "פברואר": 2, "מרס": 3, "מרץ": 3, "אפריל": 4, "מאי": 5, "יוני": 6, "יולי": 7, "אוגוסט": 8,
+                 "ספטמבר": 9, "אוקטובר": 10, "נובמבר": 11, "דצמבר": 12}
+_BIDI_MARKS = re.compile("[\u200e\u200f\u202a-\u202e\u2066-\u2069]")
+_COVER_DATE = re.compile(r"(?<!\d)(\d{1,2})\s*ב(" + "|".join(HEBREW_MONTHS) + r")\s*(\d{4})(?!\d)")
 
 
-def knesset_booklet_dates(laws: Iterable[dict[str, Any]], *, series_desc: str = KNESSET_LAW_SERIES_SEFER_HACHUKIM) -> dict[str, dict[str, Any]]:
-    """Per ספר החוקים booklet number, the publication date the Knesset's ``KNS_Law`` rows give it.
+def reshumot_cover_date(text: str) -> str | None:
+    """The Gregorian date a booklet's cover prints ("26 בינואר 2005"), ISO; None unless exactly one valid date."""
 
-    A booklet whose laws disagree on the date gets ``date: None`` and every date seen, so it is never guessed."""
-
-    seen: dict[str, dict[str, set[str]]] = {}
-    for law in laws:
-        if str(law.get("PublicationSeriesDesc") or "").strip() != series_desc:
+    found = set()
+    for day, month, year in _COVER_DATE.findall(_BIDI_MARKS.sub("", text)):
+        try:
+            found.add(date(int(year), HEBREW_MONTHS[month], int(day)).isoformat())
+        except ValueError:
             continue
-        number = re.sub(r"\D", "", str(law.get("MagazineNumber") or ""))
-        published = str(law.get("PublicationDate") or "")[:10]
-        if not number or not published:
-            continue
-        record = seen.setdefault(number, {"dates": set(), "laws": set()})
-        record["dates"].add(published)
-        record["laws"].add(str(law.get("LawID") or law.get("Id")))
-    return {number: {"date": next(iter(record["dates"])) if len(record["dates"]) == 1 else None,
-                     "dates_seen": sorted(record["dates"]), "law_ids": sorted(record["laws"])}
-            for number, record in sorted(seen.items(), key=lambda item: int(item[0]))}
+    return next(iter(found)) if len(found) == 1 else None
+
+
+def reshumot_date_in_number_order(number: str, candidate: str, dated: dict[str, str], *, floor: str) -> bool:
+    """Whether ``candidate`` fits the series' number order: not before the nearest lower-numbered booklet's date
+    (or ``floor``), not after the nearest higher-numbered one's. ``dated``: booklet number to API date."""
+
+    lower = [(int(n), d) for n, d in dated.items() if n.isdigit() and int(n) < int(number)]
+    higher = [(int(n), d) for n, d in dated.items() if n.isdigit() and int(n) > int(number)]
+    low = max(lower)[1] if lower else floor
+    high = min(higher)[1] if higher else "9999-12-31"
+    return low <= candidate <= high
 
 
 def reshumot_publish_date(data: dict[str, Any]) -> str:
-    """The booklet's publication date: the API's ``PublishDate``, or the recorded ``publish_date`` that fills it."""
+    """The booklet's publication date: the recorded ``publish_date`` (filling an empty API date, or an operator's
+    correction of a typo), else the API's ``PublishDate``."""
 
     return str(data.get("publish_date") or data.get("PublishDate") or "")[:10]
 
@@ -916,12 +922,12 @@ def capture_reshumot(
             if search_path.is_file():
                 answer = json.loads(search_path.read_text(encoding="utf-8"))
             else:
-                body = json.dumps({"FolderType": folder_type, "BookletYear": year_index, "skip": 0}).encode()
+                body = {"FolderType": folder_type, "BookletYear": year_index, "skip": 0}
                 try:
-                    raw = _request(RESHUMOT_SEARCH_URL, data=body, headers=headers)
-                    answer = json.loads(raw)
-                    _write(search_path, raw)
-                    counts["searches"] += 1
+                    answer, made = reshumot_search_retrying(
+                        lambda query: json.loads(_request(RESHUMOT_SEARCH_URL, data=json.dumps(query).encode(), headers=headers)), body)
+                    _write(search_path, json.dumps(answer, ensure_ascii=False).encode("utf-8"))
+                    counts["searches"] += made
                     _log(root, {"kind": "search", "folder_type": folder_type, "booklet_year": year_index, "results": len(answer.get("Results") or [])})
                 except Exception as exc:  # noqa: BLE001 - recorded and counted
                     counts["search_failures"] += 1
@@ -951,11 +957,14 @@ def capture_reshumot(
                     time.sleep(delay)
                     continue
                 _write(pdf_path, content)
-                row = {**data, "pdf_sha256": _sha256(content), "pdf_bytes": len(content), "pdf_file": pdf_path.name}
+                verdict = reshumot_pdf_born_digital(pdf_facts(pdf_path))
+                row = {**data, "pdf_sha256": _sha256(content), "pdf_bytes": len(content), "pdf_file": pdf_path.name,
+                       "born_digital_metadata": verdict}
                 known[key] = row
                 counts["pdfs_fetched"] += 1
                 _log(root, {"kind": "pdf", "booklet": key[1], "folder_type": key[0], "bytes": len(content)})
-                log(f"reshumot {key[0]}:{key[1]} ({data['PublishDate'][:10]}, {data['Pages']} pages)")
+                log(f"reshumot {key[0]}:{key[1]} ({reshumot_publish_date(data) or 'no date'}, {data['Pages']} pages, "
+                    f"born_digital={verdict['passed']})")
                 time.sleep(delay)
     _write(booklets_path, "".join(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for _, row in sorted(known.items())).encode())
     return counts
@@ -1069,22 +1078,6 @@ def fetch_reshumot_files(cache: Path, downloads: Path, client: Any, listings: It
             f"born_digital={verdict['passed']} {verdict['reasons']}")
         _write(files_path, _json_lines([rows[k] for k in sorted(rows, key=lambda k: (k[0], _number_key(k[1]), k[2]))]))
     return [rows[k] for k in sorted(rows, key=lambda k: (k[0], _number_key(k[1]), k[2]))]
-
-
-def knesset_law_rows(client: Any, *, date_from: str, date_to: str, page_size: int = 100) -> list[dict[str, Any]]:  # pragma: no cover - network
-    """``KNS_Law`` rows published from ``date_from`` to ``date_to`` (Knesset OData; laws only, no bills)."""
-
-    rows: list[dict[str, Any]] = []
-    query = (f"KNS_Law?$filter=PublicationDate ge {date_from}T00:00:00Z and PublicationDate le {date_to}T23:59:59Z"
-             f"&$select=Id,Name,PublicationDate,PublicationSeriesDesc,MagazineNumber,PageNumber&$orderby=Id&$top={page_size}")
-    skip = 0
-    while True:
-        answer = json.loads(client.request(KNESSET_ODATA + urllib.parse.quote(f"{query}&$skip={skip}", safe="?$=&,:'()/")))
-        batch = answer.get("value") or []
-        rows.extend(batch)
-        if len(batch) < page_size:
-            return rows
-        skip += page_size
 
 
 def _odata(query: str) -> dict[str, Any]:  # pragma: no cover - network
@@ -1230,6 +1223,9 @@ def materialize_reshumot(
     rows = [json.loads(line) for line in booklets_path.read_text(encoding="utf-8").splitlines()] if booklets_path.is_file() else []
     booklet_results = []
     for row in sorted(rows, key=lambda row: (row["FolderType"], row["BookletNum"])):
+        if not (row.get("born_digital_metadata") or {"passed": True})["passed"] or not reshumot_publish_date(row):
+            _count(skipped, "booklet_skipped:" + ("not_born_digital" if reshumot_publish_date(row) else "publish_date_unknown"))
+            continue
         pdf_path = cache / "reshumot" / "pdf" / row["pdf_file"]
         facts = pdf_facts(pdf_path)
         if facts["sha256"] != row["pdf_sha256"]:
