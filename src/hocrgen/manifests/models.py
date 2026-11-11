@@ -93,6 +93,10 @@ class NormalizedItemRecord(AcquiredItemRecord):
     qa_fail_reasons: list[str] = Field(default_factory=list)
 
 
+# Release splits: the policy's three, plus decision 0017's eval_reserved holdout (hocrgen.split.eval_reserved).
+ReleaseSplit = Literal["train", "validation", "test", "eval_reserved"]
+
+
 class CuratedItemRecord(NormalizedItemRecord):
     content_fingerprint: str
     dedupe_cluster_id: str | None = None
@@ -100,7 +104,7 @@ class CuratedItemRecord(NormalizedItemRecord):
     source_group_id: str | None = None
     dedupe_status: Literal["retained", "duplicate"]
     canonical_item_id: str
-    split: Literal["train", "validation", "test"] | None = None
+    split: ReleaseSplit | None = None
     split_group_id: str | None = None
 
 
@@ -137,13 +141,13 @@ class SourceGroupRecord(ManifestModel):
 
 class SplitAssignmentRecord(ManifestModel):
     item_id: str
-    split: Literal["train", "validation", "test"]
+    split: ReleaseSplit
     split_group_id: str
     dedupe_cluster_id: str | None = None
     near_duplicate_cluster_id: str | None = None
     source_group_id: str | None = None
     work_group_ids: list[str] = Field(default_factory=list)
-    split_constraint: Literal["synthetic_training_overlap", "reference_constraint"] | None = None
+    split_constraint: Literal["synthetic_training_overlap", "reference_constraint", "eval_reserved_unit"] | None = None
 
 
 class ClassifiedItemRecord(CuratedItemRecord):
@@ -334,7 +338,7 @@ class LayoutLabelReference(AnnotationFileReference):
 class AnnotationManifestItemRecord(ManifestModel):
     item_id: str
     source_id: str
-    split: Literal["train", "validation", "test"] | None = None
+    split: ReleaseSplit | None = None
     annotation_status: Literal["not_available", "partial", "available"]
     transcription: TranscriptionReference | None = None
     layout_labels: list[LayoutLabelReference] = Field(default_factory=list)
@@ -444,7 +448,7 @@ class AnnotationPilotItemRecord(ManifestModel):
     source_url: str
     title: str | None = None
     target_subset: Literal["release_ready", "benchmark_v1"]
-    release_split: Literal["train", "validation", "test"]
+    release_split: ReleaseSplit
     benchmark_id: str | None = None
     benchmark_split: Literal["train", "validation", "test"] | None = None
     tasks: list[Literal["transcription", "layout_labels"]]
@@ -648,14 +652,14 @@ class PublicBetaSourceDepthCompositionReport(ManifestModel):
 class ReleaseRemovalRecord(ManifestModel):
     item_id: str
     source_id: str
-    previous_split: Literal["train", "validation", "test"] | None = None
+    previous_split: ReleaseSplit | None = None
     reason: Literal["review_required", "blocked", "duplicate_removed", "selection_limit_excluded", "missing_from_current_run"]
 
 
 class ReleaseChangedItemRecord(ManifestModel):
     item_id: str
     source_id: str
-    split: Literal["train", "validation", "test"] | None = None
+    split: ReleaseSplit | None = None
     change_types: list[Literal["metadata", "assets", "split"]] = Field(default_factory=list)
 
 
@@ -770,7 +774,7 @@ class BenchmarkItemRecord(ManifestModel):
     source_url: str
     title: str | None = None
     benchmark_split: Literal["train", "validation", "test"]
-    release_split: Literal["train", "validation", "test"]
+    release_split: ReleaseSplit
     split_group_id: str
     is_synthetic: bool
     content_class: Literal["handwritten", "printed", "mixed"]

@@ -1771,7 +1771,7 @@ def test_alpha_helper_fallbacks(monkeypatch) -> None:
         include_sources = ["known_source"]
 
     assert _source_priority(DummyProfile(), "missing_source") == 1
-    assert _split_sort_key(None) == 3
+    assert _split_sort_key(None) == 4  # after train, validation, test and eval_reserved (decision 0017)
 
     class DummyResult:
         returncode = 1

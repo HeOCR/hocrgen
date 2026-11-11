@@ -3,14 +3,21 @@ from __future__ import annotations
 from collections import Counter
 from dataclasses import dataclass, field
 
-from hocrgen.config.models import SplitPolicy
+from hocrgen.config.models import EvalReservedUnitsRegistry, SplitPolicy
 from hocrgen.manifests.models import CuratedItemRecord, SplitAssignmentRecord
 from hocrgen.split.balance import (
     DEFAULT_SPLIT_SEED,
+    EVAL_RESERVED_SPLIT,
     PIN_REFERENCE_CONSTRAINT,
     SplitGroup,
     assign_group_splits_with_moves,
     split_balance_report,
+)
+from hocrgen.split.eval_reserved import (
+    PIN_EVAL_RESERVED_UNIT,
+    packaged_registry,
+    registry_provenance,
+    unit_status,
 )
 from hocrgen.split.work_groups import item_work_group_keys
 
@@ -96,9 +103,61 @@ def split_components(items: list[CuratedItemRecord]) -> dict[str, str]:
     return component_ids
 
 
+def eval_reserved_statuses(
+    items: list[CuratedItemRecord], registry: EvalReservedUnitsRegistry
+) -> dict[str, tuple[str, str | None, str]]:
+    """Item id -> (source id, unit id, status) for every item of a source the decision-0017 split file governs."""
+
+    statuses: dict[str, tuple[str, str | None, str]] = {}
+    for item in items:
+        found = unit_status(item, registry)
+        if found is not None:
+            unit, status = found
+            statuses[item.item_id] = (unit.source_id, unit.unit_id, status.value)
+    return statuses
+
+
+def _eval_reserved_report(
+    items: list[CuratedItemRecord],
+    statuses: dict[str, tuple[str, str | None, str]],
+    registry: EvalReservedUnitsRegistry | None,
+) -> dict[str, object]:
+    reserved_ids = {item_id for item_id, (_, _, status) in statuses.items() if status in ("eval", "unassigned")}
+    leak_item_ids = sorted(item.item_id for item in items if item.item_id in reserved_ids and item.split != EVAL_RESERVED_SPLIT)
+    carried = sorted(item.item_id for item in items if item.split == EVAL_RESERVED_SPLIT and item.item_id not in reserved_ids)
+    per_source: dict[str, dict[str, object]] = {}
+    for source_id, unit_id, status in statuses.values():
+        record = per_source.setdefault(source_id, {"items": Counter(), "units": {"eval": set(), "non_eval": set(), "unassigned": set()}})
+        record["items"][status] += 1
+        record["units"][status].add(unit_id or "<unit not derivable>")
+    return {
+        "registry_id": registry.registry_id if registry else None,
+        "split_file": ({"name": registry.split_file.name, "split_version": registry.split_file.split_version,
+                        "sha256": registry.split_file.sha256} if registry else None),
+        "reserved_split": EVAL_RESERVED_SPLIT,
+        "sources": {
+            source_id: {
+                "items": {status: record["items"].get(status, 0) for status in ("eval", "non_eval", "unassigned")},
+                "units": {status: len(units) for status, units in record["units"].items()},
+                "reserved_units": {status: sorted(record["units"][status]) for status in ("eval", "unassigned")},
+            }
+            for source_id, record in sorted(per_source.items())
+        },
+        "reserved_item_count": len(reserved_ids),
+        "carried_item_ids": carried,
+        "leak_item_ids": leak_item_ids,
+        "rule": (
+            "heocr-engine decision 0017: items of eval units and of unassigned units of a source the P-mod split file "
+            "lists are pinned with their whole split group to eval_reserved, never train, validation or test; an "
+            "item of either kind in another split fails the split stage."
+        ),
+    }
+
+
 def _validate_leakage(
     items: list[CuratedItemRecord],
     synthetic_training_matches: dict[str, list[str]] | None = None,
+    eval_reserved: tuple[dict[str, tuple[str, str | None, str]], EvalReservedUnitsRegistry | None] | None = None,
 ) -> dict[str, object]:
     split_group_splits: dict[str, set[str]] = {}
     duplicate_cluster_splits: dict[str, set[str]] = {}
@@ -131,6 +190,7 @@ def _validate_leakage(
     synthetic_training_holdout_leaks = sorted(
         item_id for item_id in matches if item_id in items_by_id and items_by_id[item_id].split != SYNTHETIC_TRAINING_SPLIT
     )
+    reserved_report = _eval_reserved_report(items, *eval_reserved) if eval_reserved is not None else None
     status = (
         "ok"
         if not (
@@ -140,10 +200,13 @@ def _validate_leakage(
             or source_group_leaks
             or work_group_leaks
             or synthetic_training_holdout_leaks
+            or (reserved_report and reserved_report["leak_item_ids"])
         )
         else "error"
     )
+    extra = {"eval_reserved_units": reserved_report} if reserved_report is not None else {}
     return {
+        **extra,
         "duplicate_cluster_leaks": duplicate_cluster_leaks,
         "group_count": len(split_group_splits),
         "near_duplicate_cluster_leaks": near_duplicate_cluster_leaks,
@@ -248,6 +311,7 @@ def assign_splits(
     synthetic_training_keys: dict[str, list[str]] | None = None,
     pinned_splits: dict[str, str] | None = None,
     seed: str = DEFAULT_SPLIT_SEED,
+    eval_reserved_units: EvalReservedUnitsRegistry | None = None,
 ) -> SplitOutputs:
     """Assign whole connected groups to splits, size-aware per source and modality (F1d, F8g, F8g2), with the
     reference constraints of ``size_aware_group_split.v2`` (E2d3e).
@@ -256,13 +320,27 @@ def assign_splits(
     (``SyntheticTrainingWorkRegistry.match_keys``). A component holding any matching item goes to train whole.
     ``pinned_splits`` maps an item id to a committed split (the benchmark's ``benchmark_split``); its component takes
     that split whole. Every other component is placed by ``hocrgen.split.balance.assign_group_splits``.
+
+    ``eval_reserved_units`` (decision 0017; default: the packaged ``eval_reserved_units.v1``) pins every component that
+    holds an item of an ``eval`` or ``unassigned`` P-mod unit to ``eval_reserved`` first. Such a component that is also
+    pinned elsewhere (a synthetic-training overlap, a committed benchmark split) is refused, never silently resolved.
     """
 
+    registry = eval_reserved_units if eval_reserved_units is not None else packaged_registry()
     all_items = [*retained_items, *duplicate_items]
     component_ids = split_components(all_items)
     matches = synthetic_training_matches(all_items, synthetic_training_keys)
     forced_train_groups = {component_ids[item_id] for item_id in matches}
-    pins: dict[str, tuple[str, str]] = {group_id: (SYNTHETIC_TRAINING_SPLIT, PIN_SYNTHETIC_TRAINING) for group_id in forced_train_groups}
+    statuses = eval_reserved_statuses(all_items, registry)
+    reserved_groups = {component_ids[item_id] for item_id, (_, _, status) in statuses.items() if status in ("eval", "unassigned")}
+    clash = sorted(reserved_groups & forced_train_groups)
+    if clash:
+        raise ValueError(
+            f"split groups {clash} hold evaluation-reserved units ({registry_provenance(registry)}) and match a "
+            "synthetic-training work, which pins them to train"
+        )
+    pins: dict[str, tuple[str, str]] = {group_id: (EVAL_RESERVED_SPLIT, PIN_EVAL_RESERVED_UNIT) for group_id in reserved_groups}
+    pins.update({group_id: (SYNTHETIC_TRAINING_SPLIT, PIN_SYNTHETIC_TRAINING) for group_id in forced_train_groups})
     for item_id, split in sorted((pinned_splits or {}).items()):
         group_id = component_ids.get(item_id)
         if group_id is None:
@@ -293,7 +371,8 @@ def assign_splits(
                 source_group_id=item.source_group_id,
                 work_group_ids=item_work_group_keys(item),
                 split_constraint=(
-                    "synthetic_training_overlap" if split_group_id in forced_train_groups
+                    PIN_EVAL_RESERVED_UNIT if split_group_id in reserved_groups
+                    else "synthetic_training_overlap" if split_group_id in forced_train_groups
                     else PIN_REFERENCE_CONSTRAINT if split_group_id in constraint_groups else None
                 ),
             )
@@ -304,10 +383,13 @@ def assign_splits(
         split_group_id = component_ids[item.item_id]
         updated_duplicates.append(item.model_copy(update={"split": group_assignments[split_group_id], "split_group_id": split_group_id}))
 
-    leakage_report = _validate_leakage(updated_retained + updated_duplicates, matches)
+    leakage_report = _validate_leakage(updated_retained + updated_duplicates, matches, (statuses, registry))
     leakage_report["forced_train_group_count"] = len(forced_train_groups)
     leakage_report["pinned_group_count"] = len(pins)
     leakage_report["split_assignment"] = split_balance_report(groups, group_assignments, split_policy, seed=seed)
+    reserved_leaks = (leakage_report.get("eval_reserved_units") or {}).get("leak_item_ids") or []
+    if reserved_leaks:
+        raise ValueError(f"evaluation-reserved units outside {EVAL_RESERVED_SPLIT} (decision 0017): {reserved_leaks[:10]}")
     if leakage_report["status"] != "ok":
         raise ValueError("split leakage detected")
 

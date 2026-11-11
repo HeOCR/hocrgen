@@ -15,7 +15,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from hocrgen.config.models import RealSourceContract, ReleaseProfile, SourceConfig
+from hocrgen.config.models import EvalReservedUnitsRegistry, RealSourceContract, ReleaseProfile, SourceConfig
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.manifests.io import write_json
 from hocrgen.manifests.models import (
@@ -37,10 +37,11 @@ from hocrgen.manifests.models import (
 )
 from hocrgen.normalize.files import sanitize_item_id
 from hocrgen.package.release_terms import item_release_terms, write_paired_text
+from hocrgen.split.eval_reserved import EVAL_RESERVED_SPLIT, EvalReservedUnitError, refuse_eval_reserved_training_input
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SPLIT_ORDER = {"train": 0, "validation": 1, "test": 2}
+SPLIT_ORDER = {"train": 0, "validation": 1, "test": 2, "eval_reserved": 3}
 _OMIT = object()
 
 
@@ -109,20 +110,33 @@ class StandardReleaseArtifacts:
     attribution_manifest: dict[str, Any] | None = None
 
 
+def _refuse_eval_reserved_outside_holdout(items: list[Any], registry: EvalReservedUnitsRegistry | None) -> None:
+    outside = [item for item in items if item.split != EVAL_RESERVED_SPLIT]
+    try:
+        refuse_eval_reserved_training_input(outside, builder="release export (train, validation and test splits)",
+                                            registry=registry)
+    except EvalReservedUnitError as exc:
+        raise StageExecutionError(str(exc)) from exc
+
+
 def copy_export_assets(
     items: list[PrivacyScannedItemRecord],
     data_dir: Path,
     *,
     release_root: Path | None = None,
     contract: RealSourceContract | None = None,
+    eval_reserved_units: EvalReservedUnitsRegistry | None = None,
 ) -> list[ExportedItemRecord]:
     """Copy each item's assets, and (F8g) its paired human text, into ``data/<split>/<item_id>/``.
 
     With a real-source ``contract`` every item also gets typed ``release_terms`` checked against its source's
-    contract terms; an item that cannot carry them stops the export.
+    contract terms; an item that cannot carry them stops the export. Before anything is copied, an item of an
+    evaluation-reserved P-mod unit (decision 0017; default: the packaged registry) in any split but
+    ``eval_reserved`` stops the export: no published train split can hold one.
     """
 
     release_root = release_root or data_dir.parent
+    _refuse_eval_reserved_outside_holdout(items, eval_reserved_units)
     exported_items: list[ExportedItemRecord] = []
     for item in items:
         if item.split is None:
