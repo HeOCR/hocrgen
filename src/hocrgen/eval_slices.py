@@ -55,6 +55,8 @@ NIQQUD_VALUES = ("pointed", "light", "unpointed")
 FONT_VALUES = ("modern_serif", "modern_sans", "typewriter")
 FACETS = ("genre", "font")
 LABEL_KEYS = ("node", "niqqud")
+# E2e.1: ``exposed`` lists the model ids that saw the item (training, or selection dev); with ``exposure_reason``.
+OPTIONAL_LABEL_KEYS = ("facets", "exposed", "exposure_reason")
 LABEL_DIMENSIONS = ("node", *FACETS, "niqqud")  # strata added to items; an unset facet is "unset"
 # With labels, the only report-level stratum is the node: any other dimension would pool items of several nodes
 # (decision 0018 §5). Facet and niqqud breakdowns live inside each node's slices.
@@ -98,11 +100,13 @@ def load_eval_labels(path: Path) -> dict[str, Any]:
         raise StageExecutionError(f"{where} needs a provenance string or object")
     if not isinstance(labels, dict) or not labels:
         raise StageExecutionError(f"{where} needs a non-empty labels object of item id -> label")
+    exposure: dict[str, dict[str, Any]] = {}
     for item_id, label in labels.items():
         if not isinstance(item_id, str) or not item_id or not isinstance(label, dict):
             raise StageExecutionError(f"{where}: each label must be an object keyed by a non-empty item id")
-        if not set(LABEL_KEYS) <= set(label) or not set(label) <= {*LABEL_KEYS, "facets"}:
-            raise StageExecutionError(f"{where}: label for {item_id} must have node and niqqud, and optionally facets")
+        if not set(LABEL_KEYS) <= set(label) or not set(label) <= {*LABEL_KEYS, *OPTIONAL_LABEL_KEYS}:
+            raise StageExecutionError(f"{where}: label for {item_id} must have node and niqqud, and optionally "
+                                      f"{', '.join(OPTIONAL_LABEL_KEYS)}")
         if label["node"] not in NODES:
             raise StageExecutionError(f"{where}: {item_id} node must be one of {list(NODES)}")
         if label["niqqud"] not in NIQQUD_VALUES:
@@ -115,8 +119,20 @@ def load_eval_labels(path: Path) -> dict[str, Any]:
             raise StageExecutionError(f"{where}: {item_id} facets.genre must be a non-empty string or null")
         if font is not None and font not in FONT_VALUES:
             raise StageExecutionError(f"{where}: {item_id} facets.font must be one of {list(FONT_VALUES)} or null")
-    return {"labels": {k: label_strata(v) for k, v in labels.items()}, "rule": rule, "provenance": provenance,
-            "sha256": hashlib.sha256(raw).hexdigest()}
+        exposed, reason = label.get("exposed"), label.get("exposure_reason")
+        if exposed is None and reason is None:
+            continue
+        if (not isinstance(exposed, list) or not exposed or len(set(exposed)) != len(exposed)
+                or not all(isinstance(model, str) and model.strip() for model in exposed)):
+            raise StageExecutionError(f"{where}: {item_id} exposed must be a non-empty list of distinct model ids")
+        if not isinstance(reason, str) or not reason.strip():
+            raise StageExecutionError(f"{where}: {item_id} exposed needs a non-empty exposure_reason")
+        exposure[item_id] = {"models": list(exposed), "reason": reason}
+    result = {"labels": {k: label_strata(v) for k, v in labels.items()}, "rule": rule, "provenance": provenance,
+              "sha256": hashlib.sha256(raw).hexdigest()}
+    if exposure:
+        result["exposure"] = exposure
+    return result
 
 
 def label_strata(label: Mapping[str, Any]) -> dict[str, str]:
@@ -132,21 +148,52 @@ def require_labels(item_ids: Iterable[str], labels: Mapping[str, Any], where: st
                                   f"{missing[0]}; unlabelled items are never counted as unknown")
 
 
-def apply_label_strata(report: dict[str, Any], labels: Mapping[str, Mapping[str, str]]) -> None:
+def apply_label_strata(report: dict[str, Any], labels: Mapping[str, Mapping[str, str]],
+                       excluded: Iterable[str] = ()) -> None:
     """Add the label dimensions to each item's strata, and the ``node`` aggregate to the report's strata.
 
     Facet and niqqud breakdowns pool items across nodes, so they appear only inside each node's ``eval_slices``.
+    Items in ``excluded`` (exposed to the scored model, E2e.1) are left out of the node aggregate.
     """
     for item in report["items"]:
         item["strata"].update(labels[item["item_id"]])
     profile_ids = list(report["profiles"])
+    skipped = set(excluded)
+    kept = [item for item in report["items"] if item["item_id"] not in skipped]
     for dimension in NODE_DIMENSIONS:
-        values = sorted({item["strata"][dimension] for item in report["items"]})
+        values = sorted({item["strata"][dimension] for item in kept})
         report["strata"][dimension] = {
-            value: {pid: _aggregate([item["profiles"][pid] for item in report["items"]
+            value: {pid: _aggregate([item["profiles"][pid] for item in kept
                                      if item["strata"][dimension] == value]) for pid in profile_ids}
             for value in values
         }
+
+
+def exposure_exclusions(item_ids: Iterable[str], labels: Mapping[str, Any] | None,
+                        model_ids: Mapping[str, str | None]) -> dict[str, Any] | None:
+    """E2e.1: items whose label lists a scored model in ``exposed``; None when the labels carry no exposure.
+
+    ``model_ids`` maps each scored side (``scored``, or ``baseline`` and ``candidate``) to its model id. An item is
+    excluded when any side's model saw it, so a paired comparison drops it when either side is exposed.
+    """
+    exposure = (labels or {}).get("exposure")
+    if not exposure:
+        return None
+    missing = sorted(side for side, model in model_ids.items() if model is None)
+    if missing:
+        raise StageExecutionError(f"--eval-labels marks items exposed but no model id was given for the {missing[0]} "
+                                  "predictions (--model-id / --baseline-model-id); exposure cannot be checked")
+    excluded: dict[str, dict[str, Any]] = {}
+    for item_id in sorted(set(item_ids)):
+        info = exposure.get(item_id)
+        sides = sorted(side for side, model in model_ids.items() if info and model in info["models"])
+        if sides:
+            excluded[item_id] = {"reason": info["reason"], "sides": sides}
+    return {"model_ids": dict(model_ids),
+            "rule": "an item whose label lists a scored model id in exposed is left out of every eval_slices number",
+            "count": len(excluded), "item_ids": list(excluded),
+            "reasons": {item_id: entry["reason"] for item_id, entry in excluded.items()},
+            "exposed_sides": {item_id: entry["sides"] for item_id, entry in excluded.items()}}
 
 
 # --- grouping ---------------------------------------------------------------------------------------------------
@@ -312,12 +359,15 @@ def _settings_block(*, labels: Mapping[str, Any] | None, clusters: Mapping[str, 
 
 def slice_report(items: list[dict[str, Any]], *, profile_ids: list[str], labels: Mapping[str, Any] | None,
                  clusters: Mapping[str, Any] | None, bootstrap: Mapping[str, int] | None,
-                 order: Mapping[str, Mapping[str, Any]] | None = None, mode: str = "page") -> dict[str, Any]:
+                 order: Mapping[str, Mapping[str, Any]] | None = None, mode: str = "page",
+                 exclusions: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """Per-stratum and per-slice single-engine measures over profile-report ``items``.
 
     ``items`` are ``{item_id, strata, profiles: {profile_id: pair}}``; an item may lack a profile (a line reference
-    for consonantal views only), and each profile is aggregated over the items that have it.
+    for consonantal views only), and each profile is aggregated over the items that have it. Items listed in
+    ``exclusions`` (``exposure_exclusions``) enter no number and are reported under ``excluded_exposed``.
     """
+    items = _without_exposed(items, exclusions)
     cluster_map = clusters["clusters"] if clusters is not None else None
     if cluster_map is not None:
         missing = sorted(item["item_id"] for item in items if item["item_id"] not in cluster_map)
@@ -351,15 +401,26 @@ def slice_report(items: list[dict[str, Any]], *, profile_ids: list[str], labels:
 
     tree = _group_tree(items, dimensions=dimensions, labelled=labels is not None)
     return {**_settings_block(labels=labels, clusters=clusters, bootstrap=bootstrap, profile_ids=profile_ids, mode=mode),
-            **_map_tree(tree, render)}
+            **({"excluded_exposed": dict(exclusions)} if exclusions is not None else {}), **_map_tree(tree, render)}
+
+
+def _without_exposed(items: list[dict[str, Any]], exclusions: Mapping[str, Any] | None) -> list[dict[str, Any]]:
+    if exclusions is None:
+        return items
+    excluded = set(exclusions["item_ids"])
+    return [item for item in items if item["item_id"] not in excluded]
 
 
 def paired_slice_report(base_items: list[dict[str, Any]], cand_items: list[dict[str, Any]], *, profile_ids: list[str],
                         labels: Mapping[str, Any] | None, clusters: Mapping[str, Any] | None,
-                        bootstrap: Mapping[str, int] | None, mode: str = "page") -> dict[str, Any]:
-    """Per-slice candidate-minus-baseline deltas over common items, with paired cluster intervals."""
-    base = {item["item_id"]: item for item in base_items}
-    common = [item for item in cand_items if item["item_id"] in base]
+                        bootstrap: Mapping[str, int] | None, mode: str = "page",
+                        exclusions: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Per-slice candidate-minus-baseline deltas over common items, with paired cluster intervals.
+
+    ``exclusions`` (``exposure_exclusions`` over both sides) drops every item either model saw.
+    """
+    base = {item["item_id"]: item for item in _without_exposed(base_items, exclusions)}
+    common = [item for item in _without_exposed(cand_items, exclusions) if item["item_id"] in base]
     cand = {item["item_id"]: item for item in common}
     cluster_map = clusters["clusters"] if clusters is not None else None
     dimensions = NODE_DIMENSIONS if labels is not None else sorted({key for item in common for key in item["strata"]})
@@ -394,7 +455,8 @@ def paired_slice_report(base_items: list[dict[str, Any]], cand_items: list[dict[
 
     tree = _group_tree(common, dimensions=dimensions, labelled=labels is not None)
     return {**_settings_block(labels=labels, clusters=clusters, bootstrap=bootstrap, profile_ids=profile_ids, mode=mode),
-            "paired": True, "common_item_count": len(common), **_map_tree(tree, render)}
+            "paired": True, "common_item_count": len(common),
+            **({"excluded_exposed": dict(exclusions)} if exclusions is not None else {}), **_map_tree(tree, render)}
 
 
 # --- order diagnostic inputs ------------------------------------------------------------------------------------
@@ -494,7 +556,8 @@ def line_items(predictions: Mapping[str, str], lines: Mapping[str, Any], profile
 
 def line_reference_report(predictions: Mapping[str, str], lines: Mapping[str, Any], *, track: str,
                           profile_ids: list[str], labels: Mapping[str, Any] | None,
-                          bootstrap: Mapping[str, int] | None) -> dict[str, Any]:
+                          bootstrap: Mapping[str, int] | None,
+                          model_ids: Mapping[str, str | None] | None = None) -> dict[str, Any]:
     """Score line_verify line references (spec §3a). Never mixed with page or line-aligned page numbers."""
     if labels is not None:
         require_labels(lines["texts"], labels["labels"], "line reference")
@@ -512,20 +575,23 @@ def line_reference_report(predictions: Mapping[str, str], lines: Mapping[str, An
         "view_rule": "a line whose reference_views are consonantal only (pointed_print) is scored on consonantal.v1 "
                      "only; every other profile is aggregated over the lines that also serve primary views",
         "measures": slice_report(items, profile_ids=profile_ids, labels=labels, clusters=lines["clusters"],
-                                 bootstrap=bootstrap, mode="line"),
+                                 bootstrap=bootstrap, mode="line",
+                                 exclusions=exposure_exclusions(ids, labels, model_ids or {"scored": None})),
         "items": items,
     }
 
 
 def paired_line_reference_report(base: Mapping[str, Any], cand: Mapping[str, Any], *, profile_ids: list[str],
                                  labels: Mapping[str, Any] | None, lines: Mapping[str, Any],
-                                 bootstrap: Mapping[str, int] | None) -> dict[str, Any]:
+                                 bootstrap: Mapping[str, int] | None,
+                                 model_ids: Mapping[str, str | None] | None = None) -> dict[str, Any]:
+    exclusions = exposure_exclusions(lines["texts"], labels, model_ids or {"baseline": None, "candidate": None})
     return paired_slice_report(base["items"], cand["items"], profile_ids=profile_ids, labels=labels,
-                               clusters=lines["clusters"], bootstrap=bootstrap, mode="line")
+                               clusters=lines["clusters"], bootstrap=bootstrap, mode="line", exclusions=exclusions)
 
 
 __all__ = [
     "EVAL_LABELS_SCHEMA", "NODES", "VERTICAL", "LINE_REFERENCES_SCHEMA", "NIQQUD_VALUES", "apply_label_strata",
-    "cer_distribution", "cluster_flags", "line_reference_report", "load_eval_labels", "load_line_references",
+    "cer_distribution", "cluster_flags", "exposure_exclusions", "line_reference_report", "load_eval_labels", "load_line_references",
     "paired_line_reference_report", "paired_slice_report", "require_labels", "slice_report",
 ]

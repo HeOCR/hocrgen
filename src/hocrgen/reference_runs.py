@@ -482,7 +482,7 @@ def _score(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any
     if lines is not None:
         scored["line_reference"] = eval_slices.line_reference_report(
             predictions, lines, track=track, profile_ids=profiles, labels=(line_slicing or {}).get("labels"),
-            bootstrap=(line_slicing or {}).get("bootstrap"))
+            bootstrap=(line_slicing or {}).get("bootstrap"), model_ids=(line_slicing or {}).get("model_ids"))
     for report in scored.values():
         report["track"] = track
     if modality is not None and "adjudicated_reference" in scored:
@@ -532,23 +532,29 @@ def _add_eval_slices(report: dict[str, Any], slicing: Mapping[str, Any], profile
                      order: Mapping[str, Mapping[str, Any]] | None = None) -> None:
     """Decisions 0017 and 0018: label strata and the ``eval_slices`` block on one adjudicated profile report."""
     labels = slicing.get("labels")
+    exclusions = None
     if labels is not None:
         eval_slices.require_labels(all_ids if all_ids is not None else [i["item_id"] for i in report["items"]],
                                    labels["labels"], "adjudicated reference")
-        eval_slices.apply_label_strata(report, labels["labels"])
+        exclusions = eval_slices.exposure_exclusions([i["item_id"] for i in report["items"]], labels,
+                                                     slicing["model_ids"])
+        eval_slices.apply_label_strata(report, labels["labels"], excluded=(exclusions or {}).get("item_ids", ()))
     if order is None and predictions is not None and references is not None:
         order = eval_slices.page_order_rows(report, predictions, references)
     report["eval_slices"] = eval_slices.slice_report(
         report["items"], profile_ids=profiles, labels=labels, clusters=slicing.get("clusters"),
-        bootstrap=slicing.get("bootstrap"), order=order)
+        bootstrap=slicing.get("bootstrap"), order=order, exclusions=exclusions)
 
 
 def _slice_deltas(delta: dict[str, Any], base_report: Mapping[str, Any], cand_report: Mapping[str, Any],
                   slicing: Mapping[str, Any] | None) -> dict[str, Any]:
     if slicing is not None and "eval_slices" in cand_report:
+        ids = {item["item_id"] for item in [*base_report["items"], *cand_report["items"]]}
+        exclusions = eval_slices.exposure_exclusions(ids, slicing.get("labels"), slicing["paired_model_ids"])
         delta["eval_slices"] = eval_slices.paired_slice_report(
             base_report["items"], cand_report["items"], profile_ids=cand_report["eval_slices"]["profiles"],
-            labels=slicing.get("labels"), clusters=slicing.get("clusters"), bootstrap=slicing.get("bootstrap"))
+            labels=slicing.get("labels"), clusters=slicing.get("clusters"), bootstrap=slicing.get("bootstrap"),
+            exclusions=exclusions)
     return delta
 
 
@@ -836,7 +842,8 @@ def _comparison(baseline: dict[str, Any], candidate: dict[str, Any], base_set: d
         deltas["line_reference"] = eval_slices.paired_line_reference_report(
             baseline["scored"]["line_reference"], candidate["scored"]["line_reference"],
             profile_ids=candidate["scored"]["line_reference"]["measures"]["profiles"],
-            labels=(line_slicing or {}).get("labels"), lines=lines, bootstrap=(line_slicing or {}).get("bootstrap"))
+            labels=(line_slicing or {}).get("labels"), lines=lines, bootstrap=(line_slicing or {}).get("bootstrap"),
+            model_ids=(line_slicing or {}).get("paired_model_ids"))
     comparison = {"track": context.pop("track"), "deltas": deltas, **context}
     if "reference_views" in candidate:
         comparison["reference_view_deltas"] = {
@@ -875,6 +882,7 @@ def run_reference_evaluation(
     alignment_masked: bool = False, diagnostic_only: bool = False, modality: str | None = None,
     bootstrap_resamples: int = 0, bootstrap_seed: int = 0, bootstrap_clusters: Path | None = None,
     eval_labels: Path | None = None, line_references: Path | None = None,
+    model_id: str | None = None, baseline_model_id: str | None = None,
 ) -> dict[str, Any]:
     if diagnostic_only:
         if synthetic_batch is not None or reference_manifest is not None:
@@ -919,14 +927,28 @@ def run_reference_evaluation(
     profile_ids = list(profiles)
     if PRIMARY_PROFILE_ID not in profile_ids or set(profile_ids) - NORMALIZATION_PROFILES.keys():
         raise StageExecutionError(f"profiles must be known and include {PRIMARY_PROFILE_ID}")
+    if model_id is not None and eval_labels is None:
+        raise StageExecutionError("--model-id checks exposure against --eval-labels and needs --eval-labels")
+    if baseline_model_id is not None and (baseline_predictions_dir is None or eval_labels is None):
+        raise StageExecutionError("--baseline-model-id needs --baseline-predictions and --eval-labels")
     labels = eval_slices.load_eval_labels(eval_labels) if eval_labels is not None else None
+    if labels is not None and labels.get("exposure"):
+        # E2e.1: fail closed; an exposed item must never be scored for a model that saw it.
+        if model_id is None:
+            raise StageExecutionError("--eval-labels marks items exposed; give --model-id for the scored predictions")
+        if baseline_predictions_dir is not None and baseline_model_id is None:
+            raise StageExecutionError("--eval-labels marks items exposed; give --baseline-model-id for the baseline")
     lines = eval_slices.load_line_references(line_references) if line_references is not None else None
     # Slices are added only when their flags are used, so runs without them are byte-identical to earlier ones.
     slicing: dict[str, Any] | None = None
     if labels is not None or (single_engine and bootstrap_clusters is not None) or lines is not None:
         slicing = {"labels": labels, "clusters": bootstrap.get("clusters") if bootstrap else None,
-                   "bootstrap": {"resamples": bootstrap["resamples"], "seed": bootstrap["seed"]} if bootstrap else None}
+                   "bootstrap": {"resamples": bootstrap["resamples"], "seed": bootstrap["seed"]} if bootstrap else None,
+                   "model_ids": {"scored": model_id},
+                   "paired_model_ids": {"baseline": baseline_model_id, "candidate": model_id}}
     page_slicing = slicing if labels is not None or (single_engine and bootstrap_clusters is not None) else None
+    baseline_slicing = {**slicing, "model_ids": {"scored": baseline_model_id}} if slicing is not None else None
+    baseline_page_slicing = baseline_slicing if page_slicing is not None else None
     gold = load_synthetic_gold(synthetic_batch) if synthetic_batch else None
     cell_view = load_per_cell_view(synthetic_batch, gold) if synthetic_batch else None
     adjudicated = load_adjudicated_references(reference_manifest, modality=modality) if reference_manifest else None
@@ -957,7 +979,7 @@ def run_reference_evaluation(
             baseline = _score(baseline_predictions, track=baseline_set["track"], gold=gold, adjudicated=adjudicated,
                               unreviewed=unreviewed if diagnostic_only else None,
                               profiles=profile_ids, alignment_masked=False, cell_view=cell_view, modality=modality,
-                              slicing=page_slicing, lines=lines, line_slicing=slicing)
+                              slicing=baseline_page_slicing, lines=lines, line_slicing=baseline_slicing)
             if diagnostic_only:
                 comparison = _diagnostic_comparison(baseline, result, baseline_set, candidate_set, bootstrap)
             else:
@@ -1037,7 +1059,11 @@ def run_reference_evaluation(
     if labels is not None:
         run_record["eval_labels"] = {"schema_version": eval_slices.EVAL_LABELS_SCHEMA, "sha256": labels["sha256"],
                                      "rule": labels["rule"], "provenance": labels["provenance"],
-                                     "labelled_items": len(labels["labels"])}
+                                     "labelled_items": len(labels["labels"]),
+                                     **({"exposed_items": len(labels["exposure"])} if labels.get("exposure") else {})}
+    if model_id is not None:
+        run_record["model_ids"] = {"scored": model_id,
+                                   **({"baseline": baseline_model_id} if baseline_model_id is not None else {})}
     if lines is not None:
         run_record["line_references"] = {**lines["identity"], "cluster_key": eval_slices.LINE_CLUSTER_KEY,
                                          "excluded_lines": len(lines["excluded"])}

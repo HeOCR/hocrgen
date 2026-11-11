@@ -400,3 +400,104 @@ def test_cli_passes_eval_labels_and_line_references(inputs: dict, capsys: pytest
                  "--asset-index", str(index)]) == 0
     printed = json.loads(capsys.readouterr().out)
     assert printed["scored"]["line_reference"]["evaluated_line_count"] == 5
+
+
+# --- E2e.1: exposure exclusion -----------------------------------------------------------------------------------
+
+def _exposed_labels(path: Path, exposed: dict[str, list[str]]) -> Path:
+    labels = {k: _label(k) for k in TEXTS}
+    for item_id, models in exposed.items():
+        labels[item_id] = {**labels[item_id], "exposed": models, "exposure_reason": "R6-R8 selection dev (fixture)"}
+    return _labels(path, labels)
+
+
+def test_exposure_labels_validate(tmp_path: Path) -> None:
+    loaded = eval_slices.load_eval_labels(_exposed_labels(tmp_path / "ok.json", {"ws:h-1": ["R6", "R7"]}))
+    assert loaded["exposure"] == {"ws:h-1": {"models": ["R6", "R7"], "reason": "R6-R8 selection dev (fixture)"}}
+    assert "exposed" not in loaded["labels"]["ws:h-1"]  # strata stay node/facets/niqqud
+    assert "exposure" not in eval_slices.load_eval_labels(_labels(tmp_path / "plain.json"))
+    base = {"node": NEW, "niqqud": "unpointed"}
+    for index, (label, message) in enumerate([
+        ({**base, "exposed": []}, "non-empty list"),
+        ({**base, "exposed": ["R6", "R6"], "exposure_reason": "x"}, "distinct"),
+        ({**base, "exposed": ["R6"]}, "exposure_reason"),
+        ({**base, "exposure_reason": "x"}, "non-empty list"),
+        ({**base, "exposed": [""], "exposure_reason": "x"}, "distinct model ids"),
+    ]):
+        with pytest.raises(StageExecutionError, match=message):
+            eval_slices.load_eval_labels(_labels(tmp_path / f"bad{index}.json", {"x": label}))
+
+
+def test_exposed_items_enter_no_eval_slices_number(inputs: dict) -> None:
+    labels = _exposed_labels(inputs["tmp"] / "exposed.json", {"ws:h-1": ["R6", "R7", "R8"], "ws:mod-1": ["R6"]})
+    report = _run(inputs, eval_labels=labels, model_id="R8", bootstrap_resamples=20,
+                  bootstrap_clusters=inputs["clusters"])
+    scored = report["scored"]["adjudicated_reference"]
+    block = scored["eval_slices"]
+    excluded = block["excluded_exposed"]
+    assert excluded["count"] == 1 and excluded["item_ids"] == ["ws:h-1"]
+    assert excluded["reasons"] == {"ws:h-1": "R6-R8 selection dev (fixture)"} and excluded["model_ids"] == {"scored": "R8"}
+    h = block["slices"][H]["ALL"]["excluding_pointed"]
+    assert h["items"] == 2 and h["clusters"] == 2  # h-1 is gone from every number
+    assert block["strata"]["node"][H]["items"] == 2 and scored["strata"]["node"][H]["primary.v1"]["item_count"] == 2
+    assert block["slices"][NEW]["ALL"]["excluding_pointed"]["items"] == 2  # exposed to R6 only: kept for R8
+    # The plain (unlabelled) aggregates are unchanged.
+    assert scored["profiles"]["primary.v1"]["item_count"] == 9
+    assert report["run_record"]["model_ids"] == {"scored": "R8"}
+    assert report["run_record"]["eval_labels"]["exposed_items"] == 2
+    r6 = _run(inputs, eval_labels=labels, model_id="R6")["scored"]["adjudicated_reference"]["eval_slices"]
+    assert r6["excluded_exposed"]["item_ids"] == ["ws:h-1", "ws:mod-1"]
+    clean = _run(inputs, eval_labels=labels, model_id="R1")["scored"]["adjudicated_reference"]["eval_slices"]
+    assert clean["excluded_exposed"]["count"] == 0 and clean["slices"][H]["ALL"]["excluding_pointed"]["items"] == 3
+    # Without exposure in the labels, no excluded_exposed block appears.
+    assert "excluded_exposed" not in _run(inputs, eval_labels=inputs["labels"])["scored"][
+        "adjudicated_reference"]["eval_slices"]
+
+
+def test_exposure_fails_closed_without_model_ids(inputs: dict) -> None:
+    labels = _exposed_labels(inputs["tmp"] / "exposed.json", {"ws:h-1": ["R8"]})
+    with pytest.raises(StageExecutionError, match="give --model-id"):
+        _run(inputs, eval_labels=labels)
+    with pytest.raises(StageExecutionError, match="give --baseline-model-id"):
+        _run(inputs, eval_labels=labels, model_id="R9", baseline_predictions_dir=inputs["base"])
+    with pytest.raises(StageExecutionError, match="needs --eval-labels"):
+        _run(inputs, model_id="R9")
+    with pytest.raises(StageExecutionError, match="needs --baseline-predictions"):
+        _run(inputs, eval_labels=labels, model_id="R9", baseline_model_id="R8")
+
+
+def test_paired_comparison_drops_items_either_side_saw(inputs: dict) -> None:
+    labels = _exposed_labels(inputs["tmp"] / "exposed.json", {"ws:h-1": ["R8"], "ws:hist-1": ["R9"]})
+    report = _run(inputs, eval_labels=labels, model_id="R9", baseline_predictions_dir=inputs["base"],
+                  baseline_model_id="R8")
+    paired = report["comparison"]["deltas"]["adjudicated_reference"]["eval_slices"]
+    excluded = paired["excluded_exposed"]
+    assert excluded["item_ids"] == ["ws:h-1", "ws:hist-1"]
+    assert excluded["exposed_sides"] == {"ws:h-1": ["baseline"], "ws:hist-1": ["candidate"]}
+    assert excluded["model_ids"] == {"baseline": "R8", "candidate": "R9"}
+    assert paired["common_item_count"] == 7
+    assert paired["slices"][H]["ALL"]["excluding_pointed"]["profiles"]["primary.v1"]["items"] == 2
+    single = report["scored"]["adjudicated_reference"]["eval_slices"]["excluded_exposed"]
+    assert single["item_ids"] == ["ws:hist-1"]  # the candidate's own numbers drop only what R9 saw
+    assert report["run_record"]["model_ids"] == {"scored": "R9", "baseline": "R8"}
+
+
+def test_exposed_lines_are_excluded_in_line_reference_mode(tmp_path: Path) -> None:
+    line_set, index, cand = _line_inputs(tmp_path, CAND_LINES)
+    labels = {i: {"node": NEW, "niqqud": "pointed" if i == "l5" else "unpointed"} for i in ["l1", "l2", "l3", "l4", "l5", "l6"]}
+    labels["l3"] = {**labels["l3"], "exposed": ["R8"], "exposure_reason": "PBY selection dev (fixture)"}
+    report = run_reference_evaluation(predictions_dir=cand, line_references=line_set, asset_index_path=index,
+                                      eval_labels=_labels(tmp_path / "labels.json", labels), model_id="R8")
+    measures = report["scored"]["line_reference"]["measures"]
+    assert measures["excluded_exposed"]["item_ids"] == ["l3"]
+    headline = measures["slices"][NEW]["ALL"]["excluding_pointed"]
+    assert headline["profiles"]["primary.v1"]["item_count"] == 3 and headline["profiles"]["primary.v1"]["exact_line_rate"] == 2 / 3
+
+
+def test_cli_passes_model_ids(inputs: dict, capsys: pytest.CaptureFixture[str]) -> None:
+    labels = _exposed_labels(inputs["tmp"] / "exposed.json", {"ws:h-1": ["R8"]})
+    assert main(["evaluate-references", "--predictions", str(inputs["cand"]), "--reference-manifest",
+                 str(inputs["manifest"]), "--asset-index", str(inputs["index"]), "--eval-labels", str(labels),
+                 "--model-id", "R8"]) == 0
+    report = json.loads(capsys.readouterr().out)
+    assert report["scored"]["adjudicated_reference"]["eval_slices"]["excluded_exposed"]["item_ids"] == ["ws:h-1"]
