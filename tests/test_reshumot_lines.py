@@ -308,3 +308,111 @@ def test_cap_keeps_lines_by_sha256_of_the_id() -> None:
     kept = rl.cap_lines(ids, 3)
     assert len(kept) == 3 and kept == [i for i in ids if i in set(sorted(ids, key=lambda v: hashlib.sha256(v.encode()).hexdigest())[:3])]
     assert rl.cap_lines(ids, 0) == ids
+
+
+# --- v2: shuffle, pinned dev, several snapshots, the eval-text 6-gram filter ---------------------------------------
+
+NGRAM_SCRIPT = Path.home() / "agents/environments/opensource/projects/heocr/tasks/eval-domains/scripts/ngram_overlap.py"
+
+
+@pytest.mark.skipif(not NGRAM_SCRIPT.is_file(), reason="heocr-eval's task scripts are not on this machine")
+def test_vendored_6gram_rule_is_heocr_evals() -> None:
+    assert hashlib.sha256(NGRAM_SCRIPT.read_bytes()).hexdigest() == rl.NGRAM_ORIGIN["sha256"]
+    namespace: dict = {}
+    source = NGRAM_SCRIPT.read_text(encoding="utf-8")
+    exec(compile(source.split("ORDER = {}")[0], str(NGRAM_SCRIPT), "exec"), namespace)  # N, WORD, grams only; no file reads
+    assert namespace["N"] == rl.NGRAM_N and namespace["WORD"].pattern == rl.NGRAM_WORD.pattern
+    for line in ["חוק לתיקון פקודת העיריות מס' 3 התשס\"ה-2005 בסעיף 12 לחוק", "א ב ג ד ה ו ז", "קצר"]:
+        assert namespace["grams"](line) == rl.word_grams(line)
+
+
+def test_every_list_output_is_in_the_seeded_order(tranche: dict, monkeypatch: pytest.MonkeyPatch) -> None:
+    summary = _build(tranche, monkeypatch, shuffle_seed="s1")
+    rows = _rows(tranche["out"])
+    assert summary["shuffle_seed"] == "s1" and [r["id"] for r in rows] == sorted((r["id"] for r in rows), key=lambda i: rl.shuffle_key("s1", i))
+    assert [r["id"] for r in rows] != sorted(r["id"] for r in rows)  # not the build order
+    for split in ("train", "dev"):
+        listed = (tranche["out"] / f"{split}.txt").read_text(encoding="utf-8").splitlines()
+        assert listed == [r["image"] for r in rows if r["split"] == split] and summary["list_files"][split]["lines"] == len(listed)
+    assert rl.verify(tranche["out"]) == []
+    other = tranche["out"].with_name("set_s2")
+    _build({**tranche, "out": other}, monkeypatch, shuffle_seed="s2")
+    rows2 = _rows(other)
+    assert sorted(map(json.dumps, rows)) == sorted(map(json.dumps, rows2))  # the same rows, byte for byte
+    assert [r["id"] for r in rows2] != [r["id"] for r in rows]
+    (tranche["out"] / "train.txt").write_text("", encoding="utf-8")
+    assert any("train.txt" in p for p in rl.verify(tranche["out"]))
+
+
+def test_keep_dev_from_pins_an_earlier_builds_dev_booklets(tranche: dict, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    first = _build(tranche, monkeypatch)
+    picks = first["dev_selection"]["picks"]
+    # Pin a different booklet of the sefer_hachukim 2010s stratum than the rule would pick.
+    other = next(u for u in ("reshumot:sefer_hachukim_2663", "reshumot:sefer_hachukim_2745") if u not in picks)
+    pinned = {**{u: s for u, s in picks.items() if s != "sefer_hachukim 2010s"}, other: "sefer_hachukim 2010s"}
+    prior = tmp_path / "prior_summary.json"
+    prior.write_text(json.dumps({"dev_selection": {"picks": pinned}}), encoding="utf-8")
+    summary = _build({**tranche, "out": tmp_path / "pinned"}, monkeypatch, keep_dev_from=str(prior))
+    assert summary["dev_selection"]["picks"] == pinned and summary["dev_selection"]["pinned"]["dropped"] == []
+
+
+def test_several_snapshots_are_read_as_one(tranche: dict, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    whole = _build(tranche, monkeypatch)
+    rows = _rows(tranche["out"])
+    # Move one booklet's entries and files to a second snapshot and its PDF to a second cache.
+    second, cache2 = tmp_path / "snapshot2", tmp_path / "pdf2"
+    moved = "reshumot:sefer_hachukim_3085"
+    entries = [json.loads(l) for l in (tranche["snapshot"] / "entries.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+    stay = [e for e in entries if rl.entry_unit(e) != moved]
+    move = [e for e in entries if rl.entry_unit(e) == moved]
+    shutil.copytree(tranche["snapshot"], second)
+    (tranche["snapshot"] / "entries.jsonl").write_text("".join(json.dumps(e, ensure_ascii=False) + "\n" for e in stay), encoding="utf-8")
+    (second / "entries.jsonl").write_text("".join(json.dumps(e, ensure_ascii=False) + "\n" for e in move), encoding="utf-8")
+    cache2.mkdir()
+    shutil.move(str(tranche["cache"] / "sefer_hachukim_3085.pdf"), cache2 / "sefer_hachukim_3085.pdf")
+    monkeypatch.setattr(rl, "load_page_layers", _multi_layers_stub([tranche["snapshot"], second]))
+    out = tmp_path / "multi"
+    summary = rl.build(_args({**tranche, "out": out}, snapshot=[str(tranche["snapshot"]), str(second)],
+                             pdf_cache=[str(tranche["cache"]), str(cache2)]), facts_for=_facts_for())
+    assert sorted(map(json.dumps, _rows(out))) == sorted(map(json.dumps, rows))
+    assert summary["totals"] == whole["totals"] and summary["snapshots"] == [str(tranche["snapshot"].resolve()), str(second.resolve())]
+    with pytest.raises(SystemExit, match="more than one snapshot"):
+        rl.build(_args({**tranche, "out": tmp_path / "dup"}, snapshot=[str(second), str(second)]), facts_for=_facts_for())
+
+
+def _multi_layers_stub(snapshots: list[Path]):
+    loaders = [_layers_stub(s) for s in snapshots]
+
+    def load(layer_dir, slug, page_count, pdf):
+        merged: dict = {}
+        for loader in loaders:
+            for n, layer in loader(layer_dir, slug, page_count, pdf).items():
+                if layer != _blank_layer() or n not in merged:
+                    merged[n] = layer
+        return merged
+
+    return load
+
+
+def test_lines_sharing_a_6gram_with_eval_text_are_dropped(tranche: dict, monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    _build(tranche, monkeypatch)
+    rows = _rows(tranche["out"])
+    long = [r for r in rows if rl.word_grams(r["text"])]
+    assert len(long) > 2
+    target = long[0]
+    pool = tmp_path / "pool.json"
+    pool.write_text(json.dumps({"schema": rl.GRAM_POOL_SCHEMA, "n": 6, "digest": "sha256", "targets": {"test": 1},
+                                "digests": [rl.gram_digest(sorted(rl.word_grams(target["text"]))[0])]}), encoding="utf-8")
+    summary = _build({**tranche, "out": tmp_path / "filtered"}, monkeypatch, exclude_6grams=str(pool))
+    kept = _rows(tmp_path / "filtered")
+    hit = {r["id"] for r in rows if rl.word_grams(r["text"]) & {tuple(sorted(rl.word_grams(target["text"]))[0])}}
+    assert target["id"] in hit and {r["id"] for r in kept} == {r["id"] for r in rows} - hit
+    assert summary["dropped"]["shares_word_6gram_with_eval_text"] == len(hit)
+    assert summary["eval_text_overlap_filter"]["lines_dropped"] == len(hit)
+    # The rows that stay are byte-identical to the unfiltered build's.
+    same = {r["id"]: json.dumps(r) for r in rows}
+    assert all(json.dumps(r) == same[r["id"]] for r in kept)
+    bad = tmp_path / "bad.json"
+    bad.write_text(json.dumps({"schema": "x", "n": 5, "digest": "sha256", "digests": []}), encoding="utf-8")
+    with pytest.raises(SystemExit):
+        _build({**tranche, "out": tmp_path / "bad"}, monkeypatch, exclude_6grams=str(bad))

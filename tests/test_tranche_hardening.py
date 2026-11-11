@@ -38,7 +38,7 @@ def test_reshumot_selection_keeps_section_6_born_digital_short_booklets_by_seede
         _result("1", "2580", "2016-08-16T00:00:00"),
         _result("1", "2581", "2016-08-17T00:00:00"),
         _result("2", "9000", "2016-08-17T00:00:00"),  # ילקוט הפרסומים: not section 6
-        _result("1", "1969", "2005-07-01T00:00:00"),  # scanned era
+        _result("1", "1969", "2004-07-01T00:00:00"),  # before the era floor (from 2005 the PDF decides)
         _result("3", "7712", "2016-09-13T00:00:00", pages=300),  # too long
     ]
     chosen = gp.select_reshumot_booklets(results, seed="s", per_query=5, max_pages=24)

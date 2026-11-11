@@ -1,0 +1,8 @@
+[
+ {"Id": 1, "Name": "law a", "PublicationDate": "2005-01-25T00:00:00", "PublicationSeriesDesc": "ספר החוקים", "MagazineNumber": "1976", "PageNumber": "60"},
+ {"Id": 2, "Name": "law b", "PublicationDate": "2005-01-25T00:00:00", "PublicationSeriesDesc": "ספר החוקים", "MagazineNumber": "1976", "PageNumber": "62"},
+ {"Id": 3, "Name": "law c", "PublicationDate": "2005-04-01T00:00:00", "PublicationSeriesDesc": "ספר החוקים", "MagazineNumber": "1999", "PageNumber": "400"},
+ {"Id": 4, "Name": "law d", "PublicationDate": "2005-04-02T00:00:00", "PublicationSeriesDesc": "ספר החוקים", "MagazineNumber": "1999", "PageNumber": "402"},
+ {"Id": 5, "Name": "regulation", "PublicationDate": "2005-07-14T00:00:00", "PublicationSeriesDesc": "קובץ התקנות", "MagazineNumber": "6400", "PageNumber": "1"},
+ {"Id": 6, "Name": "no number", "PublicationDate": "2005-07-14T00:00:00", "PublicationSeriesDesc": "ספר החוקים", "MagazineNumber": null, "PageNumber": null}
+]
