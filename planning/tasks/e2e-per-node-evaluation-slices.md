@@ -1,6 +1,6 @@
 # E2e — Per-node evaluation slices, cluster intervals, page and line measures (decisions 0017, 0018)
 
-Status: **`E2e1` merged (#175) and `E2e2` merged (#177) on the current ref (2026-11-11); `E2e3` in review (#180).** Parent milestone: E2, Baselines and evaluation utilities. The direction comes from heocr-engine decisions 0017 (character, word, line and page measures, with intervals) and 0018 (a tree of Hebrew document sets; new printed is the vertical). The usage reference is the "Per-node slices" section of [`docs/reference_evaluation.md`](../../docs/reference_evaluation.md).
+Status: **`E2e1` (#175), `E2e2` (#177) and `E2e3` (#180) are merged on the current ref (2026-11-11).** Parent milestone: E2, Baselines and evaluation utilities. The direction comes from heocr-engine decisions 0017 (character, word, line and page measures, with intervals) and 0018 (a tree of Hebrew document sets; new printed is the vertical). The usage reference is the "Per-node slices" section of [`docs/reference_evaluation.md`](../../docs/reference_evaluation.md).
 
 ## Direction
 
@@ -16,7 +16,7 @@ Status: **`E2e1` merged (#175) and `E2e2` merged (#177) on the current ref (2026
 | --- | --- | --- |
 | `E2e1` | `--eval-labels` (`hocrgen_eval_labels.v1`: node, facets, niqqud; fails closed on an unlabelled scored item). `eval_slices` per node, facet and niqqud key. Single-engine and paired cluster intervals with `too_few_clusters` / `low_cluster_count` flags. The page-CER distribution, and the order cost and missed-line rate as diagnostics. `--line-references` scoring of line_verify line sets, honouring `reference_views`. | merged (#175) |
 | `E2e2` | Exposure exclusion: an optional per-label `exposed: [model ids]` plus `exposure_reason`, and `--model-id` / `--baseline-model-id`. An item exposed to a scored model enters no `eval_slices` number and is listed under `excluded_exposed`. A paired comparison drops items either side saw. Missing model ids fail closed. (The coordinator's follow-up "E2e.1".) | merged (#177) |
-| `E2e3` | The pending 0017 measures (the coordinator's follow-up "E2e.3"): exact-line rate and line CER on line-aligned (physical-line) pages via `line_matched.v1` pairing; letter-level substitution, deletion and insertion rates (א–ת, diagnostic); and missed-region cost (diagnostic). Exposure exclusion also applies to these. | in review (#180) |
+| `E2e3` | The pending 0017 measures (the coordinator's follow-up "E2e.3"): exact-line rate and line CER on line-aligned (physical-line) pages via `line_matched.v1` pairing; letter-level substitution, deletion and insertion rates (א–ת, diagnostic); and missed-region cost (diagnostic). Exposure exclusion also applies to these. | merged (#180) |
 
 This notation record is itself the coordinator's follow-up "E2e.2". It is a planning change only.
 

@@ -1898,7 +1898,7 @@ E2c extends the completed E2 utility foundation without changing benchmark readi
 
 ## E2e — Per-node evaluation slices, cluster intervals, page and line measures
 
-**Direction: heocr-engine decisions 0017 and 0018. `E2e1` (#175) and `E2e2` (#177) are merged on the current ref, and `E2e3` is in review (#180).**
+**Direction: heocr-engine decisions 0017 and 0018. `E2e1` (#175), `E2e2` (#177) and `E2e3` (#180) are merged on the current ref.**
 
 - **`E2e1`.** `evaluate-references --eval-labels` places each scored item on a node of the decision-0018 document tree (`printed/new_printed` is the vertical). It reports `eval_slices` per node, genre and font facet, and niqqud stratum:
   - every node has a headline on `primary.v1`;
