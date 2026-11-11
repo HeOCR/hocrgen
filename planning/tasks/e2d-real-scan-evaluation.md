@@ -24,6 +24,7 @@ Status: **`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c`, `E2d3d`, `E2d3e`, `E2d4` and
 | `E2d4` | Audit the 38 scored reference pages against their scans (maintainer decision 2026-11-07): an agent proposes corrections (`reference_audit_proposals.v1`), a human decides each one (`reference_audit_decisions.v1`), and the reference build applies only human-accepted or human-edited corrections, with provenance; pages with undecided proposals are flagged `audit_pending`. | completed (human review pending) |
 | `E2d4b` | Apply the maintainer's always-on `space_before_punctuation.v1` rule (decision 2026-11-07) to every Wikisource evaluation reference, after the audit decisions, with per-item provenance; proposals it makes exactly get rule decisions (`checked_by: rule`), never counted as human review. | completed |
 | `E2d6` | Single-line verification (maintainer decision 2026-11-07): a human verifies one printed line against a candidate typed by a different human (Wikisource quality 3, or PBY aligned to NLI free-use scans), hardest lines first plus a random stratum. `hocrgen.tools.line_verify` exports `line_verify_items.v1` bundles and ingests `line_verify_decisions.v1` into line references; a verified line counts as adjudicated, like quality 4. | completed (human review pending) |
+| `E2d6b` | Add the `pointed_print` outcome to line verification (`line_verify_decisions.v1.1`, additive): letters match the print, the print has niqqud the candidate lacks; such a line is a consonantal-only reference (`reference_views`), and per-book counts feed back into the batch split. | implemented |
 | `E2d5` | Retire synthetic text from the scored eval set once both tracks meet cutover criteria the maintainer sets. | planned |
 
 ## E2d1 — Modality-track contract
@@ -194,6 +195,7 @@ Status: **`E2d1`, `E2d2`, `E2d3`, `E2d3b`, `E2d3c`, `E2d3d`, `E2d3e`, `E2d4` and
   - By release split: 1,066 `train`, 75 `validation`, 253 `test`, and 106 with no split.
   - An agent spot check of 30 rendered items found box and candidate on the same line, with the right boundaries, in all 30.
   - Details are in [`docs/e2d6_line_verification.md`](../../docs/e2d6_line_verification.md).
+- **`E2d6b`: `pointed_print` (team-lead design, 2026-11-11).** The v1 batches were split by the candidate's niqqud share, so pointed prints with unpointed candidates sit in the unpointed batch. The new outcome marks such a line; it is adjudicated but a reference for consonantal views only (`reference_views: ["consonantal"]`). The v1 batches are not re-split; `line_verify_v2` should split by the image.
 
 ## What it depends on
 

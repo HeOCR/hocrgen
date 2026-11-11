@@ -5,7 +5,9 @@ different human, and either confirms it (``exact``) or corrects it (``edited``).
 ``unreadable`` or ``misaligned``. Verified lines become line-level evaluation references. The app side is
 ``HeOCR/heocr-review``; the two formats are fixed by the line verification contract (v1, 2026-11-07):
 ``line_verify_items.v1`` (the bundle this tool exports) and ``line_verify_decisions.v1`` (what the app exports and
-this tool ingests).
+this tool ingests). ``line_verify_decisions.v1.1`` (E2d6b, 2026-11-11) adds ``pointed_print``: the letters match the
+print, but the print carries niqqud the candidate lacks; such a line is a consonantal-only reference. Both decision
+versions are accepted.
 
 Subcommands:
 
@@ -57,7 +59,10 @@ from hocrgen.reference_rules import fix_space_before_punctuation
 from hocrgen.tools import benyehuda_nli_alignment as aligner
 
 ITEMS_SCHEMA = "line_verify_items.v1"
-DECISIONS_SCHEMA = "line_verify_decisions.v1"
+DECISIONS_SCHEMA = "line_verify_decisions.v1.1"
+# v1.1 (E2d6b, 2026-11-11) is additive: it adds the ``pointed_print`` decision. Both versions are accepted; a v1 file
+# may not use the new value.
+DECISIONS_SCHEMAS = ("line_verify_decisions.v1", DECISIONS_SCHEMA)
 REFERENCES_SCHEMA = "line_verify_references.v1"
 LINE_SET_SCHEMA = "line_verify_line_references.v1"
 REPORT_SCHEMA = "line_verify_export_report.v1"
@@ -72,8 +77,15 @@ TEXT_LICENSE = {WIKISOURCE: "CC BY-SA 4.0", NLI_ALIGNED: "public domain"}
 NLI_ACCEPTED_SLUG = "public-domain-free-use"
 RELEASE_SPLITS = ("train", "validation", "test")
 STRATA = ("hard", "random")
-DECISION_VALUES = ("exact", "edited", "unreadable", "misaligned")
-VERIFIED_DECISIONS = ("exact", "edited")
+DECISION_VALUES_V1 = ("exact", "edited", "unreadable", "misaligned")
+POINTED_PRINT = "pointed_print"
+DECISION_VALUES = (*DECISION_VALUES_V1, POINTED_PRINT)
+VERIFIED_DECISIONS = ("exact", "edited", POINTED_PRINT)
+# Which scoring views a verified line may serve as a reference for (E2d6b). ``pointed_print`` means every letter of
+# the line text matches the print but the print carries niqqud or marks the text lacks, so the line is a reference
+# for consonantal (letters-only) views such as ``consonantal.v1`` only, never for mark-exact or primary views.
+REFERENCE_VIEWS_ALL = ("primary", "consonantal")
+REFERENCE_VIEWS_CONSONANTAL = ("consonantal",)
 
 # --- Attestation policy (maintainer decision 2026-11-07) ------------------------------------------------------
 # "Yes, like quality 4" (Shay Palachy Affek): a line whose candidate was typed by one human (a Wikisource quality-3
@@ -767,10 +779,12 @@ def load_bundle(path: Path, *, check_images: bool = True) -> dict[str, Any]:
 
 
 def decisions_problems(decisions: Mapping[str, Any], bundle: Mapping[str, Any] | None = None) -> list[str]:
-    """Every problem with a ``line_verify_decisions.v1`` file, against its bundle when given."""
+    """Every problem with a ``line_verify_decisions.v1`` or ``.v1.1`` file, against its bundle when given."""
 
-    if decisions.get("schema_version") != DECISIONS_SCHEMA:
-        return [f"schema_version must be {DECISIONS_SCHEMA}"]
+    version = decisions.get("schema_version")
+    if version not in DECISIONS_SCHEMAS:
+        return [f"schema_version must be one of {DECISIONS_SCHEMAS}"]
+    allowed = DECISION_VALUES if version == DECISIONS_SCHEMA else DECISION_VALUES_V1
     problems = []
     if not (isinstance(decisions.get("batch_id"), str) and decisions["batch_id"]):
         problems.append("batch_id must be a non-empty string")
@@ -795,8 +809,8 @@ def decisions_problems(decisions: Mapping[str, Any], bundle: Mapping[str, Any] |
         if bundle is not None and item_id not in items:
             problems.append(f"{where}: item {item_id} is not in the bundle")
         decision = record.get("decision")
-        if decision not in DECISION_VALUES:
-            problems.append(f"{where}: decision must be one of {DECISION_VALUES}")
+        if decision not in allowed:
+            problems.append(f"{where}: decision must be one of {allowed} in {version}")
         text = record.get("text")
         if decision == "edited":
             if not (isinstance(text, str) and text.strip()):
@@ -805,8 +819,18 @@ def decisions_problems(decisions: Mapping[str, Any], bundle: Mapping[str, Any] |
                 problems.append(f"{where}: text must be NFC, on one line, without outer spaces")
             elif item_id in items and text == items[item_id]["candidate_text"] and not is_stale(record, items[item_id]):
                 problems.append(f"{where}: the edited text equals the candidate (use exact)")
+        elif decision == POINTED_PRINT and "text" in record:
+            # the letters corrected, niqqud left out; an unchanged text is recorded without text
+            if not (isinstance(text, str) and text.strip()):
+                problems.append(f"{where}: a pointed_print text must be the corrected letters")
+            elif unicodedata.normalize("NFC", text) != text or "\n" in text or text != text.strip():
+                problems.append(f"{where}: text must be NFC, on one line, without outer spaces")
+            elif any(char in NIQQUD_AND_MARKS for char in text):
+                problems.append(f"{where}: a pointed_print text holds the letters only, without niqqud or marks")
+            elif item_id in items and text == items[item_id]["candidate_text"] and not is_stale(record, items[item_id]):
+                problems.append(f"{where}: the pointed_print text equals the candidate (omit text)")
         elif "text" in record:
-            problems.append(f"{where}: text is only allowed on an edited decision")
+            problems.append(f"{where}: text is only allowed on an edited or pointed_print decision")
         if not _is_date(record.get("decided_at")):
             problems.append(f"{where}: decided_at must be a YYYY-MM-DD date")
         if record.get("checked_by") != "human":
@@ -834,7 +858,7 @@ def load_decisions(path: Path, bundle: Mapping[str, Any] | None = None) -> dict[
     decisions = json.loads(Path(path).read_text(encoding="utf-8"))
     problems = decisions_problems(decisions, bundle)
     if problems:
-        raise StageExecutionError("invalid line_verify_decisions.v1: " + "; ".join(problems[:10]))
+        raise StageExecutionError(f"invalid {decisions.get('schema_version')}: " + "; ".join(problems[:10]))
     return decisions
 
 
@@ -846,9 +870,11 @@ def resolve_decisions(bundle: Mapping[str, Any], decisions: Mapping[str, Any], *
     """The line references and exclusions a decisions file gives.
 
     An item's outcome applies when at least ``min_reviewers`` reviewers decided it and all agree (the same decision,
-    and for ``edited`` the same text); otherwise it is ``pending`` or ``conflict`` and nothing applies. ``exact`` and
-    ``edited`` give a line reference whose status comes from ``ATTESTATION_POLICIES[policy]``; ``edited`` uses the
-    reviewer's text and keeps the candidate as provenance. ``unreadable`` and ``misaligned`` exclude the line, and
+    and for ``edited`` the same text); otherwise it is ``pending`` or ``conflict`` and nothing applies. ``exact``,
+    ``edited`` and ``pointed_print`` give a line reference whose status comes from ``ATTESTATION_POLICIES[policy]``;
+    ``edited`` uses the reviewer's text and keeps the candidate as provenance. ``pointed_print`` (the print is pointed,
+    the text is not) uses the reviewer's corrected letters when given, else the candidate, and its
+    ``reference_views`` are consonantal only. ``unreadable`` and ``misaligned`` exclude the line, and
     ``misaligned`` is counted as alignment-quality feedback. A stale decision (``is_stale``: made on another candidate
     text) is listed and counted, and never applied.
     """
@@ -889,18 +915,22 @@ def resolve_decisions(bundle: Mapping[str, Any], decisions: Mapping[str, Any], *
             excluded.append({**common, "decision": decision, "decided_at": decided_at,
                              "reason": "unreadable_on_scan" if decision == "unreadable" else "box_and_text_misaligned"})
             continue
-        final = item["candidate_text"] if decision == "exact" else text
+        final = text if text is not None else item["candidate_text"]
         lines.append({
             **common, "line_index": item["line_index"], "box": item["box"], "page_sha256": page["sha256"],
             "decision": decision, "decided_at": decided_at, "checked_by": "human",
             "candidate_provenance": item["candidate_provenance"], "candidate_text": item["candidate_text"],
             "candidate_text_sha256": sha256_text(item["candidate_text"]), "text": final, "text_sha256": sha256_text(final),
-            "corrected": decision == "edited", "text_license": page["text_license"], "attestation_policy": policy,
+            "corrected": text is not None, "pointed_print": decision == POINTED_PRINT,
+            "reference_views": list(REFERENCE_VIEWS_CONSONANTAL if decision == POINTED_PRINT else REFERENCE_VIEWS_ALL),
+            "text_license": page["text_license"], "attestation_policy": policy,
             "attestation_status": status["attestation_status"], "adjudication_status": status["adjudication_status"],
             "reference_eligible": status["reference_eligible"],
         })
     decided = set(by_item)
     misaligned = Counter(entry["source"] for entry in excluded if entry["decision"] == "misaligned")
+    pointed = Counter(line["book_id"] for line in lines if line["pointed_print"])
+    settled_by_book = Counter(entry["book_id"] for entry in [*lines, *excluded])
     verified_or_excluded = Counter(entry["source"] for entry in [*lines, *excluded])
     counts = {
         "bundle_items": len(items), "decided_items": len(decided), "undecided_items": len(items) - len(decided),
@@ -911,6 +941,9 @@ def resolve_decisions(bundle: Mapping[str, Any], decisions: Mapping[str, Any], *
         "misaligned_share_by_source": {source: round(misaligned[source] / verified_or_excluded[source], 4)
                                        for source in sorted(verified_or_excluded)},
         "by_release_split": dict(sorted(Counter(str(line["release_split"]) for line in lines).items())),
+        # feedback on the v1 batch split, which used the candidate's niqqud share, not the print's
+        "pointed_print_by_book": {book: {"lines": pointed[book], "share": round(pointed[book] / settled_by_book[book], 4)}
+                                  for book in sorted(pointed)},
     }
     return {"lines": lines, "excluded": excluded, "conflicts": conflicts, "pending": pending,
             "stale": sorted(stale, key=lambda entry: entry["decision_id"]), "counts": counts}

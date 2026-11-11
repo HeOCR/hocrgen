@@ -274,13 +274,16 @@ two lines. That sample is why the rule exists.
 
 ## Decisions and ingest
 
-`line_verify_decisions.v1` is the app's export. A file is valid only if:
+`line_verify_decisions.v1` and `line_verify_decisions.v1.1` (E2d6b) are the app's export; `ingest` accepts both.
+A file is valid only if:
 
 - `decision_id` is `decision:<item_id>:<reviewer>`;
 - the reviewer is a pseudonymous `rv_` id with 8 lower-case letters or digits;
-- `decision` is one of `exact`, `edited`, `unreadable` or `misaligned`;
+- `decision` is one of `exact`, `edited`, `unreadable` or `misaligned`, or, in v1.1 only, `pointed_print`;
 - `text` is present only for `edited`, and is the full corrected line: NFC, on one line, and not equal to the
   candidate;
+- or for `pointed_print`, optionally, when the letters needed correcting: the corrected letters, NFC, on one line,
+  with no niqqud or cantillation marks, and not equal to the candidate (an unchanged line carries no `text`);
 - `decided_at` is a date and `checked_by` is `human`;
 - each reviewer decides an item at most once;
 - every item is in the bundle, and the batch id matches.
@@ -289,7 +292,8 @@ two lines. That sample is why the rule exists.
 
 - **When an outcome applies.** At least `min_reviewers` reviewers decided the item (1 by default, as in E2d4), and all
   of them agree. For `edited`, they must also give the same text.
-- **Disagreement** leaves the item in `conflict`, and nothing applies.
+- **Disagreement** leaves the item in `conflict`, and nothing applies. `pointed_print` against `exact` is a
+  disagreement too.
 - **Stale decisions.** Each decision carries `candidate_sha256`, the SHA-256 hex of the UTF-8 `candidate_text` the
   reviewer judged. It is a contract addition from the app side. A decision whose hash differs from the item's
   current candidate is **stale**, for example after a re-export changed the candidate. A stale decision is listed
@@ -304,14 +308,39 @@ It writes two files:
   - the counts;
   - every decision, verbatim;
   - one record per verified line: item, page, book, `release_split`, `box`, page sha256, `candidate_provenance`,
-    `candidate_text`, the final `text` and its sha256, `corrected`, the reviewers, the decision ids, the date, the
-    attestation fields and `text_license`;
+    `candidate_text`, the final `text` and its sha256, `corrected`, `pointed_print`, `reference_views`, the
+    reviewers, the decision ids, the date, the attestation fields and `text_license`;
   - the exclusions, the conflicts and the stale decisions.
 
   It holds no images, no OCR text and no local paths. `validate --references` re-derives it from the decisions and
   the bundle.
 - **The operator line reference set** (`--line-set-out`, `line_verify_line_references.v1`). It holds the verified
   lines with their context boxes and their bundle page records (`modality: printed`, `visibility: hidden_reference`).
+
+## E2d6b: the `pointed_print` outcome (2026-11-11)
+
+The maintainer found that the unpointed batch often serves lines whose **print is pointed** while the candidate is
+not: Wikisource proofreaders often leave out the print's niqqud. The question asks "letter by letter and mark by
+mark", so such a line could not be confirmed, and was skipped. Team-lead design, 2026-11-11:
+
+- **The outcome.** `pointed_print` ("בדפוס יש ניקוד / Print has niqqud" in the app): every letter of the candidate
+  matches the print, but the print has niqqud or marks the candidate lacks. When the letters are wrong too, the
+  reviewer edits the letters only, without typing niqqud, and the decision is `pointed_print` with `text`.
+- **The contract.** `line_verify_decisions.v1.1`, additive. v1 values are unchanged and v1 files stay valid; a v1
+  file may not use `pointed_print`.
+- **What the line becomes.** A verified `pointed_print` line is a reference for consonantal (letters-only) scoring
+  views only, such as `consonantal.v1`, never for mark-exact or `primary.v1` scoring. Every line record carries
+  `reference_views`: `["primary", "consonantal"]` for `exact` and `edited`, `["consonantal"]` for `pointed_print`.
+  Consumers must honour it, not only `reference_eligible`. The line is still adjudicated under the 2026-11-07
+  attestation, because a second human verified it.
+- **Feedback.** `counts.pointed_print_by_book` gives each book's `pointed_print` lines and their share of the
+  book's settled lines.
+
+**Known v1 limitation.** `line_verify_v1` was split into the unpointed and pointed app batches by the **candidate's**
+niqqud share (`split_pointed.py`, 0.2 marks per letter), not by the print. Pointed prints with unpointed candidates
+therefore sit in the unpointed batch. They are not re-split: the button settles each in one key. For
+`line_verify_v2`, decide the split from the image (niqqud detection on the crop, or a per-book prior from
+`pointed_print_by_book`).
 
 ## Reproduce (operator)
 
