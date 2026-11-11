@@ -856,6 +856,7 @@ def build(args: argparse.Namespace, *, registry: EvalReservedUnitsRegistry | Non
             "pool": str(Path(pool_path).resolve()), "pool_sha256": sha256_bytes(Path(pool_path).read_bytes()),
             "pool_digests": len(pool_digests), "pool_targets": pool.get("targets"), "pool_built_by": pool.get("built_by"),
             "rule_origin": NGRAM_ORIGIN, "lines_dropped": drops.get("shares_word_6gram_with_eval_text", 0),
+            "line_set_condition": _line_set_condition(registry),
         }
     if getattr(args, "created_at", None):
         summary["created_at"] = args.created_at
@@ -863,6 +864,17 @@ def build(args: argparse.Namespace, *, registry: EvalReservedUnitsRegistry | Non
         summary["signature"] = args.signature
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return summary
+
+
+def _line_set_condition(registry: EvalReservedUnitsRegistry) -> dict[str, Any]:
+    """heocr-eval's ``line_set_condition``, verbatim from the registry's packaged split file (absent before v2)."""
+
+    from hocrgen.config.loader import package_root
+
+    path = package_root() / str(registry.split_file.packaged_copy)
+    data = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    return {"split_file": registry.split_file.name, "split_file_sha256": registry.split_file.sha256,
+            "text": data.get("line_set_condition")}
 
 
 DROP_DEFINITIONS = {

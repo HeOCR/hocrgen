@@ -409,6 +409,7 @@ def test_lines_sharing_a_6gram_with_eval_text_are_dropped(tranche: dict, monkeyp
     assert target["id"] in hit and {r["id"] for r in kept} == {r["id"] for r in rows} - hit
     assert summary["dropped"]["shares_word_6gram_with_eval_text"] == len(hit)
     assert summary["eval_text_overlap_filter"]["lines_dropped"] == len(hit)
+    assert summary["eval_text_overlap_filter"]["line_set_condition"]["split_file"].startswith("pmod_unit_split_v")
     # The rows that stay are byte-identical to the unfiltered build's.
     same = {r["id"]: json.dumps(r) for r in rows}
     assert all(json.dumps(r) == same[r["id"]] for r in kept)
