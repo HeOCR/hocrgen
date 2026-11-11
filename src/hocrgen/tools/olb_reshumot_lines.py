@@ -1059,8 +1059,14 @@ def plan(units_path: Path, split_path: Path, split_sha256: str | None, olb_dir: 
                 b["olb_candidates"].append({"title": page["title"], "revision_id": page["revision_id"], "role": c["role"],
                                             "cited_page": c["page"], "by_title": by_title, "by_page": by_page,
                                             "inside_estimate": c["page"] is not None and lo <= c["page"] <= hi})
+        # capture priority: instruments first published here (principal / new-law citations) that the tight window
+        # (slack + 0.5 x position) or the DocSummary titles place in this booklet
+        tight = slack + 0.5 * position
+        b["priority"] = sum(1 for c in b["olb_candidates"] if c["role"] in ("principal", "new_law") and (
+            c["by_title"] or (c["cited_page"] is not None and lo - tight <= c["cited_page"] <= hi + tight)))
         counts["non_eval_booklets"] += 1
         counts["non_eval_with_candidates"] += bool(b["olb_candidates"])
+        counts["non_eval_with_priority"] += bool(b["priority"])
     return {"schema": "olb_reshumot_plan.v1", "units": str(units_path), "units_sha256": hashlib.sha256(units_path.read_bytes()).hexdigest(),
             "split": str(split_path), "split_sha256": digest, "olb_index_sha256": hashlib.sha256((olb_dir / "olb_index.json").read_bytes()).hexdigest(),
             "page_slack": slack, "drift_per_booklet": drift_per_booklet, "counts": dict(counts), "booklets": booklets}
@@ -1075,7 +1081,7 @@ def document_url(url: str) -> str:
 
 
 def capture(plan_doc: Mapping[str, Any], cache: Path, *, series: Sequence[str], only_candidates: bool, limit: int | None,
-            log=print) -> dict[str, int]:  # pragma: no cover - network
+            min_priority: int = 0, log=print) -> dict[str, int]:  # pragma: no cover - network
     """Fetch the planned non_eval booklets' PDFs (earliest-listed file per booklet) into ``cache/pdf``."""
 
     refuse_forbidden_path(cache)
@@ -1084,8 +1090,9 @@ def capture(plan_doc: Mapping[str, Any], cache: Path, *, series: Sequence[str], 
     log_path = cache / "capture_log.jsonl"
     counts = Counter()
     todo = [b for b in plan_doc["booklets"].values() if b["split_status"] == "non_eval" and b["series"] in series
-            and (b["olb_candidates"] or not only_candidates)]
-    todo.sort(key=lambda b: (series.index(b["series"]), -len(b["olb_candidates"]), b["number"]))
+            and ((b.get("priority") if min_priority else b["olb_candidates"]) or not only_candidates)
+            and b.get("priority", 0) >= min_priority]
+    todo.sort(key=lambda b: (series.index(b["series"]), -b.get("priority", 0), -len(b["olb_candidates"]), b["number"]))
     for b in todo[:limit]:
         if b["split_status"] != "non_eval":  # never fetch a held-out booklet
             raise SystemExit(f"{b['unit_id']} is {b['split_status']}")
@@ -1783,6 +1790,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     c.add_argument("--series", nargs="+", default=["sefer_hachukim", "kovetz_hatakanot"])
     c.add_argument("--all-booklets", action="store_true", help="also booklets without an OLB candidate")
     c.add_argument("--limit", type=int)
+    c.add_argument("--min-priority", type=int, default=0, help="only booklets with at least this many first-published OLB instruments")
     add_build_arguments(sub)
     args = parser.parse_args(argv)
     if args.command == "olb-fetch":
@@ -1801,7 +1809,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "capture":
         doc = json.loads(Path(args.plan).read_text(encoding="utf-8"))
         print(json.dumps(capture(doc, Path(args.cache), series=args.series, only_candidates=not args.all_booklets,
-                                 limit=args.limit), ensure_ascii=False))
+                                 limit=args.limit, min_priority=args.min_priority), ensure_ascii=False))
         return 0
     return run_build_command(args)
 

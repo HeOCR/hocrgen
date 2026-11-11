@@ -223,7 +223,8 @@ def test_plan_uses_citations_and_the_split(tmp_path: Path) -> None:
     assert cand["title"] == "flag_law" and cand["by_title"] and not cand["by_page"]
     # the 1993 law that replaced the 1965 one is never matched to the 1965 booklet (cites תשכ״ה only as "חוק קודם")
     assert b["reshumot_scanned:sefer_hachukim_435"]["olb_candidates"] == []
-    assert doc["counts"] == {"skipped_test": 1, "non_eval_booklets": 4, "non_eval_with_candidates": 2}
+    assert doc["counts"] == {"skipped_test": 1, "non_eval_booklets": 4, "non_eval_with_candidates": 2, "non_eval_with_priority": 2}
+    assert b["reshumot_scanned:sefer_hachukim_9"]["priority"] == 1 and b["reshumot_scanned:sefer_hachukim_435"]["priority"] == 0
 
 
 def test_norm_title_drops_year_and_glyphs() -> None:
