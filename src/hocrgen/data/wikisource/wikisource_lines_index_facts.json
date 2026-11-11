@@ -1,0 +1,317 @@
+{
+ "schema_version": "wikisource_lines_index_facts.v1",
+ "classification": "Agent classification (Claude Code, 2026-11-11) from each Index's work title, creators and year, for reporting and the `genre`/`rabbinic` row fields only; it gates nothing. rabbinic = halakha, responsa, Mishnah/Tosefta, midrash, Bible or Talmud commentary, talmudic reference and history, hasidut and rabbinic thought (medieval Jewish philosophy included). `script` is the dominant script of a page's transcribed text (square or rashi), set per Index with page overrides from an agent check of renders (never an E2d3d or audit2 page image); unlisted pages are square.",
+ "indexes": {
+  "ws_index_1711486": {
+   "name": "mishneh-torah-vilna-1",
+   "genre": "halakha",
+   "rabbinic": true
+  },
+  "ws_index_1720479": {
+   "name": "qav-ve-naqi-1492",
+   "genre": "bible_commentary",
+   "rabbinic": true
+  },
+  "ws_index_1720553": {
+   "name": "ibn-yahya-ketuvim-1538",
+   "genre": "bible_commentary",
+   "rabbinic": true
+  },
+  "ws_index_1725211": {
+   "name": "pri-megadim-oh",
+   "genre": "halakha",
+   "rabbinic": true
+  },
+  "ws_index_1725257": {
+   "name": "berliner-sefer-hashmad",
+   "genre": "prose",
+   "rabbinic": false
+  },
+  "ws_index_1726695": {
+   "name": "kol-mahzikei-hadat-1883",
+   "genre": "newspaper",
+   "rabbinic": false
+  },
+  "ws_index_1734574": {
+   "name": "sippurei-maasiyot-1902",
+   "genre": "hasidic_tales_and_commentary",
+   "rabbinic": false,
+   "page_scripts": {
+    "ws_index_1734574__p0165": "rashi",
+    "ws_index_1734574__p0167": "rashi",
+    "ws_index_1734574__p0169": "rashi",
+    "ws_index_1734574__p0172": "rashi",
+    "ws_index_1734574__p0173": "rashi",
+    "ws_index_1734574__p0177": "rashi",
+    "ws_index_1734574__p0179": "rashi",
+    "ws_index_1734574__p0180": "rashi",
+    "ws_index_1734574__p0182": "rashi",
+    "ws_index_1734574__p0186": "rashi",
+    "ws_index_1734574__p0188": "rashi",
+    "ws_index_1734574__p0189": "rashi"
+   }
+  },
+  "ws_index_1734711": {
+   "name": "likkutei-hapardes-1519",
+   "genre": "halakha",
+   "rabbinic": true
+  },
+  "ws_index_1734721": {
+   "name": "sefer-hatapuah-1799",
+   "genre": "medieval_philosophy_translation",
+   "rabbinic": false
+  },
+  "ws_index_1735654": {
+   "name": "heidenheim-mishpetei-hateamim",
+   "genre": "masoretic_grammar",
+   "rabbinic": false
+  },
+  "ws_index_1745039": {
+   "name": "tanakh-hahn-1838",
+   "genre": "bible",
+   "rabbinic": false
+  },
+  "ws_index_214041": {
+   "name": "arukh-hashulhan-heatid-1",
+   "genre": "halakha",
+   "rabbinic": true
+  },
+  "ws_index_220713": {
+   "name": "maggid-devarav-leyaakov",
+   "genre": "hasidut",
+   "rabbinic": true
+  },
+  "ws_index_223060": {
+   "name": "tabyov-eden-hayeladim",
+   "genre": "prose",
+   "rabbinic": false
+  },
+  "ws_index_223203": {
+   "name": "saadia-emunot-vedeot-1562",
+   "genre": "rabbinic_thought",
+   "rabbinic": true
+  },
+  "ws_index_255445": {
+   "name": "siddur-torah-ohr",
+   "genre": "liturgy",
+   "rabbinic": false
+  },
+  "ws_index_256391": {
+   "name": "selihot-ashkenaz",
+   "genre": "liturgy",
+   "rabbinic": false
+  },
+  "ws_index_256394": {
+   "name": "seder-avodat-yisrael",
+   "genre": "liturgy",
+   "rabbinic": false
+  },
+  "ws_index_257961": {
+   "name": "siddur-farhi",
+   "genre": "liturgy",
+   "rabbinic": false
+  },
+  "ws_index_260883": {
+   "name": "shadal-humash-1871",
+   "genre": "bible_commentary",
+   "rabbinic": true
+  },
+  "ws_index_274837": {
+   "name": "crescas-or-hashem",
+   "genre": "rabbinic_thought",
+   "rabbinic": true
+  },
+  "ws_index_275916": {
+   "name": "tosefta-moed-zuckermandel-b",
+   "genre": "mishnah_tosefta",
+   "rabbinic": true
+  },
+  "ws_index_286280": {
+   "name": "ralbag-milhamot-hashem",
+   "genre": "rabbinic_thought",
+   "rabbinic": true
+  },
+  "ws_index_288180": {
+   "name": "bemamlekhet-kuzar",
+   "genre": "prose",
+   "rabbinic": false
+  },
+  "ws_index_288182": {
+   "name": "romanelli-masa-baarav",
+   "genre": "prose",
+   "rabbinic": false
+  },
+  "ws_index_288183": {
+   "name": "bostenay-1872",
+   "genre": "prose",
+   "rabbinic": false
+  },
+  "ws_index_288444": {
+   "name": "ibn-ezra-sefer-hamispar",
+   "genre": "medieval_science",
+   "rabbinic": false
+  },
+  "ws_index_288767": {
+   "name": "tosefta-moed-zuckermandel-a",
+   "genre": "mishnah_tosefta",
+   "rabbinic": true
+  },
+  "ws_index_314831": {
+   "name": "shadal-vikuah-kabbalah",
+   "genre": "rabbinic_thought",
+   "rabbinic": true
+  },
+  "ws_index_327706": {
+   "name": "tscherny-sefer-hamasaot",
+   "genre": "prose",
+   "rabbinic": false
+  },
+  "ws_index_328113": {
+   "name": "hyman-toldot-tannaim-1",
+   "genre": "talmudic_reference",
+   "rabbinic": true
+  },
+  "ws_index_328114": {
+   "name": "hyman-toldot-tannaim-2",
+   "genre": "talmudic_reference",
+   "rabbinic": true
+  },
+  "ws_index_328115": {
+   "name": "hyman-toldot-tannaim-3",
+   "genre": "talmudic_reference",
+   "rabbinic": true
+  },
+  "ws_index_328435": {
+   "name": "tosefta-zuckermandel",
+   "genre": "mishnah_tosefta",
+   "rabbinic": true
+  },
+  "ws_index_331268": {
+   "name": "sidon-shevet-shimon",
+   "genre": "prose",
+   "rabbinic": false
+  },
+  "ws_index_331308": {
+   "name": "frankel-ketuvim-aharonim-a",
+   "genre": "apocrypha_translation",
+   "rabbinic": false
+  },
+  "ws_index_331492": {
+   "name": "frankel-ketuvim-aharonim-b",
+   "genre": "apocrypha_translation",
+   "rabbinic": false
+  },
+  "ws_index_332490": {
+   "name": "buber-sifrei-deagadeta",
+   "genre": "midrash_with_commentary",
+   "rabbinic": true
+  },
+  "ws_index_332590": {
+   "name": "buber-tanhuma-1885",
+   "genre": "midrash_with_commentary",
+   "rabbinic": true
+  },
+  "ws_index_332868": {
+   "name": "jellinek-beit-hamidrash-1",
+   "genre": "midrash",
+   "rabbinic": true
+  },
+  "ws_index_332872": {
+   "name": "jellinek-beit-hamidrash-5",
+   "genre": "midrash",
+   "rabbinic": true
+  },
+  "ws_index_332873": {
+   "name": "jellinek-beit-hamidrash-6",
+   "genre": "midrash",
+   "rabbinic": true
+  },
+  "ws_index_336412": {
+   "name": "korfu-siddur-1885",
+   "genre": "liturgy",
+   "rabbinic": false
+  },
+  "ws_index_336448": {
+   "name": "hirsch-igrot-tsafon",
+   "genre": "rabbinic_thought",
+   "rabbinic": true
+  },
+  "ws_index_336509": {
+   "name": "hirsch-horev-2",
+   "genre": "halakha",
+   "rabbinic": true
+  },
+  "ws_index_336536": {
+   "name": "hirsch-horev-1b",
+   "genre": "halakha",
+   "rabbinic": true
+  },
+  "ws_index_336538": {
+   "name": "hirsch-horev-1a",
+   "genre": "halakha",
+   "rabbinic": true
+  },
+  "ws_index_336554": {
+   "name": "hirsch-hashabbat",
+   "genre": "rabbinic_thought",
+   "rabbinic": true
+  },
+  "ws_index_359833": {
+   "name": "shadal-ohev-ger",
+   "genre": "bible_commentary",
+   "rabbinic": true
+  },
+  "ws_index_370788": {
+   "name": "falaquera-hamevakesh",
+   "genre": "rabbinic_thought",
+   "rabbinic": true
+  },
+  "ws_index_376016": {
+   "name": "reines-hotam-tokhnit",
+   "genre": "rabbinic_thought",
+   "rabbinic": true
+  },
+  "ws_index_376147": {
+   "name": "reines-sefer-haarakhim",
+   "genre": "talmudic_reference",
+   "rabbinic": true
+  },
+  "ws_index_378494": {
+   "name": "kahana-hanokh-b",
+   "genre": "apocrypha_translation",
+   "rabbinic": false
+  },
+  "ws_index_381649": {
+   "name": "hut-hameshulash-1820",
+   "genre": "responsa",
+   "rabbinic": true
+  },
+  "ws_index_398671": {
+   "name": "dorot-harishonim-2",
+   "genre": "talmudic_history",
+   "rabbinic": true
+  },
+  "ws_index_398674": {
+   "name": "dorot-harishonim-1",
+   "genre": "talmudic_history",
+   "rabbinic": true
+  },
+  "ws_index_458756": {
+   "name": "dorot-harishonim-3",
+   "genre": "talmudic_history",
+   "rabbinic": true
+  },
+  "ws_index_468593": {
+   "name": "zamenhof-safa-ahat",
+   "genre": "prose",
+   "rabbinic": false
+  }
+ },
+ "script_check": {
+  "checked_by": "agent",
+  "checker": "Claude Code (claude-opus-5-5), wslines_v1",
+  "checked_at": "2026-11-11",
+  "method": "Viewed the line crops (1920 px Commons renders) of every candidate line of Mishneh Torah (Vilna), of Sippurei Ma'asiyot from p. 100 on, Mishpetei ha-Te'amim, Iggerot Tzafon and Sifrei de-Agadeta, and ten lines each of Sefer ha-Arakhim, Tanhuma, Horev, Milhamot ha-Shem and Sippurei Ma'asiyot's tales; plus one page render per Index. No E2d3d or audit2 page image was viewed.",
+  "finding": "Every line of the Sippurei Ma'asiyot commentary pages (p. 165-189) is Rashi script, bold headings included; every other line checked is square (the Rashi-script body of the Vilna Mishneh Torah does not pass the OCR-similarity gate, only its square headings and introduction do; Qav ve-Naqi's 1492 Sephardic semi-cursive gives no line)."
+ }
+}
