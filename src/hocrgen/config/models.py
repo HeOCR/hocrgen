@@ -441,7 +441,7 @@ class EvalSplitFileRecord(ConfigBaseModel):
 
     name: str = Field(pattern=r"^pmod_unit_split_v\d+\.json$")
     split_version: str = Field(pattern=r"^v\d+$")
-    schema_version: str = Field(min_length=1)  # as the file states it (pmod_unit_split_v1.json still says ...v0)
+    schema_version: str = Field(min_length=1)  # as the file states it (v1 said ...v0; from v2 it names the file format)
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     packaged_copy: str = Field(min_length=1)  # path of the committed copy, relative to the hocrgen package
 

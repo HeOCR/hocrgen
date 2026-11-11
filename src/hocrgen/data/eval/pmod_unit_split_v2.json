@@ -1,0 +1,2216 @@
+{
+ "schema_version": "heocr_eval_unit_split.v1",
+ "split_version": "v2",
+ "split_version_doc": "split_version names the assignment; schema_version names the file format",
+ "supersedes": {
+  "file": "pmod_unit_split_v1.json",
+  "sha256": "184d3b77d80dc26330665271aa81e1eace722299aa2962f5b641970b9741562e",
+  "change": "v1 assignments copied unchanged; 2005 born-digital booklets added, all non_eval"
+ },
+ "exposed_units": {
+  "reshumot:kovetz_hatakanot_6609": "used in R4f dev selection (data-collection audit, 2026-11-11)",
+  "reshumot:sefer_hachukim_2110": "used in R4f dev selection (data-collection audit, 2026-11-11)"
+ },
+ "decision": "heocr-engine planning/decisions/0017",
+ "owner": "eval[claude/claude-code#shay-macbook-m4]@heocr/opensource",
+ "rule": "per source unit; sha256('heocr-eval-pmod-v0:'+unit_id) order within stratum; first ceil(0.35*n) are eval, minus exposed units (moved to non_eval, slot not backfilled)",
+ "usage": "eval units: never used for training, tuning, selection, glyph harvesting or synthetic style/layout sources. non_eval units: open for training and for synth-gen style/layout sources. Units in neither list are unassigned and must not be used for either until a new version assigns them.",
+ "reshumot_born_digital": {
+  "eval": [
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_10782",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2023-09-10",
+    "captured_pages": 2,
+    "stratum": "kovetz_hatakanot|2020s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_11497",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2024-10-01",
+    "captured_pages": 2,
+    "stratum": "kovetz_hatakanot|2020s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_12042",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2025-09-17",
+    "captured_pages": 2,
+    "stratum": "kovetz_hatakanot|2020s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_12517",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2026-08-31",
+    "captured_pages": 2,
+    "stratum": "kovetz_hatakanot|2020s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6810",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2009-09-03",
+    "captured_pages": 8,
+    "stratum": "kovetz_hatakanot|2000s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6812",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2009-09-15",
+    "captured_pages": 3,
+    "stratum": "kovetz_hatakanot|2000s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_7163",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2012-09-13",
+    "captured_pages": 12,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_7282",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2013-08-21",
+    "captured_pages": 11,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_7427",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2014-09-23",
+    "captured_pages": 8,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_7544",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2015-08-16",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_7552",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2015-09-07",
+    "captured_pages": 16,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_7715",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2016-09-22",
+    "captured_pages": 11,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_8273",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2019-09-12",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_8764",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2020-09-17",
+    "captured_pages": 10,
+    "stratum": "kovetz_hatakanot|2020s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_9604",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2021-09-01",
+    "captured_pages": 2,
+    "stratum": "kovetz_hatakanot|2020s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2177",
+    "series": "sefer_hachukim",
+    "publish_date": "2008-08-06",
+    "captured_pages": 7,
+    "stratum": "sefer_hachukim|2000s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2200",
+    "series": "sefer_hachukim",
+    "publish_date": "2009-06-23",
+    "captured_pages": 6,
+    "stratum": "sefer_hachukim|2000s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2254",
+    "series": "sefer_hachukim",
+    "publish_date": "2010-07-28",
+    "captured_pages": 12,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2315",
+    "series": "sefer_hachukim",
+    "publish_date": "2011-08-17",
+    "captured_pages": 11,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2402",
+    "series": "sefer_hachukim",
+    "publish_date": "2013-07-21",
+    "captured_pages": 1,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2471",
+    "series": "sefer_hachukim",
+    "publish_date": "2014-08-11",
+    "captured_pages": 43,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2499",
+    "series": "sefer_hachukim",
+    "publish_date": "2015-08-05",
+    "captured_pages": 11,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2574",
+    "series": "sefer_hachukim",
+    "publish_date": "2016-08-11",
+    "captured_pages": 12,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2580",
+    "series": "sefer_hachukim",
+    "publish_date": "2016-08-16",
+    "captured_pages": 2,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2748",
+    "series": "sefer_hachukim",
+    "publish_date": "2018-07-26",
+    "captured_pages": 8,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2845",
+    "series": "sefer_hachukim",
+    "publish_date": "2020-08-24",
+    "captured_pages": 2,
+    "stratum": "sefer_hachukim|2020s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2921",
+    "series": "sefer_hachukim",
+    "publish_date": "2021-07-28",
+    "captured_pages": 2,
+    "stratum": "sefer_hachukim|2020s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_3082",
+    "series": "sefer_hachukim",
+    "publish_date": "2023-08-03",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2020s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_3578",
+    "series": "sefer_hachukim",
+    "publish_date": "2026-07-29",
+    "captured_pages": 16,
+    "stratum": "sefer_hachukim|2020s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_3579",
+    "series": "sefer_hachukim",
+    "publish_date": "2026-08-02",
+    "captured_pages": 7,
+    "stratum": "sefer_hachukim|2020s"
+   }
+  ],
+  "non_eval": [
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_10333",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2022-09-19",
+    "captured_pages": 6,
+    "stratum": "kovetz_hatakanot|2020s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_10339",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2022-09-22",
+    "captured_pages": 5,
+    "stratum": "kovetz_hatakanot|2020s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_10780",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2023-09-05",
+    "captured_pages": 2,
+    "stratum": "kovetz_hatakanot|2020s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_11496",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2024-10-01",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2020s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_12040",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2025-09-15",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2020s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_12521",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2026-09-03",
+    "captured_pages": 11,
+    "stratum": "kovetz_hatakanot|2020s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_12562",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2026-11-01",
+    "captured_pages": 2,
+    "stratum": "kovetz_hatakanot|2020s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_12565",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2026-11-02",
+    "captured_pages": 6,
+    "stratum": "kovetz_hatakanot|2020s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6391",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-06-08",
+    "captured_pages": 16,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "18abe81be20dd09e10d60de3e949047580fb5e92aa1448a2a9684d984e5153ea"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6395",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-06-30",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "c3a62b980dd69afda84a07103ee15f3087e1ad00e7d33fab05bd5bd98ead6310"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6396",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-07-07",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "a51dc1cb2fb44655e29994bd4f3fcb124d7662daeac99dc3aa5d4061e4d64046"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6397",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-07-11",
+    "captured_pages": 16,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "562d006379ef53aa5a0577e414d310bc6dfe0df65008fb0d5ed5cb53bc477f74"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6398",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-07-12",
+    "captured_pages": 8,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "5fea2ffccffc787cff8b4d791e547803a9ba5f3d89532ba6603df35f432f8d57"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6399",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-07-13",
+    "captured_pages": 2,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "34fb96d6253998e1c80b637f5ec29d6567bc6a63e62add0dff850c50f001be15"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6400",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-07-14",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "f4a2dcc5f707ff8cd1007d18d56101a6c39976e720bde5366388f3903f707961"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6401",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-07-20",
+    "captured_pages": 12,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "526bee4df53d4eaa1c85a7fb9e4ac6d8433d355ebc4eaa1161b9d7c1a9a3e757"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6402",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-07-25",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "9f99a5b9a87f9d9aa69a0f10a1c967855f1f06a0d7a750081bfaba731a44667d"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6403",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-07-27",
+    "captured_pages": 16,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "9a92347b0ae642c726a211003987b4302c3c3d42cc7ef3ce471abeab8e98cbd7"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6404",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-07-28",
+    "captured_pages": 2,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "440d91e95585fb97831c382b90cf22b3196e13fc945a1b9080f4ba63329acb32"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6405",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-07-31",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "8ed3d598cee78c36279022cf14d51ecea1626a49c8f65594629e84063f14f856"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6406",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-08-01",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "578264bab873d4d612dd973d5fd12e982b06ffe0bfdbd13ae4ddf3dda400fb19"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6407",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-08-01",
+    "captured_pages": 24,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "30b3efd3a3ffe4418d214ceb9a43d18c8953cb81be63c93e7ff04e3117bcd113"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6408",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-08-04",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "b928ed6ea709e8d6ac60e4289769f5ee6e153d654cb361e17939dbdfc8e44829"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6409",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-08-09",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "7f0d9595805490c605a6d58e6c6a09d3ec66fd808ac69374d4bd536c5676fb36"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6410",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-08-11",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "23d8f674e224c70c0470c1d40d110456102c1a5fbca04e25af2e6d8a56500c63"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6411",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-08-11",
+    "captured_pages": 2,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "b50a1c5f33b0a42d157315154a06c4a0b24d2917161cdb3ab7998bb030077b22"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6412",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-08-11",
+    "captured_pages": 2,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "d83a677236fcb110908bab6368337ae389f4942e615fc1bc68c0a3f245765cb6"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6413",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-08-15",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "d0081d0c2665a75b31ba6682545415c0130539529f9a2f8c2547f9159cbaf119"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6414",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-08-17",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "f9b095ee2a9fac402ea343b7ed4f30d971fa5ada2dd7a323cb0676a6a12263dc"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6415",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-08-18",
+    "captured_pages": 16,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "1621c4fd9b4852e3a8b57736aecd586800a35d01e586568e1745fe7c8f7f7e75"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6416",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-08-23",
+    "captured_pages": 8,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "e81bb7238bf606d19f470f7471161ed19a1446988717a240e93af7244873cbb1"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6417",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-08-24",
+    "captured_pages": 16,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "c7fede8023ab1f1e3580713604d094fb1bc7a26dee78327b95704d574815f9f3"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6418",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-08-30",
+    "captured_pages": 8,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "f4681fcbf930f898d8d29274505fcc374739ba80d9578a4e414d80268abb43d7"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6419",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-08-31",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "9f92574e081498c77667c16bb9bf1b9069dee7811820ea42263954cda2e6ea2b"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6420",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-09-01",
+    "captured_pages": 2,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "17b4f8ea828112475939f04014d3c1505531444276b350613963aa039c4ce5df"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6421",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-09-12",
+    "captured_pages": 16,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "c08212424b57a62dd070d0470b9e144ef3b381899b9ce95604110dc43f2b0759"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6422",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-09-19",
+    "captured_pages": 20,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "f8a67dc3a0703e11e1b044c0a5e3313f92bed3e3e6a9ff62e00c909db9fd315c"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6423",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-09-19",
+    "captured_pages": 6,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "0b12740b1a8d75196a691383e358ca5970b1de18c03123b336122e899772a1a8"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6424",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-09-27",
+    "captured_pages": 16,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "2a01aa73e4c8c35d043a9207ef6f6d71208cb33e1e413161125829b490cac838"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6425",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-09-28",
+    "captured_pages": 8,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "6486b2afb234c4daf632160176addb3327b480fb4fc1e8f1fbaf6dccc56663e4"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6426",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-09-29",
+    "captured_pages": 16,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "c4828365655e224a84ab6ae3e59e03b84985863788c5e07c4f2d6baa4d73d8c9"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6427",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-10-05",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "57efd881b7ef0552124a38458a60eda3d1a4bf095d10c2e1f3c9e6efb01d2f6a"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6428",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-10-10",
+    "captured_pages": 6,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "e4e23d856075d60370e24fff145ff17cbabc5fad6861e3b8421296d71dbd4f75"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6429",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-10-11",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "e5bd23023b4843b5e89a3430231074c97851079ac173865afaec737141b7e000"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6430",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-10-30",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "f1b38a1f8145fa119732249e8f1836a43863ec3943bb11c28ac248e79d06a45e"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6431",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-10-31",
+    "captured_pages": 36,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "73306efb382afaa6ff3a334c2ecc0939f0bd83bd047322c99456931748d3748f"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6432",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-11-02",
+    "captured_pages": 2,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "c78b2770a7084518384d744a586c70500870668d60523d7c47a49fd02c239192"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6433",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-11-06",
+    "captured_pages": 6,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "61a2b8418255dba4f78a1b2e3b7203fc0abdd997cd3bc4a6820c0c19624e39f4"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6434",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-11-08",
+    "captured_pages": 24,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "a2dbd33d113681144e4fd0ab4d0eef44e299d18479be4cf5add201eb4831edcd"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6435",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-10-10",
+    "captured_pages": 8,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "2dba017a237b975749a7635c369176790742b0b2523e6fc1bb7f5d72b3de9b83"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6436",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-11-15",
+    "captured_pages": 8,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "05e49f545ce43ea28394a8624968e7e2fd9f572c85dd6d5b7d5edc45f5c99f22"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6437",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-11-16",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "4f8665af9a60e5327104ef68a4a02f07aa666218e8d326c70895a1b365401c44"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6438",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-11-24",
+    "captured_pages": 16,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "2fb7fc9a79727cc3175aabbc0014c20059aab32838beaa274b6b98d69449fb83"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6439",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-11-29",
+    "captured_pages": 8,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "ebd71487c9f397f68027d691cac2d898bfb4e183ba6d869212d82628907b6c9a"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6440",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-11-04",
+    "captured_pages": 16,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "c165adfbbd8c7e1548c8d4c9fb77cc4571da3080c456fc059e7974c77ea904b6"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6441",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-12-11",
+    "captured_pages": 16,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "25c647320aecafba19d7e39ccfa5d445ac26efab84011829dc37f2759194ec2d"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6442",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-12-11",
+    "captured_pages": 8,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "d79ca76073db8d63d31b95f0e8ff3326b17bb2a14fb403b5e6387d2a4e95d2ee"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6443",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-12-13",
+    "captured_pages": 16,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "57b520ff4a3a03e9d4e62fb9091071e45304f22ea256a336977a282554c5cbe3"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6444",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-12-18",
+    "captured_pages": 8,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "c31b50306b8f4d0043be7c3ed7e2d5d4957732a432ed13e2b677ae70e35b7e93"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6445",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-12-20",
+    "captured_pages": 16,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "bf37851f5a501935fc783eca13fada952e8129c51182d10e686dd1e9e4c120a9"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6446",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-12-22",
+    "captured_pages": 32,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "8e86d6449256ec3609392a28c31ba952b421e7fb2fde5e4a9e2f0738a27555d2"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6447",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-12-28",
+    "captured_pages": 16,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "dcf7f16ace706e7ba58e1dbfaa7d5ddf5bf8ab6fabd1e027e1e6180efdb7c348"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6448",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-12-29",
+    "captured_pages": 32,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "4a2218eeb8c5e42d1320f23c26e04608b9dcf980b964adb9244891d1890f3635"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6449",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-12-29",
+    "captured_pages": 24,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "c10a43b96d634c6d449a981707aa0fff1dc95835e2ef92508405d1f8da27fc19"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6450",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2005-12-29",
+    "captured_pages": 6,
+    "stratum": "kovetz_hatakanot|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "939a1fcb862764f0de6998d1b949006043e1075090be5b2bd6752bc4e5369625"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6470",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2006-03-22",
+    "captured_pages": 21,
+    "stratum": "kovetz_hatakanot|2000s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6517",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2006-09-13",
+    "captured_pages": 7,
+    "stratum": "kovetz_hatakanot|2000s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6609",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2007-08-15",
+    "captured_pages": 16,
+    "stratum": "kovetz_hatakanot|2000s",
+    "status": "exposed",
+    "reason": "used in R4f dev selection (data-collection audit, 2026-11-11)"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6610",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2007-08-22",
+    "captured_pages": 13,
+    "stratum": "kovetz_hatakanot|2000s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6708",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2008-09-09",
+    "captured_pages": 6,
+    "stratum": "kovetz_hatakanot|2000s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6710",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2008-09-10",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2000s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6903",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2010-06-30",
+    "captured_pages": 23,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6926",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2010-09-07",
+    "captured_pages": 7,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_6942",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2010-11-21",
+    "captured_pages": 15,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_7070",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2012-11-01",
+    "captured_pages": 1,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_7285",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2013-09-01",
+    "captured_pages": 12,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_7422",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2014-09-11",
+    "captured_pages": 12,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_7708",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2016-09-05",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_7862",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2017-09-12",
+    "captured_pages": 4,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_7865",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2017-09-19",
+    "captured_pages": 8,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_8062",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2018-08-21",
+    "captured_pages": 8,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_8065",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2018-08-27",
+    "captured_pages": 6,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_8268",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2019-09-03",
+    "captured_pages": 8,
+    "stratum": "kovetz_hatakanot|2010s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_8767",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2020-09-17",
+    "captured_pages": 3,
+    "stratum": "kovetz_hatakanot|2020s"
+   },
+   {
+    "unit_id": "reshumot:kovetz_hatakanot_9606",
+    "series": "kovetz_hatakanot",
+    "publish_date": "2021-09-02",
+    "captured_pages": 2,
+    "stratum": "kovetz_hatakanot|2020s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1976",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-01-26",
+    "captured_pages": 6,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "a4b17d8eae2bfd0b698ae6208e9f5055bcd4a05daf836efcf3628888009ba70f",
+     "db1ce7e644e18febc2ef82153c1b19f5eb1c3beab2511da0da473b5eacce778c"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1980",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-02-13",
+    "captured_pages": 8,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "b86980e4169b5b7b6d615bfc839369e240230ca4609d7879300fb154b27d4858"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1981",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-02-14",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "a5be8ba31be8151a76512991deb111297901baba946d768dd0bd489c5d19204b"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1982",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-02-18",
+    "captured_pages": 63,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "983b07be2cd0facac5854cdb52108d4880fa53d2dbf366037a9e3e548dadf2d3"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1983",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-02-21",
+    "captured_pages": 12,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "33e2c8698202a72ac3faf5f8f9e90a67a31550b14bfb44554263d8bcc9d07acd"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1984",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-02-24",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "7c156b957fcab061d524f13c2257173dc1a62c310876058c93dc8a5571f9b329"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1985",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-03-01",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "b273d87e16abff0d87b5394566dd5a5d4617901532223e8f12f20391a5aee658"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1986",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-03-03",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "4624cee0dfe3a271066574e69cb69648c649732edebe03e9fec37d1d590b384f"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1987",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-03-06",
+    "captured_pages": 2,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "8b1704eb188a7015e8a6bcdda0282776e7c9501c92b3e3ca03776880baf1a23a"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1988",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-03-13",
+    "captured_pages": 8,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "d0d00273a6ce162edf6bc8d9806af3b6901bc16e26e1fafb7a2661e3fa858d7e"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1989",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-03-17",
+    "captured_pages": 20,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "4d10e70f510d0d739302ae0235e536ac16142c1418cb954d4596c4309bb2bc36"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1990",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-03-22",
+    "captured_pages": 2,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "13e7b616baaf83df3a53bea10b21fb3baffbe398e64c302cf899b37e7229b222"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1991",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-03-24",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "0b975d0f94da1d0c329024087bfbc07e2cf7a08cee7c2ec1354189ae441acd38"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1992",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-03-29",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "2b7afcb5dde9d8f68a278badf389148d354c72bc88fc1d7dbaacbcc80fd877b5"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1993",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-04-03",
+    "captured_pages": 8,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "4ef4c7ece51da1e8bce565b30aa735cad04fa7f1b0a0b98b7b82f928bd899f6a"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1994",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-04-03",
+    "captured_pages": 12,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "dfc42d89e5a31b2fcc7ad255707c5c214c72af4edc342a00e6161b2553760521"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1995",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-04-07",
+    "captured_pages": 52,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "de34daa37af68d0df78b09bf3da1f73d05f0daba73c2d3e43daa3f48a8bd0bbb"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1996",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-04-07",
+    "captured_pages": 6,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "f67e8d99675e1d6468362537490c250296934c68a89739e65670a081eed50bd4"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1997",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-04-11",
+    "captured_pages": 80,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "4dd43c0ecb16bc25d1d147f9a759d271ed0845161efec23689b488463bd3df95"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1998",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-04-11",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "4b5d546c271f22d522eb911cee12d0d4322c84cef022d2a55ab96a7f7c3706f3"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_1999",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-04-12",
+    "captured_pages": 8,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "05abaa9251a9b5e198c400924eb9604d5ebadc4c05ffb415bb99b26387f92a30"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2000",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-04-12",
+    "captured_pages": 24,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "0c8ad2195b52961ee4d8fee929baa27ef22d0e871e2c25ff48584979b146fbd7"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2001",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-05-24",
+    "captured_pages": 2,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "0db6cf884ca686e967c9689b6b8325b2a8e6e8942ee0e847a0ec2f5ef0c6b2e6"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2002",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-06-06",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "6a8fb6cddfa8bcd73d3c6c27a10bda294d7f8687d76d3ba36608c841b43c1a89"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2003",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-06-08",
+    "captured_pages": 6,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "2529c791afd03790b4f56fa9e73fb1d7e36b2d9b98928dcd67992e6435b8213e"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2004",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-06-09",
+    "captured_pages": 7,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "b359f2892fd82caa3935503e6f51a4039a7301d8388785263fb373f68a6eb148"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2005",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-06-19",
+    "captured_pages": 24,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "9366a09f0064e12c009f632336d527dc34b6d798076433dcdbac56e623c4d2b2"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2006",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-06-22",
+    "captured_pages": 14,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "9add407c63d0b79de07d0cff4fef0803859052da56f7fad44a32e14524b25093"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2007",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-06-26",
+    "captured_pages": 2,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "5a2f2c5da339c05d3d366cff3f6ce355cb8cf5afb7d2406784ae7d4584b862c6"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2008",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-06-29",
+    "captured_pages": 8,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "bfcaf080049ff843eed849cab672479e0275c07c692d09de747eed47c84d7f30"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2010",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-06-30",
+    "captured_pages": 2,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "71553c80d9fcd52dde093b7a0ea9c8e0ba1d6631c0aacf86bcef0699952dfecb"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2011",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-07-05",
+    "captured_pages": 2,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "c711c404a283d78baa0e2e838a1ec3abddb7aa93b6543e02e9f22f5f38cea8fd"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2012",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-07-07",
+    "captured_pages": 30,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "0147c2c91a86710c0c2e36df946d9aebcd911939397047bebd2431c5e5470c12"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2013",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-07-14",
+    "captured_pages": 6,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "cdd30fe0f85a6ca324f0c083a430087d569f977c9de4c92d56b40b73d1d3bea9"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2014",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-07-25",
+    "captured_pages": 8,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "8511e9d0c3266108347484189fc404ad4add605b3ec64158083a5e202ca21907"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2015",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-07-26",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "a70d1f4cf02930988e1ca16dfe828b6a2055310f011bc13813c1f752df6b9547"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2016",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-07-31",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "7057a31e892639b38a5b0901ceef011374d15c018dc2ccc275af4988583eecfd"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2017",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-08-01",
+    "captured_pages": 8,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "93ba8582197eb716e3fd391263d58c99d3ee87b566fe8c59755525702b24cd4a"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2019",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-08-08",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "9f6778fd2ef17e78b769514da6bc8a6408c2a217f0a4aa36c78cc6715333b422"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2020",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-08-08",
+    "captured_pages": 16,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "338ef34ce0655ed2885729e404779dfbcbde243f38ce1fb41042da6a31cba56f"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2021",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-08-08",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "c1c0a9414c6113202ae8bb9b2253434f0551621fc9335c501c78b5495d5c170b"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2022",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-08-08",
+    "captured_pages": 8,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "6113ccad5cd705ce934232674c1fd103966c57394b7a8493f3626f2f3d62b513"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2023",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-08-10",
+    "captured_pages": 62,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "9f668be84bb82f9a7afbf67ef669fc146d68627c493de6375e3a48424b6146db"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2024",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-08-10",
+    "captured_pages": 111,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "db3b1a73c8db6f139c83f311a1cf367b04ef9b67f02bac4b3787003b8171dbea"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2025",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-08-10",
+    "captured_pages": 8,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "515e47f49a622e09b8a615c101289106e1e5aad3473f63d77e4f0d4d808dc6e6"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2026",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-08-10",
+    "captured_pages": 16,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "bc7b65918abaaed8ab823323cfcc377ba2ace1f9096e9a3bb5f7768929799970"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2027",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-08-16",
+    "captured_pages": 16,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "771eb71ca13dc8f4364b9422eb4963975449e0551e053e53829411ea2dcfdbb8"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2028",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-08-21",
+    "captured_pages": 15,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "e8f0730155b02e3731275b6ff1b76a8a47053a80941ffda5bafafd69460eb7f0"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2029",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-09-06",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "4fd84f2223b72ab8ec7b6a9d408ff0755a5ef7718717b4c2eaa22c32f5f7ecfa"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2030",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-09-11",
+    "captured_pages": 2,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "505e98b2460468888e76989531cf5a60680fa7e5e89b6b31afe7fe156a74658b"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2031",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-10-02",
+    "captured_pages": 2,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "ee505a56a0f974dd88459fb679613ab8d5addb559d5b5b8990ee37aba007f22b"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2032",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-10-31",
+    "captured_pages": 2,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "321a2675588d92278165a6ce49e210f64aa46f43cf1566ca107db51c123b77d7"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2033",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-11-10",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "fbc6ff3f244b4eeeb268728e02fc6a830195164991e6bc4e041f95e5d20ad1d6"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2034",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-11-16",
+    "captured_pages": 2,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "08819568df4b0294418401160e2b4fa3db623b5351361ee85dfa7cc074997909"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2035",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-11-22",
+    "captured_pages": 12,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "912d1e522396896d201e95c6c6f61fa58b34471ceed03226abf47e9dedbb46c2"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2036",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-11-28",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "62a8a01bf9bade91b1b66eb5db74bb5eaf6481c64a024939393551232a2295fd"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2037",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-12-01",
+    "captured_pages": 16,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "34b2b1c5ee2d29bd9f1e7d28a65af7b600728a21e1a69ec280afc0991e91465a"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2038",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-12-08",
+    "captured_pages": 16,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "969d028e2ef0d7c98b04980bcbedfe569e012ce9d414764f5a4f3e4ad46ab082"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2039",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-12-15",
+    "captured_pages": 32,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "bdfd81dbadc3610f5d7d54cef4d15ac6fce24d3e7055de43e3fd99bd8699ac1c"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2040",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-12-15",
+    "captured_pages": 8,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "94f27ade40d7c5b02a4091de975c54f25c14c6832866ebf91b53fadd94ca026a"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2041",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-12-22",
+    "captured_pages": 8,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "13b7a52a1177c3fec6025d699a21cf9884c7506ee4324a2edaa54e6e14a6acb7"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2042",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-12-26",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "0ae88129497c1a203fdba340918f2bfcb5937f115917b863764445e1d55b2670"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2043",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-12-29",
+    "captured_pages": 16,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "7826a221fb95db6adf8ba2c2307542cc57b42ea83768ce092a54f13546a5c8ea"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2044",
+    "series": "sefer_hachukim",
+    "publish_date": "2005-12-29",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2005",
+    "status": "born_digital_2005",
+    "files_sha256": [
+     "d6501c67fc59539b7efd35e13313ba2aabc7c39afe2103abaf542415c82733f2"
+    ],
+    "reason": "2005 born-digital booklets (outside reshumotlines_v1's PublishDate>=2006 filter); non_eval by lead's default and eval's plan: v1 already holds 2000s eval units, and attestation, not units, limits the eval pool"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2063",
+    "series": "sefer_hachukim",
+    "publish_date": "2006-07-27",
+    "captured_pages": 6,
+    "stratum": "sefer_hachukim|2000s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2065",
+    "series": "sefer_hachukim",
+    "publish_date": "2006-08-14",
+    "captured_pages": 16,
+    "stratum": "sefer_hachukim|2000s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2108",
+    "series": "sefer_hachukim",
+    "publish_date": "2007-08-07",
+    "captured_pages": 16,
+    "stratum": "sefer_hachukim|2000s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2110",
+    "series": "sefer_hachukim",
+    "publish_date": "2007-08-19",
+    "captured_pages": 5,
+    "stratum": "sefer_hachukim|2000s",
+    "status": "exposed",
+    "reason": "used in R4f dev selection (data-collection audit, 2026-11-11)"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2180",
+    "series": "sefer_hachukim",
+    "publish_date": "2008-08-07",
+    "captured_pages": 12,
+    "stratum": "sefer_hachukim|2000s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2209",
+    "series": "sefer_hachukim",
+    "publish_date": "2009-08-10",
+    "captured_pages": 15,
+    "stratum": "sefer_hachukim|2000s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2256",
+    "series": "sefer_hachukim",
+    "publish_date": "2010-07-29",
+    "captured_pages": 11,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2314",
+    "series": "sefer_hachukim",
+    "publish_date": "2011-08-15",
+    "captured_pages": 22,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2378",
+    "series": "sefer_hachukim",
+    "publish_date": "2012-08-07",
+    "captured_pages": 14,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2382",
+    "series": "sefer_hachukim",
+    "publish_date": "2012-08-13",
+    "captured_pages": 6,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2405",
+    "series": "sefer_hachukim",
+    "publish_date": "2013-08-05",
+    "captured_pages": 81,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2464",
+    "series": "sefer_hachukim",
+    "publish_date": "2014-08-06",
+    "captured_pages": 10,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2497",
+    "series": "sefer_hachukim",
+    "publish_date": "2015-08-03",
+    "captured_pages": 15,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2578",
+    "series": "sefer_hachukim",
+    "publish_date": "2016-08-16",
+    "captured_pages": 7,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2656",
+    "series": "sefer_hachukim",
+    "publish_date": "2017-08-06",
+    "captured_pages": 19,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2663",
+    "series": "sefer_hachukim",
+    "publish_date": "2017-08-09",
+    "captured_pages": 18,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2745",
+    "series": "sefer_hachukim",
+    "publish_date": "2018-07-26",
+    "captured_pages": 8,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2779",
+    "series": "sefer_hachukim",
+    "publish_date": "2019-01-10",
+    "captured_pages": 8,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2780",
+    "series": "sefer_hachukim",
+    "publish_date": "2019-01-10",
+    "captured_pages": 7,
+    "stratum": "sefer_hachukim|2010s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_2918",
+    "series": "sefer_hachukim",
+    "publish_date": "2021-07-20",
+    "captured_pages": 2,
+    "stratum": "sefer_hachukim|2020s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_3001",
+    "series": "sefer_hachukim",
+    "publish_date": "2022-07-07",
+    "captured_pages": 8,
+    "stratum": "sefer_hachukim|2020s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_3009",
+    "series": "sefer_hachukim",
+    "publish_date": "2022-09-19",
+    "captured_pages": 3,
+    "stratum": "sefer_hachukim|2020s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_3085",
+    "series": "sefer_hachukim",
+    "publish_date": "2023-08-06",
+    "captured_pages": 20,
+    "stratum": "sefer_hachukim|2020s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_3288",
+    "series": "sefer_hachukim",
+    "publish_date": "2024-09-15",
+    "captured_pages": 4,
+    "stratum": "sefer_hachukim|2020s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_3293",
+    "series": "sefer_hachukim",
+    "publish_date": "2024-09-30",
+    "captured_pages": 2,
+    "stratum": "sefer_hachukim|2020s"
+   },
+   {
+    "unit_id": "reshumot:sefer_hachukim_3452",
+    "series": "sefer_hachukim",
+    "publish_date": "2025-08-13",
+    "captured_pages": 2,
+    "stratum": "sefer_hachukim|2020s"
+   }
+  ]
+ },
+ "knesset_committee_protocols_pre1976": {
+  "eval": [
+   {
+    "unit_id": "knesset_protocol:398637",
+    "committee_id": 315,
+    "document_name": "פרוטוקול ישיבת ועדת ועדת הכספים מספר 72, בתאריך 03/07/1951",
+    "captured_pages": 1,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:399388",
+    "committee_id": 264,
+    "document_name": "פרוטוקול ישיבת ועדת כלכלה מספר 2, בתאריך 25/11/1952",
+    "captured_pages": 2,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:430997",
+    "committee_id": 270,
+    "document_name": "פרוטוקול ישיבת ועדת כלכלה מספר 155, בתאריך 31/12/1975",
+    "captured_pages": 1,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:631370",
+    "committee_id": 2657,
+    "document_name": "פרוטוקול ישיבת הוועדה מתאריך 17/02/1959",
+    "captured_pages": 7,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:633903",
+    "committee_id": 2838,
+    "document_name": "פרוטוקול ישיבת הוועדה מתאריך 06/11/1961",
+    "captured_pages": 14,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:634011",
+    "committee_id": 2893,
+    "document_name": "פרוטוקול ישיבת הוועדה מתאריך 23/12/1966",
+    "captured_pages": 13,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:635525",
+    "committee_id": 2964,
+    "document_name": "פרוטוקול ישיבת הוועדה מתאריך 11/11/1971",
+    "captured_pages": 2,
+    "stratum": "all_protocols"
+   }
+  ],
+  "non_eval": [
+   {
+    "unit_id": "knesset_protocol:398668",
+    "committee_id": 341,
+    "document_name": "פרוטוקול ישיבת ועדת חינוך מספר 10, בתאריך 29/06/1949",
+    "captured_pages": 14,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:400547",
+    "committee_id": 321,
+    "document_name": "פרוטוקול ישיבת ועדת ועדת הכספים מספר 21, בתאריך 25/12/1951",
+    "captured_pages": 15,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:417699",
+    "committee_id": 371,
+    "document_name": "פרוטוקול ישיבת ועדת חוקה מספר 102, בתאריך 17/04/1961",
+    "captured_pages": 10,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:417824",
+    "committee_id": 384,
+    "document_name": "פרוטוקול ישיבת ועדת ועדת הכנסת מספר 41, בתאריך 04/08/1960",
+    "captured_pages": 3,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:434809",
+    "committee_id": 353,
+    "document_name": "פרוטוקול ישיבת ועדת חינוך מספר 65, בתאריך 24/12/1974",
+    "captured_pages": 15,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:435215",
+    "committee_id": 361,
+    "document_name": "פרוטוקול ישיבת ועדת בקורת המדינה מספר 7, בתאריך 01/04/1974",
+    "captured_pages": 12,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:631279",
+    "committee_id": 2642,
+    "document_name": "פרוטוקול ישיבת הוועדה מתאריך 29/07/1957",
+    "captured_pages": 3,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:631349",
+    "committee_id": 2587,
+    "document_name": "פרוטוקול ישיבת הוועדה מתאריך 27/07/1959",
+    "captured_pages": 28,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:633847",
+    "committee_id": 2828,
+    "document_name": "פרוטוקול ישיבת הוועדה מתאריך 11/06/1963",
+    "captured_pages": 10,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:633964",
+    "committee_id": 2906,
+    "document_name": "פרוטוקול ישיבת הוועדה מתאריך 14/06/1966",
+    "captured_pages": 7,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:634037",
+    "committee_id": 2879,
+    "document_name": "פרוטוקול ישיבת הוועדה מתאריך 24/07/1966",
+    "captured_pages": 28,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:635555",
+    "committee_id": 3012,
+    "document_name": "פרוטוקול ישיבת הוועדה מתאריך 17/11/1970",
+    "captured_pages": 7,
+    "stratum": "all_protocols"
+   },
+   {
+    "unit_id": "knesset_protocol:635561",
+    "committee_id": 3011,
+    "document_name": "פרוטוקול ישיבת הוועדה מתאריך 21/12/1970",
+    "captured_pages": 13,
+    "stratum": "all_protocols"
+   }
+  ]
+ },
+ "line_set_condition": "any Reshumot line set built from non_eval units drops every line sharing a word 6-gram (logical order) with a v1 eval booklet or a wave-1 page (eval-domains/scripts/ngram_overlap.py), and records the count"
+}
