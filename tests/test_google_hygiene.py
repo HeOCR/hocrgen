@@ -106,3 +106,16 @@ def test_ia_derivation_blocker_fails_closed() -> None:
     scan = {"source": "internet_archive", "source_class": "ia_google_digitized_scan", "rights_justification": backfilled.record}
     assert backfilled.record["hygiene"] == "pending" and ij.ia_derivation_blocker(scan) == "google_hygiene_pending"
     assert ij.ia_derivation_blocker({"nli_record_id": "99", "license_slug": "public-domain-free-use"}) is None
+
+
+def test_hygiene_record_summary_states_what_was_found() -> None:
+    none = gh.hygiene_record([], {0: None, 1: None, 2: None}, front_matter_checked=[2, 0, 1],
+                             visual_check={"checked_by": "agent", "note": "canvases 0-3 viewed"})
+    assert none["summary"] == {"front_page": "none found (canvases [0, 1, 2] read by eng OCR)",
+                               "watermark": "none found (foot bands of all 3 pages read by eng OCR)"}
+    assert none["visual_check"]["checked_by"] == "agent"
+    found = gh.hygiene_record([{"canvas_index": 0, "reason": gh.EXCLUDED_GOOGLE_FRONT_MATTER}], {1: [1, 2, 3, 4], 2: None},
+                              front_matter_checked=[0, 1, 2])
+    assert found["summary"]["front_page"].startswith("excluded canvases [0]")
+    assert found["summary"]["watermark"] == "found on 1 of 2 pages (lines under it dropped)"
+    assert "summary" not in gh.hygiene_record([], {0: None}) and "visual_check" not in found

@@ -56,6 +56,23 @@ and counts lines by hint; a record with rows but no hint fails the build. A hint
 tagger decides the node. Schema v2 adds per-line ``stratum`` and ``ocr_placer`` (which OCR
 localized the line for the aligner: ``method.ocr_model`` if the alignment records one, else the ``--tessdata-dir`` of
 ``method.ocr_engine``, else ``stock``) and the matching summary breakdowns.
+
+**Text sources beyond PBY** (``hocrgen.fetchers.text_sources``; decision
+``planning/decisions/2026-11-11-text-sources-sefaria-gutenberg.md``). A Sefaria or Project Gutenberg alignment sits in
+``out/<work_id>/`` (``sefaria_<slug>`` or ``gutenberg_<n>``) with its text at ``text/<work_id>.txt``; the text's sha256
+must equal its text record's (``work.text_record.text_sha256``) or ``build`` stops. Its rows carry ``work_id`` (and
+``pby_id: null``), the text provenance ``text_source``, ``text_version_title``, ``text_version_source``,
+``text_licence``, ``text_api_url``, ``text_snapshot_sha256``, and the ``script`` stratum (``square``, ``rashi`` or
+``mixed``, from the text record); the summary adds ``lines_by_script`` and ``text_provenance`` per record. A text-source line
+whose label has a parenthesised group (a citation, mostly) that matches the line OCR at its place below
+``MIN_PAREN_SIMILARITY`` is dropped as ``parenthetical_differs_from_print``: Sefaria re-types citations (the print's
+``(בר' ט' י"ג)`` as ``(בראשית ט' י"ג)``). A text-source line whose OCR shows a parenthesis, bracket or digit where
+the label has none is dropped as ``print_marker_missing_from_label``: Sefaria keeps the print's note references
+(``(מ)``, ``1)``) as anchors or footnotes, which the normaliser removes. Each kept row records
+``parenthetical_similarity``. PBY rows are unchanged. ``--reserve REC[=name]`` holds an edition out whole, from train and dev alike (an eval reserve): its lines
+are counted as ``reserved_edition`` and never written, and the summary lists it under ``reserved_records``.
+``--drop-overlap PRIMARY=SECONDARY`` (two scans of one edition, e.g. a library copy and a Google-derived copy) keeps
+from SECONDARY only the lines whose edition text no PRIMARY aligned page covers (``covered_by_primary_copy``).
 """
 
 from __future__ import annotations
@@ -80,6 +97,7 @@ from hocrgen.fetchers.google_hygiene import boxes_overlap
 from hocrgen.fetchers.ia_iiif import IA_GATE, IA_SOURCE
 from hocrgen.fetchers.ia_justification import ia_derivation_blocker
 from hocrgen.split.eval_reserved import refuse_eval_reserved_training_input
+from hocrgen.fetchers.text_sources import PROVENANCE_FIELDS, TEXT_SOURCE_PBY
 
 SCHEMA_PREFIX = "s16c_benyehuda_nli_lines"
 POINTS = re.compile("[֑-ׇֽֿׁׂׅׄ]")  # niqqud + cantillation; keeps maqaf, paseq, sof pasuq
@@ -101,6 +119,70 @@ CHECK_POINTED_DENSITY = 0.1
 MAX_UNDOTTED_SHIN = 0.05
 MAX_BARE_WORDS = 0.01
 ACCEPTED_LICENSE = "public-domain-free-use"
+TEXT_WORK_DIR = re.compile(r"^(sefaria|gutenberg)_[a-z0-9_]+$")
+# Text-source rows: each parenthesised group of the label (a citation, mostly) must match the line OCR at that place.
+# Sefaria re-types citations (the print's ``(בר' ט' י"ג)`` as ``(בראשית ט' י"ג)``), which the whole-line gate lets
+# through at 0.9; such a line is dropped as ``parenthetical_differs_from_print``.
+PAREN_GROUP = re.compile(r"\([^()]*\)")
+MIN_PAREN_SIMILARITY = 0.85
+
+
+MARKER_CHARS = re.compile(r"[()\[\]0-9]")
+
+
+def unlabelled_print_marker(text: str, ocr: str) -> str | None:
+    """A note marker the print shows and the label lacks: an OCR-side stretch, inserted or replaced in the whole-line
+    alignment, that holds a parenthesis, bracket or digit while the label's side holds none. Sefaria drops the print's
+    note references (``(מ)``, ``1)``) into anchors and footnotes, so a line that keeps one would be mislabelled. Returns
+    the OCR stretch, or None."""
+    for op, a0, a1, b0, b1 in difflib.SequenceMatcher(None, text, ocr, autojunk=False).get_opcodes():
+        if op in ("insert", "replace") and MARKER_CHARS.search(ocr[b0:b1]) and not MARKER_CHARS.search(text[a0:a1]):
+            return ocr[b0:b1]
+    return None
+
+
+def parenthetical_similarity(text: str, ocr: str) -> float | None:
+    """The worst similarity of a parenthesised group of ``text`` to the OCR at its place (None: no group).
+
+    The group's place in ``ocr`` comes from the whole-line alignment (difflib matching blocks); the group is then
+    compared with OCR windows a few characters around it, of its own length give or take three, and the best is kept."""
+    groups = list(PAREN_GROUP.finditer(text))
+    if not groups:
+        return None
+    blocks = difflib.SequenceMatcher(None, text, ocr, autojunk=False).get_matching_blocks()
+
+    def place(i: int) -> int:
+        prev = [b for b in blocks if b.a <= i and b.size]
+        if not prev:
+            return 0
+        b = prev[-1]
+        return min(len(ocr), b.b + min(i - b.a, b.size))
+
+    worst = 1.0
+    for g in groups:
+        start, n = place(g.start()), len(g.group())
+        best = 0.0
+        for off in range(-5, 6):
+            for length in range(max(1, n - 3), n + 4):
+                a = start + off
+                if a < 0 or a >= len(ocr):
+                    continue
+                best = max(best, difflib.SequenceMatcher(None, g.group(), ocr[a:a + length], autojunk=False).ratio())
+        worst = min(worst, best)
+    return worst
+
+
+def edition_text(root: Path, name: str, work: Mapping[str, Any]) -> str:
+    """The edition text an alignment placed: PBY's ``pby/txt/m<id>.txt``, or ``text/<work_id>.txt`` for a text source,
+    whose sha256 must be the text record's (fail-closed)."""
+    if (work.get("text_source") or TEXT_SOURCE_PBY) == TEXT_SOURCE_PBY:
+        return unicodedata.normalize("NFC", (root / "pby" / "txt" / f"m{name}.txt").read_text(encoding="utf-8"))
+    path = root / "text" / f"{name}.txt"
+    raw = path.read_bytes()
+    want = (work.get("text_record") or {}).get("text_sha256")
+    if hashlib.sha256(raw).hexdigest() != want:
+        raise SystemExit(f"{path}: sha256 differs from the alignment's text record ({want})")
+    return unicodedata.normalize("NFC", raw.decode("utf-8"))
 
 
 def record_id(scan: Mapping[str, Any]) -> str:
@@ -171,8 +253,9 @@ ALT_EDITION_DIR = re.compile(r"^(\d+)@(.+)$")
 
 def alignment_dir_pby(name: str) -> tuple[str, str | None] | None:
     """(PBY id, record or None) of an alignment dir name: ``<pby_id>`` or an alternate edition's ``<pby_id>@<record>``
-    (hocrgen#169); None for any other name."""
-    if name.isdigit():
+    (hocrgen#169), or a text-source work id (``sefaria_…``, ``gutenberg_…``) in place of the PBY id; None for any
+    other name."""
+    if name.isdigit() or TEXT_WORK_DIR.match(name):
         return name, None
     m = ALT_EDITION_DIR.match(name)
     return (m.group(1), m.group(2)) if m else None
@@ -336,7 +419,9 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
         method = al.get("method") or {}
         placer, ocr_sub = ocr_placer(method), ocr_subdir(method)
         source = str(ap_path.relative_to(root))
-        text = unicodedata.normalize("NFC", (root / "pby" / "txt" / f"m{pby}.txt").read_text(encoding="utf-8"))
+        work = al.get("work") or {}
+        text = edition_text(root, pby, work)
+        text_source = work.get("text_source") or TEXT_SOURCE_PBY
         for page in al["pages"]:
             if page["status"] != "aligned":
                 continue
@@ -391,6 +476,16 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
                 if re.search(r"\[\d+\]", raw):
                     drops["footnote_marker"] += 1
                     continue
+                paren_sim = None
+                if text_source != TEXT_SOURCE_PBY:
+                    line_ocr = label(" ".join(wd[0] for wd in inside))
+                    paren_sim = parenthetical_similarity(plain, line_ocr)
+                    if paren_sim is not None and paren_sim < MIN_PAREN_SIMILARITY:
+                        drops["parenthetical_differs_from_print"] += 1
+                        continue
+                    if unlabelled_print_marker(plain, line_ocr) is not None:
+                        drops["print_marker_missing_from_label"] += 1
+                        continue
                 if not plain or not LETTER.search(plain) or not ALLOWED.match(plain):
                     drops["outside_repertoire"] += 1
                     continue
@@ -406,6 +501,12 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
                     cand["scan_source"] = IA_SOURCE
                     cand["source_class"] = scan.get("source_class")
                     cand["rights_justification_id"] = justification_id
+                if text_source != TEXT_SOURCE_PBY:  # PBY rows stay byte-identical
+                    cand["pby_id"] = None
+                    cand["work_id"] = pby
+                    cand.update({key: work.get(key) for key in PROVENANCE_FIELDS})
+                    cand["script"] = work.get("script")
+                    cand["parenthetical_similarity"] = None if paren_sim is None else round(paren_sim, 4)
                 if key in best:
                     drops["aligned_twice"] += 1
                     if cand["alignment_score"] <= best[key]["alignment_score"]:
@@ -434,6 +535,39 @@ def pointed_book_gate(best: dict, drops: Counter) -> dict[str, dict[str, Any]]:
     return report
 
 
+def aligned_page_spans(roots: Sequence[Path], prefer: Sequence[str], records: Iterable[str]) -> dict[str, list]:
+    """Each record's aligned page spans ``(text id, start, end)``, from the same alignment sources ``collect`` reads
+    (for ``--drop-overlap``; a separate pass so ``collect`` keeps its return shape)."""
+    chosen, _, _ = alignment_sources(roots, prefer, records=records)
+    spans: dict[str, list] = defaultdict(list)
+    for _, _, al, pby in chosen:
+        rec = record_id(al["scan"])
+        for page in al["pages"]:
+            if page["status"] == "aligned" and page.get("pby_span"):
+                spans[rec].append((pby, page["pby_span"]["start"], page["pby_span"]["end"]))
+    return dict(spans)
+
+
+def drop_covered_by_primary(best: dict, drops: Counter, pairs: Mapping[str, str], page_spans: Mapping[str, list]) -> dict[str, int]:
+    """``--drop-overlap PRIMARY=SECONDARY``: a second scan of the same edition supplies only what the first lacks. A
+    SECONDARY line whose edition span overlaps the edition text of a PRIMARY aligned page (same text file: the same
+    ``work_id`` or PBY id) is dropped as ``covered_by_primary_copy``. Mutates ``best``; returns the count per pair."""
+    out = {}
+    for primary, secondary in pairs.items():
+        spans = page_spans.get(primary) or []
+        n = 0
+        for key in [k for k in best if k[0] == secondary]:
+            cand = best[key]
+            work = cand.get("work_id") or cand.get("pby_id")
+            s, e = cand["pby_span"]
+            if any(w == work and s < pe and ps < e for w, ps, pe in spans):
+                del best[key]
+                drops["covered_by_primary_copy"] += 1
+                n += 1
+        out[f"{primary}={secondary}"] = n
+    return out
+
+
 def cap_per_book(keys: list, cap: int, exempt: Iterable[str], sources: Mapping[str, str | None] | None = None) -> tuple[list, Counter]:
     """Keep at most ``cap`` lines per record by sha256 of the line id; ``sources`` maps a record to its scan source."""
     exempt = set(exempt)
@@ -457,7 +591,9 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     if out.exists():
         raise SystemExit(f"{out} exists")
     roots = [Path(r) for r in args.root]
-    pointed, dev = _named(args.pointed), _named(args.dev)
+    pointed, dev, reserve = _named(args.pointed), _named(args.dev), _named(getattr(args, "reserve", None))
+    if set(reserve) & set(dev):
+        raise SystemExit(f"records both --reserve and --dev: {sorted(set(reserve) & set(dev))}")
     editions: dict[str, Any] = {}
     for path in args.editions or ():
         editions.update(json.loads(Path(path).read_text(encoding="utf-8")))
@@ -483,6 +619,13 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         raise SystemExit("edition text is pointed but the print is not classified; name each in --pointed or --unpointed: "
                          + ", ".join(f"{rec} (niqqud {dens[rec]}/letter)" for rec in unresolved))
     pointing = pointed_book_gate(best, drops) if args.keep_pointed else {}
+    overlap = _named(getattr(args, "drop_overlap", None))
+    overlap_dropped = drop_covered_by_primary(
+        best, drops, overlap, aligned_page_spans(roots, args.prefer_placer or (), set(overlap))) if overlap else {}
+    reserved_lines = Counter(k[0] for k in best if k[0] in reserve)
+    for k in [k for k in best if k[0] in reserve]:
+        drops["reserved_edition"] += 1
+        del best[k]
     keys = sorted(best)
     capped: Counter = Counter()
     if args.max_lines_per_book:
@@ -504,6 +647,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     strata: dict[str, Counter] = defaultdict(Counter)
     by_book_stratum: dict[str, dict[str, Counter]] = defaultdict(lambda: defaultdict(Counter))
     by_book_placer: dict[str, Counter] = defaultdict(Counter)
+    scripts: dict[str, Counter] = defaultdict(Counter)
+    provenance: dict[str, dict[str, Any]] = {}
     for key in keys:
         r = dict(best[key])
         root, stratum, placer = r.pop("_root"), r.pop("_stratum"), r.pop("_placer")
@@ -529,6 +674,9 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         if hints is not None:
             row["proposed_node_hint"] = hints[rec]
             by_hint[split][hints[rec]] += 1
+        if row.get("script"):
+            scripts[split][row["script"]] += 1
+            provenance.setdefault(rec, {}).setdefault(row["work_id"], {k: row.get(k) for k in (*PROVENANCE_FIELDS, "script")})
         rows.append(row)
         label_key = f"{rec} {book}"
         counts[split][label_key] += 1
@@ -574,6 +722,12 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         if drop_spans:
             summary["drop_pointed_spans"] = {"min_niqqud_per_letter": MIN_POINTED_DENSITY,
                                              "dropped_by_record": dict(sorted(span_drops.items()))}
+    if overlap:
+        summary["drop_overlap"] = {"pairs": overlap, "dropped": overlap_dropped}
+    if reserve or scripts:
+        summary.update({"labels": "edition text (Ben-Yehuda, Sefaria or Project Gutenberg) placed by F8f alignment; never OCR output",
+                        "reserved_records": reserve, "reserved_lines_withheld": dict(sorted(reserved_lines.items())),
+                        "lines_by_script": {s: dict(c) for s, c in scripts.items()}, "text_provenance": provenance})
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return summary
 
@@ -747,6 +901,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     b.add_argument("--unpointed", nargs="*", help="records asserted to be unpointed prints although their edition text is pointed")
     b.add_argument("--keep-pointed", action="store_true", help="keep pointed prints with niqqud labels (stratum `pointed`)")
     b.add_argument("--dev", nargs="*", help="dev records REC[=name], held out whole")
+    b.add_argument("--drop-overlap", nargs="*", help="PRIMARY=SECONDARY records (two scans of one edition): drop SECONDARY "
+                   "lines whose edition text a PRIMARY aligned page already covers (covered_by_primary_copy)")
+    b.add_argument("--reserve", nargs="*", help="eval-reserve records REC[=name]: held out whole from train and dev (no lines written)")
     b.add_argument("--max-lines-per-book", type=int, default=0)
     b.add_argument("--cap-dev", action="store_true")
     b.add_argument("--no-images", action="store_true", help="manifest and summary only (image_sha256 null)")

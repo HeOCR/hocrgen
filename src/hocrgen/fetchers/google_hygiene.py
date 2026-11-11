@@ -145,14 +145,33 @@ def boxes_overlap(a: Sequence[float], b: Sequence[float]) -> bool:
 def hygiene_record(
     excluded: Iterable[Mapping[str, Any]],
     watermarks: Mapping[int, Sequence[int] | None],
+    *,
+    front_matter_checked: Sequence[int] | None = None,
+    visual_check: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """``scan.google_hygiene``: the excluded front-matter canvases and the watermark box found on each page."""
+    """``scan.google_hygiene``: the excluded front-matter canvases and the watermark box found on each page.
 
-    return {
+    With ``front_matter_checked`` (the canvases the front-matter pass read) the record adds ``summary``, a plain
+    statement of what the pass found, so a scan with no Google front page or watermark shows the hygiene was applied
+    and found nothing rather than skipped. ``visual_check`` records an operator or agent check of the scan beside the
+    OCR evidence (who checked, what, and what was seen); it never replaces the OCR passes."""
+
+    excluded = [dict(item) for item in excluded]
+    boxes = [{"canvas_index": index, "google_watermark_bbox": list(box)} for index, box in sorted(watermarks.items()) if box is not None]
+    record: dict[str, Any] = {
         "format": HYGIENE_FORMAT,
-        "excluded_front_matter": [dict(item) for item in excluded],
-        "watermark_boxes": [{"canvas_index": index, "google_watermark_bbox": list(box)}
-                            for index, box in sorted(watermarks.items()) if box is not None],
+        "excluded_front_matter": excluded,
+        "watermark_boxes": boxes,
         "pages_without_watermark": sorted(index for index, box in watermarks.items() if box is None),
         "method": {"front_matter": FRONT_MATTER_METHOD, "watermark": WATERMARK_METHOD},
     }
+    if front_matter_checked is not None:
+        checked = sorted(front_matter_checked)
+        front = (f"excluded canvases {[item['canvas_index'] for item in excluded]} (usage-guidelines page)" if excluded
+                 else f"none found (canvases {checked} read by eng OCR)")
+        mark = (f"found on {len(boxes)} of {len(watermarks)} pages (lines under it dropped)" if boxes
+                else f"none found (foot bands of all {len(watermarks)} pages read by eng OCR)")
+        record["summary"] = {"front_page": front, "watermark": mark}
+    if visual_check is not None:
+        record["visual_check"] = dict(visual_check)
+    return record

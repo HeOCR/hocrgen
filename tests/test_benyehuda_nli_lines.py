@@ -497,3 +497,92 @@ def test_node_hints_on_every_row_and_counted_by_split(tmp_path, root):
         _build(tmp_path / "b", root, "--no-images", "--node-hints", str(hints))
     _, plain = _build(tmp_path / "c", root, "--no-images")
     assert "proposed_node_hint" not in plain[0]
+
+
+def _as_text_source(root: Path, pby: str, work_id: str, identifier: str, *, script: str = "square") -> None:
+    """Rewrite one fixture record as a Sefaria text aligned to an IA scan: out/<work_id>/, text/<work_id>.txt."""
+    _as_ia(root, pby, identifier)
+    src = root / "out" / pby
+    al = json.loads((src / "alignment.json").read_text(encoding="utf-8"))
+    text = (root / "pby" / "txt" / f"m{pby}.txt").read_bytes()
+    provenance = {"text_source": "sefaria", "text_version_title": "Berlin, 1903", "text_version_source": "https://www.nli.org.il/he/books/NNL_ALEPH1",
+                  "text_licence": "Public Domain", "text_api_url": "https://www.sefaria.org/download/version/x.json", "text_snapshot_sha256": "ab" * 32}
+    al["work"] = {"work_id": work_id, "pby_id": None, **provenance, "script": script,
+                  "text_record": {"text_sha256": bl.hashlib.sha256(text).hexdigest()}}
+    (root / "text").mkdir(exist_ok=True)
+    (root / "text" / f"{work_id}.txt").write_bytes(text)
+    (root / "pby" / "txt" / f"m{pby}.txt").unlink()
+    dst = root / "out" / work_id
+    src.rename(dst)
+    (dst / "alignment.json").write_text(json.dumps(al, ensure_ascii=False), encoding="utf-8")
+
+
+def test_text_source_rows_carry_provenance_and_script(tmp_path, root):
+    _as_text_source(root, "2", "sefaria_leket_yosher", "seferleet00goog")
+    summary, rows = _build(tmp_path, root, "--keep-pointed", "--no-images")
+    ts_rows = [r for r in rows if r["record_id"] == "seferleet00goog"]
+    assert len(ts_rows) == 4
+    for r in ts_rows:
+        assert r["work_id"] == "sefaria_leket_yosher" and r["pby_id"] is None and r["script"] == "square"
+        assert r["text_source"] == "sefaria" and r["text_licence"] == "Public Domain" and r["text_snapshot_sha256"] == "ab" * 32
+        assert r["rights_justification_id"] == "rj:seferleet00goog:0123456789ab"
+    assert summary["lines_by_script"] == {"train": {"square": 4}}
+    assert summary["text_provenance"]["seferleet00goog"]["sefaria_leket_yosher"]["text_version_title"] == "Berlin, 1903"
+    # PBY rows are unchanged: no text-source keys.
+    assert not any({"work_id", "script", "text_source"} & set(r) for r in rows if r["record_id"] != "seferleet00goog")
+
+
+def test_text_source_text_must_match_its_record(tmp_path, root):
+    _as_text_source(root, "2", "sefaria_leket_yosher", "seferleet00goog")
+    (root / "text" / "sefaria_leket_yosher.txt").write_text("שונה", encoding="utf-8")
+    with pytest.raises(SystemExit, match="sha256 differs"):
+        _build(tmp_path, root, "--keep-pointed", "--no-images")
+
+
+def test_reserved_edition_gives_no_lines_in_any_split(tmp_path, root):
+    _as_text_source(root, "2", "sefaria_leket_yosher", "seferleet00goog")
+    summary, rows = _build(tmp_path, root, "--keep-pointed", "--no-images", "--reserve", "seferleet00goog=leket-yosher")
+    assert not any(r["record_id"] == "seferleet00goog" for r in rows)
+    assert summary["dropped"]["reserved_edition"] == 4
+    assert summary["reserved_records"] == {"seferleet00goog": "leket-yosher"}
+    assert summary["reserved_lines_withheld"] == {"seferleet00goog": 4}
+
+
+def test_reserve_and_dev_must_not_overlap(tmp_path, root):
+    with pytest.raises(SystemExit, match="both --reserve and --dev"):
+        _build(tmp_path, root, "--reserve", "111")
+
+
+def test_unlabelled_print_marker_and_parenthetical_helpers():
+    assert bl.unlabelled_print_marker("להיות אם מכאן אמרו", "להיות אם(מ) מכאן אמרו") == "(מ)"
+    assert bl.unlabelled_print_marker("הבא: כל הענין", "הבא (ס): כל הענין") is not None
+    assert bl.unlabelled_print_marker("וגחלי (אש) כנגד", "וגחלי (אש) כנגד") is None
+    assert bl.unlabelled_print_marker("שלום עולם", "שלום עולמ") is None  # an OCR letter error is not a marker
+    assert bl.parenthetical_similarity("שלום עולם", "שלום עולם") is None
+    assert bl.parenthetical_similarity("הקשת שנ' (בראשית ט' י\"ג) את", "הקשת שנ' (בר' ט' י\"ג) את") < bl.MIN_PAREN_SIMILARITY
+    assert bl.parenthetical_similarity("שנ' (שם י\"ז י\"ג) והיתה", "שנ' (שם י\"ז י\"ג) והיתה") == 1.0
+
+
+def test_text_source_lines_with_print_markers_or_retyped_citations_are_dropped(tmp_path):
+    r = tmp_path / "f8f"
+    _record(r, "888", "8", ["הקשת שנ' (בראשית ט) את קשתי", "להיות אם מכאן אמרו", "ילד קטן הלך לבית"])
+    tsv = r / "work" / "888" / "ocr" / "c0000.tsv"
+    ocr = [([10, 10, 180, 15], ["הקשת", "שנ'", "(בר'", "ט)", "את", "קשתי"]), ([10, 30, 180, 15], ["להיות", "אם(מ)", "מכאן", "אמרו"]),
+           ([10, 50, 180, 15], ["ילד", "קטן", "הלך", "לבית"])]
+    tsv.write_text(_tsv(ocr), encoding="utf-8")
+    _as_text_source(r, "8", "sefaria_mekhilta_test", "mekh00x")
+    summary, rows = _build(tmp_path, r, "--no-images")
+    assert [row["text"] for row in rows] == ["ילד קטן הלך לבית"]
+    assert summary["dropped"]["parenthetical_differs_from_print"] == 1
+    assert summary["dropped"]["print_marker_missing_from_label"] == 1
+    assert rows[0]["parenthetical_similarity"] is None
+
+
+def test_drop_overlap_keeps_only_what_the_primary_copy_lacks():
+    best = {("google00x", 0, 0): {"work_id": "sefaria_w", "pby_span": [0, 10]},
+            ("google00x", 0, 1): {"work_id": "sefaria_w", "pby_span": [50, 60]},
+            ("other00x", 0, 0): {"work_id": "sefaria_w", "pby_span": [0, 10]}}
+    drops = bl.Counter()
+    out = bl.drop_covered_by_primary(best, drops, {"robarts00x": "google00x"}, {"robarts00x": [("sefaria_w", 0, 20)]})
+    assert set(best) == {("google00x", 0, 1), ("other00x", 0, 0)}
+    assert out == {"robarts00x=google00x": 1} and drops["covered_by_primary_copy"] == 1

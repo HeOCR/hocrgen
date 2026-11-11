@@ -10,7 +10,9 @@ alignment made before the record existed, without re-aligning.
 Sources, all read from saved snapshots (this module never touches the network):
 
 - **Contributors.** Every author and translator of the Project Ben-Yehuda (PBY) work (``pseudocatalogue.csv``
-  ``authors``/``translators``, paired by position with ``author_uris``/``translator_uris``), plus every editor or
+  ``authors``/``translators``, paired by position with ``author_uris``/``translator_uris``), or, for a Sefaria or
+  Project Gutenberg text, every author, translator, editor and annotator its text record lists with a QID
+  (``hocrgen.fetchers.text_sources.justification_row``, ``contributors_listed_in="text_record"``), plus every editor or
   annotator the IA metadata or the NLI record names by role (a ``creator`` entry marked editor, or "ed." /
   "Commentar von" / "עורך" / "מהדיר" in the title statement or description). Death years come first from a saved
   Wikidata entity snapshot (P570) for the contributor's QID, then from life dates in the IA ``creator`` field or the
@@ -19,7 +21,10 @@ Sources, all read from saved snapshots (this module never touches the network):
   Status decisions use the latest year found (the conservative one).
 - **Israeli status (Copyright Act 2007, s. 38).** PD when every contributor died more than 70 years before
   ``as_of``'s year; for a work printed in or before 1855, a contributor with no death year found is covered by the
-  presumption of decision 10 (2026-11-06), recorded as such. Otherwise the item is rejected.
+  presumption of decision 10 (2026-11-06), recorded as such. A text record may mark the underlying work anonymous
+  (an ancient compilation with a traditional attribution only, such as Avot de-Rabbi Natan): it then needs no author,
+  the edition must be published more than 70 years before ``as_of``'s year (s. 40), and every named contributor (the
+  editor) must still meet s. 38. Otherwise the item is rejected.
 - **US status** is recorded, not required (decision 2026-11-06: PD in Israel is enough): ``pd_us`` when published
   before ``as_of.year - 95``, else ``not_established``.
 
@@ -350,7 +355,8 @@ def statement_roles(md: Mapping[str, Any], nli: NliSnapshot | None) -> list[dict
     return found
 
 
-def publication_years(md: Mapping[str, Any], nli: NliSnapshot | None, catalogue_row: Mapping[str, str]) -> list[dict[str, Any]]:
+def publication_years(md: Mapping[str, Any], nli: NliSnapshot | None, catalogue_row: Mapping[str, str],
+                      listed_in: str = "pby_catalogue") -> list[dict[str, Any]]:
     found = []
     ia_years = sorted({int(y) for value in _values(md, "date") for y in YEAR.findall(value)})
     if ia_years:
@@ -368,7 +374,7 @@ def publication_years(md: Mapping[str, Any], nli: NliSnapshot | None, catalogue_
     if edition:
         year, basis = parse_publication_year(edition)
         if year is not None and basis == "year":
-            found.append({"year": year, "source": "pby_catalogue_source_edition", "value": edition})
+            found.append({"year": year, "source": f"{listed_in}_source_edition", "value": edition})
     return found
 
 
@@ -381,7 +387,8 @@ def _place_from(text: str, separators: str) -> str | None:
     return None
 
 
-def publication_place(md: Mapping[str, Any], nli: NliSnapshot | None, catalogue_row: Mapping[str, str]) -> dict[str, Any] | None:
+def publication_place(md: Mapping[str, Any], nli: NliSnapshot | None, catalogue_row: Mapping[str, str],
+                      listed_in: str = "pby_catalogue") -> dict[str, Any] | None:
     for value in _values(md, "publisher"):
         place = _place_from(value, ":")
         if place:
@@ -396,7 +403,7 @@ def publication_place(md: Mapping[str, Any], nli: NliSnapshot | None, catalogue_
     edition = (catalogue_row.get("source_edition") or "").strip()
     place = _place_from(edition, ":,") if edition else None
     if place:
-        return {"place": place, "source": "pby_catalogue_source_edition", "value": edition}
+        return {"place": place, "source": f"{listed_in}_source_edition", "value": edition}
     return None
 
 
@@ -420,17 +427,21 @@ def _contributors(
     wikidata: Mapping[str, WikidataSnapshot],
     nli: NliSnapshot | None,
     as_of_year: int,
+    listed_in: str = "pby_catalogue",
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     entries = creator_entries(md, nli, as_of_year)
     people: list[dict[str, Any]] = []
-    for role, names_key, uris_key in ((ROLE_AUTHOR, "authors", "author_uris"), (ROLE_TRANSLATOR, "translators", "translator_uris")):
+    roles = [(ROLE_AUTHOR, "authors", "author_uris"), (ROLE_TRANSLATOR, "translators", "translator_uris")]
+    if listed_in != "pby_catalogue":  # a text record also lists editors and annotators (PBY rows have neither)
+        roles += [(ROLE_EDITOR, "editors", "editor_uris"), (ROLE_ANNOTATOR, "annotators", "annotator_uris")]
+    for role, names_key, uris_key in roles:
         names, qids = _names(catalogue_row.get(names_key)), _qids(catalogue_row.get(uris_key))
         paired = len(names) == len(qids)
         count = max(len(names), len(qids))
         for i in range(count):
             qid = qids[i] if paired or (not names and i < len(qids)) else None
             name = names[i] if i < len(names) else None
-            people.append({"name": name, "role": role, "qid": qid, "listed_in": f"pby_catalogue.{names_key}"})
+            people.append({"name": name, "role": role, "qid": qid, "listed_in": f"{listed_in}.{names_key}"})
     for statement in statement_roles(md, nli):
         people.append({"name": statement["name"], "role": statement["role"], "qid": None, "listed_in": statement["source"]})
     for entry in entries:
@@ -443,7 +454,7 @@ def _contributors(
         match_names = [n for n in [person["name"], *wikidata_names(snapshot)] if n]
         # The same person listed twice (a PBY author also named as editor): keep the first listing.
         own = set(_tokens(person["name"] or ""))
-        if not person["listed_in"].startswith("pby_catalogue.") and own and any(
+        if not person["listed_in"].startswith(f"{listed_in}.") and own and any(
             own <= set(_tokens(name)) for c in contributors for name in c["_names"]
         ):
             continue
@@ -485,7 +496,8 @@ def _contributors(
                 for i, e in enumerate(entries) if i not in used]
     basis = {
         "checked": [
-            "pby_catalogue: authors, translators (author_uris, translator_uris)",
+            "pby_catalogue: authors, translators (author_uris, translator_uris)" if listed_in == "pby_catalogue"
+            else f"{listed_in}: authors, translators, editors, annotators (Wikidata QIDs)",
             "ia_metadata: creator (role markers), title and description (title statement)",
             *(["nli_snapshot: creator and contributor fields (role markers), title statement"] if nli is not None else []),
         ],
@@ -523,12 +535,14 @@ def build_ia_rights_justification(
     nli_snapshot: NliSnapshot | None = None,
     hygiene: Any = None,
     decision: IaRightsDecision | None = None,
+    contributors_listed_in: str = "pby_catalogue",
 ) -> JustificationResult:
     """The ``rights_justification`` of an IA item, or the reason it cannot be justified (and so is rejected).
 
     ``image_urls`` are the image sources actually used (the IIIF image service of each aligned canvas). ``hygiene``
     is PR B's front-matter and watermark record for a Google item; until it is given it is ``"pending"`` for Google
-    items and ``"none"`` for others.
+    items and ``"none"`` for others. ``contributors_listed_in`` is ``"pby_catalogue"`` for a PBY catalogue row and
+    ``"text_record"`` for a Sefaria or Project Gutenberg text record's row (``text_sources.justification_row``).
     """
 
     decision = decision or decide_ia_rights(metadata)
@@ -541,14 +555,18 @@ def build_ia_rights_justification(
     nli_origin = bool(evidence.get("nli_evidence"))
     failures: list[str] = []
 
-    contributors, contributors_basis = _contributors(catalogue_row, md, wikidata, nli_snapshot, as_of.year)
-    if not any(c["role"] == ROLE_AUTHOR for c in contributors):
+    listed_in = contributors_listed_in
+    contributors, contributors_basis = _contributors(catalogue_row, md, wikidata, nli_snapshot, as_of.year, listed_in)
+    anonymous = json.loads(catalogue_row["anonymous_work"]) if listed_in != "pby_catalogue" and catalogue_row.get("anonymous_work") else None
+    if not any(c["role"] == ROLE_AUTHOR for c in contributors) and anonymous is None:
         failures.append("justification_no_author_listed")
-    years = publication_years(md, nli_snapshot, catalogue_row)
+    years = publication_years(md, nli_snapshot, catalogue_row, listed_in)
     year = max(y["year"] for y in years) if years else None
     if year is None:
         failures.append("justification_publication_year_missing")
-    place = publication_place(md, nli_snapshot, catalogue_row)
+    if anonymous is not None and year is not None and year + ISRAEL_TERM_YEARS >= as_of.year:
+        failures.append(f"justification_anonymous_work_not_expired:{year}")
+    place = publication_place(md, nli_snapshot, catalogue_row, listed_in)
     if place is None:
         failures.append("justification_publication_place_missing")
 
@@ -579,6 +597,15 @@ def build_ia_rights_justification(
             "basis": "author_died_over_70_years_ago",
             "reason": f"every contributor died by {latest}; {latest} + {ISRAEL_TERM_YEARS} < {as_of.year}",
             "law": "Copyright Act 2007, s. 38",
+        }
+    if anonymous is not None and not presumed:
+        israel_status = {
+            "status": "pd_il",
+            "basis": "anonymous_work_and_named_contributors_died_over_70_years_ago",
+            "reason": f"anonymous work ({anonymous.get('note') or 'no author'}), edition published {year}: {year} + {ISRAEL_TERM_YEARS} < {as_of.year}"
+            + (f"; every named contributor died by {latest}; {latest} + {ISRAEL_TERM_YEARS} < {as_of.year}" if latest is not None else ""),
+            "anonymous_work": anonymous,
+            "law": "Copyright Act 2007, ss. 38 and 40",
         }
     cutoff = as_of.year - US_TERM_YEARS
     if year is not None and year < cutoff:
@@ -650,6 +677,8 @@ def build_ia_rights_justification(
         hygiene = "pending" if google else "none"
     route_urls = [IA_METADATA_URL.format(identifier=identifier), manifest_url, *image_urls]
     pd_reason = (f"printed {year}, presumed PD (decision 10)" if presumed else f"{_join_years(contributors)}, printed {year}")
+    if anonymous is not None and not presumed:
+        pd_reason = "anonymous work, " + pd_reason
     digitized = f"digitized by {digitizer['name']}" + (" from an NLI copy" if nli_origin and digitizer["name"] != DIGITIZER_NLI else "")
     not_from = " or ".join(holders)
     summary = (
@@ -676,7 +705,7 @@ def build_ia_rights_justification(
             "sha256": {"metadata_snapshot": metadata_sha256, "manifest": manifest_sha256},
         },
         "work_public_domain": {
-            "pby_id": catalogue_row.get("ID"),
+            ("pby_id" if listed_in == "pby_catalogue" else "text_work_id"): catalogue_row.get("ID"),
             "contributors": contributors,
             "contributors_basis": contributors_basis,
             "publication_year": {"year": year, "sources": years},

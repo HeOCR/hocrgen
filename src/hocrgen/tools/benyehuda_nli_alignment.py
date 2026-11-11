@@ -46,6 +46,16 @@ pass on each page's foot band finds the "Digitized by Google" watermark, recorde
 ``google_watermark_bbox`` (canvas pixels). Both go into ``scan.google_hygiene`` and the justification's ``hygiene``.
 NLI runs and their outputs are unchanged.
 
+**Text sources beyond PBY.** ``align --text-source sefaria|gutenberg --text-record <work_id>.record.json --text
+<work_id>.txt`` aligns a Sefaria public-domain version or a Project Gutenberg ebook in PBY's place
+(``hocrgen.fetchers.text_sources``; decision ``planning/decisions/2026-11-11-text-sources-sefaria-gutenberg.md``). The
+text record replaces the PBY catalogue row: ``align`` replays its licence gate and checks the text's sha256
+(fail-closed, ``text_sources.check_text_record``), takes the rights justification's contributors from it (authors,
+editors, annotators, with Wikidata QIDs; ``work_public_domain.text_work_id``), and writes ``work.work_id`` and the
+per-row provenance ``text_source``, ``text_version_title``, ``text_version_source``, ``text_licence``,
+``text_api_url``, ``text_snapshot_sha256`` (plus ``script``). Text sources are aligned to Internet Archive scans only
+(Route B). The default ``--text-source pby`` is unchanged.
+
 The NLI key is read only from ``NLI_API_KEY`` and is never printed, logged or written. CI never runs the
 network or OCR paths; tests use pinned fixtures and synthetic input.
 """
@@ -102,6 +112,7 @@ from hocrgen.fetchers.ia_justification import (
     load_nli_snapshot,
     load_wikidata_snapshots,
 )
+from hocrgen.fetchers import text_sources
 from hocrgen.fetchers.nli_iiif import (
     NLI_CAPTURE_FORMAT,
     NliManifestCapture,
@@ -1600,6 +1611,7 @@ def ia_scan_record(
     canvas_indices: Sequence[int] | None = None,
     nli_snapshot: NliSnapshot | None = None,
     google_hygiene: dict[str, Any] | None = None,
+    contributors_listed_in: str = "pby_catalogue",
 ) -> dict[str, Any] | str:
     """The report's ``scan`` for an IA item, or an error string when the IA gate rejects it, the ids disagree, or
     its rights justification cannot be filled. ``canvas_indices`` are the canvases aligned (default all);
@@ -1627,6 +1639,7 @@ def ia_scan_record(
         nli_snapshot=nli_snapshot,
         hygiene=google_hygiene,
         decision=decision,
+        contributors_listed_in=contributors_listed_in,
     )
     if not justification.accepted:
         return f"scan rejected by the IA rights justification: {justification.reason}"
@@ -1680,13 +1693,41 @@ def ia_scan(
         canvas_indices=indices,
         nli_snapshot=load_nli_snapshot(args.nli_snapshot) if args.nli_snapshot is not None else None,
         google_hygiene=google_hygiene,
+        contributors_listed_in="pby_catalogue" if args.text_source == text_sources.TEXT_SOURCE_PBY else "text_record",
     )
 
 
+def text_source_inputs(args: argparse.Namespace) -> tuple[dict[str, str], str, dict[str, Any]] | str:
+    """(justification row, edition text, report ``work``) for ``--text-source``, or the reason ``align`` must refuse."""
+
+    if args.text_source == text_sources.TEXT_SOURCE_PBY:
+        if args.catalogue is None or args.pby_id is None:
+            return "--catalogue and --pby-id are required for --text-source pby."
+        row = load_catalogue(args.catalogue)[args.pby_id]
+        work = {**catalogue_fields(row), "pby_release": args.pby_release, "pby_text_path": pby_text_path(row),
+                "pby_text_url": pby_raw_url(row, args.pby_release)}
+        return row, pby_body(args.pby_text.read_text(encoding="utf-8")), work
+    if args.text_record is None:
+        return f"--text-record is required for --text-source {args.text_source}."
+    if args.source != "ia":
+        return "text sources other than pby are aligned to Internet Archive scans only (--source ia)."
+    record = json.loads(args.text_record.read_text(encoding="utf-8"))
+    if record.get("text_source") != args.text_source:
+        return f"the text record is a {record.get('text_source')!r} record, not {args.text_source!r}."
+    text = args.pby_text.read_bytes().decode("utf-8")  # no newline translation: the record's sha256 is of the bytes
+    refused = text_sources.check_text_record(record, text, ia_identifier=args.ia_identifier)
+    if refused is not None:
+        return refused
+    work = {**text_sources.work_fields(record), "text_path": f"text/{record['work_id']}.txt", "text_record": record}
+    return text_sources.justification_row(record), text, work
+
+
 def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator path
-    catalogue = load_catalogue(args.catalogue)
-    row = catalogue[args.pby_id]
-    pby_text = pby_body(args.pby_text.read_text(encoding="utf-8"))
+    inputs = text_source_inputs(args)
+    if isinstance(inputs, str):
+        sys.stderr.write(inputs + "\n")
+        return 2
+    row, pby_text, work = inputs
     manifest_bytes = args.manifest.read_bytes()
     manifest = json.loads(manifest_bytes)
     if args.source == "ia":
@@ -1763,6 +1804,7 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
 
     google = args.source == "ia" and scan.get("source_class") == SOURCE_CLASS_GOOGLE
     excluded: list[dict[str, Any]] = []
+    front_checked: list[int] = []
     watermarks: dict[int, list[int] | None] = {}
     if google:
         # Rule 5 hygiene: Google's usage-guidelines front page (first 1-3 canvases) is never aligned.
@@ -1771,6 +1813,7 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
             image_path, _, status = page_image(index)
             if status != 200:
                 continue
+            front_checked.append(index)
             front_tsv = work_dir / "ocr-eng-front" / f"c{index:04d}.tsv"
             if not front_tsv.exists():
                 front_tsv.write_text(run_tesseract(image_path, lang="eng", psm=3), encoding="utf-8")
@@ -1809,14 +1852,17 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
         sys.stderr.write(f"\rOCR {len(pages)}/{len(indices)} (canvas {index})" if args.reverse_canvases else f"\rOCR {index + 1}/{len(canvases)}")
     sys.stderr.write("\n")
     if google:
-        hygiene = hygiene_record(excluded, watermarks)
+        visual = None
+        if args.hygiene_visual_check:
+            visual = {"checked_by": args.hygiene_visual_check_by, "note": args.hygiene_visual_check, "date": args.generated_on}
+        hygiene = hygiene_record(excluded, watermarks, front_matter_checked=front_checked, visual_check=visual)
         scan_or_error = ia_scan(args, manifest, manifest_bytes, row, sorted(indices), google_hygiene=hygiene)
         if isinstance(scan_or_error, str):
             sys.stderr.write(scan_or_error + "\n")
             return 2
         scan = scan_or_error
     report = alignment_report(
-        work={**catalogue_fields(row), "pby_release": args.pby_release, "pby_text_path": pby_text_path(row), "pby_text_url": pby_raw_url(row, args.pby_release)},
+        work=work,
         scan=scan,
         pby_text=pby_text,
         pages=pages,
@@ -1920,9 +1966,16 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         default="nli",
         help="Scan source: nli (NLI IIIF v2, NLI gate) or ia (Internet Archive IIIF v3, IA gate). Default nli.",
     )
-    align.add_argument("--catalogue", type=Path, required=True)
-    align.add_argument("--pby-id", required=True)
-    align.add_argument("--pby-text", type=Path, required=True)
+    align.add_argument(
+        "--text-source",
+        choices=text_sources.TEXT_SOURCES,
+        default=text_sources.TEXT_SOURCE_PBY,
+        help="Edition text source: pby (catalogue row, default), sefaria or gutenberg (--text-record; IA scans only).",
+    )
+    align.add_argument("--text-record", type=Path, help="The text record (<work_id>.record.json) of a sefaria or gutenberg text.")
+    align.add_argument("--catalogue", type=Path, help="The PBY pseudocatalogue.csv (required for --text-source pby).")
+    align.add_argument("--pby-id", help="The PBY work id (required for --text-source pby).")
+    align.add_argument("--pby-text", "--text", dest="pby_text", type=Path, required=True, help="The edition text file.")
     align.add_argument("--pby-release", default=PBY_DEFAULT_RELEASE)
     align.add_argument("--manifest", type=Path, required=True, help="A saved copy of the IIIF manifest (v3 for --source ia).")
     align.add_argument("--manifest-url", help="Required for nli; for ia it defaults to the iiif.archive.org v3 manifest URL.")
@@ -1949,6 +2002,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Read the canvases last first (a back-to-front scan, e.g. a Hebrew book scanned left to right). Page records keep "
         "the true canvas index; recorded as method.canvas_order: reversed.",
     )
+    align.add_argument(
+        "--hygiene-visual-check",
+        help="Google scans: a visual check of the scan to record beside the OCR hygiene evidence (scan.google_hygiene.visual_check), "
+        "e.g. 'canvases 0-3 and three page feet viewed: no usage-guidelines page, no watermark'.",
+    )
+    align.add_argument("--hygiene-visual-check-by", default="agent", help="Who made the --hygiene-visual-check (default agent).")
     align.add_argument("--tesseract-lang", default="heb", help="Tesseract language (traineddata name) used to place the text.")
     align.add_argument(
         "--tessdata-dir",
