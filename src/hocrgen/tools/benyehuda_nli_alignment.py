@@ -317,11 +317,18 @@ def pby_raw_url(row: dict[str, str], release: str = PBY_DEFAULT_RELEASE) -> str:
     return f"{PBY_RAW_BASE}/{release}/{pby_text_path(row)}"
 
 
-PBY_TRAILER = re.compile(r"\s*את הטקסט\[ים\] לעיל הפיקו מתנדבי פרויקט בן־יהודה.*\Z", re.S)
+# One volunteer-credit trailer block: the credit line (it ends with the work's benyehuda.org/read URL) and the blank
+# lines before it; at the end of the text also the whitespace after it. Each work in the dump ends with one, so a text
+# that joins several works carries one per work: only the blocks go, never the works after the first.
+PBY_TRAILER = re.compile(r"\s*את הטקסט\[ים\] לעיל הפיקו מתנדבי פרויקט בן־יהודה[^\n]*(?:\s*\Z)?")
 
 
 def pby_body(text: str) -> str:
-    """The PBY work text without the dump's volunteer credit trailer (kept verbatim otherwise)."""
+    """The PBY work text without the dump's volunteer credit trailers (kept verbatim otherwise).
+
+    A single work (every hocrgen caller) comes out as before: its one trailer is the end of the text. A joined
+    multi-work text keeps every work; each trailer block becomes one newline before the next work's own text.
+    """
 
     return PBY_TRAILER.sub("\n", text)
 

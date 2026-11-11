@@ -1,0 +1,520 @@
+{
+ "format": "heocr.f8f_r8_handoff.v1",
+ "generated_on": "2026-11-11",
+ "decision": "heocr-lead 2026-11-11: R8 new-printed line set bynli_lines_v3 under decision 0018 (new printed is the vertical); only units not in bynli_lines_v2; recipe as v2 (stock placer, cap 6100, niqqud stripped, pointed prints dropped). Node is a hint only: the maintainer's tagger decides.",
+ "line_set": {
+  "name": "bynli_lines_v3",
+  "built_by": "data-collection",
+  "hocrgen_commit": "93a413f",
+  "hocrgen_branch": "fix/f8f-lines-v3 (this PR; adds hocrgen#169 alternate editions and the per-trailer pby_body fix)",
+  "output_dir": "tasks/s16c-glyph-scale/outputs/lines/bynli_lines_v3",
+  "files": [
+   "manifest.jsonl",
+   "summary.json",
+   "tagger_units.json",
+   "train/<record>/*.png|.gt.txt",
+   "dev/<record>/*.png|.gt.txt"
+  ],
+  "command_script": "tasks/real-source-mapping/intermediates/f8f/f8f_r8_lines/build_v3.sh",
+  "command": "#!/bin/sh\n# bynli_lines_v3 build (R8). Run from a hocrgen checkout at commit 93a413f.\nset -e\nF=$T/real-source-mapping/intermediates/f8f\nPYTHONPATH=src ~/clones/hocrgen/.venv/bin/python -m hocrgen.tools.benyehuda_nli_lines build $T/s16c-glyph-scale/outputs/lines/bynli_lines_v3 \\\n  --root $F/f8f_g --root $F/f8f_g/ia_reprobe \\\n  --root $F/f8f_r8_lines/roots/f8f_ia_r8 --root $F/f8f_r8_lines/roots/f8f3_r8 \\\n  --exclude-records-from $F/f8f_r8_lines/v2_manifest_records.txt \\\n  --prefer-placer stock --max-lines-per-book 6100 --drop-pointed-spans \\\n  --node-hints $F/f8f_r8_lines/node_hints.json \\\n  --pointed ahalrefaimshir00liliuoft dimdumimshirim00katz seferhashirim00hein bub_gb_5-Y-AQAAIAAJ nirdavid02coheuoft shirathayaatahme00long_0 \\\n  --dev 990010106660205171=bodek-1865 nirdavid02coheuoft=nir-david-1834-ia bub_gb_5-Y-AQAAIAAJ=nir-david-1834-google kolkitvereuvenbe11brai=brainin-collected-works \\\n        990010684570205171=bodek-1870 nirdavid01coheuoft=nir-david-1834 990020250940205171=silman-1929 990018546440205171=brainin-1928 \\\n  --summary-note \"proposed_node_hint is a hint only (decision 0018): the maintainer's tagger decides each unit's node. His own first tagging was far stricter (22 of 25 units old printed, incl. Brainin 1928), so the new_printed counts here are not settled.\" \\\n  --summary-note \"Source tags new_printed for 19th- and early-20th-century book type were kept unchanged (zikhronotlebetda01reck 1893, zikhronotlevetda01frie 1904, sipurim00nombuoft 1905, kolkitveylkatsen018800 1905, yotsrehasifrutha00zitr 1922, kolkitvereuvenbe11brai 1922, seferhademaotmeo0000bern 1923); they likely overstate new printed.\" \\\n  --summary-note \"No dev unit is designated new-printed dev: that role waits for the maintainer's tagging.\"\n",
+  "composed_roots": {
+   "f8f_r8_lines/roots/f8f_ia_r8": {
+    "out/16243": "f8f_ia/r8_stragglers/out/16243 (kevarpirezikhron00haco)",
+    "out/40683": "f8f_ia/r8_stragglers/out/40683 (bioretletoldotha01gott)",
+    "out/53008": "f8f_ia/r8_stragglers/out/53008 (sifruthahisoriya11kaha)",
+    "out_alt/41259@shirathayaatahme00long_0": "f8f_ia/out_alt/41259@shirathayaatahme00long_0",
+    "pby": "f8f_ia/pby",
+    "work": "f8f_ia/work"
+   },
+   "f8f_r8_lines/roots/f8f3_r8": {
+    "out/26111": "f8f3/out/26111 (Bachrach 1884, round r8)",
+    "out_alt/52535@990010106660205171": "f8f3/out_alt/52535@990010106660205171 (Bodek 1865)",
+    "pby": "f8f3/pby",
+    "work": "f8f3/work"
+   },
+   "why": "symlinks, so the builder reads only the R8 units of f8f_ia and f8f3 without moving or writing any of their files"
+  },
+  "node_hints_file": "tasks/real-source-mapping/intermediates/f8f/f8f_r8_lines/node_hints.json",
+  "checks": {
+   "manifest_sha256_verified": true,
+   "rows": 87452,
+   "ia_rows": 85120,
+   "ia_rows_missing_rights_justification_id": 0,
+   "dropped_ia_rights_justification_missing": 0,
+   "dropped_google_hygiene_pending": 0,
+   "labels_with_niqqud_or_cantillation": 0,
+   "image_sha256_null": 0,
+   "records": 20,
+   "records_in_v2_manifest": [],
+   "rows_without_proposed_node_hint": 0,
+   "f8f3_r7_sealed_SHA256SUMS": "28/28 OK before and after the build",
+   "records_in_rablines_v1": "rablines_v1 not built; f8f_rab/out (6 records) shares none",
+   "pby_texts_in_dev_and_train": 0
+  },
+  "lines_by_split_and_node_hint": {
+   "dev": {
+    "old_printed": 13,
+    "new_printed": 6257
+   },
+   "train": {
+    "old_printed": 30233,
+    "unclassified": 22237,
+    "new_printed": 28712
+   }
+  },
+  "lines_by_book": {
+   "dev": {
+    "990010106660205171": {
+     "book": "bodek-1865",
+     "lines": 13,
+     "proposed_node_hint": "old_printed"
+    },
+    "kolkitvereuvenbe11brai": {
+     "book": "brainin-collected-works",
+     "lines": 6257,
+     "proposed_node_hint": "new_printed"
+    }
+   },
+   "train": {
+    "990026910840205171": {
+     "book": "990026910840205171",
+     "lines": 2319,
+     "proposed_node_hint": "old_printed"
+    },
+    "afahleneemaniml00fngoog": {
+     "book": "afahleneemaniml00fngoog",
+     "lines": 5751,
+     "proposed_node_hint": "old_printed"
+    },
+    "bioretletoldotha01gott": {
+     "book": "bioretletoldotha01gott",
+     "lines": 4662,
+     "proposed_node_hint": "old_printed"
+    },
+    "divreyemeolam02schuuoft": {
+     "book": "divreyemeolam02schuuoft",
+     "lines": 4668,
+     "proposed_node_hint": "old_printed"
+    },
+    "kevarpirezikhron00haco": {
+     "book": "kevarpirezikhron00haco",
+     "lines": 6100,
+     "proposed_node_hint": "unclassified"
+    },
+    "kolkitveylkatsen018800": {
+     "book": "kolkitveylkatsen018800",
+     "lines": 5721,
+     "proposed_node_hint": "new_printed"
+    },
+    "korothayehudimb00friegoog": {
+     "book": "korothayehudimb00friegoog",
+     "lines": 2968,
+     "proposed_node_hint": "unclassified"
+    },
+    "mikhtavimmiarsh00mezagoog": {
+     "book": "mikhtavimmiarsh00mezagoog",
+     "lines": 3452,
+     "proposed_node_hint": "unclassified"
+    },
+    "seferhademaotmeo0000bern": {
+     "book": "seferhademaotmeo0000bern",
+     "lines": 5350,
+     "proposed_node_hint": "new_printed"
+    },
+    "sifruthahisoriya11kaha": {
+     "book": "sifruthahisoriya11kaha",
+     "lines": 6100,
+     "proposed_node_hint": "unclassified"
+    },
+    "sipurim00nombuoft": {
+     "book": "sipurim00nombuoft",
+     "lines": 1291,
+     "proposed_node_hint": "new_printed"
+    },
+    "tserorperaimvehu00kovn": {
+     "book": "tserorperaimvehu00kovn",
+     "lines": 3617,
+     "proposed_node_hint": "unclassified"
+    },
+    "tsitsimuferaimm00geiggoog": {
+     "book": "tsitsimuferaimm00geiggoog",
+     "lines": 633,
+     "proposed_node_hint": "old_printed"
+    },
+    "yediothateva06bernuoft": {
+     "book": "yediothateva06bernuoft",
+     "lines": 6100,
+     "proposed_node_hint": "old_printed"
+    },
+    "yotsrehasifrutha00zitr": {
+     "book": "yotsrehasifrutha00zitr",
+     "lines": 6100,
+     "proposed_node_hint": "new_printed"
+    },
+    "zerubavel00levi": {
+     "book": "zerubavel00levi",
+     "lines": 6100,
+     "proposed_node_hint": "old_printed"
+    },
+    "zikhronotlebetda01reck": {
+     "book": "zikhronotlebetda01reck",
+     "lines": 6100,
+     "proposed_node_hint": "new_printed"
+    },
+    "zikhronotlevetda01frie": {
+     "book": "zikhronotlevetda01frie",
+     "lines": 4150,
+     "proposed_node_hint": "new_printed"
+    }
+   }
+  },
+  "summary": {
+   "schema": "s16c_benyehuda_nli_lines.v2",
+   "min_score": 0.9,
+   "dev_records": {
+    "990010106660205171": "bodek-1865",
+    "nirdavid02coheuoft": "nir-david-1834-ia",
+    "bub_gb_5-Y-AQAAIAAJ": "nir-david-1834-google",
+    "kolkitvereuvenbe11brai": "brainin-collected-works",
+    "990010684570205171": "bodek-1870",
+    "nirdavid01coheuoft": "nir-david-1834",
+    "990020250940205171": "silman-1929",
+    "990018546440205171": "brainin-1928"
+   },
+   "excluded_pointed_records": {
+    "ahalrefaimshir00liliuoft": "ahalrefaimshir00liliuoft",
+    "dimdumimshirim00katz": "dimdumimshirim00katz",
+    "seferhashirim00hein": "seferhashirim00hein",
+    "bub_gb_5-Y-AQAAIAAJ": "bub_gb_5-Y-AQAAIAAJ",
+    "nirdavid02coheuoft": "nirdavid02coheuoft",
+    "shirathayaatahme00long_0": "shirathayaatahme00long_0"
+   },
+   "lines": {
+    "dev": {
+     "990010106660205171 bodek-1865": 13,
+     "kolkitvereuvenbe11brai brainin-collected-works": 6257
+    },
+    "train": {
+     "990026910840205171 990026910840205171": 2319,
+     "afahleneemaniml00fngoog afahleneemaniml00fngoog": 5751,
+     "bioretletoldotha01gott bioretletoldotha01gott": 4662,
+     "divreyemeolam02schuuoft divreyemeolam02schuuoft": 4668,
+     "kevarpirezikhron00haco kevarpirezikhron00haco": 6100,
+     "kolkitveylkatsen018800 kolkitveylkatsen018800": 5721,
+     "korothayehudimb00friegoog korothayehudimb00friegoog": 2968,
+     "mikhtavimmiarsh00mezagoog mikhtavimmiarsh00mezagoog": 3452,
+     "seferhademaotmeo0000bern seferhademaotmeo0000bern": 5350,
+     "sifruthahisoriya11kaha sifruthahisoriya11kaha": 6100,
+     "sipurim00nombuoft sipurim00nombuoft": 1291,
+     "tserorperaimvehu00kovn tserorperaimvehu00kovn": 3617,
+     "tsitsimuferaimm00geiggoog tsitsimuferaimm00geiggoog": 633,
+     "yediothateva06bernuoft yediothateva06bernuoft": 6100,
+     "yotsrehasifrutha00zitr yotsrehasifrutha00zitr": 6100,
+     "zerubavel00levi zerubavel00levi": 6100,
+     "zikhronotlebetda01reck zikhronotlebetda01reck": 6100,
+     "zikhronotlevetda01frie zikhronotlevetda01frie": 4150
+    }
+   },
+   "totals": {
+    "dev": 6270,
+    "train": 81182
+   },
+   "dropped": {
+    "taller_than_one_line": 1094,
+    "below_min_score": 6918,
+    "label_disagrees_with_line_ocr": 17962,
+    "pointed_span_in_unpointed_print": 3015,
+    "outside_repertoire": 1922,
+    "pointed_print": 7513,
+    "aligned_twice": 133
+   },
+   "manifest_sha256": "4cba250f0f3e9207d26fd6e7415b1ed37132123c9c0c9ec961cc58ed0490994e",
+   "roots": [
+    "$T/real-source-mapping/intermediates/f8f/f8f_g",
+    "$T/real-source-mapping/intermediates/f8f/f8f_g/ia_reprobe",
+    "$T/real-source-mapping/intermediates/f8f/f8f_r8_lines/roots/f8f_ia_r8",
+    "$T/real-source-mapping/intermediates/f8f/f8f_r8_lines/roots/f8f3_r8"
+   ],
+   "prefer_placer": [
+    "stock"
+   ],
+   "max_lines_per_book": 6100,
+   "capped_lines": {
+    "kevarpirezikhron00haco": 96,
+    "sifruthahisoriya11kaha": 1550,
+    "yediothateva06bernuoft": 4037,
+    "yotsrehasifrutha00zitr": 1934,
+    "zerubavel00levi": 638,
+    "zikhronotlebetda01reck": 1891
+   },
+   "edition_niqqud_density": {
+    "990010106660205171": 0.003,
+    "990026910840205171": 0.001,
+    "afahleneemaniml00fngoog": 0.001,
+    "ahalrefaimshir00liliuoft": 0.812,
+    "bioretletoldotha01gott": 0.012,
+    "bub_gb_5-Y-AQAAIAAJ": 0.802,
+    "dimdumimshirim00katz": 0.776,
+    "divreyemeolam02schuuoft": 0.068,
+    "kevarpirezikhron00haco": 0.025,
+    "kolkitvereuvenbe11brai": 0.013,
+    "kolkitveylkatsen018800": 0.031,
+    "korothayehudimb00friegoog": 0.003,
+    "mikhtavimmiarsh00mezagoog": 0.0,
+    "nirdavid02coheuoft": 0.797,
+    "seferhademaotmeo0000bern": 0.064,
+    "seferhashirim00hein": 0.782,
+    "shirathayaatahme00long_0": 0.71,
+    "sifruthahisoriya11kaha": 0.021,
+    "sipurim00nombuoft": 0.0,
+    "tserorperaimvehu00kovn": 0.05,
+    "tsitsimuferaimm00geiggoog": 0.0,
+    "yediothateva06bernuoft": 0.004,
+    "yotsrehasifrutha00zitr": 0.049,
+    "zerubavel00levi": 0.001,
+    "zikhronotlebetda01reck": 0.019,
+    "zikhronotlevetda01frie": 0.013
+   },
+   "unpointed_records": [],
+   "skipped_alignment_dirs": [
+    {
+     "root": "$T/real-source-mapping/intermediates/f8f/f8f_g",
+     "dir": "out_excluded",
+     "name": "out",
+     "reason": "no_alignment_json"
+    },
+    {
+     "root": "$T/real-source-mapping/intermediates/f8f/f8f_g/ia_reprobe",
+     "dir": "out_excluded",
+     "name": "out",
+     "reason": "no_alignment_json"
+    }
+   ],
+   "records_filter": {
+    "records": null,
+    "exclude_records": "33 records (v2_manifest_records.txt)"
+   },
+   "drop_pointed_spans": {
+    "min_niqqud_per_letter": 0.3,
+    "dropped_by_record": {
+     "990026910840205171": 7,
+     "afahleneemaniml00fngoog": 11,
+     "bioretletoldotha01gott": 84,
+     "divreyemeolam02schuuoft": 76,
+     "kevarpirezikhron00haco": 16,
+     "kolkitvereuvenbe11brai": 205,
+     "kolkitveylkatsen018800": 241,
+     "mikhtavimmiarsh00mezagoog": 3,
+     "seferhademaotmeo0000bern": 1273,
+     "sifruthahisoriya11kaha": 113,
+     "tserorperaimvehu00kovn": 4,
+     "yediothateva06bernuoft": 6,
+     "yotsrehasifrutha00zitr": 603,
+     "zikhronotlebetda01reck": 291,
+     "zikhronotlevetda01frie": 82
+    }
+   },
+   "lines_by_split_and_proposed_node_hint": {
+    "dev": {
+     "new_printed": 6257,
+     "old_printed": 13
+    },
+    "train": {
+     "new_printed": 28712,
+     "old_printed": 30233,
+     "unclassified": 22237
+    }
+   },
+   "proposed_node_hint_by_record": {
+    "990010106660205171": "old_printed",
+    "990026910840205171": "old_printed",
+    "afahleneemaniml00fngoog": "old_printed",
+    "bioretletoldotha01gott": "old_printed",
+    "divreyemeolam02schuuoft": "old_printed",
+    "kevarpirezikhron00haco": "unclassified",
+    "kolkitvereuvenbe11brai": "new_printed",
+    "kolkitveylkatsen018800": "new_printed",
+    "korothayehudimb00friegoog": "unclassified",
+    "mikhtavimmiarsh00mezagoog": "unclassified",
+    "seferhademaotmeo0000bern": "new_printed",
+    "sifruthahisoriya11kaha": "unclassified",
+    "sipurim00nombuoft": "new_printed",
+    "tserorperaimvehu00kovn": "unclassified",
+    "tsitsimuferaimm00geiggoog": "old_printed",
+    "yediothateva06bernuoft": "old_printed",
+    "yotsrehasifrutha00zitr": "new_printed",
+    "zerubavel00levi": "old_printed",
+    "zikhronotlebetda01reck": "new_printed",
+    "zikhronotlevetda01frie": "new_printed"
+   },
+   "notes": [
+    "proposed_node_hint is a hint only (decision 0018): the maintainer's tagger decides each unit's node. His own first tagging was far stricter (22 of 25 units old printed, incl. Brainin 1928), so the new_printed counts here are not settled.",
+    "Source tags new_printed for 19th- and early-20th-century book type were kept unchanged (zikhronotlebetda01reck 1893, zikhronotlevetda01frie 1904, sipurim00nombuoft 1905, kolkitveylkatsen018800 1905, yotsrehasifrutha00zitr 1922, kolkitvereuvenbe11brai 1922, seferhademaotmeo0000bern 1923); they likely overstate new printed.",
+    "No dev unit is designated new-printed dev: that role waits for the maintainer's tagging."
+   ],
+   "images_written": true
+  }
+ },
+ "node_hints": {
+  "status": "hint only (decision 0018); the maintainer's tagger decides. His first tagging placed 22 of 25 units old printed (incl. Brainin 1928, Artush, Kuzar, Bostenay, Massa ba-Arav); only Silman new printed. new_printed counts here are not settled.",
+  "sources": {
+   "f8f_g/proposed_node.json": "f8f_g books, unchanged",
+   "f8f_g/ia_reprobe/proposed_node.json": "ia_reprobe books, unchanged",
+   "looked at here": {
+    "990026910840205171": "old_printed (c0067)",
+    "990010106660205171": "old_printed (c0030)",
+    "bioretletoldotha01gott": "old_printed (c0120)",
+    "kevarpirezikhron00haco": "unclassified (c0112)",
+    "sifruthahisoriya11kaha": "unclassified (c0141)"
+   }
+  },
+  "likely_overstated_new_printed": [
+   "zikhronotlebetda01reck 1893",
+   "zikhronotlevetda01frie 1904",
+   "sipurim00nombuoft 1905",
+   "kolkitveylkatsen018800 1905",
+   "yotsrehasifrutha00zitr 1922",
+   "kolkitvereuvenbe11brai 1922",
+   "seferhademaotmeo0000bern 1923"
+  ],
+  "tagger_units": "bynli_lines_v3/tagger_units.json (20 units with lines; 2-3 absolute paths to cached full-page scans each)"
+ },
+ "dev": {
+  "held_out_whole": {
+   "990010106660205171": "Bodek 1865 (NLI, out_alt): 13 lines",
+   "nirdavid02coheuoft": "Nir David 1834 (IA, out_alt): 0, pointed print",
+   "bub_gb_5-Y-AQAAIAAJ": "Nir David 1834 (Google, out_alt): 0, pointed print",
+   "kolkitvereuvenbe11brai": "Brainin, collected works 1922: 6,257 lines"
+  },
+  "v2_dev_ids_also_passed": [
+   "990010684570205171",
+   "nirdavid01coheuoft",
+   "990020250940205171",
+   "990018546440205171"
+  ],
+  "new_printed_dev": "none designated; waits for the maintainer's tagging"
+ },
+ "pointed": {
+  "dropped_as_pointed_prints": {
+   "ahalrefaimshir00liliuoft": "full",
+   "dimdumimshirim00katz": "full",
+   "seferhashirim00hein": "full",
+   "bub_gb_5-Y-AQAAIAAJ": "full (dev)",
+   "nirdavid02coheuoft": "full (dev)",
+   "shirathayaatahme00long_0": "full (Hiawatha IA)"
+  },
+  "partial_kept_unpointed": {
+   "divreyemeolam02schuuoft": "scattered pointed words",
+   "yotsrehasifrutha00zitr": "scattered pointed words",
+   "seferhademaotmeo0000bern": "fully pointed verse inside unpointed prose",
+   "kevarpirezikhron00haco": "scattered pointed words (looked at c0112)",
+   "sifruthahisoriya11kaha": "pointed quotations (looked at c0141)"
+  },
+  "none": "the other 12 records with lines",
+  "builder_asked_about": [],
+  "unpointed_flag_needed": false,
+  "drop_pointed_spans": {
+   "rule": "lines of prints not named --pointed whose edition span carries >= 0.3 niqqud per letter; applied to every unpointed record",
+   "total": 3015,
+   "by_record": {
+    "990026910840205171": 7,
+    "afahleneemaniml00fngoog": 11,
+    "bioretletoldotha01gott": 84,
+    "divreyemeolam02schuuoft": 76,
+    "kevarpirezikhron00haco": 16,
+    "kolkitvereuvenbe11brai": 205,
+    "kolkitveylkatsen018800": 241,
+    "mikhtavimmiarsh00mezagoog": 3,
+    "seferhademaotmeo0000bern": 1273,
+    "sifruthahisoriya11kaha": 113,
+    "tserorperaimvehu00kovn": 4,
+    "yediothateva06bernuoft": 6,
+    "yotsrehasifrutha00zitr": 603,
+    "zikhronotlebetda01reck": 291,
+    "zikhronotlevetda01frie": 82
+   },
+   "sefer_ha_demaot": 1273
+  }
+ },
+ "excluded_and_dropped": {
+  "f8f_g_skipped": {
+   "MN41837ucmf_2": "microfilm manifest mismatch (378 canvases vs imagecount 41; another Smolenskin text)",
+   "sipurehasidim00stei": "record-to-PBY grouping wrong (0/6)",
+   "ketavimaaronim00bers": "1/6, OCR misreads the type; still skipped after the blank-page re-probe",
+   "inornaimseferkol02luzzuoft": "pointed print, 0/6",
+   "kolkitve00ansk": "holds The Dybbuk; PBY works are folk stories (1/6)",
+   "32882013143071-sipurim": "pointed children's print, near-blank pages; 0/0/0 after re-probe"
+  },
+  "f8f_g_near_misses_not_promoted": {
+   "kolkitvemoshehle04liliuoft": "probe 0/6",
+   "kolkitvemoshehle04lili": "probe 0/6",
+   "kolkitvemoshehle01lili": "probe 0/6",
+   "MN41809ucmf_0": "microfilm manifest mismatch (342 canvases vs imagecount 32)"
+  },
+  "korot": "PBY 52246 and 52613 re-aligned on 925f784 with --nli-snapshot f8f3/manifests_gate/990012978650205171.json (sha256 c67629ba1d8850a05529a6755b28470c24003332a83ad8847d901fb31d45e9e2; no NLI request; images still IA); both rights_justified (rj:korothayehudimb00friegoog:4e9e6ef8210c, :2716eb03f636); 2,968 lines",
+  "MN41838ucmf_3": "ia_reprobe: probe cleared, all 4 works excluded as justification_imagecount_inconsistent:42:108 (microfilm manifest mismatch)",
+  "yediothateva06bernuoft": "PBY 35732 and 35733 excluded as justification_missing_death_year (translator פסח רודרמן has no Wikidata QID in the PBY catalogue)",
+  "ia_reprobe_still_skipped": [
+   "givatyerushalayi00wies",
+   "harimonsipur00brau",
+   "kolsifreperetsbe06smoluoft",
+   "32882013393312-kitveyhtavyovke"
+  ],
+  "never_included": "the 7 R7 f8f3 books and the 26 R7 f8f_ia books (in v2): not in any v3 root, and the 33 v2 manifest records are --exclude-records-from",
+  "builder_drops": {
+   "taller_than_one_line": 1094,
+   "below_min_score": 6918,
+   "label_disagrees_with_line_ocr": 17962,
+   "pointed_span_in_unpointed_print": 3015,
+   "outside_repertoire": 1922,
+   "pointed_print": 7513,
+   "aligned_twice": 133
+  },
+  "capped_lines": {
+   "kevarpirezikhron00haco": 96,
+   "sifruthahisoriya11kaha": 1550,
+   "yediothateva06bernuoft": 4037,
+   "yotsrehasifrutha00zitr": 1934,
+   "zerubavel00levi": 638,
+   "zikhronotlebetda01reck": 1891
+  },
+  "skipped_alignment_dirs": [
+   {
+    "root": "$T/real-source-mapping/intermediates/f8f/f8f_g",
+    "dir": "out_excluded",
+    "name": "out",
+    "reason": "no_alignment_json"
+   },
+   {
+    "root": "$T/real-source-mapping/intermediates/f8f/f8f_g/ia_reprobe",
+    "dir": "out_excluded",
+    "name": "out",
+    "reason": "no_alignment_json"
+   }
+  ]
+ },
+ "release_notices": {
+  "ia": "Internet Archive scans of public-domain books, published without an explicit licence; each item's original IA conditions still apply. Gate: hocrgen.fetchers.ia_iiif.decide_ia_rights (planning/decisions/2026-11-09-internet-archive-library-scans.md). Each IA row carries its work's rights_justification_id (planning/decisions/2026-11-10-legal-strategy.md).",
+  "google_items": {
+   "rule": "legal strategy 2026-11-10 rule 5: Google front matter excluded, lines overlapping a 'Digitized by Google' mark dropped; hygiene record hocrgen.google_hygiene.v1 in each rights_justification.hygiene",
+   "afahleneemaniml00fngoog": "canvas 0 excluded; no watermark on 249 pages",
+   "korothayehudimb00friegoog": "canvas 0 excluded; no watermark on 316 pages",
+   "mikhtavimmiarsh00mezagoog": "canvas 0 excluded; no watermark on 412 pages",
+   "tsitsimuferaimm00geiggoog": "canvas 0 excluded; no watermark on 107 pages",
+   "bub_gb_5-Y-AQAAIAAJ": "dev, 0 lines; watermark boxes on 218 of 235 pages"
+  },
+  "nli": "Bachrach 1884 (990026910840205171, manifest https://iiif.nli.org.il/IIIFv21/990026910840205171/manifest) and Bodek 1865 (990010106660205171): from the collection of the National Library of Israel (מאוסף הספרייה הלאומית), under the NLI 'public domain - free use' terms (https://www.nli.org.il/contenteditors/pages-for-terms-of-use/public-domain-free-use).",
+  "texts": "Project Ben-Yehuda public-domain dump, release 2026-03; credit 'Project Ben-Yehuda volunteers', https://benyehuda.org"
+ },
+ "pending": {
+  "f8f3_day_4": [
+   "Varshavsky, Min ha-Moledet 1919 (990019041450205171, PBY 58580): probe-confirmed, not aligned",
+   "216 NLI groups pending the gate",
+   "the R6 second pass (waits for gating)"
+  ],
+  "node_tagging": "the maintainer's tagging of v3 units (tagger_units.json); then new_printed counts and any new-printed dev role",
+  "f8f3_probe": "f8f3/scripts/probe.py joined raw files like the f8f_ia probe; possible multi-work false negatives not re-probed"
+ },
+ "signature": "— data-collection[claude/claude-code#shay-macbook-m4]@heocr/opensource",
+ "paths": "T = the HeOCR tasks dir (~/agents/environments/opensource/projects/heocr/tasks); local absolute paths are written relative to it"
+}
