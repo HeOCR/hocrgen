@@ -418,6 +418,102 @@ class RealSourceContract(ConfigBaseModel):
         return None
 
 
+# --- Decision 0017: evaluation-reserved source units (P-mod), refused as training input --------------------------
+
+
+class EvalUnitStatus(str, Enum):
+    eval = "eval"
+    non_eval = "non_eval"
+    unassigned = "unassigned"
+
+
+# A unit in either of these statuses never reaches train or any training input (decision 0017's usage rule).
+EVAL_RESERVED_STATUSES = frozenset({EvalUnitStatus.eval, EvalUnitStatus.unassigned})
+
+EVAL_RESERVED_UNIT_PREFIXES = {
+    "reshumot_born_digital": "reshumot:",
+    "knesset_committee_protocols_pre1976": "knesset_protocol:",
+}
+
+
+class EvalSplitFileRecord(ConfigBaseModel):
+    """The eval-owned split file a registry was generated from. Its name and sha256 are what identify it."""
+
+    name: str = Field(pattern=r"^pmod_unit_split_v\d+\.json$")
+    split_version: str = Field(pattern=r"^v\d+$")
+    schema_version: str = Field(min_length=1)  # as the file states it (pmod_unit_split_v1.json still says ...v0)
+    sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    packaged_copy: str = Field(min_length=1)  # path of the committed copy, relative to the hocrgen package
+
+
+class EvalReservedSource(ConfigBaseModel):
+    source_id: Literal["reshumot_born_digital", "knesset_committee_protocols_pre1976"]
+    unit: str = Field(min_length=1)  # what one unit is: a booklet, a protocol
+    eval_units: list[str]
+    non_eval_units: list[str]
+
+    @model_validator(mode="after")
+    def validate_units(self) -> "EvalReservedSource":
+        prefix = EVAL_RESERVED_UNIT_PREFIXES[self.source_id]
+        for name, units in (("eval_units", self.eval_units), ("non_eval_units", self.non_eval_units)):
+            if units != sorted(set(units)):
+                raise ValueError(f"{self.source_id} {name} must be sorted and unique")
+            wrong = [unit for unit in units if not unit.startswith(prefix)]
+            if wrong:
+                raise ValueError(f"{self.source_id} {name} must start with {prefix!r}: {wrong[:3]}")
+        both = sorted(set(self.eval_units) & set(self.non_eval_units))
+        if both:
+            raise ValueError(f"{self.source_id} units are both eval and non_eval: {both}")
+        return self
+
+
+class EvalReservedUnitsRegistry(ConfigBaseModel):
+    """``eval_reserved_units.v1`` (heocr-engine decision 0017): the P-mod evaluation units of the sources hocrgen
+    ships, generated from heocr-eval's split file by ``hocrgen.tools.eval_reserved_units sync``, never by hand.
+
+    An ``eval`` unit and an ``unassigned`` unit (a unit of a listed source in neither list) are reserved: the release
+    split pins them to ``eval_reserved``, and every training-input builder refuses them. A ``non_eval`` unit is open.
+    """
+
+    version: Literal[1] = 1
+    registry_id: Literal["eval_reserved_units.v1"] = "eval_reserved_units.v1"
+    generated_by: Literal["hocrgen.tools.eval_reserved_units sync"] = "hocrgen.tools.eval_reserved_units sync"
+    split_file: EvalSplitFileRecord
+    decision: str = Field(min_length=1)
+    owner: str = Field(min_length=1)
+    usage: str = Field(min_length=1)  # the split file's usage rule, verbatim
+    unassigned_rule: str = Field(min_length=1)  # the usage rule's sentence on unassigned units, verbatim
+    reserved_split: Literal["eval_reserved"] = "eval_reserved"
+    sources: list[EvalReservedSource] = Field(min_length=1)
+
+    @model_validator(mode="after")
+    def validate_registry(self) -> "EvalReservedUnitsRegistry":
+        ids = [source.source_id for source in self.sources]
+        if len(ids) != len(set(ids)):
+            raise ValueError("duplicate eval-reserved source ids")
+        if self.unassigned_rule not in self.usage:
+            raise ValueError("unassigned_rule must be quoted from usage")
+        return self
+
+    def source(self, source_id: str) -> EvalReservedSource | None:
+        return next((source for source in self.sources if source.source_id == source_id), None)
+
+    def governs(self, source_id: str | None) -> bool:
+        return source_id is not None and self.source(source_id) is not None
+
+    def status(self, source_id: str, unit_id: str | None) -> EvalUnitStatus | None:
+        """``None`` for a source the split file does not cover; otherwise the unit's status (no unit: unassigned)."""
+
+        source = self.source(source_id)
+        if source is None:
+            return None
+        if unit_id in set(source.eval_units):
+            return EvalUnitStatus.eval
+        if unit_id in set(source.non_eval_units):
+            return EvalUnitStatus.non_eval
+        return EvalUnitStatus.unassigned
+
+
 # --- F8g: works whose text or glyphs feed synthetic training (leakage cross-check) --------------------------
 
 

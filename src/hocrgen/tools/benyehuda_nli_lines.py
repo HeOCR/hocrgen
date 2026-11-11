@@ -67,6 +67,7 @@ from PIL import Image
 from hocrgen.fetchers.google_hygiene import boxes_overlap
 from hocrgen.fetchers.ia_iiif import IA_GATE, IA_SOURCE
 from hocrgen.fetchers.ia_justification import ia_derivation_blocker
+from hocrgen.split.eval_reserved import refuse_eval_reserved_training_input
 
 SCHEMA_PREFIX = "s16c_benyehuda_nli_lines"
 POINTS = re.compile("[֑-ׇֽֿׁׂׅׄ]")  # niqqud + cantillation; keeps maqaf, paseq, sof pasuq
@@ -421,6 +422,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     if args.max_lines_per_book:
         keys, capped = cap_per_book(keys, args.max_lines_per_book, () if args.cap_dev else dev,
                                     {k[0]: best[k].get("scan_source") for k in best})
+    # Decision 0017: no line may come from an evaluation-reserved P-mod unit (fails closed, before anything is written).
+    refuse_eval_reserved_training_input((best[key] for key in keys), builder="benyehuda_nli_lines build")
     v2 = args.schema == "v2"
     rows = []
     counts: dict[str, Counter] = defaultdict(Counter)

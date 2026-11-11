@@ -31,6 +31,7 @@ from hocrgen.real_tranche import (
 )
 from hocrgen.source_ops import _format_health_path
 from hocrgen.split.assign import _validate_leakage, assign_splits
+from hocrgen.split.eval_reserved import unit_status
 from hocrgen.split.work_groups import item_work_group_keys
 from hocrgen.tools import real_tranche as tranche_tool
 
@@ -384,6 +385,14 @@ def test_public_beta_export_ships_texts_terms_and_a_complete_notice(tmp_path: Pa
         path = output_dir / text["release_text_path"]
         assert hashlib.sha256(path.read_bytes()).hexdigest() == text["sha256"]
     assert all(not item["exported_texts"] for item in by_source["knesset_committee_protocols_pre1976"])
+    # Decision 0017: the published train split holds no eval or unassigned P-mod unit; they ship in eval_reserved.
+    registry = load_and_validate_bundle().eval_reserved_units
+    reserved = [item for item in items if (found := unit_status(item, registry)) and found[1].value != "non_eval"]
+    assert reserved and {item["split"] for item in reserved} == {"eval_reserved"}
+    assert {item["item_id"] for item in reserved} == {item["item_id"] for item in items if item["split"] == "eval_reserved"}
+    assert all((output_dir / "data" / "eval_reserved" / item["item_id"]).is_dir() for item in reserved)
+    splits = {row["item_id"]: row for row in json.loads((output_dir / "manifests" / "split_manifest.json").read_text(encoding="utf-8"))["items"]}
+    assert {splits[item["item_id"]]["split_constraint"] for item in reserved} == {"eval_reserved_unit"}
     assert {item["release_terms"]["evaluation_scope"] for item in by_source["yidtaknl_vaybertaytsh_gt"]} == {"character_level_only"}
     assert all(item["release_terms"]["share_alike"] for item in by_source["wikisource_he_proofread"])
     assert all(item["release_terms"]["rendered_not_scan"] for item in by_source["reshumot_born_digital"])

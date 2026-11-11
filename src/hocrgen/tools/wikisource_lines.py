@@ -59,6 +59,7 @@ from typing import Any
 
 from hocrgen.tools import wikisource_coverage as cov
 from hocrgen.tools.benyehuda_nli_lines import ALLOWED, CANTILLATION, FOLD, LETTER, MAX_HEIGHT_RATIO, MIN_OCR_SIMILARITY, label, niqqud_density
+from hocrgen.split.eval_reserved import refuse_eval_reserved_training_input
 
 TOOL = "hocrgen.tools.wikisource_lines"
 TOOL_VERSION = "0.1.0"
@@ -675,6 +676,8 @@ def build(args: argparse.Namespace, *, gate: Gate = _default_gate, rights: Right
         raise SystemExit(f"{out} exists")
     snap = Path(args.snapshot)
     indexes, pages = load_snapshot(snap)
+    # Decision 0017: no page may come from an evaluation-reserved P-mod unit (fails closed, before anything is written).
+    refuse_eval_reserved_training_input(pages, builder="wikisource_lines build", source_id="wikisource_he_proofread")
     facts = load_facts(Path(args.facts) if args.facts else None)
     dev = _named(args.dev)
     reserve = _named(args.reserve)

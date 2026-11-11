@@ -37,6 +37,7 @@ from PIL import Image
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.ia_justification import ia_derivation_blocker
 from hocrgen.fetchers.wikisource_justification import wikisource_page_blocker
+from hocrgen.split.eval_reserved import refuse_eval_reserved_training_input
 
 BANK_SCHEMA = "printed_glyph_bank.v1"
 TOOL_NAME = "hocrgen.tools.glyph_harvest"
@@ -697,6 +698,8 @@ def write_bank(
     max_per_char: int = 400,
     min_style_glyphs: int = 500,
 ) -> dict:
+    # Decision 0017: no style source may be an evaluation-reserved P-mod unit (fails closed, before anything is written).
+    refuse_eval_reserved_training_input(styles, builder="glyph_harvest write_bank")
     numpy, ndimage = _require_numeric()
     output.mkdir(parents=True, exist_ok=True)
     style_entries = []
@@ -956,6 +959,8 @@ def harvest(units: Iterable[Unit], *, progress_every: int = 50) -> tuple[dict[st
     counts = {"units": 0, "candidates": 0}
     images: dict[Path, bool] = {}
     for unit in units:
+        # Decision 0017: no glyph may come from an evaluation-reserved P-mod unit (fails closed, per unit).
+        refuse_eval_reserved_training_input([unit], builder="glyph_harvest")
         style_stats = stats.setdefault(unit.style_id, PageStats())
         # Line units share a page image; count page statistics once per image.
         page_stats = style_stats if unit.image_path not in images else PageStats()

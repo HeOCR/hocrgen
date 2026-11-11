@@ -665,6 +665,7 @@ def _run_split(bundle: ConfigBundle, context: RunContext, options: StageOptions,
             split_policy=bundle.profiles[context.profile_id].split_policy,
             synthetic_training_keys=state.synthetic_training_keys,
             pinned_splits=_committed_benchmark_splits(bundle),
+            eval_reserved_units=bundle.eval_reserved_units,
         )
     except ValueError as exc:
         raise StageExecutionError(f"split assignment failed: {exc}") from exc

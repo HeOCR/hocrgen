@@ -10,6 +10,7 @@ import yaml
 from pydantic import ValidationError
 
 from hocrgen.config.models import (
+    EvalReservedUnitsRegistry,
     LicenseRegistry,
     PrivacyRules,
     PublicBetaGovernanceConfig,
@@ -35,6 +36,8 @@ class ConfigBundle:
     config_root: Path
     real_source_contract: RealSourceContract | None = None
     synthetic_training_works: SyntheticTrainingWorkRegistry | None = None
+    # Decision 0017: P-mod evaluation units, pinned out of train and refused as training input.
+    eval_reserved_units: EvalReservedUnitsRegistry | None = None
     # F8g: the materialized real tranche the tranche sources read from (``--real-tranche-root``), if any.
     real_tranche_root: Path | None = None
 
@@ -177,6 +180,19 @@ def load_synthetic_training_works(config_root: Path | None = None) -> SyntheticT
     return _validate("synthetic-training work registry", SyntheticTrainingWorkRegistry, load_yaml_file(path), path)
 
 
+EVAL_RESERVED_UNITS_FILE = "eval_reserved_units.yaml"
+
+
+def load_eval_reserved_units(config_root: Path | None = None) -> EvalReservedUnitsRegistry:
+    """The decision-0017 evaluation-reserved unit registry; a config root without one falls back to the packaged one."""
+
+    root = config_root or default_config_root()
+    path = root / EVAL_RESERVED_UNITS_FILE
+    if config_root is not None and not path.exists():
+        path = default_config_root() / EVAL_RESERVED_UNITS_FILE
+    return _validate("eval-reserved unit registry", EvalReservedUnitsRegistry, load_yaml_file(path), path)
+
+
 def load_config_bundle(config_root: Path | None = None) -> ConfigBundle:
     root = config_root or default_config_root()
     return ConfigBundle(
@@ -189,6 +205,7 @@ def load_config_bundle(config_root: Path | None = None) -> ConfigBundle:
         config_root=root,
         real_source_contract=load_real_source_contract(root),
         synthetic_training_works=load_synthetic_training_works(root),
+        eval_reserved_units=load_eval_reserved_units(root),
     )
 
 

@@ -1,0 +1,340 @@
+"""Decision 0017: heocr-eval's P-mod evaluation units are pinned out of train and refused as training input."""
+
+from __future__ import annotations
+
+import argparse
+import hashlib
+import json
+from collections import Counter
+from pathlib import Path
+
+import pytest
+from pydantic import ValidationError
+
+from hocrgen.config.loader import load_and_validate_bundle, package_root
+from hocrgen.config.models import EvalReservedUnitsRegistry, EvalUnitStatus
+from hocrgen.core.errors import StageExecutionError
+from hocrgen.manifests.models import CuratedItemRecord
+from hocrgen.package.common import copy_export_assets
+from hocrgen.split.assign import _validate_leakage, assign_splits, eval_reserved_statuses
+from hocrgen.split.balance import EVAL_RESERVED_SPLIT, SplitGroup, assign_group_splits, split_balance_report
+from hocrgen.split.eval_reserved import (
+    EvalReservedUnitError,
+    governed_unit,
+    refuse_eval_reserved_training_input,
+    unit_from_identifier,
+    unit_status,
+)
+from hocrgen.tools import benyehuda_nli_lines as bl
+from hocrgen.tools import eval_reserved_units as tool
+from hocrgen.tools import glyph_harvest as gh
+from hocrgen.tools import wikisource_lines as wl
+
+RESHUMOT, KNESSET = "reshumot_born_digital", "knesset_committee_protocols_pre1976"
+POLICY = {"train": 0.8, "validation": 0.1, "test": 0.1}
+V1_SHA256 = "184d3b77d80dc26330665271aa81e1eace722299aa2962f5b641970b9741562e"
+EXPOSED = ("reshumot:kovetz_hatakanot_6609", "reshumot:sefer_hachukim_2110")
+
+
+@pytest.fixture(scope="module")
+def registry() -> EvalReservedUnitsRegistry:
+    return load_and_validate_bundle().eval_reserved_units
+
+
+def _split_copy() -> Path:
+    (copy,) = tool.packaged_split_copies()
+    return copy
+
+
+# --- the registry ------------------------------------------------------------------------------------------------
+
+
+def test_committed_registry_is_generated_from_the_committed_split_file(registry: EvalReservedUnitsRegistry) -> None:
+    assert tool.check() == []
+    copy = _split_copy()
+    assert copy.name == registry.split_file.name == "pmod_unit_split_v1.json"
+    assert registry.split_file.packaged_copy == f"data/eval/{copy.name}"
+    assert hashlib.sha256(copy.read_bytes()).hexdigest() == registry.split_file.sha256 == V1_SHA256
+    # v1's schema field still reads v0: the file name, version and sha256 identify it.
+    assert registry.split_file.split_version == "v1"
+    assert registry.split_file.schema_version == "heocr_eval_unit_split.v0"
+    assert registry.decision == "heocr-engine planning/decisions/0017"
+    assert registry.owner.startswith("eval[")
+    assert registry.unassigned_rule.startswith("Units in neither list are unassigned")
+    counts = {source.source_id: (len(source.eval_units), len(source.non_eval_units)) for source in registry.sources}
+    assert counts == {RESHUMOT: (30, 54), KNESSET: (7, 13)}
+    data = json.loads(copy.read_text(encoding="utf-8"))
+    for source in registry.sources:
+        for category, units in (("eval", source.eval_units), ("non_eval", source.non_eval_units)):
+            assert units == sorted(unit["unit_id"] for unit in data[source.source_id][category])
+
+
+def test_each_category_comes_straight_from_the_file(registry: EvalReservedUnitsRegistry) -> None:
+    # v1 marks two booklets `status: exposed` and lists them as non_eval: they are open, not reserved.
+    for unit in EXPOSED:
+        assert registry.status(RESHUMOT, unit) is EvalUnitStatus.non_eval
+    assert registry.status(RESHUMOT, "reshumot:sefer_hachukim_2580") is EvalUnitStatus.eval
+    assert registry.status(RESHUMOT, "reshumot:sefer_hachukim_9999") is EvalUnitStatus.unassigned
+    assert registry.status(RESHUMOT, None) is EvalUnitStatus.unassigned
+    assert registry.status("wikisource_he_proofread", "anything") is None
+
+
+def test_sync_writes_the_copy_and_the_registry(tmp_path: Path) -> None:
+    split = tmp_path / "pmod_unit_split_v1.json"
+    split.write_bytes(_split_copy().read_bytes())
+    package, config = tmp_path / "pkg", tmp_path / "config"
+    config.mkdir()
+    (package / "data" / "eval").mkdir(parents=True)
+    (package / "data" / "eval" / "pmod_unit_split_v0.json").write_text("{}", encoding="utf-8")  # an older copy goes
+    summary = tool.sync(split, package=package, config_root=config)
+    assert summary["units"] == {KNESSET: {"eval": 7, "non_eval": 13}, RESHUMOT: {"eval": 30, "non_eval": 54}}
+    assert [path.name for path in tool.packaged_split_copies(package)] == ["pmod_unit_split_v1.json"]
+    assert tool.check(package=package, config_root=config) == []
+    registry_file = config / "eval_reserved_units.yaml"
+    registry_file.write_text(registry_file.read_text(encoding="utf-8").replace("knesset_protocol:398637\n", "", 1), encoding="utf-8")
+    assert tool.check(package=package, config_root=config) != []
+
+
+def _split_json(**overrides) -> bytes:
+    data = json.loads(_split_copy().read_text(encoding="utf-8"))
+    data.update(overrides)
+    return json.dumps({key: value for key, value in data.items() if value is not None}).encode("utf-8")
+
+
+@pytest.mark.parametrize(
+    ("name", "payload", "message"),
+    [
+        ("pmod_unit_split_v1.json", _split_json(superseded_by="labels/pmod_unit_split_v2.json"), "superseded"),
+        ("units.json", _split_json(), "is not pmod_unit_split"),
+        ("pmod_unit_split_v2.json", _split_json(), "states split_version"),
+        ("pmod_unit_split_v1.json", _split_json(usage="eval units are never training input."), "unassigned"),
+        ("pmod_unit_split_v1.json", _split_json(tenders={"eval": [], "non_eval": []}), "does not map"),
+        ("pmod_unit_split_v1.json", _split_json(owner=None), "no owner"),
+        ("pmod_unit_split_v1.json",
+         _split_json(knesset_committee_protocols_pre1976={"eval": [{"unit_id": "knesset_protocol:1"}] * 2, "non_eval": []}),
+         "repeated unit_id"),
+    ],
+)
+def test_sync_refuses_a_split_file_it_cannot_govern(name: str, payload: bytes, message: str) -> None:
+    with pytest.raises(tool.SplitFileError, match=message):
+        tool.registry_data(payload, name)
+
+
+def test_registry_model_rejects_overlapping_or_misprefixed_units(registry: EvalReservedUnitsRegistry) -> None:
+    data = registry.model_dump(mode="json")
+    knesset = next(source for source in data["sources"] if source["source_id"] == KNESSET)
+    knesset["non_eval_units"] = sorted(knesset["non_eval_units"] + [knesset["eval_units"][0]])
+    with pytest.raises(ValidationError, match="both eval and non_eval"):
+        EvalReservedUnitsRegistry.model_validate(data)
+    knesset["non_eval_units"] = sorted(knesset["non_eval_units"][:-1] + ["reshumot:sefer_hachukim_1"])
+    with pytest.raises(ValidationError, match="must start with"):
+        EvalReservedUnitsRegistry.model_validate(data)
+
+
+# --- unit ids ----------------------------------------------------------------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("identifier", "expected"),
+    [
+        ("reshumot:kovetz_hatakanot_10333", (RESHUMOT, "reshumot:kovetz_hatakanot_10333")),
+        ("reshumot:kovetz_hatakanot:10333", (RESHUMOT, "reshumot:kovetz_hatakanot_10333")),
+        ("kovetz_hatakanot_10333__p0001", (RESHUMOT, "reshumot:kovetz_hatakanot_10333")),
+        ("reshumot_kovetz_hatakanot_10333__p0001", (RESHUMOT, "reshumot:kovetz_hatakanot_10333")),  # the R4f form
+        ("reshumot_born_digital:sefer_hachukim_2580__p0008", (RESHUMOT, "reshumot:sefer_hachukim_2580")),
+        ("knesset_protocol:398637", (KNESSET, "knesset_protocol:398637")),
+        ("knesset_committee:398637", (KNESSET, "knesset_protocol:398637")),
+        ("knesset_committee_398637__p0001", (KNESSET, "knesset_protocol:398637")),
+        ("knesset_committee_protocols_pre1976:knesset_committee_398637__p0001", (KNESSET, "knesset_protocol:398637")),
+        ("ws_index_1711486__p0012", None),
+        ("nli-990018546440205171", None),
+        ("reshumot:other_series_1", None),
+        (12345, None),
+    ],
+)
+def test_unit_ids_from_every_id_shape(identifier, expected) -> None:
+    assert unit_from_identifier(identifier) == expected
+
+
+def test_every_tranche_v5_reshumot_and_knesset_item_maps_to_a_listed_unit(registry: EvalReservedUnitsRegistry) -> None:
+    rows = [json.loads(line) for line in (package_root() / "data" / "real_tranche" / "tranche_items.jsonl").read_text(encoding="utf-8").splitlines()]
+    governed = [row for row in rows if row["source_id"] in (RESHUMOT, KNESSET)]
+    assert len(governed) == 1003
+    statuses: Counter = Counter()
+    units: dict[str, set[str]] = {}
+    for row in governed:
+        item = {"source_id": row["source_id"], "item_id": f"{row['source_id']}:{row['source_item_id']}",
+                "source_item_id": row["source_item_id"], "source_group_id": row["source_group"]}
+        unit, status = unit_status(item, registry)
+        bare = unit_status({"source_id": row["source_id"], "source_item_id": row["source_item_id"]}, registry)
+        assert bare[0].unit_id == unit.unit_id  # the page id alone is enough
+        statuses[(row["source_id"], status.value)] += 1
+        units.setdefault(status.value, set()).add(unit.unit_id)
+    # Every captured unit is assigned; the tranche holds every eval unit of the split file.
+    assert statuses == {(RESHUMOT, "eval"): 241, (RESHUMOT, "non_eval"): 557, (KNESSET, "eval"): 40, (KNESSET, "non_eval"): 165}
+    assert units["eval"] == {unit for source in registry.sources for unit in source.eval_units}
+
+
+def test_fetcher_metadata_gives_the_unit_and_ambiguous_rows_are_refused() -> None:
+    reshumot = {"source_id": RESHUMOT, "item_id": "x", "metadata": {"reshumot_series": "sefer_hachukim", "reshumot_booklet_number": "2580"}}
+    assert governed_unit(reshumot).unit_id == "reshumot:sefer_hachukim_2580"
+    knesset = {"source_id": KNESSET, "item_id": "y", "metadata": {"knesset_document_id": 398637}}
+    assert governed_unit(knesset).unit_id == "knesset_protocol:398637"
+    # A governed source without a derivable unit is unassigned, never open.
+    assert governed_unit({"source_id": KNESSET, "item_id": "z"}).unit_id is None
+    assert governed_unit({"source_id": "wikisource_he_proofread", "item_id": "wikisource_he_proofread:ws_1__p1"}) is None
+    with pytest.raises(EvalReservedUnitError, match="more than one"):
+        governed_unit({**reshumot, "source_item_id": "sefer_hachukim_2581__p0001"})
+
+
+# --- the release split -------------------------------------------------------------------------------------------
+
+
+def _curated(item_id: str, source_id: str, *, group: str | None = None, cluster: str | None = None,
+             content_type: str = "printed_modern") -> CuratedItemRecord:
+    return CuratedItemRecord.model_construct(
+        item_id=item_id, source_id=source_id, source_item_id=item_id.split(":", 1)[1], source_url="",
+        metadata={"content_type": content_type}, raw_metadata={}, dedupe_cluster_id=cluster,
+        near_duplicate_cluster_id=None, source_group_id=group, split=None, split_group_id=None, is_synthetic=False,
+    )
+
+
+def _release_pool() -> list[CuratedItemRecord]:
+    """The committed tranche's Reshumot and Knesset items, plus unassigned units and Wikisource filler."""
+
+    rows = [json.loads(line) for line in (package_root() / "data" / "real_tranche" / "tranche_items.jsonl").read_text(encoding="utf-8").splitlines()]
+    items = []
+    for n, row in enumerate(row for row in rows if row["source_id"] in (RESHUMOT, KNESSET)):
+        # Every seventh page has no source group (as the dedupe stage leaves a one-page group): its id must suffice.
+        items.append(_curated(f"{row['source_id']}:{row['source_item_id']}", row["source_id"],
+                              group=None if n % 7 == 0 else row["source_group"]))
+    items += [_curated(f"{RESHUMOT}:sefer_hachukim_9999__p{page:04d}", RESHUMOT, group="reshumot:sefer_hachukim:9999") for page in range(1, 4)]
+    items.append(_curated(f"{KNESSET}:mystery-page", KNESSET))  # no derivable unit: unassigned
+    items += [_curated(f"wikisource_he_proofread:ws_{n}__p1", "wikisource_he_proofread", group=f"ws:{n}", content_type="printed_historical")
+              for n in range(40)]
+    # A Wikisource page that duplicates an eval Reshumot page rides along with it.
+    items.append(_curated("wikisource_he_proofread:ws_dup__p1", "wikisource_he_proofread", cluster="dup-1", content_type="printed_historical"))
+    items.append(_curated(f"{RESHUMOT}:sefer_hachukim_2580__p0001", RESHUMOT, group="reshumot:sefer_hachukim:2580", cluster="dup-1"))
+    return items
+
+
+@pytest.mark.parametrize("seed", ["hocrgen-split-v1", "seed-a", "seed-b", "seed-c"])
+def test_the_published_train_split_never_holds_an_eval_or_unassigned_unit(registry: EvalReservedUnitsRegistry, seed: str) -> None:
+    items = _release_pool()
+    outputs = assign_splits(items, [], POLICY, seed=seed, eval_reserved_units=registry)
+    statuses = eval_reserved_statuses(items, registry)
+    splits = {item.item_id: item.split for item in outputs.retained_items}
+    constraints = {assignment.item_id: assignment.split_constraint for assignment in outputs.assignments}
+    for item_id, (_, _, status) in statuses.items():
+        if status in ("eval", "unassigned"):
+            assert splits[item_id] == EVAL_RESERVED_SPLIT, item_id
+            assert constraints[item_id] == "eval_reserved_unit"
+        else:
+            assert splits[item_id] != EVAL_RESERVED_SPLIT, item_id
+    assert splits["wikisource_he_proofread:ws_dup__p1"] == EVAL_RESERVED_SPLIT
+    train = [item for item in outputs.retained_items if item.split == "train"]
+    assert train and all(statuses.get(item.item_id, (None, None, "open"))[2] in ("non_eval", "open") for item in train)
+    # The non-reserved items are still balanced over the policy.
+    strata = outputs.leakage_report["split_assignment"]["strata"]
+    reshumot = strata[f"{RESHUMOT}:printed_modern"]
+    assert sum(reshumot["items"].values()) == 557 and abs(reshumot["items"]["test"] - 55.7) <= 1
+    report = outputs.leakage_report["eval_reserved_units"]
+    assert report["split_file"]["sha256"] == V1_SHA256 and report["leak_item_ids"] == []
+    assert report["carried_item_ids"] == ["wikisource_he_proofread:ws_dup__p1"]
+    assert report["sources"][RESHUMOT]["items"] == {"eval": 242, "non_eval": 557, "unassigned": 3}
+    assert report["sources"][RESHUMOT]["reserved_units"]["unassigned"] == ["reshumot:sefer_hachukim_9999"]
+    assert report["sources"][KNESSET]["reserved_units"]["unassigned"] == ["<unit not derivable>"]
+    assert outputs.leakage_report["split_assignment"]["eval_reserved"]["items"] == 242 + 40 + 3 + 1 + 1
+    assert outputs.leakage_report["status"] == "ok"
+
+
+def test_without_reserved_units_the_split_is_unchanged(registry: EvalReservedUnitsRegistry) -> None:
+    items = [_curated(f"wikisource_he_proofread:ws_{n}__p{p}", "wikisource_he_proofread", group=f"ws:{n}") for n in range(30) for p in range(n % 3 + 1)]
+    outputs = assign_splits(items, [], POLICY, eval_reserved_units=registry)
+    assert "eval_reserved" not in outputs.leakage_report["split_assignment"]
+    assert {item.split for item in outputs.retained_items} <= {"train", "validation", "test"}
+    assert outputs.leakage_report["eval_reserved_units"]["sources"] == {}
+
+
+def test_a_reserved_component_pinned_elsewhere_is_refused(registry: EvalReservedUnitsRegistry) -> None:
+    items = [_curated(f"{RESHUMOT}:sefer_hachukim_2580__p0001", RESHUMOT, group="reshumot:sefer_hachukim:2580")]
+    with pytest.raises(ValueError, match="pinned to both"):
+        assign_splits(items, [], POLICY, pinned_splits={items[0].item_id: "test"}, eval_reserved_units=registry)
+    items[0].metadata["scan_commons_file_sha1"] = "abc"
+    with pytest.raises(ValueError, match="synthetic-training work"):
+        assign_splits(items, [], POLICY, synthetic_training_keys={"commons_file:abc": ["glyphs:x"]}, eval_reserved_units=registry)
+
+
+def test_leakage_validation_fails_a_reserved_item_outside_the_holdout(registry: EvalReservedUnitsRegistry) -> None:
+    item = _curated(f"{KNESSET}:knesset_committee_398637__p0001", KNESSET).model_copy(update={"split": "train", "split_group_id": "g"})
+    report = _validate_leakage([item], None, (eval_reserved_statuses([item], registry), registry))
+    assert report["status"] == "error"
+    assert report["eval_reserved_units"]["leak_item_ids"] == [item.item_id]
+
+
+def test_balance_takes_reserved_groups_out_of_their_stratum() -> None:
+    groups = [SplitGroup(group_id=f"g{n:02d}", size=1 + n % 4, stratum="s") for n in range(40)]
+    reserved = [SplitGroup(group_id=f"r{n}", size=9, stratum="s", pinned_split=EVAL_RESERVED_SPLIT) for n in range(3)]
+    alone = assign_group_splits(groups, POLICY)
+    together = assign_group_splits([*groups, *reserved], POLICY)
+    assert {key: together[key] for key in alone} == alone
+    assert {together[group.group_id] for group in reserved} == {EVAL_RESERVED_SPLIT}
+    report = split_balance_report([*groups, *reserved], together, POLICY)
+    assert report["eval_reserved"]["items"] == 27 and report["eval_reserved"]["strata"] == {"s": {"items": 27, "groups": 3}}
+    assert report["strata"]["s"]["item_count"] == sum(group.size for group in groups)
+    with pytest.raises(ValueError, match="unknown split"):
+        assign_group_splits([SplitGroup(group_id="x", size=1, stratum="s", pinned_split="reserved")], POLICY)
+
+
+def test_the_export_refuses_a_reserved_item_outside_eval_reserved(tmp_path: Path) -> None:
+    item = _curated(f"{RESHUMOT}:sefer_hachukim_2580__p0002", RESHUMOT).model_copy(update={"split": "train"})
+    with pytest.raises(StageExecutionError, match="evaluation-reserved"):
+        copy_export_assets([item], tmp_path / "data")
+    assert not (tmp_path / "data").exists()
+
+
+# --- the training-input builders -----------------------------------------------------------------------------------
+
+
+def test_the_guard_refuses_eval_and_unassigned_units_and_names_them(registry: EvalReservedUnitsRegistry) -> None:
+    open_rows = [{"record_id": "990018546440205171"}, {"source_id": RESHUMOT, "item_id": f"{RESHUMOT}:kovetz_hatakanot_10333__p0001"},
+                 {"source_item_id": "kovetz_hatakanot_6609__p0003"}]  # an exposed booklet: non_eval, open
+    assert refuse_eval_reserved_training_input(open_rows, builder="test", registry=registry) == 3
+    with pytest.raises(EvalReservedUnitError) as excinfo:
+        refuse_eval_reserved_training_input(
+            [{"id": "a", "source_item_id": "sefer_hachukim_2580__p0001"}, {"id": "b", "page_id": "knesset_committee_999999__p0001"},
+             {"id": "c", "source_id": KNESSET}],
+            builder="test builder", registry=registry)
+    message = str(excinfo.value)
+    assert message.startswith("test builder: refused 3 input row(s)") and "decision 0017" in message
+    assert "pmod_unit_split_v1.json" in message
+    assert "reshumot:sefer_hachukim_2580 is eval" in message and "knesset_protocol:999999 is unassigned" in message
+
+
+def test_benyehuda_nli_lines_refuses_a_reserved_line(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    row = {"record_id": "reshumot_sefer_hachukim_2580__p0001", "canvas_index": 0, "text": "שלום", "_root": tmp_path}
+    monkeypatch.setattr(bl, "collect", lambda *args, **kwargs: ({("reshumot_sefer_hachukim_2580__p0001", 0, 0): row}, Counter(), {}, {}))
+    with pytest.raises(EvalReservedUnitError, match="benyehuda_nli_lines build: refused 1"):
+        bl.main(["build", str(tmp_path / "set"), "--root", str(tmp_path)])
+    assert not (tmp_path / "set").exists()
+
+
+def test_wikisource_lines_refuses_a_reserved_page(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    page = {"index_key": "x", "source_item_id": "knesset_committee_398637__p0001"}
+    monkeypatch.setattr(wl, "load_snapshot", lambda root: ({}, [page]))
+    args = argparse.Namespace(out=str(tmp_path / "set"), snapshot=str(tmp_path))
+    with pytest.raises(EvalReservedUnitError, match="wikisource_lines build: refused 1"):
+        wl.build(args)
+    assert not (tmp_path / "set").exists()
+
+
+def test_glyph_harvest_refuses_a_reserved_unit_and_style(tmp_path: Path) -> None:
+    unit = gh.Unit(style_id="r", page_id=f"{RESHUMOT}:sefer_hachukim_2580__p0002", image_path=tmp_path / "x.png",
+                   reference_text="", ocr_words=[])
+    with pytest.raises(EvalReservedUnitError, match="glyph_harvest: refused 1"):
+        gh.harvest([unit])
+    style = gh.StyleSource(style_id="r", source_id=RESHUMOT, work_id="reshumot:sefer_hachukim:2580", licence="PD")
+    with pytest.raises(EvalReservedUnitError, match="glyph_harvest write_bank: refused 1"):
+        gh.write_bank(tmp_path / "bank", bank_id="b", config={}, sources=[], exclusions=[], styles=[style],
+                      glyphs_by_style={}, stats_by_style={})
+    assert not (tmp_path / "bank").exists()

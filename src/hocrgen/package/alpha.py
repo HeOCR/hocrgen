@@ -62,7 +62,7 @@ from hocrgen.synthetic.reporting import synthetic_composition_report
 
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
-SPLIT_ORDER = {"train": 0, "validation": 1, "test": 2}
+SPLIT_ORDER = {"train": 0, "validation": 1, "test": 2, "eval_reserved": 3}
 _OMIT = object()
 
 

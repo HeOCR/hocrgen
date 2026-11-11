@@ -49,6 +49,11 @@ weight, each holdout's ``ReferenceHoldoutConstraint`` must hold:
    reference weight (least adjudicated text taken from the sink) and the seeded order.
 8. This repeats until every constraint holds or no eligible group is left; an unmet constraint is reported, never
    forced. A stratum without reference weight is placed exactly as in ``v1``.
+
+**Evaluation-reserved groups (decision 0017).** A group pinned to ``eval_reserved`` (``EVAL_RESERVED_SPLIT``) holds
+units heocr-eval reserves for evaluation. That split is outside the policy: such a group is taken out of its stratum
+before step 2, so the stratum's other groups are placed over the policy's splits exactly as if it were absent, and the
+report counts it apart from the policy shares.
 """
 
 from __future__ import annotations
@@ -64,6 +69,8 @@ SPLIT_ORDER = ("train", "validation", "test")
 HOLDOUT_FILL_ORDER = ("test", "validation")
 FIT_TOLERANCE_ITEMS = 0.5
 PIN_REFERENCE_CONSTRAINT = "reference_constraint"
+# Decision 0017: a holdout outside the split policy for heocr-eval's reserved units (hocrgen.split.eval_reserved).
+EVAL_RESERVED_SPLIT = "eval_reserved"
 
 
 @dataclass(frozen=True)
@@ -204,16 +211,20 @@ def _assign(groups: Iterable[SplitGroup], policy: Any, seed: str,
     sink, holdouts = _sink_and_holdouts(ratios)
     by_stratum: dict[str, list[SplitGroup]] = {}
     seen: set[str] = set()
+    reserved: list[str] = []
     for group in groups:
         if group.group_id in seen:
             raise ValueError(f"duplicate split group id: {group.group_id}")
         if group.size < 0 or group.reference_weight < 0:
             raise ValueError(f"split group {group.group_id} has a negative size or reference weight")
-        if group.pinned_split is not None and group.pinned_split not in ratios:
+        if group.pinned_split is not None and group.pinned_split not in ratios and group.pinned_split != EVAL_RESERVED_SPLIT:
             raise ValueError(f"split group {group.group_id} is pinned to unknown split {group.pinned_split}")
         seen.add(group.group_id)
+        if group.pinned_split == EVAL_RESERVED_SPLIT:
+            reserved.append(group.group_id)
+            continue
         by_stratum.setdefault(group.stratum, []).append(group)
-    assignment: dict[str, str] = {}
+    assignment: dict[str, str] = {group_id: EVAL_RESERVED_SPLIT for group_id in reserved}
     moves: dict[str, list[dict[str, Any]]] = {}
     for stratum, members in sorted(by_stratum.items()):
         placed, moved = _assign_stratum(members, ratios, sink, holdouts, seed, constraints or {})
@@ -259,6 +270,8 @@ def split_balance_report(
     groups = list(groups)
     constraints = DEFAULT_REFERENCE_CONSTRAINTS if reference_constraints is None else reference_constraints
     _, moves = _assign(groups, policy, seed, constraints)
+    reserved = [group for group in groups if assignment[group.group_id] == EVAL_RESERVED_SPLIT]
+    groups = [group for group in groups if assignment[group.group_id] != EVAL_RESERVED_SPLIT]
     ratios = split_ratios(policy)
     strata: dict[str, dict[str, Any]] = {}
     overall_items = {name: 0 for name in ratios}
@@ -303,6 +316,19 @@ def split_balance_report(
             "unmet": reference_constraint_problems(members, assignment, constraints),
         }}
 
+    reserved_strata: dict[str, dict[str, int]] = {}
+    for group in reserved:
+        record = reserved_strata.setdefault(group.stratum, {"items": 0, "groups": 0})
+        record["items"] += group.size
+        record["groups"] += 1
+    reserved_report = {
+        "eval_reserved": {
+            "items": sum(group.size for group in reserved), "groups": len(reserved),
+            "strata": dict(sorted(reserved_strata.items())),
+            "rule": ("Groups holding heocr-eval reserved units (decision 0017) are outside the split policy: they are "
+                     "taken out of their stratum before placement and counted here, not in the policy shares."),
+        }
+    } if reserved else {}
     return {
         "algorithm": SPLIT_ASSIGNMENT_ALGORITHM,
         "seed": seed,
@@ -316,4 +342,5 @@ def split_balance_report(
                       **reference(stratum)}
             for stratum, record in sorted(strata.items())
         },
+        **reserved_report,
     }
