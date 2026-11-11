@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
@@ -58,6 +59,28 @@ def test_pby_body_drops_the_dump_trailer() -> None:
     body = "טקסט היצירה.\n\n\nאת הטקסט[ים] לעיל הפיקו מתנדבי פרויקט בן־יהודה באינטרנט.  הכל זמין תמיד בכתובת הבאה:https://benyehuda.org/read/1"
     assert tool.pby_body(body) == "טקסט היצירה.\n"
     assert tool.pby_body("ללא סיומת") == "ללא סיומת"
+
+
+def _trailer(pby_id: int) -> str:
+    return ("את הטקסט[ים] לעיל הפיקו מתנדבי פרויקט בן־יהודה באינטרנט.  הכל זמין תמיד בכתובת הבאה:"
+            f"https://benyehuda.org/read/{pby_id}")
+
+
+def test_pby_body_single_work_unchanged_on_the_fixture() -> None:
+    # The pre-fix rule cut from the first trailer to the end of the text; a single work must come out byte-identical.
+    old = re.compile(r"\s*את הטקסט\[ים\] לעיל הפיקו מתנדבי פרויקט בן־יהודה.*\Z", re.S)
+    work = _excerpt() + "\n\n\n\n" + _trailer(10531) + "\n\n"
+    assert tool.pby_body(work) == old.sub("\n", work) == _excerpt().rstrip() + "\n"
+    assert tool.pby_body(_excerpt()) == old.sub("\n", _excerpt()) == _excerpt()
+
+
+def test_pby_body_keeps_every_work_of_a_joined_volume() -> None:
+    works = ["השיר הראשון.", "השיר השני,\nבשתי שורות.", "השיר השלישי."]
+    volume = "\n\n".join(f"{w}\n\n\n{_trailer(i)}" for i, w in enumerate(works, 1)) + "\n"
+    body = tool.pby_body(volume)
+    assert "לעיל הפיקו" not in body and "benyehuda.org" not in body
+    assert body == "השיר הראשון.\n\n\nהשיר השני,\nבשתי שורות.\n\n\nהשיר השלישי.\n"
+    assert all(w in body for w in works)
 
 
 # --- catalogue and matching --------------------------------------------------------------------------------

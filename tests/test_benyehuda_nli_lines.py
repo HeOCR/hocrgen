@@ -27,10 +27,11 @@ def _tsv(lines_words: list[tuple[list[float], list[str]]]) -> str:
 
 
 def _record(root: Path, rec: str, pby: str, lines: list[str], *, method: dict | None = None, rights: str = "accepted",
-            out: str = "out") -> None:
+            out: str = "out", dirname: str | None = None) -> None:
     """One aligned page whose lines carry ``lines`` (edition text); the page OCR reads them without niqqud.
 
-    The OCR TSV goes where the aligner caches it (``ocr/``, or ``ocr-<ocr_model>/``).
+    The OCR TSV goes where the aligner caches it (``ocr/``, or ``ocr-<ocr_model>/``). ``dirname`` names the alignment
+    dir (default ``pby``; ``<pby>@<record>`` for an alternate edition in ``out_alt/``).
     """
     text = " ".join(lines)
     spans, pos = [], 0
@@ -47,8 +48,9 @@ def _record(root: Path, rec: str, pby: str, lines: list[str], *, method: dict | 
                  "scan": {"nli_record_id": rec, "license_slug": "public-domain-free-use", "rights_decision": {"decision": rights}},
                  "pages": [{"canvas_index": 0, "canvas_id": f"{rec}/c0", "canvas_size": list(CANVAS), "status": "aligned",
                             "quality": "high", "lines": page_lines}]}
-    (root / out / pby).mkdir(parents=True)
-    (root / out / pby / "alignment.json").write_text(json.dumps(alignment, ensure_ascii=False), encoding="utf-8")
+    adir = root / out / (dirname or pby)
+    adir.mkdir(parents=True)
+    (adir / "alignment.json").write_text(json.dumps(alignment, ensure_ascii=False), encoding="utf-8")
     (root / "pby" / "txt").mkdir(parents=True, exist_ok=True)
     (root / "pby" / "txt" / f"m{pby}.txt").write_text(text, encoding="utf-8")
     sub = bl.ocr_subdir(method)
@@ -356,3 +358,142 @@ def test_google_scan_with_hygiene_pending_gives_no_lines(tmp_path, root, hygiene
     assert not any(r["record_id"] == "bub_gb_pending1" for r in rows)
     assert summary["dropped"]["google_hygiene_pending"] == 4
     assert any(r["record_id"] == "111" for r in rows)  # other records still build
+
+
+# --- alternate editions in out_alt/<pby>@<record>/ (hocrgen#169) -------------------------------------------------
+
+ALT_LINES = ["ספר חדש ויפה", "עיר גדולה מאד", "נהר ארוך וצר"]
+
+
+def _rows(out: Path) -> list[dict]:
+    return [json.loads(x) for x in (out / "manifest.jsonl").read_text(encoding="utf-8").splitlines()]
+
+
+def test_alignment_dir_pby_parses_plain_and_alternate_edition_names():
+    assert bl.alignment_dir_pby("52535") == ("52535", None)
+    assert bl.alignment_dir_pby("52535@990010106660205171") == ("52535", "990010106660205171")
+    assert bl.alignment_dir_pby("41259@shirathayaatahme00long_0") == ("41259", "shirathayaatahme00long_0")
+    assert bl.alignment_dir_pby("out") is None and bl.alignment_dir_pby("@abc") is None and bl.alignment_dir_pby("x@1") is None
+
+
+def test_alternate_edition_gives_lines_with_its_pby_text_and_scan_record(tmp_path):
+    r = tmp_path / "f8f"
+    _record(r, "990010106660205171", "52535", ALT_LINES, out="out_alt", dirname="52535@990010106660205171")
+    out = tmp_path / "set"
+    assert bl.main(["build", str(out), "--root", str(r), "--no-images", "--dev", "990010106660205171=bodek-1865"]) == 0
+    rows = _rows(out)
+    assert len(rows) == 3 and {row["split"] for row in rows} == {"dev"}
+    assert {(row["record_id"], row["pby_id"], row["alignment"]) for row in rows} == {
+        ("990010106660205171", "52535", "out_alt/52535@990010106660205171/alignment.json")}
+    assert [row["text"] for row in rows] == ALT_LINES
+    assert json.loads((out / "summary.json").read_text(encoding="utf-8"))["skipped_alignment_dirs"] == []
+
+
+def test_out_and_out_alt_of_one_record_are_one_source_deduplicated_per_line(tmp_path):
+    r = tmp_path / "f8f"
+    _record(r, "777", "7", ALT_LINES)
+    _record(r, "777", "9", ALT_LINES, out="out_alt", dirname="9@777")  # same page lines placed by a second work
+    out = tmp_path / "set"
+    assert bl.main(["build", str(out), "--root", str(r), "--no-images"]) == 0
+    summary, rows = json.loads((out / "summary.json").read_text(encoding="utf-8")), _rows(out)
+    assert len(rows) == 3 and summary["dropped"]["aligned_twice"] == 3  # per-record dedup on (record, canvas, line)
+    assert summary["ocr_placer_choice"] == {}  # one root and one placer: not a choice between sources
+
+
+def test_one_work_aligned_twice_to_one_record_by_one_placer_fails(tmp_path):
+    r = tmp_path / "f8f"
+    _record(r, "777", "7", ALT_LINES)
+    _record(r, "777", "7", ALT_LINES, out="out_alt", dirname="7@777")
+    with pytest.raises(SystemExit, match="PBY 7 aligned more than once"):
+        bl.main(["build", str(tmp_path / "set"), "--root", str(r), "--no-images"])
+
+
+def test_prefer_placer_still_chooses_between_placers_with_out_alt(tmp_path):
+    r = tmp_path / "f8f"
+    r6 = {"ocr_engine": "tesseract 5.5.3 -l heb --psm 3", "ocr_model": "r6@73eb18e0"}
+    _record(r, "777", "7", ALT_LINES, out="out_alt", dirname="7@777")
+    _record(r, "777", "7", ALT_LINES, out="out_r6", method=r6)
+    with pytest.raises(SystemExit, match="several alignment sources"):
+        bl.main(["build", str(tmp_path / "a"), "--root", str(r), "--no-images"])
+    out = tmp_path / "b"
+    assert bl.main(["build", str(out), "--root", str(r), "--no-images", "--prefer-placer", "stock"]) == 0
+    choice = json.loads((out / "summary.json").read_text(encoding="utf-8"))["ocr_placer_choice"]["777"]
+    assert choice["chosen"]["dir"] == "out_alt" and choice["skipped"][0]["dir"] == "out_r6"
+    assert {row["alignment"] for row in _rows(out)} == {"out_alt/7@777/alignment.json"}
+
+
+def test_skipped_alignment_dirs_are_reported(tmp_path):
+    r = tmp_path / "f8f"
+    _record(r, "777", "7", ALT_LINES)
+    _record(r, "888", "8", ALT_LINES, out="out_alt", dirname="8@999")  # dir names another record than its scan
+    _record(r, "889", "8", ALT_LINES, out="out_alt", dirname="notes")
+    (r / "out_excluded" / "out").mkdir(parents=True)  # no alignment.json
+    out = tmp_path / "set"
+    assert bl.main(["build", str(out), "--root", str(r), "--no-images"]) == 0
+    skipped = json.loads((out / "summary.json").read_text(encoding="utf-8"))["skipped_alignment_dirs"]
+    assert [(d["dir"], d["name"], d["reason"]) for d in skipped] == [
+        ("out_alt", "8@999", "dir_record_is_not_the_scan_record:888"),
+        ("out_alt", "notes", "not_an_alignment_dir_name"),
+        ("out_excluded", "out", "no_alignment_json")]
+    assert {row["record_id"] for row in _rows(out)} == {"777"}
+
+
+def test_two_scans_of_one_pby_text_are_capped_as_separate_books(tmp_path):
+    r = tmp_path / "f8f"
+    _record(r, "777", "7", ALT_LINES)
+    _record(r, "778", "7", ALT_LINES, out="out_alt", dirname="7@778")
+    out = tmp_path / "set"
+    assert bl.main(["build", str(out), "--root", str(r), "--no-images", "--max-lines-per-book", "2"]) == 0
+    summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+    assert summary["lines"]["train"] == {"777 777": 2, "778 778": 2}  # the cap is per record (per scan)
+    assert summary["capped_lines"] == {"777": 1, "778": 1}
+
+
+def test_records_and_exclude_records_filter_before_the_source_choice(tmp_path, root):
+    other = tmp_path / "other"
+    _record(other, "222", "2", ["ספר חדש ויפה"])  # same record under a second root: ambiguous unless filtered out
+    common = ["--root", str(root), "--root", str(other), "--no-images", "--pointed", "333", "444"]
+    out = tmp_path / "a"
+    assert bl.main(["build", str(out), *common, "--exclude-records", "222", "555"]) == 0
+    summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+    assert {row["record_id"] for row in _rows(out)} == {"111"}
+    assert summary["records_filter"] == {"records": None, "exclude_records": ["222", "555"]}
+    listing = tmp_path / "v2_records.txt"
+    listing.write_text("# records of an earlier set\n222 some book\n", encoding="utf-8")
+    out = tmp_path / "b"
+    assert bl.main(["build", str(out), *common, "--exclude-records-from", str(listing)]) == 0
+    assert {row["record_id"] for row in _rows(out)} == {"111"}
+    out = tmp_path / "c"
+    assert bl.main(["build", str(out), "--root", str(root), "--no-images", "--records", "111"]) == 0
+    assert {row["record_id"] for row in _rows(out)} == {"111"}
+    with pytest.raises(SystemExit, match="both --records and --exclude-records"):
+        bl.main(["build", str(tmp_path / "d"), "--root", str(root), "--records", "111", "--exclude-records", "111"])
+
+
+def test_drop_pointed_spans_in_an_unpointed_print(tmp_path):
+    r = tmp_path / "f8f"
+    _record(r, "777", "7", ["ספר חדש ויפה", POINTED_FULL[1], "נהר ארוך וצר"])  # pointed verse inside prose
+    out = tmp_path / "a"
+    assert bl.main(["build", str(out), "--root", str(r), "--no-images", "--unpointed", "777"]) == 0
+    assert len(_rows(out)) == 3  # off by default: the pointed line is kept with its niqqud stripped
+    out = tmp_path / "b"
+    assert bl.main(["build", str(out), "--root", str(r), "--no-images", "--unpointed", "777", "--drop-pointed-spans"]) == 0
+    summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+    assert [row["text"] for row in _rows(out)] == ["ספר חדש ויפה", "נהר ארוך וצר"]
+    assert summary["dropped"]["pointed_span_in_unpointed_print"] == 1
+    assert summary["drop_pointed_spans"] == {"min_niqqud_per_letter": bl.MIN_POINTED_DENSITY, "dropped_by_record": {"777": 1}}
+
+
+def test_node_hints_on_every_row_and_counted_by_split(tmp_path, root):
+    hints = tmp_path / "hints.json"
+    hints.write_text(json.dumps({"111": {"proposed_node_hint": "old_printed", "basis": "look"}, "222": "unclassified"}), encoding="utf-8")
+    summary, rows = _build(tmp_path, root, "--no-images", "--node-hints", str(hints), "--summary-note", "hints only")
+    assert summary["notes"] == ["hints only"]
+    assert {(r["record_id"], r["proposed_node_hint"]) for r in rows} == {("111", "old_printed"), ("222", "unclassified")}
+    assert summary["lines_by_split_and_proposed_node_hint"] == {"dev": {"old_printed": 3}, "train": {"unclassified": 4}}
+    assert summary["proposed_node_hint_by_record"] == {"111": "old_printed", "222": "unclassified"}
+    hints.write_text(json.dumps({"111": "old_printed"}), encoding="utf-8")
+    with pytest.raises(SystemExit, match="no proposed_node_hint for records with lines: 222"):
+        _build(tmp_path / "b", root, "--no-images", "--node-hints", str(hints))
+    _, plain = _build(tmp_path / "c", root, "--no-images")
+    assert "proposed_node_hint" not in plain[0]

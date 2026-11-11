@@ -13,7 +13,13 @@ Subcommands:
 An alignment root has the F8f layout: ``out/<pby_id>/alignment.json`` (``hocrgen.benyehuda_nli_alignment.v1``),
 ``pby/txt/m<pby_id>.txt``, ``work/<record>/img/c<idx:04d>.jpg`` and ``work/<record>/ocr/c<idx:04d>.tsv`` (the
 page OCR; ``ocr-<method.ocr_model>/`` for a record placed by another model). Second alignment passes may sit in
-``out_<name>/`` (e.g. ``out_r6/``); a record with several sources needs ``--prefer-placer`` to pick one. Line boxes
+``out_<name>/`` (e.g. ``out_r6/``); a record with several sources needs ``--prefer-placer`` to pick one. Alternate
+editions sit in ``out_alt/<pby_id>@<record>/`` (hocrgen#169): the PBY id is the part before the ``@``, the record is
+the scan's. A source is one root and one placer, so a record's ``out/`` and ``out_alt/`` works by the same placer are
+read together; a work aligned twice to one record by one placer fails. Any dir under ``out*/`` that is not read (a
+name that is neither ``<pby_id>`` nor ``<pby_id>@<record>``, an ``@`` record that is not the scan's, no
+``alignment.json``) is listed in the summary's ``skipped_alignment_dirs``. ``--records`` and ``--exclude-records``
+filter records before any of this. Line boxes
 in ``alignment.json`` are IIIF canvas pixels; Tesseract boxes are image pixels (scale = canvas width / image width).
 
 ``build`` keeps lines of class ``matched`` with score >= ``--min-score`` on ``aligned`` pages of records whose rights
@@ -31,7 +37,9 @@ Google" watermark the aligner found) is dropped as ``google_watermark_overlap`` 
 edges, so it is snapped to word (or after-hyphen) boundaries within two units of each edge, keeping the span whose
 label best matches Tesseract's reading of that line. Dropped: lines taller than 1.6x the page's median line (two printed
 lines), lines whose best label still matches the line OCR below 0.7, ``[n]`` footnote markers, characters outside
-the printed repertoire, labels without letters. Labels: NFC, cantillation removed, ``…`` as ``...``, ``„`` as ``"``,
+the printed repertoire, labels without letters; with ``--drop-pointed-spans``, also a line of a print not named
+``--pointed`` whose edition span carries ``MIN_POINTED_DENSITY`` niqqud or more (pointed verse inside an unpointed
+book: its stripped label would teach a recognizer to drop marks the print shows), counted per record. Labels: NFC, cantillation removed, ``…`` as ``...``, ``„`` as ``"``,
 soft hyphens removed, whitespace collapsed; niqqud removed too, except on pointed prints with ``--keep-pointed``.
 
 Pointed prints (``--pointed``) are dropped by default (schema v1). With ``--keep-pointed`` their labels keep the
@@ -39,9 +47,13 @@ edition niqqud and the lines form the ``pointed`` stratum, behind three gates: l
 cantillation or too little niqqud are dropped; a book whose edition text is under-pointed against a fully pointed
 print (more than 5% of shins undotted or 1% of words bare) is dropped whole; then any line with a bare word or an
 undotted shin. ``--dev`` books are held out whole; ``--max-lines-per-book`` caps each other book (and dev books only
-with ``--cap-dev``) by sha256 of the line id. Schema v2 fails closed on possibly pointed prints: ``build`` exits
+with ``--cap-dev``) by sha256 of the line id. A book is a record (one scan): two scans of one PBY text, e.g. an
+``out/`` record and an ``out_alt/`` edition, are capped apart, as they are different prints. Schema v2 fails closed on possibly pointed prints: ``build`` exits
 non-zero, writing nothing, when a record's edition text is pointed (``CHECK_POINTED_DENSITY``) and the record is named
-in neither ``--pointed`` nor ``--unpointed`` (an asserted unpointed print). Schema v2 adds per-line ``stratum`` and ``ocr_placer`` (which OCR
+in neither ``--pointed`` nor ``--unpointed`` (an asserted unpointed print). ``--node-hints`` (a JSON
+``{record: {"proposed_node_hint": node, ...}}``, decision 0018) puts each record's ``proposed_node_hint`` on its rows
+and counts lines by hint; a record with rows but no hint fails the build. A hint is not a placement: the maintainer's
+tagger decides the node. Schema v2 adds per-line ``stratum`` and ``ocr_placer`` (which OCR
 localized the line for the aligner: ``method.ocr_model`` if the alignment records one, else the ``--tessdata-dir`` of
 ``method.ocr_engine``, else ``stock``) and the matching summary breakdowns.
 """
@@ -153,43 +165,82 @@ def ocr_subdir(method: Mapping[str, Any]) -> str:
     return "ocr" if lang == "heb" else f"ocr-{lang}"
 
 
-def alignment_sources(roots: Sequence[Path], prefer: Sequence[str]):
-    """Alignment files per record, one source (root, alignment dir) chosen per record.
+ALT_EDITION_DIR = re.compile(r"^(\d+)@(.+)$")
 
-    Each root may hold ``out/`` and second passes in ``out_<name>/`` (e.g. ``out_r6/``, hocrgen#155), so one record can
-    be aligned by several placers. A record with one source uses it; otherwise the source whose placer comes first in
-    ``prefer`` wins, and anything else is ambiguous and fails.
+
+def alignment_dir_pby(name: str) -> tuple[str, str | None] | None:
+    """(PBY id, record or None) of an alignment dir name: ``<pby_id>`` or an alternate edition's ``<pby_id>@<record>``
+    (hocrgen#169); None for any other name."""
+    if name.isdigit():
+        return name, None
+    m = ALT_EDITION_DIR.match(name)
+    return (m.group(1), m.group(2)) if m else None
+
+
+def alignment_sources(roots: Sequence[Path], prefer: Sequence[str], *, records: Iterable[str] | None = None,
+                      exclude_records: Iterable[str] = ()):
+    """Alignment files per record, one source (root, placer) chosen per record, and the dirs that were not read.
+
+    Each root may hold ``out/``, second passes in ``out_<name>/`` (e.g. ``out_r6/``, hocrgen#155) and alternate editions
+    in ``out_alt/<pby_id>@<record>/`` (hocrgen#169), so one record can be aligned by several placers. A source is one
+    root and one placer: a record's works in ``out/`` and ``out_alt/`` by the same placer are one source. A record with
+    one source uses it; otherwise the source whose placer comes first in ``prefer`` wins, and anything else is ambiguous
+    and fails, as does one work aligned twice to one record in one source. ``records`` (when given) and
+    ``exclude_records`` filter records first. Returns (chosen ``(root, alignment path, alignment, pby_id)`` list,
+    per-record choice for records with several sources, skipped dirs).
     """
-    found: dict[str, dict[tuple[Path, str], list[tuple[Path, dict]]]] = defaultdict(lambda: defaultdict(list))
+    keep = set(records) if records is not None else None
+    drop = set(exclude_records)
+    found: dict[str, dict[tuple[Path, str], list[tuple[Path, dict, str, str]]]] = defaultdict(lambda: defaultdict(list))
+    skipped: list[dict[str, str]] = []
     for root in roots:
         dirs = [root / "out"] + sorted(d for d in root.glob("out_*") if d.is_dir())
         for adir in dirs:
-            for ap_path in sorted(adir.glob("*/alignment.json")):
-                if not ap_path.parent.name.isdigit():
+            for sub in sorted(d for d in adir.glob("*") if d.is_dir()) if adir.is_dir() else ():
+                where = {"root": str(root), "dir": adir.name, "name": sub.name}
+                ap_path = sub / "alignment.json"
+                parsed = alignment_dir_pby(sub.name)
+                if not ap_path.is_file():
+                    skipped.append({**where, "reason": "no_alignment_json"})
+                    continue
+                if parsed is None:
+                    skipped.append({**where, "reason": "not_an_alignment_dir_name"})
                     continue
                 al = json.loads(ap_path.read_text(encoding="utf-8"))
-                found[record_id(al["scan"])][(root, adir.name)].append((ap_path, al))
+                rec = record_id(al["scan"])
+                if parsed[1] is not None and parsed[1] != rec:
+                    skipped.append({**where, "reason": f"dir_record_is_not_the_scan_record:{rec}"})
+                    continue
+                if (keep is not None and rec not in keep) or rec in drop:
+                    continue
+                placer = ocr_placer(al.get("method") or {})
+                found[rec][(root, placer)].append((ap_path, al, parsed[0], adir.name))
     chosen, choice = [], {}
     for rec in sorted(found):
         sources = found[rec]
-        placers = {src: sorted({ocr_placer(al.get("method") or {}) for _, al in files}) for src, files in sources.items()}
+        for (root, placer), files in sources.items():
+            twice = sorted(p for p, n in Counter(pby for _, _, pby, _ in files).items() if n > 1)
+            if twice:
+                raise SystemExit(f"record {rec}: PBY {', '.join(twice)} aligned more than once under {root} by placer "
+                                 f"{placer}: " + ", ".join(str(ap) for ap, _, pby, _ in files if pby in twice))
         pick = next(iter(sources)) if len(sources) == 1 else None
         if pick is None:
             for want in prefer:
-                hits = [src for src, ps in placers.items() if ps == [want]]
+                hits = [src for src in sources if src[1] == want]
                 if len(hits) == 1:
                     pick = hits[0]
                     break
+        dirs = lambda src: "+".join(sorted({d for *_, d in sources[src]}))  # noqa: E731
         if pick is None:
             raise SystemExit(f"record {rec} has several alignment sources and --prefer-placer does not pick one: "
-                             + "; ".join(f"{root / d} ({', '.join(ps)})" for (root, d), ps in placers.items()))
-        chosen.extend((pick[0], ap, al) for ap, al in sources[pick])
+                             + "; ".join(f"{src[0] / dirs(src)} ({src[1]})" for src in sources))
+        chosen.extend((pick[0], ap, al, pby) for ap, al, pby, _ in sources[pick])
         if len(sources) > 1:
-            pby = lambda src: sorted(ap.parent.name for ap, _ in sources[src])  # noqa: E731
-            choice[rec] = {"chosen": {"root": str(pick[0]), "dir": pick[1], "ocr_placer": placers[pick], "pby_ids": pby(pick)},
-                           "skipped": [{"root": str(src[0]), "dir": src[1], "ocr_placer": placers[src], "pby_ids": pby(src)}
+            pby_ids = lambda src: sorted(pby for _, _, pby, _ in sources[src])  # noqa: E731
+            choice[rec] = {"chosen": {"root": str(pick[0]), "dir": dirs(pick), "ocr_placer": [pick[1]], "pby_ids": pby_ids(pick)},
+                           "skipped": [{"root": str(src[0]), "dir": dirs(src), "ocr_placer": [src[1]], "pby_ids": pby_ids(src)}
                                        for src in sources if src != pick]}
-    return chosen, choice
+    return chosen, choice, skipped
 
 
 def read_tsv_boxes(path: Path) -> list[tuple[str, float, tuple[int, int, int, int]]]:
@@ -260,15 +311,16 @@ def _named(pairs: Iterable[str] | None) -> dict[str, str]:
 
 
 def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, str], keep_pointed: bool,
-            prefer_placer: Sequence[str] = ()):
-    """Candidate lines per (record, canvas, line) after the line gates, with drop counts, edition niqqud density and
-    the per-record alignment-source choice."""
+            prefer_placer: Sequence[str] = (), records: Iterable[str] | None = None, exclude_records: Iterable[str] = (),
+            drop_pointed_spans: bool = False):
+    """Candidate lines per (record, canvas, line) after the line gates, with drop counts, edition niqqud density, the
+    per-record alignment-source choice, the alignment dirs not read and the pointed spans dropped per record."""
     best: dict[tuple[str, int, int], dict[str, Any]] = {}
     drops: Counter = Counter()
     density: dict[str, list[int]] = defaultdict(lambda: [0, 0])
-    chosen, choice = alignment_sources(roots, prefer_placer)
-    for root, ap_path, al in chosen:
-        pby = ap_path.parent.name
+    span_drops: Counter = Counter()
+    chosen, choice, skipped = alignment_sources(roots, prefer_placer, records=records, exclude_records=exclude_records)
+    for root, ap_path, al, pby in chosen:
         scan = al["scan"]
         rec = record_id(scan)
         if not rights_accepted(scan):
@@ -320,6 +372,10 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
                 density[rec][0] += len(NIQQUD.findall(unicodedata.normalize("NFD", raw)))
                 density[rec][1] += len(LETTER.findall(raw))
                 stratum, gt = "unpointed", plain
+                if drop_pointed_spans and rec not in pointed and niqqud_density(raw) >= MIN_POINTED_DENSITY:
+                    drops["pointed_span_in_unpointed_print"] += 1
+                    span_drops[rec] += 1
+                    continue
                 if rec in pointed:
                     if not keep_pointed:
                         drops["pointed_print"] += 1
@@ -354,7 +410,7 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
                     if cand["alignment_score"] <= best[key]["alignment_score"]:
                         continue
                 best[key] = cand
-    return best, drops, density, choice
+    return best, drops, density, choice, skipped, span_drops
 
 
 def pointed_book_gate(best: dict, drops: Counter) -> dict[str, dict[str, Any]]:
@@ -408,8 +464,18 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     unpointed = set(args.unpointed or ())
     if unpointed & set(pointed):
         raise SystemExit(f"records both --pointed and --unpointed: {sorted(unpointed & set(pointed))}")
-    best, drops, density, placer_choice = collect(roots, min_score=args.min_score, pointed=pointed,
-                                                  keep_pointed=args.keep_pointed, prefer_placer=args.prefer_placer or ())
+    records = getattr(args, "records", None)
+    exclude_records = set(getattr(args, "exclude_records", None) or ())
+    for path in getattr(args, "exclude_records_from", None) or ():
+        exclude_records |= {ln.split()[0] for ln in Path(path).read_text(encoding="utf-8").splitlines()
+                            if ln.strip() and not ln.startswith("#")}
+    if records is not None and set(records) & exclude_records:
+        raise SystemExit(f"records both --records and --exclude-records: {sorted(set(records) & exclude_records)}")
+    drop_spans = bool(getattr(args, "drop_pointed_spans", False))
+    best, drops, density, placer_choice, skipped_dirs, span_drops = collect(
+        roots, min_score=args.min_score, pointed=pointed, keep_pointed=args.keep_pointed,
+        prefer_placer=args.prefer_placer or (), records=records, exclude_records=exclude_records,
+        drop_pointed_spans=drop_spans)
     dens = {rec: round(m / n, 3) if n else 0.0 for rec, (m, n) in sorted(density.items())}
     unresolved = sorted(rec for rec, d in dens.items() if d >= CHECK_POINTED_DENSITY and rec not in pointed and rec not in unpointed)
     if args.schema == "v2" and unresolved:
@@ -422,6 +488,14 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         keys, capped = cap_per_book(keys, args.max_lines_per_book, () if args.cap_dev else dev,
                                     {k[0]: best[k].get("scan_source") for k in best})
     v2 = args.schema == "v2"
+    hints: dict[str, str] | None = None
+    if getattr(args, "node_hints", None):
+        raw = json.loads(Path(args.node_hints).read_text(encoding="utf-8"))
+        hints = {rec: str(v["proposed_node_hint"] if isinstance(v, Mapping) else v) for rec, v in raw.items()}
+        missing = sorted({k[0] for k in keys} - set(hints))
+        if missing:
+            raise SystemExit(f"--node-hints has no proposed_node_hint for records with lines: {', '.join(missing)}")
+    by_hint: dict[str, Counter] = defaultdict(Counter)
     rows = []
     counts: dict[str, Counter] = defaultdict(Counter)
     strata: dict[str, Counter] = defaultdict(Counter)
@@ -449,6 +523,9 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
                "crop_box_image": list(box), "image": str(rel), "image_sha256": image_sha}
         if v2:
             row.update(stratum=stratum, ocr_placer=placer, alignment=alignment, page_ocr=page_ocr)
+        if hints is not None:
+            row["proposed_node_hint"] = hints[rec]
+            by_hint[split][hints[rec]] += 1
         rows.append(row)
         label_key = f"{rec} {book}"
         counts[split][label_key] += 1
@@ -479,7 +556,21 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             "check_pointed_density": CHECK_POINTED_DENSITY, "unpointed_records": sorted(unpointed),
             # Asserted unpointed prints whose edition text is pointed (labels have niqqud stripped, as the print shows).
             "unpointed_with_pointed_edition": sorted(rec for rec in unpointed if dens.get(rec, 0.0) >= CHECK_POINTED_DENSITY),
-            "images_written": not args.no_images})
+            "images_written": not args.no_images,
+            # hocrgen#169: every dir under out*/ that gave no alignment, with why.
+            "skipped_alignment_dirs": skipped_dirs})
+        if records is not None or exclude_records:
+            summary["records_filter"] = {"records": sorted(records) if records is not None else None,
+                                         "exclude_records": sorted(exclude_records)}
+        if getattr(args, "summary_note", None):
+            summary["notes"] = list(args.summary_note)
+        if hints is not None:
+            summary["node_hints"] = str(args.node_hints)
+            summary["lines_by_split_and_proposed_node_hint"] = {sp: dict(sorted(c.items())) for sp, c in sorted(by_hint.items())}
+            summary["proposed_node_hint_by_record"] = {rec: hints[rec] for rec in sorted({k[0] for k in keys})}
+        if drop_spans:
+            summary["drop_pointed_spans"] = {"min_niqqud_per_letter": MIN_POINTED_DENSITY,
+                                             "dropped_by_record": dict(sorted(span_drops.items()))}
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return summary
 
@@ -656,6 +747,14 @@ def main(argv: Sequence[str] | None = None) -> int:
     b.add_argument("--max-lines-per-book", type=int, default=0)
     b.add_argument("--cap-dev", action="store_true")
     b.add_argument("--no-images", action="store_true", help="manifest and summary only (image_sha256 null)")
+    b.add_argument("--records", nargs="*", help="build only these records (record id or IA identifier)")
+    b.add_argument("--exclude-records", nargs="*", help="leave these records out (e.g. those of an earlier set)")
+    b.add_argument("--exclude-records-from", action="append",
+                   help="file with one record per line (first field; # comments) to leave out (repeatable)")
+    b.add_argument("--drop-pointed-spans", action="store_true",
+                   help="drop lines of prints not named --pointed whose edition span is pointed (MIN_POINTED_DENSITY)")
+    b.add_argument("--summary-note", action="append", help="a note copied into summary.json `notes` (repeatable)")
+    b.add_argument("--node-hints", help='{record: {"proposed_node_hint": node}} JSON: per-row proposed_node_hint (decision 0018)')
     b.add_argument("--prefer-placer", action="append", help="for a record aligned by several placers (out/, out_<name>/), "
                    "take the source of this placer, e.g. r6@73eb18e0 or stock (repeatable, in order of preference)")
     o = sub.add_parser("ocr", help="run a Tesseract model on every line crop of a built set")
