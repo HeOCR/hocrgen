@@ -220,10 +220,10 @@ These blocks appear only when their flags are used. A run without `--eval-labels
 - `node` is a node of the decision-0018 document tree: `printed/new_printed`, `printed/old_printed`, `modern_mixed/forms`, `handwritten/new`, `handwritten/old` or `unclassified`.
 - `facets` is optional. `genre` is free text; `font` is `modern_serif`, `modern_sans`, `typewriter` or null.
 - Every scored adjudicated item (page-order and `within_line` items) and every scored line, keyed by its line item id, must have a label. An unlabelled item fails the run; it is never counted as unknown.
-- The label dimensions `node`, `genre`, `font` and `niqqud` are added to each item's `strata` and to the report's `strata`. An unset facet is `unset`.
+- The label dimensions `node`, `genre`, `font` and `niqqud` are added to each item's `strata` (an unset facet is `unset`). Only `node` is added to the report's `strata`. Facet and niqqud breakdowns would pool items of several nodes, so they appear only inside each node's slices.
 - `synthetic_gold` is not sliced.
 
-**`eval_slices`.** This block sits on `scored.adjudicated_reference`, and on `reference_views.adjudicated_reference."line_matched.v1".views."line_matched.v1"` for `within_line` items, so the two are never mixed. It has `strata[dimension][value]` and, with labels, `slices[node][facet | "ALL"][niqqud key]`. The facet keys are `genre=<value>` and `font=<value>` for the values present.
+**`eval_slices`.** This block sits on `scored.adjudicated_reference`, and on `reference_views.adjudicated_reference."line_matched.v1".views."line_matched.v1"` for `within_line` items, so the two are never mixed. Without labels it has `strata[dimension][value]` over the existing dimensions. With labels, `strata` has only `strata.node[node]` (one record per node), plus `slices[node][facet | "ALL"][niqqud key]`. No eval_slices number then pools items of two nodes. The facet keys are `genre=<value>` and `font=<value>` for the values present.
 
 The niqqud keys are:
 - `excluding_pointed`. At `[node]["ALL"]` it is the node's `headline`, on `primary.v1`.

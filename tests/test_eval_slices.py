@@ -99,7 +99,8 @@ def test_runs_without_the_new_flags_add_no_new_keys(inputs: dict) -> None:
 def test_eval_labels_add_strata_and_node_slices(inputs: dict) -> None:
     report = _run(inputs, eval_labels=inputs["labels"])
     scored = report["scored"]["adjudicated_reference"]
-    assert set(scored["strata"]["node"]) == {H, OLD, NEW} and set(scored["strata"]["font"]) == {"modern_sans", "unset"}
+    assert set(scored["strata"]["node"]) == {H, OLD, NEW} and "font" not in scored["strata"]
+    assert scored["items"][0]["strata"]["font"] in {"modern_sans", "unset"}
     assert scored["items"][0]["strata"]["node"] in eval_slices.NODES
     block = scored["eval_slices"]
     assert block["labels"]["rule"] == "fixture rule" and "cluster_bootstrap" not in block
@@ -123,12 +124,44 @@ def test_eval_labels_add_strata_and_node_slices(inputs: dict) -> None:
     distribution = h["page_cer_distribution"]
     assert distribution["units"] == 3 and distribution["median"] == pytest.approx(1 / 18)
     assert distribution["share_cer_lt_0.02"] == pytest.approx(1 / 3) and distribution["p90"] > 0.1
-    assert set(block["strata"]) >= {"node", "genre", "font", "niqqud", "source_id"}
+    assert set(block["strata"]) == {"node"}  # no stratum pools items of several nodes
     # order diagnostic: h-2's swapped lines cost page-order edits that line_matched.v1 does not count.
     order = slices[H]["ALL"]["excluding_pointed"]["order_diagnostic"]
     assert order["diagnostic_only"] and order["items"] == 2 and order["order_cost"] > 0 and order["line_matched_cer"] < order["page_order_cer"]
     assert "missed_line_rate" not in order  # page references: lines are not declared physical
     assert report["run_record"]["eval_labels"]["labelled_items"] == 9
+
+
+def _records(node: object, path: tuple = ()) -> list[tuple[tuple, dict]]:
+    """Every slice record (a dict with items and profiles) in an eval_slices block, with its path."""
+    if not isinstance(node, dict):
+        return []
+    if "items" in node and "profiles" in node:
+        return [(path, node)]
+    return [record for key, value in node.items() for record in _records(value, (*path, key))]
+
+
+@pytest.mark.parametrize("paired", [False, True])
+def test_no_eval_slices_number_pools_items_from_two_nodes(inputs: dict, paired: bool) -> None:
+    kwargs = {"baseline_predictions_dir": inputs["base"]} if paired else {}
+    report = _run(inputs, eval_labels=inputs["labels"], bootstrap_resamples=20, bootstrap_clusters=inputs["clusters"],
+                  **kwargs)
+    scored = report["scored"]["adjudicated_reference"]
+    block = report["comparison"]["deltas"]["adjudicated_reference"]["eval_slices"] if paired else scored["eval_slices"]
+    node_of = {item["item_id"]: item["strata"]["node"] for item in scored["items"]}
+    node_size = {node: list(node_of.values()).count(node) for node in set(node_of.values())}
+    records = _records({key: block[key] for key in ("strata", "slices")})
+    assert records and all(path[0] in {"strata", "slices"} for path, _ in records)
+    for path, record in records:
+        node = path[2] if path[0] == "strata" else path[1]
+        assert path[0] == "slices" or path[1] == "node", path  # the only stratum is the node
+        assert node in node_size, path
+        # A record never holds more items than its own node has, so it cannot mix two nodes.
+        assert record["items"] <= node_size[node], path
+    assert sum(block["strata"]["node"][node]["items"] for node in node_size) == len(node_of)
+    # The report-level strata gained only the node dimension; facets and niqqud stay inside the node slices.
+    assert set(scored["strata"]) - {"language_script", "modality", "source_id", "document_type",
+                                    "reference_origin"} == {"node"}
 
 
 def test_unclassified_items_are_not_a_set_and_have_no_headline(inputs: dict) -> None:
@@ -155,11 +188,7 @@ def test_single_engine_cluster_intervals_and_flags(inputs: dict) -> None:
                   bootstrap_clusters=inputs["clusters"])
     block = report["scored"]["adjudicated_reference"]["eval_slices"]
     assert block["cluster_bootstrap"]["resamples"] == 200 and block["cluster_bootstrap"]["seed"] == 4
-    everything = block["strata"]["reference_origin"]["adjudicated_reference"]
-    assert everything["clusters"] == 9 and everything["flags"] == []
-    primary = everything["profiles"]["primary.v1"]
-    low, high = primary["cer_ci"]
-    assert low <= primary["cer"] <= high and primary["interval_flags"] == []
+    assert block["strata"]["node"][H]["clusters"] == 3
     h = block["slices"][H]["ALL"]["excluding_pointed"]
     assert h["clusters"] == 3 and h["flags"] == ["low_cluster_count"]
     assert h["profiles"]["primary.v1"]["cer_ci"] is not None
@@ -172,7 +201,13 @@ def test_single_engine_cluster_intervals_and_flags(inputs: dict) -> None:
                  bootstrap_clusters=inputs["clusters"])
     assert again["scored"]["adjudicated_reference"]["eval_slices"] == block
     unlabelled = _run(inputs, bootstrap_resamples=50, bootstrap_clusters=inputs["clusters"])
-    assert "slices" not in unlabelled["scored"]["adjudicated_reference"]["eval_slices"]
+    unlabelled_block = unlabelled["scored"]["adjudicated_reference"]["eval_slices"]
+    assert "slices" not in unlabelled_block and "node" not in unlabelled_block["strata"]
+    everything = unlabelled_block["strata"]["reference_origin"]["adjudicated_reference"]
+    assert everything["clusters"] == 9 and everything["flags"] == []
+    primary = everything["profiles"]["primary.v1"]
+    low, high = primary["cer_ci"]
+    assert low <= primary["cer"] <= high and primary["interval_flags"] == []
     with pytest.raises(StageExecutionError, match="needs --baseline-predictions"):
         _run(inputs, bootstrap_resamples=10)
     with pytest.raises(StageExecutionError, match="no cluster for 8 scored"):
@@ -187,7 +222,8 @@ def test_paired_slice_intervals(inputs: dict) -> None:
     paired = deltas["eval_slices"]
     assert paired["paired"] and paired["common_item_count"] == 9
     assert "overall" not in paired
-    overall = paired["strata"]["reference_origin"]["adjudicated_reference"]["profiles"]["primary.v1"]
+    assert set(paired["strata"]) == {"node"}
+    overall = paired["slices"][OLD]["ALL"]["excluding_pointed"]["profiles"]["primary.v1"]
     low, high = overall["delta_cer_ci"]
     assert overall["delta_cer"] < 0 and low <= overall["delta_cer"] <= high
     assert overall["cer_separated"] is (high < 0 or low > 0)
@@ -307,7 +343,8 @@ def test_line_reference_mode_with_labels_and_baseline(tmp_path: Path) -> None:
     assert slices["excluding_pointed"]["headline"] and list(slices["pointed"]["profiles"]) == ["consonantal.v1"]
     assert "ALL" not in slices  # the vertical: pointed lines only in the pointed slice
     delta = report["comparison"]["deltas"]["line_reference"]
-    overall = delta["strata"]["source"]["wikisource_he_proofread"]["profiles"]["primary.v1"]
+    assert set(delta["strata"]) == {"node"}
+    overall = delta["slices"][NEW]["ALL"]["excluding_pointed"]["profiles"]["primary.v1"]
     assert delta["unit"] == "line" and overall["delta_cer"] < 0 and overall["interval_clusters"] == 3
     with pytest.raises(StageExecutionError, match="no label for 1 scored line reference"):
         run_reference_evaluation(predictions_dir=cand, line_references=line_set, asset_index_path=index,

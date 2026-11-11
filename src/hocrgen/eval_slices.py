@@ -13,7 +13,8 @@ without them is byte-identical to one before this module existed.
   ``ALL`` (with pointed items; every node except the vertical, ``printed/new_printed``, whose numbers never include
   pointed text) and each niqqud value present. The ``pointed`` slice is scored on ``consonantal.v1`` only.
   ``unclassified`` is flagged ``not_a_set`` and has no headline.
-- **No blended numbers** (decision 0018 §5): there is no cross-node aggregate. An aggregate, when one is added, must
+- **No blended numbers** (decision 0018 §5): there is no cross-node aggregate. With labels, ``strata`` keeps only the
+  ``node`` dimension (one record per node); facet and niqqud breakdowns live only inside each node's slices. An aggregate, when one is added, must
   state the weight of every subset it averages.
 - **Intervals** are 95% percentile cluster bootstraps of each engine's own CER and WER (the existing
   ``paired_bootstrap_interval`` with a ``(0, units)`` baseline), and paired intervals of every comparison delta. A slice
@@ -55,6 +56,9 @@ FONT_VALUES = ("modern_serif", "modern_sans", "typewriter")
 FACETS = ("genre", "font")
 LABEL_KEYS = ("node", "niqqud")
 LABEL_DIMENSIONS = ("node", *FACETS, "niqqud")  # strata added to items; an unset facet is "unset"
+# With labels, the only report-level stratum is the node: any other dimension would pool items of several nodes
+# (decision 0018 §5). Facet and niqqud breakdowns live inside each node's slices.
+NODE_DIMENSIONS = ("node",)
 UNSET = "unset"
 CONSONANTAL_PROFILE_ID = "consonantal.v1"
 POINTED = "pointed"
@@ -129,11 +133,14 @@ def require_labels(item_ids: Iterable[str], labels: Mapping[str, Any], where: st
 
 
 def apply_label_strata(report: dict[str, Any], labels: Mapping[str, Mapping[str, str]]) -> None:
-    """Add the label dimensions to each item's strata and to the report's per-stratum aggregates."""
+    """Add the label dimensions to each item's strata, and the ``node`` aggregate to the report's strata.
+
+    Facet and niqqud breakdowns pool items across nodes, so they appear only inside each node's ``eval_slices``.
+    """
     for item in report["items"]:
         item["strata"].update(labels[item["item_id"]])
     profile_ids = list(report["profiles"])
-    for dimension in LABEL_DIMENSIONS:
+    for dimension in NODE_DIMENSIONS:
         values = sorted({item["strata"][dimension] for item in report["items"]})
         report["strata"][dimension] = {
             value: {pid: _aggregate([item["profiles"][pid] for item in report["items"]
@@ -318,7 +325,7 @@ def slice_report(items: list[dict[str, Any]], *, profile_ids: list[str], labels:
             raise StageExecutionError(f"--bootstrap-clusters has no cluster for {len(missing)} scored item(s), for "
                                       f"example {missing[0]}")
     by_id = {item["item_id"]: item for item in items}
-    dimensions = sorted({key for item in items for key in item["strata"]})
+    dimensions = NODE_DIMENSIONS if labels is not None else sorted({key for item in items for key in item["strata"]})
 
     def render(group: _Group) -> dict[str, Any]:
         record, selected = _slice_header(group, profile_ids, cluster_map)
@@ -355,7 +362,7 @@ def paired_slice_report(base_items: list[dict[str, Any]], cand_items: list[dict[
     common = [item for item in cand_items if item["item_id"] in base]
     cand = {item["item_id"]: item for item in common}
     cluster_map = clusters["clusters"] if clusters is not None else None
-    dimensions = sorted({key for item in common for key in item["strata"]})
+    dimensions = NODE_DIMENSIONS if labels is not None else sorted({key for item in common for key in item["strata"]})
 
     def render(group: _Group) -> dict[str, Any]:
         record, selected = _slice_header(group, profile_ids, cluster_map)
