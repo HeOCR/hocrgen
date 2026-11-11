@@ -6,11 +6,11 @@ version: 1
 registry_id: eval_reserved_units.v1
 generated_by: hocrgen.tools.eval_reserved_units sync
 split_file:
-  name: pmod_unit_split_v1.json
-  split_version: v1
-  schema_version: heocr_eval_unit_split.v0
-  sha256: 184d3b77d80dc26330665271aa81e1eace722299aa2962f5b641970b9741562e
-  packaged_copy: data/eval/pmod_unit_split_v1.json
+  name: pmod_unit_split_v2.json
+  split_version: v2
+  schema_version: heocr_eval_unit_split.v1
+  sha256: a75ed6851e8d9a689994f4ec5c61bae46e4a75dc2e51648f7a5e494306c25be7
+  packaged_copy: data/eval/pmod_unit_split_v2.json
 decision: heocr-engine planning/decisions/0017
 owner: eval[claude/claude-code#shay-macbook-m4]@heocr/opensource
 usage: 'eval units: never used for training, tuning, selection, glyph harvesting or synthetic style/layout sources. non_eval
@@ -85,6 +85,63 @@ sources:
   - reshumot:kovetz_hatakanot_12521
   - reshumot:kovetz_hatakanot_12562
   - reshumot:kovetz_hatakanot_12565
+  - reshumot:kovetz_hatakanot_6391
+  - reshumot:kovetz_hatakanot_6395
+  - reshumot:kovetz_hatakanot_6396
+  - reshumot:kovetz_hatakanot_6397
+  - reshumot:kovetz_hatakanot_6398
+  - reshumot:kovetz_hatakanot_6399
+  - reshumot:kovetz_hatakanot_6400
+  - reshumot:kovetz_hatakanot_6401
+  - reshumot:kovetz_hatakanot_6402
+  - reshumot:kovetz_hatakanot_6403
+  - reshumot:kovetz_hatakanot_6404
+  - reshumot:kovetz_hatakanot_6405
+  - reshumot:kovetz_hatakanot_6406
+  - reshumot:kovetz_hatakanot_6407
+  - reshumot:kovetz_hatakanot_6408
+  - reshumot:kovetz_hatakanot_6409
+  - reshumot:kovetz_hatakanot_6410
+  - reshumot:kovetz_hatakanot_6411
+  - reshumot:kovetz_hatakanot_6412
+  - reshumot:kovetz_hatakanot_6413
+  - reshumot:kovetz_hatakanot_6414
+  - reshumot:kovetz_hatakanot_6415
+  - reshumot:kovetz_hatakanot_6416
+  - reshumot:kovetz_hatakanot_6417
+  - reshumot:kovetz_hatakanot_6418
+  - reshumot:kovetz_hatakanot_6419
+  - reshumot:kovetz_hatakanot_6420
+  - reshumot:kovetz_hatakanot_6421
+  - reshumot:kovetz_hatakanot_6422
+  - reshumot:kovetz_hatakanot_6423
+  - reshumot:kovetz_hatakanot_6424
+  - reshumot:kovetz_hatakanot_6425
+  - reshumot:kovetz_hatakanot_6426
+  - reshumot:kovetz_hatakanot_6427
+  - reshumot:kovetz_hatakanot_6428
+  - reshumot:kovetz_hatakanot_6429
+  - reshumot:kovetz_hatakanot_6430
+  - reshumot:kovetz_hatakanot_6431
+  - reshumot:kovetz_hatakanot_6432
+  - reshumot:kovetz_hatakanot_6433
+  - reshumot:kovetz_hatakanot_6434
+  - reshumot:kovetz_hatakanot_6435
+  - reshumot:kovetz_hatakanot_6436
+  - reshumot:kovetz_hatakanot_6437
+  - reshumot:kovetz_hatakanot_6438
+  - reshumot:kovetz_hatakanot_6439
+  - reshumot:kovetz_hatakanot_6440
+  - reshumot:kovetz_hatakanot_6441
+  - reshumot:kovetz_hatakanot_6442
+  - reshumot:kovetz_hatakanot_6443
+  - reshumot:kovetz_hatakanot_6444
+  - reshumot:kovetz_hatakanot_6445
+  - reshumot:kovetz_hatakanot_6446
+  - reshumot:kovetz_hatakanot_6447
+  - reshumot:kovetz_hatakanot_6448
+  - reshumot:kovetz_hatakanot_6449
+  - reshumot:kovetz_hatakanot_6450
   - reshumot:kovetz_hatakanot_6470
   - reshumot:kovetz_hatakanot_6517
   - reshumot:kovetz_hatakanot_6609
@@ -105,6 +162,70 @@ sources:
   - reshumot:kovetz_hatakanot_8268
   - reshumot:kovetz_hatakanot_8767
   - reshumot:kovetz_hatakanot_9606
+  - reshumot:sefer_hachukim_1976
+  - reshumot:sefer_hachukim_1980
+  - reshumot:sefer_hachukim_1981
+  - reshumot:sefer_hachukim_1982
+  - reshumot:sefer_hachukim_1983
+  - reshumot:sefer_hachukim_1984
+  - reshumot:sefer_hachukim_1985
+  - reshumot:sefer_hachukim_1986
+  - reshumot:sefer_hachukim_1987
+  - reshumot:sefer_hachukim_1988
+  - reshumot:sefer_hachukim_1989
+  - reshumot:sefer_hachukim_1990
+  - reshumot:sefer_hachukim_1991
+  - reshumot:sefer_hachukim_1992
+  - reshumot:sefer_hachukim_1993
+  - reshumot:sefer_hachukim_1994
+  - reshumot:sefer_hachukim_1995
+  - reshumot:sefer_hachukim_1996
+  - reshumot:sefer_hachukim_1997
+  - reshumot:sefer_hachukim_1998
+  - reshumot:sefer_hachukim_1999
+  - reshumot:sefer_hachukim_2000
+  - reshumot:sefer_hachukim_2001
+  - reshumot:sefer_hachukim_2002
+  - reshumot:sefer_hachukim_2003
+  - reshumot:sefer_hachukim_2004
+  - reshumot:sefer_hachukim_2005
+  - reshumot:sefer_hachukim_2006
+  - reshumot:sefer_hachukim_2007
+  - reshumot:sefer_hachukim_2008
+  - reshumot:sefer_hachukim_2010
+  - reshumot:sefer_hachukim_2011
+  - reshumot:sefer_hachukim_2012
+  - reshumot:sefer_hachukim_2013
+  - reshumot:sefer_hachukim_2014
+  - reshumot:sefer_hachukim_2015
+  - reshumot:sefer_hachukim_2016
+  - reshumot:sefer_hachukim_2017
+  - reshumot:sefer_hachukim_2019
+  - reshumot:sefer_hachukim_2020
+  - reshumot:sefer_hachukim_2021
+  - reshumot:sefer_hachukim_2022
+  - reshumot:sefer_hachukim_2023
+  - reshumot:sefer_hachukim_2024
+  - reshumot:sefer_hachukim_2025
+  - reshumot:sefer_hachukim_2026
+  - reshumot:sefer_hachukim_2027
+  - reshumot:sefer_hachukim_2028
+  - reshumot:sefer_hachukim_2029
+  - reshumot:sefer_hachukim_2030
+  - reshumot:sefer_hachukim_2031
+  - reshumot:sefer_hachukim_2032
+  - reshumot:sefer_hachukim_2033
+  - reshumot:sefer_hachukim_2034
+  - reshumot:sefer_hachukim_2035
+  - reshumot:sefer_hachukim_2036
+  - reshumot:sefer_hachukim_2037
+  - reshumot:sefer_hachukim_2038
+  - reshumot:sefer_hachukim_2039
+  - reshumot:sefer_hachukim_2040
+  - reshumot:sefer_hachukim_2041
+  - reshumot:sefer_hachukim_2042
+  - reshumot:sefer_hachukim_2043
+  - reshumot:sefer_hachukim_2044
   - reshumot:sefer_hachukim_2063
   - reshumot:sefer_hachukim_2065
   - reshumot:sefer_hachukim_2108

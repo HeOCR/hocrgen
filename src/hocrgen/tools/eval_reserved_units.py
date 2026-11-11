@@ -5,7 +5,7 @@ The registry is never edited by hand. ``sync`` copies the split file verbatim in
 re-renders the registry from the packaged copy and fails if the committed registry differs (a test runs the same
 comparison).
 
-    PYTHONPATH=src python -m hocrgen.tools.eval_reserved_units sync --split <.../labels/pmod_unit_split_v1.json>
+    PYTHONPATH=src python -m hocrgen.tools.eval_reserved_units sync --split <.../labels/pmod_unit_split_vN.json>
     PYTHONPATH=src python -m hocrgen.tools.eval_reserved_units check
 
 Each unit's category is taken straight from the split file: ``eval`` or ``non_eval``. Per-unit annotations (for

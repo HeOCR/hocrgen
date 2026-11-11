@@ -33,6 +33,10 @@ from hocrgen.tools import wikisource_lines as wl
 RESHUMOT, KNESSET = "reshumot_born_digital", "knesset_committee_protocols_pre1976"
 POLICY = {"train": 0.8, "validation": 0.1, "test": 0.1}
 V1_SHA256 = "184d3b77d80dc26330665271aa81e1eace722299aa2962f5b641970b9741562e"
+CURRENT = "pmod_unit_split_v2.json"
+CURRENT_SHA256 = "a75ed6851e8d9a689994f4ec5c61bae46e4a75dc2e51648f7a5e494306c25be7"
+# v2 = v1 unchanged plus the 121 born-digital 2005 booklets (all non_eval); 175 = 54 + 121
+CURRENT_COUNTS = {RESHUMOT: (30, 175), KNESSET: (7, 13)}
 EXPOSED = ("reshumot:kovetz_hatakanot_6609", "reshumot:sefer_hachukim_2110")
 
 
@@ -52,17 +56,20 @@ def _split_copy() -> Path:
 def test_committed_registry_is_generated_from_the_committed_split_file(registry: EvalReservedUnitsRegistry) -> None:
     assert tool.check() == []
     copy = _split_copy()
-    assert copy.name == registry.split_file.name == "pmod_unit_split_v1.json"
+    assert copy.name == registry.split_file.name == CURRENT
     assert registry.split_file.packaged_copy == f"data/eval/{copy.name}"
-    assert hashlib.sha256(copy.read_bytes()).hexdigest() == registry.split_file.sha256 == V1_SHA256
-    # v1's schema field still reads v0: the file name, version and sha256 identify it.
-    assert registry.split_file.split_version == "v1"
-    assert registry.split_file.schema_version == "heocr_eval_unit_split.v0"
+    assert hashlib.sha256(copy.read_bytes()).hexdigest() == registry.split_file.sha256 == CURRENT_SHA256
+    # From v2 the schema field names the file format (v1) and split_version names the assignment.
+    assert registry.split_file.split_version == "v2"
+    assert registry.split_file.schema_version == "heocr_eval_unit_split.v1"
+    # v2 states what it supersedes: v1, by its pinned sha256, with v1's assignments unchanged
+    data = json.loads(copy.read_text(encoding="utf-8"))
+    assert data["supersedes"]["sha256"] == V1_SHA256
     assert registry.decision == "heocr-engine planning/decisions/0017"
     assert registry.owner.startswith("eval[")
     assert registry.unassigned_rule.startswith("Units in neither list are unassigned")
     counts = {source.source_id: (len(source.eval_units), len(source.non_eval_units)) for source in registry.sources}
-    assert counts == {RESHUMOT: (30, 54), KNESSET: (7, 13)}
+    assert counts == CURRENT_COUNTS
     data = json.loads(copy.read_text(encoding="utf-8"))
     for source in registry.sources:
         for category, units in (("eval", source.eval_units), ("non_eval", source.non_eval_units)):
@@ -80,15 +87,15 @@ def test_each_category_comes_straight_from_the_file(registry: EvalReservedUnitsR
 
 
 def test_sync_writes_the_copy_and_the_registry(tmp_path: Path) -> None:
-    split = tmp_path / "pmod_unit_split_v1.json"
+    split = tmp_path / CURRENT
     split.write_bytes(_split_copy().read_bytes())
     package, config = tmp_path / "pkg", tmp_path / "config"
     config.mkdir()
     (package / "data" / "eval").mkdir(parents=True)
     (package / "data" / "eval" / "pmod_unit_split_v0.json").write_text("{}", encoding="utf-8")  # an older copy goes
     summary = tool.sync(split, package=package, config_root=config)
-    assert summary["units"] == {KNESSET: {"eval": 7, "non_eval": 13}, RESHUMOT: {"eval": 30, "non_eval": 54}}
-    assert [path.name for path in tool.packaged_split_copies(package)] == ["pmod_unit_split_v1.json"]
+    assert summary["units"] == {source: {"eval": e, "non_eval": n} for source, (e, n) in CURRENT_COUNTS.items()}
+    assert [path.name for path in tool.packaged_split_copies(package)] == [CURRENT]
     assert tool.check(package=package, config_root=config) == []
     registry_file = config / "eval_reserved_units.yaml"
     registry_file.write_text(registry_file.read_text(encoding="utf-8").replace("knesset_protocol:398637\n", "", 1), encoding="utf-8")
@@ -104,13 +111,13 @@ def _split_json(**overrides) -> bytes:
 @pytest.mark.parametrize(
     ("name", "payload", "message"),
     [
-        ("pmod_unit_split_v1.json", _split_json(superseded_by="labels/pmod_unit_split_v2.json"), "superseded"),
+        ("pmod_unit_split_v2.json", _split_json(superseded_by="labels/pmod_unit_split_v3.json"), "superseded"),
         ("units.json", _split_json(), "is not pmod_unit_split"),
-        ("pmod_unit_split_v2.json", _split_json(), "states split_version"),
-        ("pmod_unit_split_v1.json", _split_json(usage="eval units are never training input."), "unassigned"),
-        ("pmod_unit_split_v1.json", _split_json(tenders={"eval": [], "non_eval": []}), "does not map"),
-        ("pmod_unit_split_v1.json", _split_json(owner=None), "no owner"),
-        ("pmod_unit_split_v1.json",
+        ("pmod_unit_split_v3.json", _split_json(), "states split_version"),
+        ("pmod_unit_split_v2.json", _split_json(usage="eval units are never training input."), "unassigned"),
+        ("pmod_unit_split_v2.json", _split_json(tenders={"eval": [], "non_eval": []}), "does not map"),
+        ("pmod_unit_split_v2.json", _split_json(owner=None), "no owner"),
+        ("pmod_unit_split_v2.json",
          _split_json(knesset_committee_protocols_pre1976={"eval": [{"unit_id": "knesset_protocol:1"}] * 2, "non_eval": []}),
          "repeated unit_id"),
     ],
@@ -239,7 +246,7 @@ def test_the_published_train_split_never_holds_an_eval_or_unassigned_unit(regist
     reshumot = strata[f"{RESHUMOT}:printed_modern"]
     assert sum(reshumot["items"].values()) == 557 and abs(reshumot["items"]["test"] - 55.7) <= 1
     report = outputs.leakage_report["eval_reserved_units"]
-    assert report["split_file"]["sha256"] == V1_SHA256 and report["leak_item_ids"] == []
+    assert report["split_file"]["sha256"] == CURRENT_SHA256 and report["leak_item_ids"] == []
     assert report["carried_item_ids"] == ["wikisource_he_proofread:ws_dup__p1"]
     assert report["sources"][RESHUMOT]["items"] == {"eval": 242, "non_eval": 557, "unassigned": 3}
     assert report["sources"][RESHUMOT]["reserved_units"]["unassigned"] == ["reshumot:sefer_hachukim_9999"]
@@ -307,7 +314,7 @@ def test_the_guard_refuses_eval_and_unassigned_units_and_names_them(registry: Ev
             builder="test builder", registry=registry)
     message = str(excinfo.value)
     assert message.startswith("test builder: refused 3 input row(s)") and "decision 0017" in message
-    assert "pmod_unit_split_v1.json" in message
+    assert CURRENT in message
     assert "reshumot:sefer_hachukim_2580 is eval" in message and "knesset_protocol:999999 is unassigned" in message
 
 
