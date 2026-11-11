@@ -313,7 +313,9 @@ def test_the_guard_refuses_eval_and_unassigned_units_and_names_them(registry: Ev
 
 def test_benyehuda_nli_lines_refuses_a_reserved_line(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     row = {"record_id": "reshumot_sefer_hachukim_2580__p0001", "canvas_index": 0, "text": "שלום", "_root": tmp_path}
-    monkeypatch.setattr(bl, "collect", lambda *args, **kwargs: ({("reshumot_sefer_hachukim_2580__p0001", 0, 0): row}, Counter(), {}, {}))
+    # collect returns (best, drops, density, placer_choice, skipped_dirs, span_drops) since hocrgen#181
+    monkeypatch.setattr(bl, "collect", lambda *args, **kwargs: (
+        {("reshumot_sefer_hachukim_2580__p0001", 0, 0): row}, Counter(), {}, {}, [], Counter()))
     with pytest.raises(EvalReservedUnitError, match="benyehuda_nli_lines build: refused 1"):
         bl.main(["build", str(tmp_path / "set"), "--root", str(tmp_path)])
     assert not (tmp_path / "set").exists()
