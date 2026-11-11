@@ -13,11 +13,12 @@ The aligner reads the text record in place of a PBY catalogue row, re-checks the
 copies the record's provenance onto every page report; the line builder copies it onto every line.
 
 **Licence gate (fail-closed).** ``decide_sefaria_licence`` accepts a version only when its ``license`` string is exactly
-Sefaria's public-domain label (``"Public Domain"``) **and** its ``versionSource`` is the catalogue record of a printed
+Sefaria's public-domain label (``"Public Domain"``) or ``"CC0"`` (a public-domain dedication; heocr-lead, 2026-11-11)
+**and** its ``versionSource`` is the catalogue record of a printed
 edition (an NLI record, an Internet Archive item or a Project Gutenberg ebook) **and** its version title names the
 printing's year. Everything else is rejected with a reason: CC BY-NC (``sefaria_licence_non_commercial``), ``unknown``
 (``sefaria_licence_unknown``), CC BY and CC BY-SA (``sefaria_licence_attribution_needs_decision``: they need their own
-decision), any other label, and a public-domain label tied to no printing (``sefaria_no_printing``).
+decision), any other label, and a public-domain or CC0 label tied to no printing (``sefaria_no_printing``).
 ``decide_gutenberg_licence`` accepts an ebook only when it is listed in ``GUTENBERG_EDITIONS`` with the scan it was
 proofread from, its RDF record says ``Public domain in the USA.``, its credits name that scan's source, and the scan
 being aligned is that scan.
@@ -59,6 +60,9 @@ SEFARIA_NORMALISER = "sefaria_markup.v1"
 GUTENBERG_NORMALISER = "gutenberg_plain_text.v1"
 
 SEFARIA_PUBLIC_DOMAIN = "Public Domain"
+# heocr-lead, 2026-11-11 (hocrgen#183): CC0, a public-domain dedication at least as open, is accepted like the label.
+SEFARIA_CC0 = "CC0"
+SEFARIA_ACCEPTED_LICENCES = (SEFARIA_PUBLIC_DOMAIN, SEFARIA_CC0)
 SEFARIA_DOWNLOAD_URL = "https://www.sefaria.org/download/version/{name}.json"
 SEFARIA_VERSIONS_URL = "https://www.sefaria.org/api/texts/versions/{title}"
 SEFARIA_DIGITIZER = "Sefaria"
@@ -127,9 +131,10 @@ class TextLicenceDecision:
 
 
 def licence_class(label: str | None) -> str:
-    """The gate's reading of a Sefaria licence string: the reason it is rejected, or ``ACCEPTED``. Exact match only."""
+    """The gate's reading of a Sefaria licence string: the reason it is rejected, or ``ACCEPTED`` (``"Public Domain"`` or
+    ``"CC0"``). Exact match only."""
 
-    if label == SEFARIA_PUBLIC_DOMAIN:
+    if label in SEFARIA_ACCEPTED_LICENCES:
         return ACCEPTED
     text = (label or "").strip()
     if not text or text.lower() == "unknown":
@@ -160,7 +165,7 @@ def printing_evidence(version_source: str | None, version_title: str | None, ver
 
 def decide_sefaria_licence(version: Mapping[str, Any]) -> TextLicenceDecision:
     """Gate a Sefaria version (a download JSON, or one entry of ``/api/texts/versions``). Fail-closed: the licence
-    must be exactly ``"Public Domain"`` and the version must name a printing (``printing_evidence``)."""
+    must be exactly ``"Public Domain"`` or ``"CC0"`` and the version must name a printing (``printing_evidence``)."""
 
     licence = version.get("license")
     language = version.get("actualLanguage") or version.get("language")

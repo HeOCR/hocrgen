@@ -44,7 +44,8 @@ def test_public_domain_version_citing_a_printing_is_accepted():
         (None, ts.REASON_UNKNOWN),
         ("CC-BY", ts.REASON_ATTRIBUTION),
         ("CC-BY-SA", ts.REASON_ATTRIBUTION),
-        ("CC0", ts.REASON_OTHER_LICENCE),
+        ("CC0 1.0", ts.REASON_OTHER_LICENCE),  # exact strings only
+        ("cc0", ts.REASON_OTHER_LICENCE),
         ("public domain", ts.REASON_OTHER_LICENCE),  # exact label only
         ("Public Domain ", ts.REASON_OTHER_LICENCE),
     ],
@@ -52,6 +53,13 @@ def test_public_domain_version_citing_a_printing_is_accepted():
 def test_every_other_licence_is_rejected(licence, reason):
     decision = ts.decide_sefaria_licence(_version(license=licence))
     assert not decision.accepted and decision.reason == reason
+
+
+def test_cc0_is_accepted_like_public_domain_but_still_needs_a_printing():
+    decision = ts.decide_sefaria_licence(_version(license="CC0"))
+    assert decision.accepted and decision.licence == "CC0"
+    no_print = ts.decide_sefaria_licence(_version(license="CC0", versionSource="https://www.sefaria.org"))
+    assert not no_print.accepted and no_print.reason == ts.REASON_NO_PRINTING
 
 
 @pytest.mark.parametrize(

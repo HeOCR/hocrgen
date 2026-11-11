@@ -87,9 +87,9 @@ python -m hocrgen.tools.benyehuda_nli_alignment align --source ia --text-source 
 publication place and year, the `script`, optional top-level `parts` (Sefaria schema nodes, in order) and, for an
 ancient compilation with a traditional attribution only, `anonymous_work` (a note and its evidence).
 
-- **Licence gate (fail-closed).** A Sefaria version is accepted only with the licence string exactly `Public Domain`,
-  a `versionSource` that is the catalogue record of a printing (NLI, IA or Gutenberg) and a year in its title.
-  CC BY-NC, `unknown`, CC BY, CC BY-SA, CC0, any other label, and `Public Domain` with no printing are rejected.
+- **Licence gate (fail-closed).** A Sefaria version is accepted only with the licence string exactly `Public Domain`
+  or `CC0` (heocr-lead, 2026-11-11), a `versionSource` that is the catalogue record of a printing (NLI, IA or Gutenberg) and a year in its title.
+  CC BY-NC, `unknown`, CC BY, CC BY-SA, any other label, and `Public Domain` or `CC0` with no printing are rejected.
   `python -m hocrgen.fetchers.text_sources gate VERSIONS.json ...` reports the decision on every version of a title.
   A Gutenberg ebook is accepted only for the scan it was proofread from (`GUTENBERG_EDITIONS`).
 - **Normaliser.** Commentator anchors, footnotes and the dash after a bold opening quote are removed, tags unwrapped,

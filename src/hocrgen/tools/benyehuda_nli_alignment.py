@@ -1804,6 +1804,7 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
 
     google = args.source == "ia" and scan.get("source_class") == SOURCE_CLASS_GOOGLE
     excluded: list[dict[str, Any]] = []
+    front_checked: list[int] = []
     watermarks: dict[int, list[int] | None] = {}
     if google:
         # Rule 5 hygiene: Google's usage-guidelines front page (first 1-3 canvases) is never aligned.
@@ -1812,6 +1813,7 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
             image_path, _, status = page_image(index)
             if status != 200:
                 continue
+            front_checked.append(index)
             front_tsv = work_dir / "ocr-eng-front" / f"c{index:04d}.tsv"
             if not front_tsv.exists():
                 front_tsv.write_text(run_tesseract(image_path, lang="eng", psm=3), encoding="utf-8")
@@ -1850,7 +1852,10 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
         sys.stderr.write(f"\rOCR {len(pages)}/{len(indices)} (canvas {index})" if args.reverse_canvases else f"\rOCR {index + 1}/{len(canvases)}")
     sys.stderr.write("\n")
     if google:
-        hygiene = hygiene_record(excluded, watermarks)
+        visual = None
+        if args.hygiene_visual_check:
+            visual = {"checked_by": args.hygiene_visual_check_by, "note": args.hygiene_visual_check, "date": args.generated_on}
+        hygiene = hygiene_record(excluded, watermarks, front_matter_checked=front_checked, visual_check=visual)
         scan_or_error = ia_scan(args, manifest, manifest_bytes, row, sorted(indices), google_hygiene=hygiene)
         if isinstance(scan_or_error, str):
             sys.stderr.write(scan_or_error + "\n")
@@ -1997,6 +2002,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Read the canvases last first (a back-to-front scan, e.g. a Hebrew book scanned left to right). Page records keep "
         "the true canvas index; recorded as method.canvas_order: reversed.",
     )
+    align.add_argument(
+        "--hygiene-visual-check",
+        help="Google scans: a visual check of the scan to record beside the OCR hygiene evidence (scan.google_hygiene.visual_check), "
+        "e.g. 'canvases 0-3 and three page feet viewed: no usage-guidelines page, no watermark'.",
+    )
+    align.add_argument("--hygiene-visual-check-by", default="agent", help="Who made the --hygiene-visual-check (default agent).")
     align.add_argument("--tesseract-lang", default="heb", help="Tesseract language (traineddata name) used to place the text.")
     align.add_argument(
         "--tessdata-dir",

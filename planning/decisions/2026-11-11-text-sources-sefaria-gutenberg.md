@@ -28,14 +28,15 @@ verbatim. It is quoted here from heocr-lead's record of the maintainer's data-di
    - **Sefaria** (`sefaria`): a Hebrew version saved from Sefaria's version download (`/download/version/<title> - he - <versionTitle>.json`), cross-checked against `/api/texts/versions/<title>`.
    - **Project Gutenberg** (`gutenberg`): a plain-text ebook, for the edition it was proofread from only.
 2. **What is accepted (fail-closed, `decide_sefaria_licence`, `decide_gutenberg_licence`):**
-   - a Sefaria version whose licence string is exactly Sefaria's public-domain label, `Public Domain`, **and** whose `versionSource` is the catalogue record of a printing (an NLI record, an Internet Archive item or a Project Gutenberg ebook) **and** whose version title names the printing's year;
+   - a Sefaria version whose licence string is exactly Sefaria's public-domain label, `Public Domain`, or exactly `CC0`, **and** whose `versionSource` is the catalogue record of a printing (an NLI record, an Internet Archive item or a Project Gutenberg ebook) **and** whose version title names the printing's year;
    - Project Gutenberg #43740 (*Bet Nekhot ha-Halakhot o Toratan shel Rishonim* I, Frankfurt am Main 1881), whose RDF record says `Public domain in the USA.` and whose credits name "The Internet Archive/Canadian Libraries". It is accepted only on the scan it was proofread from, IA `betnekhothahalak01horouoft`. Another ebook needs an entry in `GUTENBERG_EDITIONS`, which names the scan it was proofread from.
 3. **What is excluded:**
    - CC BY-NC (any non-commercial licence), by the iron rule;
    - `unknown`, by the iron rule (no licence evidence);
    - a `Public Domain` label with no printing named, such as Torat Emet, On Your Way, Daat and Mechon Mamre: the text cannot be tied to the scanned edition;
    - CC BY and CC BY-SA: attribution and share-alike are acceptable in principle (open-release decision, item 4), but these labels on Sefaria are mostly modern editions or translations. Each needs its own decision.
-   - Any other label, CC0 included, until a decision names it. The gate matches the label string exactly.
+   - Any other label, until a decision names it. The gate matches the label string exactly.
+   - **CC0 is accepted** (heocr-lead, 2026-11-11, on hocrgen#183): a public-domain dedication is at least as open as public-domain text, so it falls under the maintainer's 2026-11-06 ruling; the gate accepts the exact string `CC0` like `Public Domain`, still only with a printing named. CC BY and CC BY-SA stay rejected.
 4. **Scans are unchanged.** Every text is aligned to a scan that passes the existing scan gate: Route B (Internet Archive, `decide_ia_rights` plus the per-item `rights_justification`) or Route C (Wikimedia Commons, under its own gate). Route A, Google-class scans fetched through NLI's API, stays out. `align --text-source sefaria|gutenberg` accepts Internet Archive scans only for now, because Route B's tooling exists.
 5. **Contributors and the rights justification.** The text record lists every author, editor, translator and annotator, each with a Wikidata QID; the rights justification reads each death year from a saved Wikidata snapshot (P570), as for PBY.
    - Editors count as authors for the Israeli status (legal strategy, "Per-item rights justification").
@@ -52,7 +53,7 @@ Every alignment page report (`work`) and every line row of a text-source alignme
 | `text_source` | `sefaria` or `gutenberg` (PBY rows are unchanged and carry none of these fields) |
 | `text_version_title` | The printing: Sefaria's `versionTitle`, or the edition a Gutenberg ebook was proofread from |
 | `text_version_source` | The printing's catalogue record: Sefaria's `versionSource` (an NLI record URL), or the ebook URL |
-| `text_licence` | The exact licence label: `Public Domain` (Sefaria) or `Public domain in the USA.` (Project Gutenberg) |
+| `text_licence` | The exact licence label: `Public Domain` or `CC0` (Sefaria), or `Public domain in the USA.` (Project Gutenberg) |
 | `text_api_url` | The URL the text was fetched from (the Sefaria version download, or the Gutenberg UTF-8 text) |
 | `text_snapshot_sha256` | sha256 of the saved raw response. The snapshot itself is kept with the alignment root (`snapshots/`) |
 | `work_id` | `sefaria_<slug>` or `gutenberg_<ebook>`; `pby_id` is null |
