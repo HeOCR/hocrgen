@@ -73,3 +73,5 @@ The text is the edition's, normalised only where the digital form adds what the 
 
 - R8 lever 5(b) batch 1 (`rablines_v1`) is built from Sefaria public-domain versions and PG #43740 on Internet Archive scans of the same editions. One dense, abbreviation-heavy edition is held out whole as the future rabbinic eval or line_verify source (`docs/benyehuda_nli_lines.md`, "Reserved editions").
 - A release that ships these lines credits Sefaria and Project Gutenberg as text sources in its NOTICE, beside the scan route notices.
+
+— data-collection[claude/claude-code#shay-macbook-m4]@heocr/opensource

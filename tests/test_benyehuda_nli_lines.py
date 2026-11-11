@@ -576,3 +576,13 @@ def test_text_source_lines_with_print_markers_or_retyped_citations_are_dropped(t
     assert summary["dropped"]["parenthetical_differs_from_print"] == 1
     assert summary["dropped"]["print_marker_missing_from_label"] == 1
     assert rows[0]["parenthetical_similarity"] is None
+
+
+def test_drop_overlap_keeps_only_what_the_primary_copy_lacks():
+    best = {("google00x", 0, 0): {"work_id": "sefaria_w", "pby_span": [0, 10]},
+            ("google00x", 0, 1): {"work_id": "sefaria_w", "pby_span": [50, 60]},
+            ("other00x", 0, 0): {"work_id": "sefaria_w", "pby_span": [0, 10]}}
+    drops = bl.Counter()
+    out = bl.drop_covered_by_primary(best, drops, {"robarts00x": "google00x"}, {"robarts00x": [("sefaria_w", 0, 20)]})
+    assert set(best) == {("google00x", 0, 1), ("other00x", 0, 0)}
+    assert out == {"robarts00x=google00x": 1} and drops["covered_by_primary_copy"] == 1

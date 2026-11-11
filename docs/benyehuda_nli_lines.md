@@ -106,6 +106,10 @@ ancient compilation with a traditional attribution only, `anonymous_work` (a not
   label has none is dropped as `print_marker_missing_from_label`: Sefaria keeps the print's note references
   (`(מ)`, `1)`) as anchors or footnotes, which the normaliser removes. PBY rows are unchanged.
 
+**Two scans of one edition.** `--drop-overlap PRIMARY=SECONDARY` keeps from the SECONDARY record only the lines whose
+edition text no PRIMARY aligned page covers (`covered_by_primary_copy`). It implements "use the Google-derived copy only
+for the parts the library copy lacks". Both alignments sit in the same root, the second in `out_<name>/`.
+
 ## Reserved editions
 
 `--reserve REC[=name]` holds an edition out whole: none of its lines are written to `train` or `dev`, they are

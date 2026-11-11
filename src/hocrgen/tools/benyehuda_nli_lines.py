@@ -71,6 +71,8 @@ the label has none is dropped as ``print_marker_missing_from_label``: Sefaria ke
 (``(מ)``, ``1)``) as anchors or footnotes, which the normaliser removes. Each kept row records
 ``parenthetical_similarity``. PBY rows are unchanged. ``--reserve REC[=name]`` holds an edition out whole, from train and dev alike (an eval reserve): its lines
 are counted as ``reserved_edition`` and never written, and the summary lists it under ``reserved_records``.
+``--drop-overlap PRIMARY=SECONDARY`` (two scans of one edition, e.g. a library copy and a Google-derived copy) keeps
+from SECONDARY only the lines whose edition text no PRIMARY aligned page covers (``covered_by_primary_copy``).
 """
 
 from __future__ import annotations
@@ -533,6 +535,39 @@ def pointed_book_gate(best: dict, drops: Counter) -> dict[str, dict[str, Any]]:
     return report
 
 
+def aligned_page_spans(roots: Sequence[Path], prefer: Sequence[str], records: Iterable[str]) -> dict[str, list]:
+    """Each record's aligned page spans ``(text id, start, end)``, from the same alignment sources ``collect`` reads
+    (for ``--drop-overlap``; a separate pass so ``collect`` keeps its return shape)."""
+    chosen, _, _ = alignment_sources(roots, prefer, records=records)
+    spans: dict[str, list] = defaultdict(list)
+    for _, _, al, pby in chosen:
+        rec = record_id(al["scan"])
+        for page in al["pages"]:
+            if page["status"] == "aligned" and page.get("pby_span"):
+                spans[rec].append((pby, page["pby_span"]["start"], page["pby_span"]["end"]))
+    return dict(spans)
+
+
+def drop_covered_by_primary(best: dict, drops: Counter, pairs: Mapping[str, str], page_spans: Mapping[str, list]) -> dict[str, int]:
+    """``--drop-overlap PRIMARY=SECONDARY``: a second scan of the same edition supplies only what the first lacks. A
+    SECONDARY line whose edition span overlaps the edition text of a PRIMARY aligned page (same text file: the same
+    ``work_id`` or PBY id) is dropped as ``covered_by_primary_copy``. Mutates ``best``; returns the count per pair."""
+    out = {}
+    for primary, secondary in pairs.items():
+        spans = page_spans.get(primary) or []
+        n = 0
+        for key in [k for k in best if k[0] == secondary]:
+            cand = best[key]
+            work = cand.get("work_id") or cand.get("pby_id")
+            s, e = cand["pby_span"]
+            if any(w == work and s < pe and ps < e for w, ps, pe in spans):
+                del best[key]
+                drops["covered_by_primary_copy"] += 1
+                n += 1
+        out[f"{primary}={secondary}"] = n
+    return out
+
+
 def cap_per_book(keys: list, cap: int, exempt: Iterable[str], sources: Mapping[str, str | None] | None = None) -> tuple[list, Counter]:
     """Keep at most ``cap`` lines per record by sha256 of the line id; ``sources`` maps a record to its scan source."""
     exempt = set(exempt)
@@ -584,6 +619,9 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         raise SystemExit("edition text is pointed but the print is not classified; name each in --pointed or --unpointed: "
                          + ", ".join(f"{rec} (niqqud {dens[rec]}/letter)" for rec in unresolved))
     pointing = pointed_book_gate(best, drops) if args.keep_pointed else {}
+    overlap = _named(getattr(args, "drop_overlap", None))
+    overlap_dropped = drop_covered_by_primary(
+        best, drops, overlap, aligned_page_spans(roots, args.prefer_placer or (), set(overlap))) if overlap else {}
     reserved_lines = Counter(k[0] for k in best if k[0] in reserve)
     for k in [k for k in best if k[0] in reserve]:
         drops["reserved_edition"] += 1
@@ -684,6 +722,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         if drop_spans:
             summary["drop_pointed_spans"] = {"min_niqqud_per_letter": MIN_POINTED_DENSITY,
                                              "dropped_by_record": dict(sorted(span_drops.items()))}
+    if overlap:
+        summary["drop_overlap"] = {"pairs": overlap, "dropped": overlap_dropped}
     if reserve or scripts:
         summary.update({"labels": "edition text (Ben-Yehuda, Sefaria or Project Gutenberg) placed by F8f alignment; never OCR output",
                         "reserved_records": reserve, "reserved_lines_withheld": dict(sorted(reserved_lines.items())),
@@ -861,6 +901,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     b.add_argument("--unpointed", nargs="*", help="records asserted to be unpointed prints although their edition text is pointed")
     b.add_argument("--keep-pointed", action="store_true", help="keep pointed prints with niqqud labels (stratum `pointed`)")
     b.add_argument("--dev", nargs="*", help="dev records REC[=name], held out whole")
+    b.add_argument("--drop-overlap", nargs="*", help="PRIMARY=SECONDARY records (two scans of one edition): drop SECONDARY "
+                   "lines whose edition text a PRIMARY aligned page already covers (covered_by_primary_copy)")
     b.add_argument("--reserve", nargs="*", help="eval-reserve records REC[=name]: held out whole from train and dev (no lines written)")
     b.add_argument("--max-lines-per-book", type=int, default=0)
     b.add_argument("--cap-dev", action="store_true")
