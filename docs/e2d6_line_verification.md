@@ -1,8 +1,9 @@
 # E2d6: single-line verification of real printed lines
 
-> **Status (2026-11-07).** The tool and the first batch (`line_verify_v1`, 1,500 lines) are built. No human has
-> verified a line yet, so [`line_verify_references.json`](./line_verify_references.json) holds no lines, and no score
-> has changed.
+> **Status (2026-11-11).** The tool and the first batch (`line_verify_v1`, 1,500 lines) are built. The first ingest
+> of the maintainer's decisions put 198 verified lines from 25 books into
+> [`line_verify_references.json`](./line_verify_references.json) (see [First ingest](#first-ingest-2026-11-11)). No
+> score has changed yet.
 
 ## Why
 
@@ -341,6 +342,30 @@ niqqud share (`split_pointed.py`, 0.2 marks per letter), not by the print. Point
 therefore sit in the unpointed batch. They are not re-split: the button settles each in one key. For
 `line_verify_v2`, decide the split from the image (niqqud detection on the crop, or a per-book prior from
 `pointed_print_by_book`).
+
+## First ingest (2026-11-11)
+
+The first decisions from `HeOCR/heocr-review` production are resolved, at the team lead's request for heocr-eval's line
+measure (decision 0017).
+
+- **Export.** Read-only, both app batches. `line_verify_v1` (the unpointed batch) gave 229 current decisions: 231 were
+  recorded, and 2 were superseded by the same reviewer's later decision. None were stale and none conflicted.
+  `line_verify_v1_pointed` gave none yet.
+- **Merge, never overwrite.** The two app batches are halves of one `line_verify_v1` bundle. Their decisions are merged
+  into one `line_verify_v1` file, together with every decision already in the committed references (none before this
+  ingest). The merge is keyed by `decision_id`, and the newer export wins, which is the app's supersede rule. A later
+  ingest must merge the same way, so that a decision missing from a new export is never dropped silently.
+- **Bundle.** `ingest` runs against `bundle_hires`, the 1,500-item bundle with the 1,920 px Wikisource renders the
+  reviewer saw. Its boxes and pages are the app's. The split bundles differ from it only in `rank`.
+  `bundle_items_sha256` is therefore that bundle's hash, and no longer the original bundle's.
+- **Outcome.**
+  - Decisions: 155 `exact`, 43 `edited` and 31 `misaligned`; no `pointed_print` yet.
+  - Lines: 198 verified lines from 25 books (184 Wikisource, 14 PBY↔NLI), 43 of them corrected. All are
+    `reference_eligible` with `reference_views: ["primary", "consonantal"]`.
+  - Release split: 164 `train`, 16 `test`, 4 `validation`, and 14 with none (PBY↔NLI).
+  - Misaligned share: 14.4% for Wikisource and 0% for PBY↔NLI.
+- **What this means for evaluation.** Most of these lines are `train`. Shay decided them before the queue was re-ranked
+  to put held-out lines first. A held-out score must filter on `release_split`.
 
 ## Reproduce (operator)
 
