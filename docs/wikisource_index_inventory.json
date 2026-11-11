@@ -12058,24 +12058,17 @@
         "language_evidence": "Index page field שפה: he",
         "creators": [
           {
-            "name": "הלוי",
+            "name": "יצחק אייזיק הלוי",
             "role": "author",
-            "wikidata": null,
-            "death_year": null,
-            "death_year_evidence_url": null
-          },
-          {
-            "name": "יצחק איזיק",
-            "role": "author",
-            "wikidata": null,
-            "death_year": null,
-            "death_year_evidence_url": null
+            "wikidata": "Q8053923",
+            "death_year": 1914,
+            "death_year_evidence_url": "https://www.wikidata.org/wiki/Q8053923"
           }
         ]
       },
       "work_rights": {
-        "basis": "presumed_pd_by_publication_age",
-        "evidence": "Published 1818 (Index page field שנה: 1818), on or before 1855: presumed PD in Israel (decision 10). Creators: הלוי (author, death year not evidenced); יצחק איזיק (author, death year not evidenced)."
+        "basis": "author_died_by_1955",
+        "evidence": "Creators: יצחק אייזיק הלוי (author, died 1914)."
       },
       "scan_rights": {
         "basis": "faithful_reproduction_of_pd_work",

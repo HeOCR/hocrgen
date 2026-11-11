@@ -772,6 +772,43 @@
           "checked_at": "2026-11-06"
         }
       ]
+    },
+    {
+      "index_title": "מפתח:דורות הראשונים ב'.pdf",
+      "commons_file_sha1": "3dd59e461071f0fade35015b292600b6e497e1d6",
+      "creators": [
+        {
+          "names": [
+            "יצחק אייזיק הלוי",
+            "יצחק איזיק הלוי",
+            "Yitzhak Isaac Halevy Rabinowitz"
+          ],
+          "role": "author",
+          "death_year": 1914,
+          "wikidata": "Q8053923",
+          "add": true,
+          "evidence_url": "https://www.wikidata.org/wiki/Q8053923",
+          "evidence_kind": "wikidata_P570",
+          "authority": "NLI authority 987007262352605171",
+          "note": "Yitzhak Isaac Halevy Rabinowitz, author of Dorot ha-Rishonim (volume II of the work whose part III is Index 458756, same author); the author field 'הלוי, יצחק איזיק, 1847-1914' is one person in inverted form, which the parser split at the comma. Wikidata P570 1914-05-15. The Index year 1818 is wrong (the author was born in 1847); the work is PD in Israel on his death year.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b8",
+          "checked_at": "2026-11-11"
+        }
+      ],
+      "creator_corrections": [
+        {
+          "names": [
+            "הלוי",
+            "יצחק איזיק"
+          ],
+          "correction": "not_a_creator",
+          "evidence": "Fragments of one inverted name, 'הלוי, יצחק איזיק, 1847-1914' (Yitzhak Isaac Halevy, recorded above with his cited death year), split by the parser at the comma.",
+          "recorded_by": "agent",
+          "recorder": "Claude Code (claude-opus-5-5), F8b8",
+          "checked_at": "2026-11-11"
+        }
+      ]
     }
   ]
 }

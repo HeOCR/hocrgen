@@ -5,7 +5,7 @@
  "inputs": {
   "inventory": {
    "path": "docs/wikisource_index_inventory.json",
-   "sha256": "e9fa2ebb7508809d927c1aed56d9a209667cba6b38e94442bfb19203ffbcb839"
+   "sha256": "d17a408b95c0b6114890c73d905727eeadb66b1d4c9be061a8edbdaa5bc82a1f"
   },
   "evidence": {
    "path": "docs/wikisource_rights_evidence.json",
@@ -47,8 +47,8 @@
   },
   "by_israel_basis": {
    "anonymous_published_over_70_years_ago": 1,
-   "author_died_over_70_years_ago": 68,
-   "presumption_decision_10": 8
+   "author_died_over_70_years_ago": 69,
+   "presumption_decision_10": 7
   },
   "by_us_status": {
    "not_established": 13,
@@ -17974,7 +17974,7 @@
    "reason": "rights_justified",
    "failures": [],
    "rights_justification": {
-    "id": "rj:ws_index_398671:6670d9d9b521",
+    "id": "rj:ws_index_398671:1c539aced62a",
     "format": "hocrgen.rights_justification.v1",
     "generator": "hocrgen.fetchers.wikisource_justification.build_wikisource_rights_justification",
     "as_of": "2026-11-11",
@@ -18000,18 +18000,14 @@
      "title": "דורות הראשונים חלק ב'",
      "contributors": [
       {
-       "name": "הלוי",
+       "name": "יצחק אייזיק הלוי",
        "role": "author",
-       "wikidata": null,
-       "death_year": null,
-       "death_year_source": null
-      },
-      {
-       "name": "יצחק איזיק",
-       "role": "author",
-       "wikidata": null,
-       "death_year": null,
-       "death_year_source": null
+       "wikidata": "Q8053923",
+       "death_year": 1914,
+       "death_year_source": {
+        "url": "https://www.wikidata.org/wiki/Q8053923",
+        "kind": "wikidata_p570"
+       }
       }
      ],
      "contributors_basis": {
@@ -18043,20 +18039,15 @@
      "language": "he",
      "inventory_gate": {
       "work_rights": {
-       "basis": "presumed_pd_by_publication_age",
-       "evidence": "Published 1818 (Index page field שנה: 1818), on or before 1855: presumed PD in Israel (decision 10). Creators: הלוי (author, death year not evidenced); יצחק איזיק (author, death year not evidenced)."
+       "basis": "author_died_by_1955",
+       "evidence": "Creators: יצחק אייזיק הלוי (author, died 1914)."
       }
      },
      "israel_status": {
       "status": "pd_il",
-      "basis": "presumption_decision_10",
-      "reason": "printed 1818, on or before 1855; no death year found for הלוי, יצחק איזיק; presumed PD in Israel (decision 10, 2026-11-06)",
-      "presumed_for": [
-       "הלוי",
-       "יצחק איזיק"
-      ],
-      "law": "Copyright Act 2007, s. 38",
-      "decision": "planning/decisions/2026-11-06-f8-real-source-decisions.md"
+      "basis": "author_died_over_70_years_ago",
+      "reason": "every contributor died by 1914; 1914 + 70 < 2026",
+      "law": "Copyright Act 2007, s. 38"
      },
      "us_status": {
       "status": "pd_us",
@@ -18102,9 +18093,9 @@
     "decision_refs": [
      "planning/decisions/2026-11-10-legal-strategy.md",
      "docs/legal/2026-11-10_legal_strategy.md",
-     "planning/decisions/2026-11-06-f8-real-source-decisions.md (decision 10: the 1855 presumption; decision 10: data gaps are not rights problems)"
+     "planning/decisions/2026-11-06-f8-real-source-decisions.md (decision 10: data gaps are not rights problems)"
     ],
-    "summary": "Public-domain work (printed 1818, presumed PD (decision 10)); faithful scan, digitizer unrecorded; fetched from Hebrew Wikisource's file repository (File:דורות הראשונים ב'.pdf); no new right in the scan and no contract binds its reuse."
+    "summary": "Public-domain work (author d. 1914, recorded publication year 1818); faithful scan, digitizer unrecorded; fetched from Hebrew Wikisource's file repository (File:דורות הראשונים ב'.pdf); no new right in the scan and no contract binds its reuse."
    }
   },
   {
