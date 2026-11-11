@@ -1914,10 +1914,11 @@ A run without the new flags is byte-identical to one before E2e. The plan is in 
 
 ## E2f — Evaluation-reserved units
 
-**Direction: heocr-engine decisions 0017 and 0018. `E2f1` is merged (#178), `E2f2` is in review, and `E2f3` is planned.**
+**Direction: heocr-engine decisions 0017 and 0018. `E2f1` is merged (#178), `E2f2` (#187) and `E2f3` (#188) are in review, and `E2f4` is planned.**
 
 - **`E2f1`.** heocr-eval's P-mod unit split file is recorded as `eval_reserved_units.v1`. Eval and unassigned units are pinned to the `eval_reserved` release split, and every training-input builder refuses them.
 - **`E2f2`.** Governs `reshumot_scanned` (its own `reshumot_scanned:` unit prefix; one booklet, one Reshumot source) and `knesset_plenary_k1_12` (`plenary:K<knesset>_<sitting>`). Their rows are unassigned, and so refused, until a split version lists them.
-- **`E2f3`.** Sync to `pmod_unit_split_v2` once it is issued.
+- **`E2f3`.** Sync to `pmod_unit_split_v2`, which adds only the 121 born-digital 2005 booklets, all non_eval.
+- **`E2f4`.** Sync to `pmod_unit_split_v3`, which will add the scanned Reshumot and plenary units once their enumeration and the mid-century split exist.
 
 The plan is in [`planning/tasks/e2f-eval-reserved-units.md`](../planning/tasks/e2f-eval-reserved-units.md).

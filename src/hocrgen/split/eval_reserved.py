@@ -22,7 +22,7 @@ Governed sources (decisions 0017/0018): ``reshumot_born_digital`` (``reshumot:<s
 (``reshumot_scanned:<series>_<n>``, its own prefix with the same series strings) and ``knesset_plenary_k1_12``
 (``plenary:K<knesset>_<sitting>``). Every unit id names one source, and the registry refuses a booklet listed in both
 Reshumot sources. A governed source the registry does not list yet (scanned Reshumot and plenary under
-``pmod_unit_split_v1``) has every unit ``unassigned``: its rows are refused until a split version lists them.
+``pmod_unit_split_v1`` and ``v2``) has every unit ``unassigned``: its rows are refused until a split version lists them.
 """
 
 from __future__ import annotations

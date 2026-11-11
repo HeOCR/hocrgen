@@ -442,7 +442,7 @@ def test_plenary_sittings_follow_eval_non_eval_and_unassigned(extended: EvalRese
 
 
 def test_until_the_split_lists_them_new_source_rows_are_unassigned(registry: EvalReservedUnitsRegistry) -> None:
-    """With the packaged v1 registry (no scanned or plenary source), their rows fail closed as unassigned."""
+    """With the packaged registry (v1 and v2 list no scanned or plenary source), their rows fail closed as unassigned."""
     assert registry.source(SCANNED) is None and registry.source(PLENARY) is None
     for row in ({"page_id": "reshumot_scanned_sefer_hachukim_500__p0001"}, {"page_id": "plenary_K1_1__p0001"}):
         assert unit_status(row, registry)[1] is EvalUnitStatus.unassigned
