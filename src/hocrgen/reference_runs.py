@@ -34,7 +34,7 @@ import re
 from pathlib import Path
 from typing import Any, Iterable, Mapping
 
-from hocrgen import __version__, eval_slices
+from hocrgen import __version__, eval_measures, eval_slices
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.hocrsyngen_manifest import LEGACY_SOURCE_ITEM_ID_PREFIX, _source_item_id, validate_hocrsyngen_batch
 from pydantic import ValidationError
@@ -504,7 +504,9 @@ def _score(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any
         if slicing is not None:
             block = views["adjudicated_reference"][LINE_MATCHED_VIEW_ID]
             _add_eval_slices(block["views"][LINE_MATCHED_VIEW_ID], slicing, profiles,
-                             order=eval_slices.within_line_rows(block))
+                             order=eval_slices.within_line_rows(block), predictions=predictions,
+                             references={item_id: reference_text(references[item_id]) for item_id in ids},
+                             physical_lines=True)
     if views:
         result["reference_views"] = views
     if unreviewed and unreviewed["texts"]:
@@ -529,8 +531,13 @@ def _score(predictions: Mapping[str, str], *, track: str, gold: Mapping[str, Any
 def _add_eval_slices(report: dict[str, Any], slicing: Mapping[str, Any], profiles: list[str], *,
                      predictions: Mapping[str, str] | None = None, references: Mapping[str, str] | None = None,
                      all_ids: Iterable[str] | None = None,
-                     order: Mapping[str, Mapping[str, Any]] | None = None) -> None:
-    """Decisions 0017 and 0018: label strata and the ``eval_slices`` block on one adjudicated profile report."""
+                     order: Mapping[str, Mapping[str, Any]] | None = None, physical_lines: bool = False) -> None:
+    """Decisions 0017 and 0018: label strata and the ``eval_slices`` block on one adjudicated profile report.
+
+    E2e3: with predictions and references, per-item letter, missed-region and (``physical_lines``, for
+    ``reading_order_verified: within_line`` items) line-aligned measures enter each slice. A baseline's slices, which
+    are never reported, skip them (``slicing["item_measures"] is False``).
+    """
     labels = slicing.get("labels")
     exclusions = None
     if labels is not None:
@@ -539,11 +546,25 @@ def _add_eval_slices(report: dict[str, Any], slicing: Mapping[str, Any], profile
         exclusions = eval_slices.exposure_exclusions([i["item_id"] for i in report["items"]], labels,
                                                      slicing["model_ids"])
         eval_slices.apply_label_strata(report, labels["labels"], excluded=(exclusions or {}).get("item_ids", ()))
-    if order is None and predictions is not None and references is not None:
-        order = eval_slices.page_order_rows(report, predictions, references)
+    measures = None
+    if predictions is not None and references is not None:
+        if order is None:
+            order = eval_slices.page_order_rows(report, predictions, references)
+        if slicing.get("item_measures", True):
+            # Exposed items enter no number, so their measures are never computed.
+            skipped = set((exclusions or {}).get("item_ids", ()))
+            measures = {}
+            for item in report["items"]:
+                item_id = item["item_id"]
+                if item_id in skipped:
+                    continue
+                prediction, reference = predictions[item_id], references[item_id]
+                measures[item_id] = eval_measures.item_measures(
+                    prediction, reference, profile_ids=profiles, physical_lines=physical_lines,
+                    letters_prediction=line_matched_prediction(prediction, reference)[0] if physical_lines else None)
     report["eval_slices"] = eval_slices.slice_report(
         report["items"], profile_ids=profiles, labels=labels, clusters=slicing.get("clusters"),
-        bootstrap=slicing.get("bootstrap"), order=order, exclusions=exclusions)
+        bootstrap=slicing.get("bootstrap"), order=order, measures=measures, exclusions=exclusions)
 
 
 def _slice_deltas(delta: dict[str, Any], base_report: Mapping[str, Any], cand_report: Mapping[str, Any],
@@ -979,7 +1000,9 @@ def run_reference_evaluation(
             baseline = _score(baseline_predictions, track=baseline_set["track"], gold=gold, adjudicated=adjudicated,
                               unreviewed=unreviewed if diagnostic_only else None,
                               profiles=profile_ids, alignment_masked=False, cell_view=cell_view, modality=modality,
-                              slicing=baseline_page_slicing, lines=lines, line_slicing=baseline_slicing)
+                              slicing=None if baseline_page_slicing is None else {**baseline_page_slicing,
+                                                                                  "item_measures": False},
+                              lines=lines, line_slicing=baseline_slicing)
             if diagnostic_only:
                 comparison = _diagnostic_comparison(baseline, result, baseline_set, candidate_set, bootstrap)
             else:

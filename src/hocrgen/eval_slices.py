@@ -38,6 +38,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Callable, Iterable, Mapping
 
+from hocrgen import eval_measures
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.reference_evaluation import (
     NORMALIZATION_PROFILES,
@@ -360,8 +361,12 @@ def _settings_block(*, labels: Mapping[str, Any] | None, clusters: Mapping[str, 
 def slice_report(items: list[dict[str, Any]], *, profile_ids: list[str], labels: Mapping[str, Any] | None,
                  clusters: Mapping[str, Any] | None, bootstrap: Mapping[str, int] | None,
                  order: Mapping[str, Mapping[str, Any]] | None = None, mode: str = "page",
+                 measures: Mapping[str, Mapping[str, Any]] | None = None,
                  exclusions: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """Per-stratum and per-slice single-engine measures over profile-report ``items``.
+
+    ``measures`` (E2e3, ``eval_measures.item_measures`` per item id) adds the line-aligned page measures per profile and
+    the letter-level and missed-region diagnostics per slice.
 
     ``items`` are ``{item_id, strata, profiles: {profile_id: pair}}``; an item may lack a profile (a line reference
     for consonantal views only), and each profile is aggregated over the items that have it. Items listed in
@@ -392,7 +397,19 @@ def slice_report(items: list[dict[str, Any]], *, profile_ids: list[str], labels:
                 entry["page_cer_distribution"] = cer_distribution(part["cer"] for part in parts)
             if cluster_map is not None and bootstrap is not None:
                 entry.update(_single_intervals(parts, [cluster_map[m["item_id"]] for m in members], bootstrap))
+            if measures is not None:
+                rows = [measures[m["item_id"]]["line_aligned"][pid] for m in members
+                        if m["item_id"] in measures and pid in measures[m["item_id"]].get("line_aligned", {})]
+                if rows:
+                    entry["line_aligned"] = eval_measures.line_aligned_entry(rows)
             record["profiles"][pid] = entry
+        if measures is not None:
+            rows = [measures[item_id] for item_id in group.ids if item_id in measures]
+            if rows:
+                record["letter_diagnostic"] = eval_measures.letter_record([row["letters"] for row in rows])
+                region = eval_measures.missed_region_record(rows) if mode == "page" else None
+                if region is not None:
+                    record["missed_region_diagnostic"] = region
         if order is not None:
             diagnostic = _order_record(group.ids, order)
             if diagnostic is not None:
@@ -576,7 +593,10 @@ def line_reference_report(predictions: Mapping[str, str], lines: Mapping[str, An
                      "only; every other profile is aggregated over the lines that also serve primary views",
         "measures": slice_report(items, profile_ids=profile_ids, labels=labels, clusters=lines["clusters"],
                                  bootstrap=bootstrap, mode="line",
-                                 exclusions=exposure_exclusions(ids, labels, model_ids or {"scored": None})),
+                                 exclusions=exposure_exclusions(ids, labels, model_ids or {"scored": None}),
+                                 measures={item["item_id"]: {"letters": eval_measures.letter_edits(
+                                     predictions[item["item_id"]], lines["texts"][item["item_id"]])}
+                                     for item in items}),
         "items": items,
     }
 

@@ -243,6 +243,12 @@ Each slice reports its `items`, `clusters`, `flags`, and per profile the micro C
 - If the labels mark any item exposed but `--model-id`, or `--baseline-model-id` for a comparison, is missing, the run fails. Without exposure in the labels there is no `excluded_exposed` block.
 - The run record lists `model_ids` and `eval_labels.exposed_items`.
 
+**Canonical model ids.** Exposure is matched by exact string equality, so every `exposed` list and every `--model-id` / `--baseline-model-id` value must use one canonical id per model:
+- HeOCR models use their **release names**: `R6`, `R7`, `R8` and so on. Never use a checkpoint path, a run name or working label (such as `r3e-typo`), a lowercase form, or a combination string.
+- Stock or third-party engines use their **documented engine id**, the `engine.name` of the heocr-engine prediction contract (`docs/prediction_contract.md` in heocr-engine), for example `tesseract` or `kraken`.
+- A pipeline that adds stages to a released model, for example a released recognizer behind another segmenter, is still scored under that model's release name. The pipeline itself is recorded in the run record.
+- An id that is not canonical never matches. Exposure then goes undetected, so check the ids when you write labels.
+
 **No blended numbers (decision 0018 §5).** There is no overall or cross-node score. Any aggregate added later (all printed, then all Hebrew) must state the weight or ratio of every subset it averages. Aggregates are not implemented yet.
 
 **Order diagnostic** (`order_diagnostic`, diagnostic only). It is computed over items with at least two reference lines:
@@ -261,7 +267,16 @@ Each slice reports its `items`, `clusters`, `flags`, and per profile the micro C
 - `unreadable` and `misaligned` lines are never in a line set.
 - Clusters are always the line's `book_id`, so `--bootstrap-resamples` alone gives intervals. With a baseline, `comparison.deltas.line_reference` gives the paired version.
 
-Not yet implemented:
-- the spec's §3b exact-line rate and line CER over line-aligned pages;
-- the letter-level substitution, deletion and insertion decomposition;
-- the missed-region cost from deletion runs.
+**Pending 0017 measures (`E2e3`, `hocrgen.eval_measures`).** These are computed per item and added to each `eval_slices` slice. They are never added to a baseline's own slices or to paired deltas.
+- **Line-aligned pages** (spec §3b) cover only items whose reference lines are physical lines (`reading_order_verified: within_line`), in the `line_matched.v1` view's `eval_slices`. Reference and prediction lines are paired with the `line_matched.v1` pairing (`reference_evaluation.pair_lines`). Each profile entry gets `line_aligned` with these fields:
+  - `exact_line_rate`: the share of reference lines with an exact paired line;
+  - `line_cer`: an unpaired reference line counts as a miss with its full characters;
+  - `missed_line_rate`;
+  - the counts behind them.
+- **`letter_diagnostic`** (spec §1, diagnostic only) counts Hebrew letters only, U+05D0–U+05EA with final forms included. Both sides are reduced to their letters after NFC and aligned by Levenshtein. It reports `substitution_rate`, `deletion_rate` and `insertion_rate` per reference letter. Marks, punctuation, digits, Latin and spaces never count.
+  - For line-ordered items the letters are aligned on the `line_matched.v1` prediction, so block order is not counted.
+  - Line references get it too.
+  - An alignment above 25 million cells is skipped and counted in `skipped_items`.
+- **`missed_region_diagnostic`** (spec §4, diagnostic only) is reported per page slice, by one of two methods:
+  - On physical-line pages (`unpaired_reference_lines`), it is the share of `primary.v1` reference characters in unpaired reference lines.
+  - On paragraph references (`deletion_runs_of_20_or_more_letters`), it is the share of reference letters in letter-alignment deletion runs of 20 or more letters. Ties in the alignment can split a run, so it is a lower bound.

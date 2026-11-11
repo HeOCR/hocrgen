@@ -617,17 +617,12 @@ LINE_MATCHED_VIEW_ID = "line_matched.v1"
 READING_ORDER_WITHIN_LINE = "within_line"
 
 
-def line_matched_prediction(prediction: str, reference: str) -> tuple[str, dict]:
-    """Reorder the prediction's lines into the reference's line order (the ``line_matched.v1`` view).
+def pair_lines(prediction: str, reference: str) -> tuple[list[str], list[str], dict[int, int]]:
+    """The ``line_matched.v1`` pairing: non-blank reference and prediction lines, and reference -> prediction index.
 
-    For a reference whose text is verified line by line but whose order of lines across the page is a layout
-    convention (``reading_order_verified: within_line``, F8e3), an engine that reads the blocks in another order has
-    made no recognition error. Each non-blank reference line is paired with at most one non-blank prediction line,
-    greedily by the lowest edit distance relative to the longer line (ties by reference, then prediction position);
-    a pair is made only when its distance is below the longer line's length. The paired prediction lines are put in
-    reference order and the unpaired ones appended in their own order, so the result scores with the usual CER over
-    the same reference characters. Characters inside a line keep their order, so within-line errors still count, and
-    a line the engine split or merged differently still costs edits.
+    Each reference line is paired with at most one prediction line, greedily by the lowest edit distance relative to
+    the longer line (ties by reference, then prediction position); a pair is made only when its distance is below the
+    longer line's length.
     """
     reference_lines = [line for line in reference.split("\n") if line.strip()]
     prediction_lines = [line for line in prediction.split("\n") if line.strip()]
@@ -644,6 +639,23 @@ def line_matched_prediction(prediction: str, reference: str) -> tuple[str, dict]
         if r_index not in pairs and p_index not in used:
             pairs[r_index] = p_index
             used.add(p_index)
+    return reference_lines, prediction_lines, pairs
+
+
+def line_matched_prediction(prediction: str, reference: str) -> tuple[str, dict]:
+    """Reorder the prediction's lines into the reference's line order (the ``line_matched.v1`` view).
+
+    For a reference whose text is verified line by line but whose order of lines across the page is a layout
+    convention (``reading_order_verified: within_line``, F8e3), an engine that reads the blocks in another order has
+    made no recognition error. Each non-blank reference line is paired with at most one non-blank prediction line,
+    greedily by the lowest edit distance relative to the longer line (ties by reference, then prediction position);
+    a pair is made only when its distance is below the longer line's length. The paired prediction lines are put in
+    reference order and the unpaired ones appended in their own order, so the result scores with the usual CER over
+    the same reference characters. Characters inside a line keep their order, so within-line errors still count, and
+    a line the engine split or merged differently still costs edits.
+    """
+    reference_lines, prediction_lines, pairs = pair_lines(prediction, reference)
+    used = set(pairs.values())
     ordered = [prediction_lines[pairs[r_index]] for r_index in range(len(reference_lines)) if r_index in pairs]
     ordered += [line for p_index, line in enumerate(prediction_lines) if p_index not in used]
     matched_order = [pairs[r_index] for r_index in range(len(reference_lines)) if r_index in pairs]
