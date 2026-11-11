@@ -1,10 +1,10 @@
-# 2026-11-11: publisher text verified by a human counts as adjudicated
+# 2026-11-11: Reshumot publisher text verified by a human counts as adjudicated
 
 - Status: accepted
 - Decided by: the maintainer (Shay Palachy Affek), 2026-11-11, in the heocr-lead session. Asked whether "gazette lines you check against the PDF's own text count as fully checked references", he answered: "YES".
 - Written by: `lead[claude/claude-code#shay-macbook-m4]@heocr/opensource`
 - Extends: `2026-11-07-line-verification-attestation.md` ("Yes, like quality 4": one human typed the candidate, and a second human verified it).
-- Context: heocr-engine decisions 0017 and 0018. The new-printed evaluation wave of Reshumot laws and regulations is planned in heocr planning `tasks/eval-domains/pmod_set_plan.md`.
+- Context: heocr-engine decisions 0017 and 0018, and the new-printed evaluation wave of Reshumot laws and regulations (planned by `eval[claude/claude-code#shay-macbook-m4]@heocr/opensource`).
 
 ## Decision
 
@@ -16,4 +16,10 @@
    - **(c)** Mechanical flag rules (bidi or digit order, brackets, leaders, unmapped glyphs) decide only which lines get a closer look. They never decide text.
    - **(d)** An edit the human makes replaces the publisher text for that line, and is recorded as its own decision.
    - **(e)** One page attestation covers every capture of that printed page (rendered, print_scan, phone), because the printed text is identical.
-4. **Scope.** This decision covers born-digital publisher text in general, with Reshumot as the first source. Each new source still needs its own rights record.
+4. **Scope: Reshumot only.** This covers the Reshumot series (*Sefer ha-Hukim*, *Kovetz ha-Takanot*, and *Hatza'ot Hok* once captured). Any other born-digital publisher text needs the maintainer's confirmation per source, recorded as an amendment to this decision with his words.
+5. **How it is represented.**
+   - The candidate provenance is `publisher_born_digital_text`.
+   - The typist is the publisher, not a person, so the "verifier differs from typist" condition holds by construction.
+   - The record keeps both the publisher text and any human edit.
+6. **Unchanged outcomes.** `unreadable` and `misaligned` stay excluded, and `pointed_print` stays consonantal-only.
+7. **Who checks born-digital status.** The intake (data-collection's line builder and eval's candidate manifest) runs the born-digital check: no OCR text layer, no image-only page under invisible text, no OCR producer string. It records the result per page as `born_digital_check`. A page without a passing check never enters a review batch.
