@@ -433,7 +433,13 @@ EVAL_RESERVED_STATUSES = frozenset({EvalUnitStatus.eval, EvalUnitStatus.unassign
 EVAL_RESERVED_UNIT_PREFIXES = {
     "reshumot_born_digital": "reshumot:",
     "knesset_committee_protocols_pre1976": "knesset_protocol:",
+    # Decisions 0017/0018: a scanned Reshumot booklet has its own prefix (same series strings), never ``reshumot:``,
+    # so every unit id names exactly one source; one Knesset plenary sitting is ``plenary:K<knesset>_<sitting>``.
+    "reshumot_scanned": "reshumot_scanned:",
+    "knesset_plenary_k1_12": "plenary:",
 }
+# The Reshumot sources whose units are booklets: one (series, number) booklet belongs to at most one of them.
+RESHUMOT_BOOKLET_SOURCES = ("reshumot_born_digital", "reshumot_scanned")
 
 
 class EvalSplitFileRecord(ConfigBaseModel):
@@ -447,7 +453,8 @@ class EvalSplitFileRecord(ConfigBaseModel):
 
 
 class EvalReservedSource(ConfigBaseModel):
-    source_id: Literal["reshumot_born_digital", "knesset_committee_protocols_pre1976"]
+    source_id: Literal["reshumot_born_digital", "knesset_committee_protocols_pre1976", "reshumot_scanned",
+                       "knesset_plenary_k1_12"]
     unit: str = Field(min_length=1)  # what one unit is: a booklet, a protocol
     eval_units: list[str]
     non_eval_units: list[str]
@@ -493,6 +500,18 @@ class EvalReservedUnitsRegistry(ConfigBaseModel):
             raise ValueError("duplicate eval-reserved source ids")
         if self.unassigned_rule not in self.usage:
             raise ValueError("unassigned_rule must be quoted from usage")
+        # One booklet, one source: a (series, number) never appears in two Reshumot sources, in any category.
+        booklets: dict[str, str] = {}
+        for source in self.sources:
+            if source.source_id not in RESHUMOT_BOOKLET_SOURCES:
+                continue
+            prefix = EVAL_RESERVED_UNIT_PREFIXES[source.source_id]
+            for unit in (*source.eval_units, *source.non_eval_units):
+                booklet = unit[len(prefix):]
+                other = booklets.setdefault(booklet, source.source_id)
+                if other != source.source_id:
+                    raise ValueError(f"Reshumot booklet {booklet} is listed in both {other} and {source.source_id}; "
+                                     "one booklet belongs to one source")
         return self
 
     def source(self, source_id: str) -> EvalReservedSource | None:
