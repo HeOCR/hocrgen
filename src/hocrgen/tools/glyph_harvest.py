@@ -36,6 +36,7 @@ from PIL import Image
 
 from hocrgen.core.errors import StageExecutionError
 from hocrgen.fetchers.ia_justification import ia_derivation_blocker
+from hocrgen.fetchers.wikisource_justification import wikisource_page_blocker
 
 BANK_SCHEMA = "printed_glyph_bank.v1"
 TOOL_NAME = "hocrgen.tools.glyph_harvest"
@@ -836,6 +837,9 @@ def wikisource_units(
             continue
         index = indexes.get(page["index_key"])
         if index is None:
+            continue
+        # 2026-11-10 legal strategy: a glyph bank is a Wikisource-derived artefact (fails closed).
+        if wikisource_page_blocker(page, index) is not None:
             continue
         rights = index["scan_rights"]
         if rights.get("basis") in ACCEPTED_SCAN_BASES:

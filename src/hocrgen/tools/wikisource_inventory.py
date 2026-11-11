@@ -64,6 +64,9 @@ from hocrgen.fetchers.wikisource import (
     TRANSCRIPTION_COVERAGE_PARTIAL,
     TRANSCRIPTION_COVERAGE_VALUES,
     EXCLUDED_SPAN_KINDS,
+    floruit_basis,
+    PRINTED_COMMENTARY_REASONS,
+    REPRINT_REASON,
     crop_box_valid,
     crop_geometry_valid,
     derive_page_text,
@@ -503,6 +506,27 @@ def wikidata_death(entity: dict[str, Any]) -> dict[str, Any] | None:
     return best
 
 
+def wikidata_floruit(entity: dict[str, Any]) -> dict[str, Any] | None:
+    """The latest P1317 (floruit) upper bound, as a cited basis of kind ``floruit`` (hocrgen#171), or None."""
+
+    best: dict[str, Any] | None = None
+    for statement in (entity.get("claims") or {}).get("P1317") or []:
+        if statement.get("rank") == "deprecated":
+            continue
+        snak = statement.get("mainsnak") or {}
+        if snak.get("snaktype") != "value":
+            continue
+        value = (snak.get("datavalue") or {}).get("value") or {}
+        bound = death_year_upper_bound(str(value.get("time", "")), int(value.get("precision", 0)))
+        if bound is not None and (best is None or bound > best["latest_year"]):
+            precision = int(value.get("precision", 0))
+            year = int(re.match(r"^[+-]0*(\d+)", str(value.get("time"))).group(1))
+            label = (f"{(year + 99) // 100}th century" if precision == 7 else f"{year}s" if precision == 8 else str(year))
+            best = {"kind": "floruit", "source": "wikidata_P1317", "value": value.get("time"), "label": label,
+                    "precision": precision, "latest_year": bound}
+    return best
+
+
 def entity_names(entity: dict[str, Any]) -> set[str]:
     names = {str(label.get("value")) for label in (entity.get("labels") or {}).values()}
     for aliases in (entity.get("aliases") or {}).values():
@@ -542,11 +566,18 @@ def resolve_creators(
             if author_page and not creator.get("author_page"):
                 creator["author_page"] = author_page
             return
-        if not qid:
-            same = next((c for c in creators if not c["wikidata"] and c["role"] == role and _normalise_name(c["name"] or "") == _normalise_name(name or "")), None)
-            if same is not None:
-                same["origins"] = sorted({*same["origins"], origin})
-                return
+        # The same name in the same role is one person (hocrgen#171): a mention without a Wikidata id joins one with
+        # it, and an id found later is given to the earlier plain mention.
+        same = next((c for c in creators if c["role"] == role and _normalise_name(c["name"] or "") == _normalise_name(name or "")
+                     and (not qid or not c["wikidata"])), None)
+        if same is not None:
+            same["origins"] = sorted({*same["origins"], origin})
+            if qid and not same["wikidata"]:
+                same["wikidata"] = qid
+                by_qid[qid] = same
+            if author_page and not same.get("author_page"):
+                same["author_page"] = author_page
+            return
         creator = {"name": name, "role": role, "wikidata": qid, "origins": [origin], "author_page": author_page}
         creators.append(creator)
         if qid:
@@ -606,6 +637,11 @@ def _attach_death_year(creator: dict[str, Any], entities: dict[str, dict[str, An
     creator["death_year"] = best["death_year"] if best else None
     creator["death_year_evidence_url"] = best["url"] if best else None
     creator["death_year_sources"] = sources
+    floruit = wikidata_floruit(entities[qid]) if not sources and qid and qid in entities else None
+    if floruit:
+        creator["floruit"] = {**floruit, "evidence_url": f"https://www.wikidata.org/wiki/{qid}"}
+    else:
+        creator.pop("floruit", None)
     if page:
         creator["author_page"] = {key: page.get(key) for key in ("title", "permalink", "wikidata", "death_year", "missing") if page.get(key) is not None}
     else:
@@ -630,11 +666,13 @@ def work_rights_from_creators(
         }
     parts = []
     for creator in creators:
-        died = f"died {creator['death_year']}" if creator.get("death_year") is not None else "death year not evidenced"
+        died = f"died {creator['death_year']}" if creator.get("death_year") is not None else (
+            f"floruit {creator['floruit']['label']} (Wikidata P1317), active by {creator['floruit']['latest_year']} at the latest" if creator.get("floruit")
+            else "death year not evidenced")
         parts.append(f"{creator['name']} ({creator['role']}, {died})")
     listed = ("Creators: " + "; ".join(parts) + ".") if creators else "No creator is recorded on the Index page or the Commons file page."
     late = any(isinstance(c.get("death_year"), int) and c["death_year"] > PD_ISRAEL_DEATH_CUTOFF_YEAR for c in creators)
-    complete = bool(creators) and all(isinstance(c.get("death_year"), int) for c in creators)
+    complete = bool(creators) and all(isinstance(c.get("death_year"), int) or floruit_basis(c) for c in creators)
     if not late and not complete and isinstance(published_year, int) and published_year <= PD_ISRAEL_PRESUMPTION_PUBLICATION_CUTOFF_YEAR and published_year_evidence:
         return {
             "basis": "presumed_pd_by_publication_age",
@@ -792,6 +830,14 @@ def index_evidence_problems(record: dict[str, Any]) -> list[str]:
             problems.append("death_year must be an integer year")
         if "add" in creator and creator["add"] is not True:
             problems.append("add must be true when given")
+    for entry in record.get("printed_commentaries") or []:
+        problems += _recorded_problems(entry, "titles", "creators", "evidence")
+    if record.get("printed_commentaries_complete"):
+        problems += _recorded_problems(record["printed_commentaries_complete"], "evidence")
+    if record.get("reprint"):
+        problems += _recorded_problems(record["reprint"], "status", "evidence")
+        if record["reprint"].get("status") not in {"suspected", "cleared"}:
+            problems.append("reprint status must be suspected or cleared")
     for correction in record.get("creator_corrections") or []:
         problems += _recorded_problems(correction, "names", "correction", "evidence")
         if correction.get("correction") not in CREATOR_CORRECTIONS:
@@ -911,6 +957,157 @@ def apply_language_evidence(record: dict[str, Any], evidence: dict[str, Any] | N
         return
     record["work"]["language"] = recorded["value"]
     record["work"]["language_evidence"] = f"{recorded['evidence']} (recorded by {recorded['recorded_by']}, {recorded['checked_at']})"
+
+
+# --- Printed commentaries and later reprints (team lead, hocrgen#171 review, 2026-11-11) -------------------------
+#
+# Every commentary printed on the edition's pages must be named, with a cited death year, or the edition fails; an
+# edition that may be a later reprint with added material is not admitted until evidence clears it. Signals come
+# from the Commons file description and author fields, the Index title and author fields, and the headings of the
+# pinned page wikitext. Each signal keeps its source and the text it was read from.
+
+# Gate reasons of these rules: an Index that fails only on them still has its pages' headings read, for the record.
+RIGHTS_RULE_REASONS = (*PRINTED_COMMENTARY_REASONS, REPRINT_REASON)
+
+# Commentaries a rabbinic edition prints around its main text, as they head their column or block on the page.
+PRINTED_COMMENTARY_TITLES = (
+    "כסף משנה", "מגדל עוז", "מגיד משנה", "לחם משנה", "משנה למלך", "הגהות מיימוניות", 'השגות הראב"ד', 'השגת הראב"ד',
+    "תשובות מיימוניות", 'רדב"ז', "יד המלך", "מעשה רקח", 'ש"ך', 'ט"ז', "באר היטב", "פתחי תשובה", "באר הגולה",
+    "מגן אברהם", "משנה ברורה", 'ביאור הגר"א', "תוספות", 'רש"י', 'מהרש"א', "תוספות יום טוב", "עיקר תוספות יום טוב",
+    "ברטנורא", "אבן עזרא", 'רמב"ן', 'רד"ק', "מצודת דוד", "מצודת ציון", 'רלב"ג', "ספורנו", "אור החיים",
+)
+# A heading that announces a commentary without naming it.
+GENERIC_COMMENTARY_HEADINGS = ("פירוש", "פירושים", "ביאור", "באור", "הגהות", "השגות", "נושאי כלים")
+# Glosses printed inline after their marker, and spelling variants of one commentary's name.
+INLINE_COMMENTARY_MARKERS = {'השגת הראב"ד': 'השגות הראב"ד'}
+_COMMENTARY_ALIASES = {'השגת הראב"ד': 'השגות הראב"ד'}
+_COMMONS_NAMED_COMMENTARY = re.compile(r"with (?:the |a )?commentar(?:y|ies)\s+''([^']+)''", re.I)
+_COMMONS_UNNAMED_COMMENTARY = re.compile(
+    r"commentaries|\bglosses\b|surrounding the main text|with (?:the |a )?commentary\b", re.I
+)
+_HEBREW_NAMED_COMMENTARY = re.compile(r"עם (?:ה)?(?:פירוש|ביאור|הגהות) ((?:(?![,;(\[\]|]).)+)")
+_HEBREW_UNNAMED_COMMENTARY = re.compile(r"ועליו|נושאי כלים|ומפרשיו|עם (?:ה)?מפרשים|עם (?:ה)?פירושים")
+REPRINT_SIGNALS = re.compile(
+    r"\breprint(?:ed|s)?\b|photo-?offset|photomechanical|דפוס צילום|ד[\"״]צ|הוצאה מחודשת|נדפס מחדש", re.I
+)
+_HEADING_LINE = re.compile(r"\{\{(?:מרכז|גדול|גדול-מודגש|כותרת)\||^\s*'{3}[^']+'{3}\s*$")
+
+
+def _without_index_links(text: str) -> str:
+    """Text with links to other Index or Commons pages removed: a cross-reference names another book."""
+
+    return re.sub(r"\[\[:?(?:מפתח|COMMONS|File|קובץ)[^\]]*\]\]", " ", text, flags=re.I)
+
+
+def _heading_text(line: str) -> str:
+    text = re.sub(r"<[^>]*>", "", line)
+    for _ in range(4):
+        text = re.sub(r"\{\{(?:[^{}|]*\|)*([^{}|]*)\}\}", r"\1", text)
+    text = text.replace("'" * 3, "").replace("'" * 2, "")
+    return re.sub(r"\s+", " ", text).strip(" .:")
+
+
+def commentary_signals_from_records(file_wikitext: str, index_wikitext: str) -> list[dict[str, Any]]:
+    """Commentary signals of the Commons file page (description, author) and the Index (title, author)."""
+
+    signals: list[dict[str, Any]] = []
+    for field in ("description", "author"):
+        value = _without_index_links(template_field(file_wikitext, field) or "")
+        for match in _COMMONS_NAMED_COMMENTARY.finditer(value):
+            signals.append({"kind": "named", "title": match.group(1).strip(), "source": f"commons_{field}", "snippet": _snippet(value)})
+        if _COMMONS_UNNAMED_COMMENTARY.search(_COMMONS_NAMED_COMMENTARY.sub(" ", value)):
+            signals.append({"kind": "unnamed", "title": None, "source": f"commons_{field}", "snippet": _snippet(value)})
+    for field in ("כותרת", "מחבר"):
+        value = _plain_name(_without_index_links(template_field(index_wikitext, field) or ""))
+        for match in _HEBREW_NAMED_COMMENTARY.finditer(value):
+            signals.append({"kind": "named", "title": match.group(1).strip(" .'\""), "source": f"index_{field}", "snippet": _snippet(value)})
+        if _HEBREW_UNNAMED_COMMENTARY.search(value):
+            signals.append({"kind": "unnamed", "title": None, "source": f"index_{field}", "snippet": _snippet(value)})
+    return signals
+
+
+def commentary_signals_from_pages(pages: Iterable[tuple[str, str]], *, examples: int = 3) -> list[dict[str, Any]]:
+    """Commentary headings (and inline gloss markers) in the pinned wikitext of an Index's pages, by title."""
+
+    found: dict[tuple[str, str], list[str]] = {}
+    for page_title, wikitext in pages:
+        for line in wikitext.splitlines():
+            for marker, title in INLINE_COMMENTARY_MARKERS.items():
+                if marker in line:
+                    found.setdefault(("named", title), []).append(page_title)
+            if not _HEADING_LINE.search(line):
+                continue
+            heading = _heading_text(line)
+            if heading in PRINTED_COMMENTARY_TITLES:
+                found.setdefault(("named", _COMMENTARY_ALIASES.get(heading, heading)), []).append(page_title)
+            elif heading in GENERIC_COMMENTARY_HEADINGS:
+                found.setdefault(("unnamed", heading), []).append(page_title)
+    signals = []
+    for (kind, heading), titles in sorted(found.items()):
+        unique = list(dict.fromkeys(titles))
+        signals.append({
+            "kind": kind,
+            "title": heading if kind == "named" else None,
+            "source": "page_heading" if kind == "named" else "page_generic_heading",
+            "snippet": heading,
+            "pages": len(unique),
+            "examples": unique[:examples],
+        })
+    return signals
+
+
+def reprint_signals(file_wikitext: str, index_wikitext: str) -> list[dict[str, Any]]:
+    """Signs that the scanned printing is a later reprint: the Commons description, date, source and author fields,
+    and the Index title, year and publisher fields (a cross-reference to another book is ignored)."""
+
+    signals = []
+    for source, wikitext, fields in (("commons", file_wikitext, ("description", "date", "source", "author")),
+                                     ("index", index_wikitext, ("כותרת", "שנה", "מוציא לאור"))):
+        for field in fields:
+            value = _without_index_links(template_field(wikitext, field) or "")
+            match = REPRINT_SIGNALS.search(value)
+            if match:
+                signals.append({"source": f"{source}_{field}", "match": match.group(0), "snippet": _snippet(value)})
+    return signals
+
+
+def apply_rights_rules(record: dict[str, Any], *, commentary_signals: list[dict[str, Any]],
+                       reprint: list[dict[str, Any]], evidence: dict[str, Any] | None) -> None:
+    """Record ``work.printed_commentaries`` and ``work.reprint_check`` from the signals and the recorded facts."""
+
+    evidence = evidence or {}
+    recorded = evidence.get("printed_commentaries") or []
+    complete = evidence.get("printed_commentaries_complete")
+    if commentary_signals or recorded:
+        record["work"]["printed_commentaries"] = {
+            "detected": list(commentary_signals),
+            "attributed": [
+                {"titles": list(entry["titles"]), "creators": list(entry["creators"]),
+                 "evidence": f"{entry['evidence']} (recorded by {entry['recorded_by']}, {entry['checked_at']})"}
+                for entry in recorded
+            ],
+            **({"complete": f"{complete['evidence']} (recorded by {complete['recorded_by']}, {complete['checked_at']})"}
+               if complete else {}),
+            "checked": ["Commons file description and author fields", "Index title and author fields",
+                        "headings of the pinned page wikitext (quality 3/4 pages of an otherwise admitted Index)"],
+        }
+    else:
+        record["work"].pop("printed_commentaries", None)
+    suspicion = evidence.get("reprint")
+    signals = list(reprint)
+    if suspicion and suspicion.get("status") == "suspected":
+        signals.append({"source": "recorded", "match": None,
+                        "snippet": f"{suspicion['evidence']} (recorded by {suspicion['recorded_by']}, {suspicion['checked_at']})"})
+    cleared = suspicion if suspicion and suspicion.get("status") == "cleared" else None
+    if signals:
+        record["work"]["reprint_check"] = {
+            "suspected": True,
+            "signals": signals,
+            "cleared": None if cleared is None
+            else f"{cleared['evidence']} (recorded by {cleared['recorded_by']}, {cleared['checked_at']})",
+        }
+    else:
+        record["work"].pop("reprint_check", None)
 
 
 def packaged_creator_mentions(root: Path | None = None) -> dict[str, list[dict[str, Any]]]:
@@ -1104,9 +1301,25 @@ def run_inventory(
             "in_index": len(member_titles),
             "quality_counts": dict(sorted(Counter(str(quality[t]) for t in member_titles if t in quality).items())),
         }
+        record["_member_titles"] = [t for t in member_titles if quality.get(t) in ADMITTED_QUALITY_LEVELS]
+        if not set(index_exclusion_reasons(record)) - set(RIGHTS_RULE_REASONS):
+            # hocrgen#171: commentaries printed on the pages, from the headings of their pinned wikitext.
+            pinned = []
+            for page_title in record["_member_titles"]:
+                revisions, _ = fetch_page_revisions(fetch, page_title)
+                if revisions:
+                    pinned.append((page_title, str(revisions[-1]["slots"]["main"].get("content", ""))))
+            page_signals = commentary_signals_from_pages(pinned)
+            if page_signals:
+                work = record["work"]
+                apply_rights_rules(
+                    record,
+                    commentary_signals=[*((work.get("printed_commentaries") or {}).get("detected") or []), *page_signals],
+                    reprint=[sig for sig in ((work.get("reprint_check") or {}).get("signals") or []) if sig["source"] != "recorded"],
+                    evidence=(index_evidence or {}).get(str(record["commons_file"]["sha1"])),
+                )
         record["gate"] = {"reasons": index_exclusion_reasons(record)}
         record["gate"]["admitted"] = not record["gate"]["reasons"]
-        record["_member_titles"] = [t for t in member_titles if quality.get(t) in ADMITTED_QUALITY_LEVELS]
         records.append(record)
     log(f"Index gate: {sum(r['gate']['admitted'] for r in records)} admitted of {len(records)}")
 
@@ -1619,6 +1832,8 @@ def build_index_record(
     record["work"]["published_year"], record["work"]["published_year_evidence"] = year, year_evidence
     if evidence and evidence.get("additional_grounds"):
         record["work"]["additional_grounds"] = [f"{ground['ground']} (recorded by {ground['recorded_by']}, {ground['checked_at']})" for ground in evidence["additional_grounds"]]
+    apply_rights_rules(record, commentary_signals=commentary_signals_from_records(file_wikitext, index_wikitext),
+                       reprint=reprint_signals(file_wikitext, index_wikitext), evidence=evidence)
     record["work_rights"] = work_rights_from_creators(creators, year, year_evidence)
     scan = scan_rights_from_commons(record, file_wikitext=file_wikitext, uploader=info.get("user"))
     if scan["scan_source"] is None and evidence and evidence.get("scan_source"):
@@ -1770,7 +1985,7 @@ def _entities(fetch: FetchJson, qids: list[str]) -> dict[str, dict[str, Any]]:  
             result[qid] = {
                 "labels": entity.get("labels") or {},
                 "aliases": entity.get("aliases") or {},
-                "claims": {prop: claims[prop] for prop in ("P570", "P31", *WIKIDATA_CREATOR_PROPERTIES) if prop in claims},
+                "claims": {prop: claims[prop] for prop in ("P570", "P1317", "P31", *WIKIDATA_CREATOR_PROPERTIES) if prop in claims},
             }
     return result
 
@@ -1957,10 +2172,12 @@ def compact_inventory(inventory: dict[str, Any]) -> dict[str, Any]:
                     "language": record["work"].get("language"),
                     "language_evidence": record["work"].get("language_evidence"),
                     "creators": [
-                        {key: creator.get(key) for key in ("name", "role", "wikidata", "death_year", "death_year_evidence_url")}
+                        {**{key: creator.get(key) for key in ("name", "role", "wikidata", "death_year", "death_year_evidence_url")},
+                         **({"floruit": creator["floruit"]} if creator.get("floruit") else {})}
                         for creator in record["work"]["creators"]
                     ],
                     **({"additional_grounds": record["work"]["additional_grounds"]} if record["work"].get("additional_grounds") else {}),
+                    **{key: record["work"][key] for key in ("printed_commentaries", "reprint_check") if record["work"].get(key)},
                 },
                 "work_rights": record["work_rights"],
                 "scan_rights": record["scan_rights"],
