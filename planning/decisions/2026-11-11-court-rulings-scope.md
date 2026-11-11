@@ -1,6 +1,6 @@
 # 2026-11-11: Israeli court rulings: privacy scope and route
 
-- Status: accepted (scope); the route is open pending the dataset licence check below
+- Status: accepted (scope); **courts left out for now** (option (c), maintainer, 2026-11-11)
 - Decided by:
   - **The privacy scope:** the maintainer (Shay Palachy Affek), 2026-11-11, relayed by heocr-lead. Asked about the scope proposed in data-collection's courts scout, he answered: "Yes, that scope".
   - **The route:** heocr-lead, 2026-11-11, applying `2026-11-10-legal-strategy.md`.
@@ -53,3 +53,7 @@ Checked from the Hugging Face API and the dataset card (`README.md`, sha256 `609
 - (c) Leave courts out.
 
 Nothing is fetched until one of these resolves.
+
+## Maintainer ruling on the options (2026-11-11)
+
+Asked "Court rulings: leave them out for now?", the maintainer answered: "Yes, for now". Option (c) applies: nothing from the courts is fetched or ingested. Options (a) and (b) stay open for a later decision.
