@@ -33,10 +33,13 @@ from hocrgen.tools import wikisource_lines as wl
 RESHUMOT, KNESSET = "reshumot_born_digital", "knesset_committee_protocols_pre1976"
 POLICY = {"train": 0.8, "validation": 0.1, "test": 0.1}
 V1_SHA256 = "184d3b77d80dc26330665271aa81e1eace722299aa2962f5b641970b9741562e"
-CURRENT = "pmod_unit_split_v2.json"
-CURRENT_SHA256 = "a75ed6851e8d9a689994f4ec5c61bae46e4a75dc2e51648f7a5e494306c25be7"
+V2_SHA256 = "a75ed6851e8d9a689994f4ec5c61bae46e4a75dc2e51648f7a5e494306c25be7"
+CURRENT = "pmod_unit_split_v3.json"
+CURRENT_SHA256 = "36ab37e6f8936581ecc5647a590348c6cc244861fa50f1983dc5ccec3dad6d95"
 # v2 = v1 unchanged plus the 121 born-digital 2005 booklets (all non_eval); 175 = 54 + 121
-CURRENT_COUNTS = {RESHUMOT: (30, 175), KNESSET: (7, 13)}
+# v3 = v2 unchanged plus the mid-century scanned sources (eval = test + dev of midcentury_unit_split_v0):
+# 8,211 scanned Reshumot booklets and 5,338 plenary sittings, every enumerated unit listed.
+CURRENT_COUNTS = {RESHUMOT: (30, 175), KNESSET: (7, 13), "reshumot_scanned": (120, 8091), "knesset_plenary_k1_12": (60, 5278)}
 EXPOSED = ("reshumot:kovetz_hatakanot_6609", "reshumot:sefer_hachukim_2110")
 
 
@@ -60,11 +63,13 @@ def test_committed_registry_is_generated_from_the_committed_split_file(registry:
     assert registry.split_file.packaged_copy == f"data/eval/{copy.name}"
     assert hashlib.sha256(copy.read_bytes()).hexdigest() == registry.split_file.sha256 == CURRENT_SHA256
     # From v2 the schema field names the file format (v1) and split_version names the assignment.
-    assert registry.split_file.split_version == "v2"
+    assert registry.split_file.split_version == "v3"
     assert registry.split_file.schema_version == "heocr_eval_unit_split.v1"
-    # v2 states what it supersedes: v1, by its pinned sha256, with v1's assignments unchanged
+    # v3 states what it supersedes: v2 (which superseded v1), by pinned sha256, with v2's assignments unchanged
     data = json.loads(copy.read_text(encoding="utf-8"))
-    assert data["supersedes"]["sha256"] == V1_SHA256
+    assert data["supersedes"]["sha256"] == V2_SHA256
+    assert data["midcentury_coverage"]["reshumot_scanned"]["enumerated"] == 8211
+    assert data["midcentury_coverage"]["knesset_plenary_k1_12"]["enumerated"] == 5338
     assert registry.decision == "heocr-engine planning/decisions/0017"
     assert registry.owner.startswith("eval[")
     assert registry.unassigned_rule.startswith("Units in neither list are unassigned")
@@ -111,13 +116,13 @@ def _split_json(**overrides) -> bytes:
 @pytest.mark.parametrize(
     ("name", "payload", "message"),
     [
-        ("pmod_unit_split_v2.json", _split_json(superseded_by="labels/pmod_unit_split_v3.json"), "superseded"),
+        ("pmod_unit_split_v3.json", _split_json(superseded_by="labels/pmod_unit_split_v4.json"), "superseded"),
         ("units.json", _split_json(), "is not pmod_unit_split"),
-        ("pmod_unit_split_v3.json", _split_json(), "states split_version"),
-        ("pmod_unit_split_v2.json", _split_json(usage="eval units are never training input."), "unassigned"),
-        ("pmod_unit_split_v2.json", _split_json(tenders={"eval": [], "non_eval": []}), "does not map"),
-        ("pmod_unit_split_v2.json", _split_json(owner=None), "no owner"),
-        ("pmod_unit_split_v2.json",
+        ("pmod_unit_split_v4.json", _split_json(), "states split_version"),
+        ("pmod_unit_split_v3.json", _split_json(usage="eval units are never training input."), "unassigned"),
+        ("pmod_unit_split_v3.json", _split_json(tenders={"eval": [], "non_eval": []}), "does not map"),
+        ("pmod_unit_split_v3.json", _split_json(owner=None), "no owner"),
+        ("pmod_unit_split_v3.json",
          _split_json(knesset_committee_protocols_pre1976={"eval": [{"unit_id": "knesset_protocol:1"}] * 2, "non_eval": []}),
          "repeated unit_id"),
     ],
@@ -179,7 +184,8 @@ def test_every_tranche_v5_reshumot_and_knesset_item_maps_to_a_listed_unit(regist
         units.setdefault(status.value, set()).add(unit.unit_id)
     # Every captured unit is assigned; the tranche holds every eval unit of the split file.
     assert statuses == {(RESHUMOT, "eval"): 241, (RESHUMOT, "non_eval"): 557, (KNESSET, "eval"): 40, (KNESSET, "non_eval"): 165}
-    assert units["eval"] == {unit for source in registry.sources for unit in source.eval_units}
+    # the tranche holds born-digital and committee items only; the scanned sources (v3) are not in it
+    assert units["eval"] == {unit for source in registry.sources if source.source_id in (RESHUMOT, KNESSET) for unit in source.eval_units}
 
 
 def test_fetcher_metadata_gives_the_unit_and_ambiguous_rows_are_refused() -> None:
@@ -355,8 +361,10 @@ SCANNED, PLENARY = "reshumot_scanned", "knesset_plenary_k1_12"
 
 
 def _with_sources(registry: EvalReservedUnitsRegistry, **extra: dict) -> EvalReservedUnitsRegistry:
-    """The packaged registry plus fixture sources: {source_id: {"eval": [...], "non_eval": [...]}}."""
+    """The packaged registry with these sources replaced by fixture lists: {source_id: {"eval": [...], "non_eval": [...]}}.
+    (From v3 the packaged registry already governs them; the fixtures pin small, known lists.)"""
     data = registry.model_dump(mode="json")
+    data["sources"] = [source for source in data["sources"] if source["source_id"] not in extra]
     for source_id, lists in extra.items():
         data["sources"].append({"source_id": source_id, "unit": tool.UNIT_NAMES[source_id],
                                 "eval_units": sorted(lists.get("eval", [])),
@@ -441,10 +449,22 @@ def test_plenary_sittings_follow_eval_non_eval_and_unassigned(extended: EvalRese
             refuse_eval_reserved_training_input([row], builder="test", registry=extended)
 
 
-def test_until_the_split_lists_them_new_source_rows_are_unassigned(registry: EvalReservedUnitsRegistry) -> None:
-    """With the packaged registry (v1 and v2 list no scanned or plenary source), their rows fail closed as unassigned."""
-    assert registry.source(SCANNED) is None and registry.source(PLENARY) is None
-    for row in ({"page_id": "reshumot_scanned_sefer_hachukim_500__p0001"}, {"page_id": "plenary_K1_1__p0001"}):
+def test_the_packaged_v3_registry_governs_scanned_and_plenary_rows(registry: EvalReservedUnitsRegistry) -> None:
+    """From v3 the packaged registry lists every enumerated scanned booklet and plenary sitting: a non_eval row passes,
+    an eval row (a mid-century test or dev unit) is refused, and a unit in neither list is unassigned and refused."""
+    scanned, plenary = registry.source(SCANNED), registry.source(PLENARY)
+    assert scanned is not None and plenary is not None
+    assert (len(scanned.eval_units), len(scanned.non_eval_units)) == CURRENT_COUNTS[SCANNED]
+    assert (len(plenary.eval_units), len(plenary.non_eval_units)) == CURRENT_COUNTS[PLENARY]
+    to_page = {SCANNED: lambda u: f"{u.replace(':', '_')}__p0001", PLENARY: lambda u: f"plenary_{u.split(':', 1)[1]}__p0001"}
+    for source in (scanned, plenary):
+        page = to_page[source.source_id]
+        open_row = {"page_id": page(source.non_eval_units[0])}
+        assert unit_status(open_row, registry)[1] is EvalUnitStatus.non_eval
+        assert refuse_eval_reserved_training_input([open_row], builder="test", registry=registry) == 1
+        with pytest.raises(EvalReservedUnitError, match="is eval"):
+            refuse_eval_reserved_training_input([{"page_id": page(source.eval_units[0])}], builder="test", registry=registry)
+    for row in ({"page_id": "reshumot_scanned_sefer_hachukim_99999__p0001"}, {"page_id": "plenary_K99_1__p0001"}):
         assert unit_status(row, registry)[1] is EvalUnitStatus.unassigned
         with pytest.raises(EvalReservedUnitError, match="unassigned"):
             refuse_eval_reserved_training_input([row], builder="test", registry=registry)
