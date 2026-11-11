@@ -174,6 +174,9 @@ abbreviation-heavy rabbinic edition. It must be held out as a whole work, in nei
 rabbinic eval or line_verify source. Record it here when it is chosen. `--reserve INDEX=reason` keeps an Index out of
 both splits, and `verify` fails on any row from it.
 
+**Chosen (2026-11-11):** `rablines_v1` reserves *Leket Yosher* (Freimann, Berlin 1903–04; IA
+`seferleetyosher00socgoog`). See "Reserved editions" in [`benyehuda_nli_lines.md`](./benyehuda_nli_lines.md).
+
 ## `wslines_v1` (2026-11-11)
 
 Built on 2026-11-11 on top of hocrgen#171 at `31038fc` (the rights justifications, with the commentary, reprint and

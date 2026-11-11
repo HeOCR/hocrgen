@@ -120,7 +120,12 @@ This is the line-set counterpart of the "Reserved Indexes" section of `docs/wiki
 branch `feat/wikisource-lines`), which waived the reserve for `wslines_v1` and put the obligation on the first
 lever 5(b) batch. That batch reserves:
 
-RESERVED_TABLE
+| Set | Reserved edition (record) | Why | Dev edition (record) |
+|---|---|---|---|
+| `rablines_v1` (2026-11-11) | *Leket Yosher*, ed. Freimann, Berlin 1903–04 (`seferleetyosher00socgoog`, text `sefaria_leket_yosher`) | The densest, most abbreviation-heavy batch-1 edition: 33.0 abbreviation marks per 1,000 letters of aligned text (27.0 on line labels; next is the Mekhilta at 20.6), 53.3 letters per line. Its genre, halakhic rulings and customs, is the closest match to the responsa print behind about 45% of R8 eval errors | *Mekhilta de-Rashbi*, ed. Hoffmann, Frankfurt 1905 (`mekhiltaderabish00hoffuoft`), held out whole as R8's real rabbinic dev: 20.6 marks per 1,000 letters, 53.5 letters per line |
+
+The reserved edition's lines are withheld from every split (`--reserve`), so nothing trained or tuned sees it. The
+round's records are in `tasks/real-source-mapping/intermediates/f8f/f8f_rab/summary.json`, outside this repository.
 
 ## OCR-as-label measurement
 
