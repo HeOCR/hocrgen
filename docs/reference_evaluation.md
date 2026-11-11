@@ -234,6 +234,15 @@ The niqqud keys are:
 
 Each slice reports its `items`, `clusters`, `flags`, and per profile the micro CER and WER plus `page_cer_distribution`. The distribution gives the median, the nearest-rank p90, and `share_cer_lt_0.02`, `_0.05` and `_0.10` (the share of items below each).
 
+**Exposure exclusion (E2e.1).** A label may also carry `exposed`, the model ids that saw the item (for example `["R6", "R7", "R8"]` for lines used as selection dev), and an `exposure_reason`. The exposure travels with the labels.
+- `--model-id ID` names the model behind `--predictions`, and `--baseline-model-id ID` the one behind `--baseline-predictions`. Both need `--eval-labels`.
+- An item whose `exposed` lists the scored model enters no `eval_slices` number. That covers every slice, the `node` strata, intervals and line references. It also leaves the report-level `strata.node`.
+- It is listed under `eval_slices.excluded_exposed` with the model ids, `count`, `item_ids` and `reasons`.
+- A paired `eval_slices` drops an item when either side is exposed; `exposed_sides` says which.
+- The plain, unlabelled aggregates (`profiles`, the existing `strata` dimensions) are unchanged.
+- If the labels mark any item exposed but `--model-id`, or `--baseline-model-id` for a comparison, is missing, the run fails. Without exposure in the labels there is no `excluded_exposed` block.
+- The run record lists `model_ids` and `eval_labels.exposed_items`.
+
 **No blended numbers (decision 0018 §5).** There is no overall or cross-node score. Any aggregate added later (all printed, then all Hebrew) must state the weight or ratio of every subset it averages. Aggregates are not implemented yet.
 
 **Order diagnostic** (`order_diagnostic`, diagnostic only). It is computed over items with at least two reference lines:

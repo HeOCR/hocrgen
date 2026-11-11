@@ -185,6 +185,12 @@ def build_parser() -> argparse.ArgumentParser:
     evaluate_references_parser.add_argument("--line-references", type=Path, default=None,
                                             help="line_verify_line_references.v1 line set: score each verified line "
                                                  "crop (exact-line rate, line CER, distribution; decisions 0017, 0018)")
+    evaluate_references_parser.add_argument("--model-id", default=None,
+                                            help="Model id of --predictions (e.g. R8): with --eval-labels, items whose "
+                                                 "label lists it in exposed enter no eval_slices number (E2e.1)")
+    evaluate_references_parser.add_argument("--baseline-model-id", default=None,
+                                            help="Model id of --baseline-predictions; paired eval_slices drop items "
+                                                 "either model saw (E2e.1)")
     evaluate_references_parser.add_argument("--write-mapping", type=Path, default=None,
                                             help="Write the mapping used to this path")
     evaluate_references_parser.add_argument("--output", type=Path, default=None, help="Optional path for the JSON report")
@@ -626,6 +632,8 @@ def handle_evaluate_references(args: argparse.Namespace) -> int:
             bootstrap_clusters=args.bootstrap_clusters,
             eval_labels=args.eval_labels,
             line_references=args.line_references,
+            model_id=args.model_id,
+            baseline_model_id=args.baseline_model_id,
         )
         for path, payload in ((args.write_mapping, report["mapping"]), (args.output, report)):
             if path is None:
