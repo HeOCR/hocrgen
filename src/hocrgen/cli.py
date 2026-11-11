@@ -170,12 +170,21 @@ def build_parser() -> argparse.ArgumentParser:
                                                  "modality; distinct from the open/proprietary track")
     evaluate_references_parser.add_argument("--bootstrap-resamples", type=int, default=0,
                                             help="With --baseline-predictions: add paired item-bootstrap intervals "
-                                                 "to comparison deltas (0, the default, adds none)")
+                                                 "to comparison deltas; without it, with --bootstrap-clusters or "
+                                                 "--line-references: single-engine cluster intervals per slice "
+                                                 "(0, the default, adds none)")
     evaluate_references_parser.add_argument("--bootstrap-seed", type=int, default=0,
                                             help="Seed for --bootstrap-resamples (default 0)")
     evaluate_references_parser.add_argument("--bootstrap-clusters", type=Path, default=None,
                                             help="hocrgen_bootstrap_clusters.v1 JSON (item id -> cluster id, e.g. a "
                                                  "book): also add paired cluster-bootstrap intervals")
+    evaluate_references_parser.add_argument("--eval-labels", type=Path, default=None,
+                                            help="hocrgen_eval_labels.v1 JSON (item id -> eval_domain, eval_substratum, "
+                                                 "niqqud): add per-domain eval_slices (decision 0017); an unlabelled "
+                                                 "scored item fails the run")
+    evaluate_references_parser.add_argument("--line-references", type=Path, default=None,
+                                            help="line_verify_line_references.v1 line set: score each verified line "
+                                                 "crop (exact-line rate, line CER, distribution; decision 0017)")
     evaluate_references_parser.add_argument("--write-mapping", type=Path, default=None,
                                             help="Write the mapping used to this path")
     evaluate_references_parser.add_argument("--output", type=Path, default=None, help="Optional path for the JSON report")
@@ -615,6 +624,8 @@ def handle_evaluate_references(args: argparse.Namespace) -> int:
             bootstrap_resamples=args.bootstrap_resamples,
             bootstrap_seed=args.bootstrap_seed,
             bootstrap_clusters=args.bootstrap_clusters,
+            eval_labels=args.eval_labels,
+            line_references=args.line_references,
         )
         for path, payload in ((args.write_mapping, report["mapping"]), (args.output, report)):
             if path is None:

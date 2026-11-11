@@ -211,3 +211,45 @@ The view is heuristic near the marks, appears only when a scored item declares t
 The text is the post-F8b7 pair text. F8b7 `illegible_on_scan` spans are honoured: an adjudicated reference carries them as `illegible` / `exclude_primary` spans, which `reference_text` excludes, and a single-reviewer text has them removed. `--items` limits the conversion to listed pages, and `--split-manifest` records each page's release split (`benchmark_split` on adjudicated items).
 
 `python -m hocrgen.tools.eval_text_leakage` checks reference texts against training corpora (word 8-gram exclusion, 3-gram share flag above 20%) and writes the `--hold-out` list. The first run is in [`e2d2_real_printed_evaluation.md`](./e2d2_real_printed_evaluation.md).
+
+## Per-domain slices, cluster intervals, page, order and line measures (decision 0017)
+
+These blocks appear only when their flags are used. A run without `--eval-labels`, `--line-references` or a single-engine `--bootstrap-resamples` is byte-identical to one before them. The code is `hocrgen.eval_slices`.
+
+**Labels.** `--eval-labels FILE` (`hocrgen_eval_labels.v1`) needs `--reference-manifest` or `--line-references`. The file looks like this: `{"schema_version": "hocrgen_eval_labels.v1", "rule": ..., "provenance": ..., "labels": {item_id: {"eval_domain": "H" | "P-hist" | "P-mod", "eval_substratum": ..., "niqqud": "pointed" | "light" | "unpointed"}}}`.
+- Every scored adjudicated item (page-order and `within_line` items) and every scored line must have a label. An unlabelled item fails the run; it is never counted as unknown.
+- The three label dimensions are added to each item's `strata` and to the report's `strata`.
+- `synthetic_gold` is not sliced.
+
+**`eval_slices`.** This block sits on `scored.adjudicated_reference`, and on `reference_views.adjudicated_reference."line_matched.v1".views."line_matched.v1"` for `within_line` items, so the two are never mixed. It has three parts:
+- `overall`;
+- `strata[dimension][value]`;
+- with labels, `slices[eval_domain][eval_substratum | "ALL"][niqqud key]`.
+
+The niqqud keys are:
+- `excluding_pointed`. At `[domain]["ALL"]` it is the domain's `headline`. There is no blended cross-domain headline.
+- `ALL`, which includes pointed items (H and P-hist only).
+- Each niqqud value present. The `pointed` slice is scored on `consonantal.v1` only.
+
+Each slice reports its `items`, `clusters`, `flags`, and per profile the micro CER and WER plus `page_cer_distribution`. The distribution gives the median, the nearest-rank p90, and `share_cer_lt_0.02`, `_0.05` and `_0.10` (the share of items below each).
+
+**Order diagnostic** (`order_diagnostic`, diagnostic only). It is computed over items with at least two reference lines:
+- `order_cost` is the page-order `primary.v1` CER minus the `line_matched.v1` CER.
+- For `within_line` items, whose reference lines are physical lines, it also gives `missed_line_rate`: the share of reference lines left unpaired.
+
+**Cluster intervals.** `--bootstrap-resamples N --bootstrap-clusters FILE` without `--baseline-predictions` adds single-engine 95% percentile cluster intervals (`cer_ci`, `wer_ci`) to every slice and profile. This is `paired_bootstrap_interval` with a `(0, units)` baseline. Fewer than 3 clusters gives no interval and the flag `too_few_clusters`; fewer than 8 gives the flag `low_cluster_count`.
+- With `--baseline-predictions` and `--eval-labels`, `comparison.deltas.<origin>.eval_slices` adds per-slice paired deltas over common items, with `delta_cer_ci`, `delta_wer_ci` and `cer_separated` / `wer_separated` (whether the paired interval excludes 0). A `low_cluster_count` number is a separation only when this is true.
+- The run record lists `single_engine_cluster_bootstrap` (seed, resamples, cluster file sha256) and `eval_labels` (sha256, rule, provenance).
+- The existing paired item and cluster bootstraps are unchanged.
+
+**Line references.** `--line-references FILE` scores a line_verify line set (`line_verify_line_references.v1`, written by `python -m hocrgen.tools.line_verify ingest --line-set-out`) under `scored.line_reference`.
+- Each adjudicated, reference-eligible line is an item. `--mapping` or `--asset-index` maps it to the engine's prediction for the line crop.
+- A line whose `reference_views` are consonantal only (`pointed_print`) is scored on `consonantal.v1` only. Every other profile counts only the lines that also serve primary views, and `consonantal.v1` is required.
+- `measures` has the same shape as `eval_slices`. Each profile gives `line_cer` (micro), `exact_line_rate` and `line_cer_distribution` (median, p90, `share_cer_le_0.02`, `share_cer_le_0.05`).
+- `unreadable` and `misaligned` lines are never in a line set.
+- Clusters are always the line's `book_id`, so `--bootstrap-resamples` alone gives intervals. With a baseline, `comparison.deltas.line_reference` gives the paired version.
+
+Not yet implemented:
+- the spec's §3b exact-line rate and line CER over line-aligned pages;
+- the letter-level substitution, deletion and insertion decomposition;
+- the missed-region cost from deletion runs.
