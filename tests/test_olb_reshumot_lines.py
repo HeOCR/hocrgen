@@ -314,3 +314,31 @@ def test_inputs_under_the_eval_test_folder_are_refused(tmp_path: Path) -> None:
     assert olb.refuse_forbidden_path(tmp_path / "olb", [forbidden]) == (tmp_path / "olb").resolve()
     assert str(olb.FORBIDDEN_INPUT_DIRS[0]).endswith("tasks/modern-s6-scout/midcentury_test")
     assert olb.NODE_HINT == "new_printed"
+
+
+def _registry_with_scanned(eval_units: list[str], non_eval_units: list[str]):
+    from hocrgen.config.models import EvalReservedUnitsRegistry
+
+    data = packaged_registry().model_dump(mode="json")
+    data["sources"] = [s for s in data["sources"] if s["source_id"] != olb.SOURCE_ID] + [
+        {"source_id": olb.SOURCE_ID, "unit": "one scanned Reshumot booklet", "eval_units": sorted(eval_units),
+         "non_eval_units": sorted(non_eval_units)}]
+    return EvalReservedUnitsRegistry.model_validate(data)
+
+
+def test_rows_pass_the_guard_only_for_non_eval_scanned_units() -> None:
+    from hocrgen.split.eval_reserved import EvalReservedUnitError, refuse_eval_reserved_training_input
+
+    registry = _registry_with_scanned(["reshumot_scanned:sefer_hachukim_8"], ["reshumot_scanned:sefer_hachukim_10"])
+    assert olb.training_registry(registry) is registry
+
+    def row(number: int) -> dict:
+        entry = olb.page_id("sefer_hachukim", number, 3)
+        return {"id": f"{entry}_l012", "entry_id": entry, "book": olb.booklet_slug("sefer_hachukim", number),
+                "record_id": olb.booklet_slug("sefer_hachukim", number), "unit_id": olb.unit_id("sefer_hachukim", number),
+                "source_id": olb.SOURCE_ID}
+
+    assert refuse_eval_reserved_training_input([row(10)], builder="t", registry=registry) == 1
+    for number in (8, 11):  # eval, unassigned
+        with pytest.raises(EvalReservedUnitError):
+            refuse_eval_reserved_training_input([row(number)], builder="t", registry=registry)
