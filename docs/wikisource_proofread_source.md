@@ -8,7 +8,7 @@ Each item is one ProofreadPage `עמוד:` (Page) page on he.wikisource.org at q
 
 - `status: allowed`, `default_public_release: true`, `requires_manual_review: false` since `F8g`. The source is in `profile_open_v1`, under the real-source composition contract ([`real_source_release_contract.md`](./real_source_release_contract.md)). Before `F8g` it was `review_only`, and its manual review covered the agent-recorded rights evidence; that evidence is now committed ([`wikisource_index_evidence.json`](./wikisource_index_evidence.json)) and replayed through the unchanged gate. Exports ship the page text with CC BY-SA 4.0 `release_terms` and a `NOTICE.md` entry.
 - Page text: `CC-BY-SA-4.0` / `sharealike` (the site licence, maintainer decision 1, 2026-11-06). Share-alike applies to any reference file HeOCR releases from it. Attribution is "Hebrew Wikisource contributors" plus the pinned page permalink.
-- Scan: rights per Commons file. Each item carries the Commons file title, its SHA-1, the file-page revision id and the licence templates.
+- Scan: rights per Commons file. Each item carries the Commons file title, its SHA-1, the file-page revision id and the licence templates, and the `rights_justification_id` of its Index's Route C record ([below](#rights-justification-route-c)).
 - Privacy source default `clear`. No privacy-review gate: this is public-domain historical print. Manual review covers the agent-recorded rights evidence.
 
 ## Admission per Index
@@ -37,6 +37,70 @@ Real protection still excludes:
 | `scan_rights_basis_unsupported`, `scan_rights_evidence_missing`, `scan_licence_not_open` | The scan record is malformed. |
 
 `pd_us_only_licence`, `no_licence_template`, `scan_provenance_unrecorded`, `google_digitized_scan_pending` and `google_digitization_unchecked` are no longer reasons (F8b3). Scans that came from HebrewBooks are admitted on the same check (maintainer decision 3).
+
+## Rights justification (Route C)
+
+The 2026-11-10 legal strategy ([decision](../planning/decisions/2026-11-10-legal-strategy.md), "Per-item rights justification") requires every scan accepted through Route B (Internet Archive) or Route C (Wikimedia Commons) to carry its own `rights_justification` record, and every line, glyph or page derived from it to point to it. It names the Commons scans behind this pipeline and its eval sets explicitly. `hocrgen.fetchers.wikisource_justification` builds that record for the file of every admitted Index. It is the Route C counterpart of `hocrgen.fetchers.ia_justification` (#164): the same format (`hocrgen.rights_justification.v1`) and the same id scheme, `rj:<index_key>:<sha12>`, where `sha12` is the start of the sha256 of the record.
+
+The record is generated from evidence and never written by hand. Its inputs are all committed:
+
+- the Index's record in [`wikisource_index_inventory.json`](./wikisource_index_inventory.json), replayed through the unchanged Index gate;
+- its entry in [`wikisource_rights_evidence.json`](./wikisource_rights_evidence.json) (`wikisource_rights_evidence.v1`). That entry holds the exact file URL and file-page URL from the pinned `imageinfo` response, the MIME type, the publication place where the wikis record one, the Internet Archive item fields of a Commons file taken from IA, and the Google hygiene pass.
+
+The back-fill writes every admitted Index's record, or its rejection, to [`wikisource_rights_justifications.json`](./wikisource_rights_justifications.json). A test rebuilds that file from the two inputs.
+
+| Field | How the Wikisource gate fills it |
+| --- | --- |
+| `route` | `wikimedia_commons`, the file URL and file page, the file's Commons SHA-1 and its file-page revision. The whole file is never downloaded, so `sha256` is null; each page render used is pinned by sha256 in its page record. Seven admitted Indexes keep their file in Hebrew Wikisource's local file repository, not on Commons. They are Route C as well, with `file_repository: he.wikisource`: the strategy's section 6 reads "Routes B (Internet Archive) and C (Wikimedia Commons / Wikisource)". A file page that redirects is followed to its target. |
+| `work_public_domain` | Every creator the inventory records (author, translator, editor, annotator, illustrator), each death year with its cited source. The publication year and its evidence; the place, or null when the wikis record none (the place enters neither status test). `israel_status`: every contributor died more than 70 years ago (s. 38); or decision 10's presumption for a work printed on or before 1855, recorded with the names it covers; or an anonymous work published more than 70 years ago (s. 40). `us_status`: `pd_us` when published before `as_of.year − 95`, else `not_established`, which never rejects. |
+| `faithful_reproduction` | Strategy section 1, with the file's MIME type, page count and the inventory's scan-rights basis and evidence. |
+| `digitizer` | `Google` when any evidence names it: the Commons record or categories, a `bub_gb_` / `…goog` IA item, the file's text layer, or a "Digitized by Google" mark the hygiene pass found. Otherwise the National Library of Israel, HebrewBooks, the Open Siddur Project, the Internet Archive with its contributing library, another named source, or `unrecorded` (decision 10). `digitizer.google.status` is `google`, `not_google` (the inventory's check ruled Google out), `not_detected` (undecided by the inventory, and the hygiene pass found no Google mark) or `undecided`. |
+| `origin_label`, `why_not_binding` | Google's front-page usage guidelines; NLI's label, recorded as not checked; HebrewBooks' site terms (decision 3). Each is followed by the fixed text on why it does not bind (strategy sections 2(a) and 2(c)). Null when no restriction is recorded. |
+| `route_terms` | The Wikimedia Terms of Use and the file's licence or PD template as found. A missing template is recorded and is not a rejection (decision 10). A restrictive template (non-free, NC, ND, fair use) rejects. |
+| `hygiene` | `none` when Google is ruled out; the hygiene record when the pass ran; otherwise `pending`. |
+| `decision_refs`, `summary` | The legal strategy record (with the NLI ruling where it applies), the strategy text, and the F8 decisions used (3, 9 and 10); one sentence for the NOTICE. |
+
+If a required field cannot be filled, the Index is rejected with a `justification_…` reason, and none of its pages is derived. The reasons are: the Index gate fails, the evidence entry is missing, the file URL is missing, the SHA-1 does not match, the file is not a scan, a death year is missing or uncited, a contributor is not PD in Israel, or the route terms are restrictive.
+
+### Google hygiene (strategy rule 5)
+
+Hygiene applies to every file where Google is not ruled out. That covers the Google-digitized files and the files whose Google status the inventory could not decide, since a page render may still show Google's marks. The pass is the operator command below. It reuses `hocrgen.fetchers.google_hygiene` on each checked page render:
+
+- an `eng` pass on the whole page finds Google's usage-guidelines page (`detect_google_front_matter`);
+- an `eng` pass on the foot band, upscaled 3x for the 960 px renders, finds the "Digitized by Google" line (`detect_google_watermark`).
+
+The checked pages are scan pages 1–3, where Google's front page sits, and every page of the file in the tranche snapshot. Pages are already page-level here, so the result is recorded per scan page:
+
+- `excluded_front_matter`: no pair, reference, line or glyph is derived from such a page (`excluded_google_front_matter`);
+- `google_watermark_bbox`: the box `[x, y, width, height]` as fractions of the page render, so it applies at any render width. Each pair item carries it with its hygiene entry. Acquisition masks the box with the page background, after the pinned checksum check and inside the crop when the page pairs with one; the item records `google_watermark_masked`. A line builder drops a line whose box overlaps it.
+
+### The blocker
+
+`wikisource_derivation_blocker(item)` is the counterpart of `ia_derivation_blocker`, and it fails closed. The item must carry its Index's `rights_justification_id`; fill it with `wikisource_rights_justification_id(index_key=…, commons_file=…, sha1=…)`. It returns:
+
+- `wikisource_rights_justification_missing`: no id, an id the registry does not hold (the Index was rejected or never justified), or a record pinned to another SHA-1;
+- `google_hygiene_pending`: Google is not ruled out and the hygiene pass has not run, or did not check this scan page;
+- `excluded_google_front_matter`: the page is Google's front page.
+
+`wikisource_page_blocker(page, index)` applies the blocker to a snapshot page record and its Index record. It is called by:
+
+- the pair importer (`discover_candidates`), so every pipeline export is covered;
+- the F2 reference pool;
+- `wikisource_eval_references`;
+- the Wikisource glyph units of `glyph_harvest`.
+
+Following the IA precedent, the blocker also runs on training-only builds. `benyehuda_nli_lines build` and `glyph_harvest` call `ia_derivation_blocker` whatever the build is for. A line builder takes the id and the per-page `google_watermark_bbox` from `page_justification_fields(page, index)`.
+
+```bash
+# operator: the evidence and the Google hygiene pass (caches first; --fetch for the gaps, 1 request/s)
+PYTHONPATH=src python -m hocrgen.tools.wikisource_rights_justification evidence --checked-at 2026-11-11 \
+  --full-inventory <F8b7 work dir>/wikisource_inventory.json --api-cache <F8b7 work dir>/raw \
+  --ia-metadata <F8b3>/evidence/f8b3_ia_metadata.json --snapshot <tranche>/sources/wikisource_he_proofread/snapshot \
+  --render-cache <renders dir> [--render-cache ...] --work-dir <operator folder> --skip-index ws_index_220713 --fetch \
+  --out docs/wikisource_rights_evidence.json
+# the back-fill (network-free)
+PYTHONPATH=src python -m hocrgen.tools.wikisource_rights_justification backfill --as-of 2026-11-11
+```
 
 ## Pages, quality and attestation
 

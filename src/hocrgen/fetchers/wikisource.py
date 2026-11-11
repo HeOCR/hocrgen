@@ -1129,6 +1129,10 @@ class WikisourceProofreadImporter:
         for page in sorted(pages, key=lambda record: record["source_item_id"]):
             if page_exclusion_reasons(page, indexes, root):
                 continue
+            # 2026-11-10 legal strategy: no pair without its Index's rights justification, nor from a page whose Google
+            # hygiene is pending or that is Google's front page (fails closed; ``wikisource_derivation_blocker``).
+            if wikisource_page_blocker(page, indexes[page["index_key"]]):
+                continue
             if options.max_items is not None and len(candidates) >= options.max_items:
                 break
             candidates.append(
@@ -1231,6 +1235,9 @@ class WikisourceProofreadImporter:
                         "needs_crop": page_needs_crop(page),
                         "crop": crop_provenance(page) if asset else None,
                         "scan_digitized_by_google": digitized_by_google(index),
+                        # Route C rights justification (2026-11-10 legal strategy) and, where Google is not ruled out,
+                        # the page's Google hygiene: ``google_watermark_bbox`` as fractions of the page render.
+                        **page_justification_fields(page, index),
                         "rights_evidence_checked_at": index["evidence_checked_at"],
                         "expected_asset_sha256": pair_image["sha256"],
                     },
@@ -1255,6 +1262,14 @@ class WikisourceProofreadImporter:
                 raise StageExecutionError(
                     f"Wikisource asset checksum mismatch for {item.item_id}: expected {expected}, got {digest}"
                 )
+            box = watermark_box_on_pair_image(item.metadata)
+            if box is not None:
+                # Legal strategy rule 5: the "Digitized by Google" watermark is masked out of the exported image.
+                with Image.open(destination) as opened:
+                    masked = mask_google_watermark(opened, box)
+                masked.save(destination, format=opened.format or "PNG", **({"quality": 95} if opened.format == "JPEG" else {}))
+                item.metadata["google_watermark_masked"] = {"box": box, "units": "fraction of the pair image", "source_sha256": digest}
+                digest = sha256_file(destination)
             acquired_items.append(
                 AcquiredItemRecord(
                     **item.model_dump(),
@@ -1264,6 +1279,45 @@ class WikisourceProofreadImporter:
                 )
             )
         return acquired_items
+
+
+def page_justification_fields(page: dict[str, Any], index: dict[str, Any]) -> dict[str, Any]:
+    from hocrgen.fetchers.wikisource_justification import page_justification_fields as fields
+
+    return fields(page, index)
+
+
+def wikisource_page_blocker(page: dict[str, Any], index: dict[str, Any]) -> str | None:
+    from hocrgen.fetchers.wikisource_justification import wikisource_page_blocker as blocker
+
+    return blocker(page, index)
+
+
+def mask_google_watermark(image: Image.Image, box: list[float]) -> Image.Image:
+    from hocrgen.fetchers.wikisource_justification import mask_google_watermark as mask
+
+    return mask(image, box)
+
+
+def watermark_box_on_pair_image(metadata: dict[str, Any]) -> list[float] | None:
+    """The page's Google watermark box in the coordinates of the image it pairs with (fractions), or None.
+
+    The box is recorded on the page render; a cropped page (decision 12) pairs with its crop, so the box is moved into
+    the crop and clipped to it, and is None when the two do not overlap.
+    """
+
+    box = metadata.get("google_watermark_bbox")
+    if not box:
+        return None
+    crop = metadata.get("crop")
+    if not crop:
+        return list(box)
+    x0, y0, x1, y1 = crop["box_normalized"]
+    bx0, by0, bx1, by1 = max(box[0], x0), max(box[1], y0), min(box[0] + box[2], x1), min(box[1] + box[3], y1)
+    if bx1 <= bx0 or by1 <= by0:
+        return None
+    width, height = x1 - x0, y1 - y0
+    return [(bx0 - x0) / width, (by0 - y0) / height, (bx1 - bx0) / width, (by1 - by0) / height]
 
 
 # --- Operator-only F2 reference conversion -----------------------------------------------------------------
@@ -1371,6 +1425,8 @@ def write_wikisource_reference_pool(source: SourceConfig, bundle: ConfigBundle, 
         # A partial page passes the gate only with a resolved crop (F8b4); its reference pairs with that crop.
         reasons = page_exclusion_reasons(page, indexes, root)
         reason = reasons[0] if reasons else page_attestation(page)["adjudication_ineligible_reason"]
+        # 2026-11-10 legal strategy: a reference is a Wikisource-derived artefact; it needs its Index's justification.
+        reason = reason or wikisource_page_blocker(page, indexes[page["index_key"]])
         if reason:
             skipped[reason] = skipped.get(reason, 0) + 1
             continue

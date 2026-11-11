@@ -85,6 +85,7 @@ from hocrgen.fetchers.wikisource import (
     page_attestation,
     page_conversion,
     page_exclusion_reasons,
+    wikisource_page_blocker,
     page_needs_crop,
     page_permalink,
     page_plain_text,
@@ -355,8 +356,12 @@ def write_eval_reference_set(
         if include is not None and item_id not in include:
             continue
         reasons = page_exclusion_reasons(page, indexes, root)
-        if reasons:
-            skipped[reasons[0]] = skipped.get(reasons[0], 0) + 1
+        # 2026-11-10 legal strategy: an eval set is a Wikisource-derived artefact; its Index needs a rights
+        # justification, and a page of a file where Google is not ruled out needs its hygiene (fails closed).
+        blocked = None if reasons else wikisource_page_blocker(page, indexes[page["index_key"]])
+        if reasons or blocked:
+            reason = reasons[0] if reasons else blocked
+            skipped[reason] = skipped.get(reason, 0) + 1
             continue
         validated = None
         if page["quality"] == 4:
