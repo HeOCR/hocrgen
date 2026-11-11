@@ -28,7 +28,8 @@
   "pending_min_reviewers": 0,
   "stale_decisions": 0,
   "misaligned_share_by_source": {},
-  "by_release_split": {}
+  "by_release_split": {},
+  "pointed_print_by_book": {}
  },
  "decisions": [],
  "lines": [],

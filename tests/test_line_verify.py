@@ -282,7 +282,9 @@ def test_decision_validation(tmp_path: Path) -> None:
     assert lv.decisions_problems({**good, "decisions": [{**first, "candidate_sha256": "abc"}]}, bundle)
     assert lv.decisions_problems({**good, "decisions": [first, first]}, bundle)
     assert lv.decisions_problems({**good, "batch_id": "other"}, bundle)
-    assert lv.decisions_problems({"schema_version": "x"}) == ["schema_version must be line_verify_decisions.v1"]
+    assert lv.decisions_problems({"schema_version": "x"}) == [
+        "schema_version must be one of ('line_verify_decisions.v1', 'line_verify_decisions.v1.1')"]
+    assert lv.decisions_problems({**good, "schema_version": "line_verify_decisions.v1"}, bundle) == []
     assert lv.decisions_problems({**good, "decisions": None}) == ["decisions must be a list"]
 
 
@@ -308,6 +310,62 @@ def test_resolution_policy_and_provenance(tmp_path: Path) -> None:
     assert two["counts"]["line_references"] == 0 and two["counts"]["pending_min_reviewers"] == 4
     with pytest.raises(StageExecutionError):
         lv.resolve_decisions(bundle, _decisions(bundle), policy="whatever")
+
+
+def test_pointed_print_is_v1_1_only_and_letters_only(tmp_path: Path) -> None:
+    _, bundle = _bundle(tmp_path)
+    item = bundle["items"][0]
+    plain = _decision(item["item_id"], "rv_aaaaaaa1", "pointed_print")
+    fixed = _decision(item["item_id"], "rv_aaaaaaa1", "pointed_print", "שורה מתוקנת")
+    good = {**_decisions(bundle), "decisions": [plain]}
+    assert lv.decisions_problems(good, bundle) == []
+    assert lv.decisions_problems({**good, "decisions": [fixed]}, bundle) == []
+    v1 = {**good, "schema_version": "line_verify_decisions.v1"}
+    assert any("in line_verify_decisions.v1" in problem for problem in lv.decisions_problems(v1, bundle))
+    bad = [
+        {**plain, "text": "שָׁלוֹם"},  # niqqud in a letters-only text
+        {**plain, "text": "של\u0591ום"},  # cantillation too
+        {**plain, "text": item["candidate_text"]},  # unchanged: omit text
+        {**plain, "text": " רווח"},
+        {**plain, "text": ""},
+    ]
+    for record in bad:
+        assert lv.decisions_problems({**good, "decisions": [record]}, bundle), record
+
+
+def test_pointed_print_lines_are_consonantal_references_with_book_feedback(tmp_path: Path) -> None:
+    _, bundle = _bundle(tmp_path)
+    ids = [item["item_id"] for item in bundle["items"]]
+    decisions = {**_decisions(bundle), "decisions": [
+        _decision(ids[0], "rv_aaaaaaa1", "exact"),
+        _decision(ids[1], "rv_aaaaaaa1", "pointed_print"),
+        _decision(ids[2], "rv_aaaaaaa1", "pointed_print", "שורה מתוקנת"),
+        _decision(ids[3], "rv_aaaaaaa1", "misaligned"),
+        _decision(ids[4], "rv_aaaaaaa1", "pointed_print"),
+        _decision(ids[4], "rv_bbbbbbb2", "exact"),  # disagreement on whether the print is pointed
+    ]}
+    resolved = lv.resolve_decisions(bundle, decisions)
+    lines = {line["item_id"]: line for line in resolved["lines"]}
+    assert set(lines) == {ids[0], ids[1], ids[2]}
+    assert lines[ids[0]]["reference_views"] == ["primary", "consonantal"] and not lines[ids[0]]["pointed_print"]
+    as_is, corrected = lines[ids[1]], lines[ids[2]]
+    assert as_is["text"] == as_is["candidate_text"] and not as_is["corrected"] and as_is["pointed_print"]
+    assert corrected["text"] == "שורה מתוקנת" and corrected["corrected"] and corrected["pointed_print"]
+    for line in (as_is, corrected):
+        assert line["reference_views"] == ["consonantal"]
+        assert line["reference_eligible"] and line["adjudication_status"] == "adjudicated"
+    counts = resolved["counts"]
+    assert counts["by_decision"] == {"exact": 1, "misaligned": 1, "pointed_print": 2}
+    assert counts["conflicts"] == 1
+    books = {bundle["pages"][0]["book_id"]}
+    assert set(counts["pointed_print_by_book"]) <= books | {page["book_id"] for page in bundle["pages"]}
+    assert sum(entry["lines"] for entry in counts["pointed_print_by_book"].values()) == 2
+    assert all(0 < entry["share"] <= 1 for entry in counts["pointed_print_by_book"].values())
+    path = tmp_path / "decisions.json"
+    path.write_text(json.dumps(decisions, ensure_ascii=False), encoding="utf-8")
+    out = tmp_path / "refs.json"
+    lv.ingest(tmp_path / "bundle", path, out)
+    assert lv.references_problems(json.loads(out.read_text(encoding="utf-8")), bundle) == []
 
 
 def test_stale_decisions_are_counted_and_never_applied(tmp_path: Path) -> None:
