@@ -496,3 +496,29 @@ def test_eval_ngram_pool_reads_born_digital_pages_and_fails_closed(tmp_path: Pat
 def test_dev_readme_says_silver_and_how_to_score() -> None:
     assert "silver dev set (for decisions), not an eval reference; never report it as a test score" in olb.DEV_README.lower()
     assert "unresolved" in olb.DEV_README and "fetched only by `capture-dev`" in olb.DEV_README
+
+
+def _split_v1(tmp_path: Path) -> tuple[Path, str]:
+    strat = "kovetz_hatakanot|1948-59"
+    row = lambda n, **extra: {"unit_id": f"reshumot_scanned:kovetz_hatakanot_{n}", "stratum": strat, **extra}  # noqa: E731
+    doc = {"test": [row(1)], "dev": [row(2)], "dev_retired": [row(3, reason="no layer-exact line")],
+           "dev_queue": {strat: [row(4, hash_rank=0), row(5, hash_rank=1)]},
+           "dev_queue_fallback": {strat: [row(6, hash_rank=0)]}, "non_eval": [row(6), row(7)]}
+    path = tmp_path / "midcentury_unit_split_v1.json"
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    return path, hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def test_split_v1_parts_and_dev_queue_units(tmp_path: Path) -> None:
+    path, sha = _split_v1(tmp_path)
+    status, _ = olb.load_split(path, sha)
+    assert [status[f"reshumot_scanned:kovetz_hatakanot_{n}"] for n in range(1, 8)] == [
+        "test", "dev", "dev_retired", "dev_queue", "dev_queue", "non_eval", "non_eval"]
+    (dev,) = olb.dev_units_from_split(path, sha)
+    assert dev["unit_id"].endswith("_2") and dev["split_source"] == "midcentury_unit_split_v1/dev"
+    units = olb.dev_units_from_split(path, sha, queue=["reshumot_scanned:kovetz_hatakanot_5"])
+    queued = next(u for u in units if u["unit_id"].endswith("_5"))
+    assert queued["split_source"] == "midcentury_unit_split_v1/dev_queue" and queued["hash_rank"] == 1
+    for n, part in ((1, "test"), (3, "dev_retired"), (6, "dev_queue_fallback"), (7, "non_eval"), (99, "not listed")):
+        with pytest.raises(SystemExit, match=part):
+            olb.dev_units_from_split(path, sha, queue=[f"reshumot_scanned:kovetz_hatakanot_{n}"])

@@ -818,13 +818,31 @@ def load_split(path: Path, expected_sha256: str | None) -> tuple[dict[str, str],
         raise SystemExit(f"{path}: sha256 {digest} is not the pinned {expected_sha256}")
     data = json.loads(content)
     status = {}
-    for part in ("test", "dev", "non_eval"):
-        for unit in data.get(part) or []:
+    for part, units in split_part_rows(data):
+        if part == "dev_queue_fallback":  # an overlay on non_eval units (they stay non_eval until eval uses one)
+            continue
+        for unit in units:
             uid = unit["unit_id"]
             if uid in status:
                 raise SystemExit(f"{path}: {uid} is in two parts")
             status[uid] = part
     return status, digest
+
+
+SPLIT_PARTS = ("test", "dev", "non_eval", "dev_retired", "dev_queue", "dev_queue_fallback")
+
+
+def split_part_rows(data: Mapping[str, Any]) -> list[tuple[str, list[dict[str, Any]]]]:
+    """Every part of a midcentury split (v0: test, dev, non_eval; v1 adds dev_retired and the per-stratum dev_queue
+    and dev_queue_fallback), flattened to (part, rows)."""
+
+    out = []
+    for part in SPLIT_PARTS:
+        value = data.get(part)
+        if isinstance(value, Mapping):
+            value = [row for rows in value.values() for row in rows]
+        out.append((part, list(value or [])))
+    return out
 
 
 def training_registry(registry: Any = None) -> Any:
@@ -2020,77 +2038,205 @@ def _write_set(out: Path, rows: list[dict[str, Any]], seed: str) -> str:
     return hashlib.sha256(manifest.read_bytes()).hexdigest()
 
 
-DEV_SPLIT_LABEL = "midcentury_unit_split_v0/dev"
 SPLIT_SALT = "heocr-eval-midcentury-v0:"
 
 
-def dev_units_from_split(split_path: Path, split_sha256: str) -> list[dict[str, Any]]:
-    """The Reshumot units heocr-eval's midcentury split reserves as dev (never test, never non_eval), with their hash
-    rank inside their stratum (sha256(salt + unit_id) order over the stratum's units, as the split was issued)."""
+def split_label(split_path: Path) -> str:
+    """``midcentury_unit_split_v1`` for ``.../midcentury_unit_split_v1.json``: the prefix of every ``split_source``."""
+
+    return Path(split_path).stem
+
+
+def dev_units_from_split(split_path: Path, split_sha256: str, *, queue: Iterable[str] = ()) -> list[dict[str, Any]]:
+    """The Reshumot units a midcentury split reserves as dev (never test, non_eval or dev_retired), plus the named
+    ``dev_queue`` units (a v1 split's replacements), each with ``split_source`` (``<split>/dev`` or
+    ``<split>/dev_queue``) and a ``hash_rank``: for dev units, the 1-based rank inside the stratum by
+    sha256(salt + unit_id) over every unit of the stratum (as v0 was issued); for queue units, the rank eval issued."""
 
     content = split_path.read_bytes()
     if hashlib.sha256(content).hexdigest() != split_sha256:
         raise SystemExit(f"{split_path}: sha256 is not the pinned {split_sha256}")
     data = json.loads(content)
-    test = {u["unit_id"] for u in data["test"]}
-    dev = [u for u in data["dev"] if u["unit_id"].startswith(UNIT_PREFIX)]
+    label = split_label(split_path)
+    parts = dict(split_part_rows(data))
+    part_of = {u["unit_id"]: part for part, rows in parts.items() for u in rows}
+    test = {u["unit_id"] for u in parts["test"]}
+    dev = [u for u in parts["dev"] if u["unit_id"].startswith(UNIT_PREFIX)]
     if any(u["unit_id"] in test for u in dev):
         raise SystemExit("a dev unit is also a test unit")
     strata: dict[str, list[str]] = defaultdict(list)
-    for part in ("test", "dev", "non_eval"):
-        for u in data[part]:
+    for rows in parts.values():
+        for u in rows:
             strata[u["stratum"]].append(u["unit_id"])
     out = []
     for u in dev:
-        ranked = sorted(strata[u["stratum"]], key=lambda x: hashlib.sha256((SPLIT_SALT + x).encode()).hexdigest())
-        out.append({**u, "hash_rank": ranked.index(u["unit_id"]) + 1})
+        ranked = sorted(set(strata[u["stratum"]]), key=lambda x: hashlib.sha256((SPLIT_SALT + x).encode()).hexdigest())
+        out.append({**u, "hash_rank": ranked.index(u["unit_id"]) + 1, "hash_rank_basis": "stratum rank, 1-based (v0)",
+                    "split_source": f"{label}/dev"})
+    queue_rows = {u["unit_id"]: u for u in parts["dev_queue"]}
+    for uid in queue:
+        if part_of.get(uid) != "dev_queue":
+            raise SystemExit(f"{uid} is {part_of.get(uid, 'not listed')} in {split_path.name}, not dev_queue")
+        out.append({**queue_rows[uid], "hash_rank_basis": "dev_queue order as issued by heocr-eval",
+                    "split_source": f"{label}/dev_queue"})
     return sorted(out, key=lambda u: u["unit_id"])
 
 
-def capture_dev(units_path: Path, split_path: Path, split_sha256: str, cache: Path, *, log=print) -> dict[str, int]:  # pragma: no cover
-    """Fetch every listed file of every Reshumot dev unit into a dev-only cache (one request per 1.2 s, shared gap)."""
+def fetch_unit_files(rows: Sequence[Mapping[str, Any]], cache: Path) -> list[dict[str, Any]]:  # pragma: no cover - network
+    """Fetch every listed file of one unit into ``cache/pdf`` (skipping files the capture log already pins); return
+    the unit's capture-log records."""
 
-    refuse_forbidden_path(cache)
-    dev = {u["unit_id"]: u for u in dev_units_from_split(split_path, split_sha256)}
-    THROTTLE_FILE[:] = [cache.parent / "cache" / "throttle.json"] if (cache.parent / "cache").is_dir() else [cache / "throttle.json"]
     (cache / "pdf").mkdir(parents=True, exist_ok=True)
     log_path = cache / "capture_log.jsonl"
-    done = set()
-    if log_path.is_file():
-        done = {json.loads(l).get("file_token") for l in log_path.read_text(encoding="utf-8").splitlines() if "sha256" in l}
-    units = json.loads(units_path.read_text(encoding="utf-8"))["units"]
-    counts = Counter()
-    for row in units:
+    logged = [json.loads(l) for l in log_path.read_text(encoding="utf-8").splitlines()] if log_path.is_file() else []
+    done = {r.get("file_token"): r for r in logged if "sha256" in r}
+    out = []
+    for row in rows:
         uid = row.get("unit_id") or unit_id(row["series"], row["number"])
-        if uid not in dev:
-            continue
         if row["file_token"] in done:
-            counts["cached"] += 1
+            out.append(done[row["file_token"]])
             continue
         try:
             content = _request(document_url(row["url"]), headers={"Referer": "https://www.gov.il/"}, gap=GOV_GAP_S)
         except Exception as exc:  # noqa: BLE001 - recorded
             with log_path.open("a") as handle:
                 handle.write(json.dumps({"unit_id": uid, "file_token": row["file_token"], "error": repr(exc)[:200]}) + "\n")
-            counts["failed"] += 1
             continue
         if not content.startswith(b"%PDF"):
-            counts["not_pdf"] += 1
             continue
         digest = hashlib.sha256(content).hexdigest()
         target = cache / "pdf" / f"{booklet_slug(row['series'], row['number'])}__{digest[:12]}.pdf"
         tmp = target.with_suffix(".part")
         tmp.write_bytes(content)
         tmp.replace(target)
+        record = {"unit_id": uid, "file_token": row["file_token"], "url": row["url"], "file": target.name,
+                  "creation_date": row.get("creation_date"), "sha256": digest, "bytes": len(content),
+                  "at": time.strftime("%Y-%m-%dT%H:%M:%S%z")}
         with log_path.open("a") as handle:
-            handle.write(json.dumps({"unit_id": uid, "file_token": row["file_token"], "url": row["url"], "file": target.name,
-                                     "creation_date": row.get("creation_date"), "sha256": digest, "bytes": len(content),
-                                     "at": time.strftime("%Y-%m-%dT%H:%M:%S%z")}) + "\n")
-        counts["fetched"] += 1
+            handle.write(json.dumps(record) + "\n")
+        out.append(record)
+    return out
+
+
+def capture_dev(units_path: Path, split_path: Path, split_sha256: str, cache: Path, *, queue: Iterable[str] = (),
+                log=print) -> dict[str, int]:  # pragma: no cover
+    """Fetch every listed file of every Reshumot dev unit (and of the named dev_queue units) into a dev-only cache (one
+    request per 1.2 s, shared gap)."""
+
+    refuse_forbidden_path(cache)
+    dev = {u["unit_id"]: u for u in dev_units_from_split(split_path, split_sha256, queue=queue)}
+    THROTTLE_FILE[:] = [cache.parent / "cache" / "throttle.json"] if (cache.parent / "cache").is_dir() else [cache / "throttle.json"]
+    units = json.loads(units_path.read_text(encoding="utf-8"))["units"]
+    rows_of: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in units:
+        uid = row.get("unit_id") or unit_id(row["series"], row["number"])
+        if uid in dev:
+            rows_of[uid].append(row)
+    counts = Counter()
+    for uid in sorted(rows_of):
+        records = fetch_unit_files(rows_of[uid], cache)
+        counts["files"] += len(records)
+        counts["units_with_files"] += bool(records)
     return dict(counts)
 
 
-DEV_README = """# olbreshumotlines_v1_dev
+def pdf_layer_stats(pdf: Path) -> dict[str, int]:  # pragma: no cover - poppler
+    """Pages, and pages whose PDF carries a text layer (any OCR-layer line), read without rendering any page."""
+
+    info = pdf_info(pdf)
+    layout = bbox_layout(pdf)
+    return {"pages": int(info.get("Pages", "0") or 0), "layer_pages": sum(1 for p in layout.values() if p["lines"])}
+
+
+def fill_dev_queue(args: argparse.Namespace) -> dict[str, Any]:  # pragma: no cover - operator run
+    """Walk one stratum's dev_queue in hash_rank order: capture each unit (capture-dev), cut it with the layer-only
+    rule into a scratch area that is deleted (no crop is viewed), and log it; the first units with at least one
+    layer-exact line fill the stratum's slots, and the walk stops as soon as they are full. A queue that runs out
+    before its slots fill stops with exit status 2 (the fallback queue is never touched)."""
+
+    import shutil
+
+    for path in (args.split, args.units, args.olb, args.plan, args.dev_cache, args.log):
+        refuse_forbidden_path(path)
+    content = Path(args.split).read_bytes()
+    if hashlib.sha256(content).hexdigest() != args.split_sha256:
+        raise SystemExit(f"{args.split}: sha256 is not the pinned {args.split_sha256}")
+    data = json.loads(content)
+    queue = sorted((data.get("dev_queue") or {}).get(args.stratum) or [], key=lambda u: u["hash_rank"])
+    if not queue:
+        raise SystemExit(f"no dev_queue for {args.stratum}")
+    from hocrgen.split.eval_reserved import packaged_registry
+
+    registry = packaged_registry()
+    plan_doc = json.loads(Path(args.plan).read_text(encoding="utf-8"))
+    if plan_doc["split_sha256"] != args.split_sha256:
+        raise SystemExit("the plan was made from another split")
+    units = json.loads(Path(args.units).read_text(encoding="utf-8"))["units"]
+    rows_of: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in units:
+        rows_of[row.get("unit_id") or unit_id(row["series"], row["number"])].append(row)
+    pages = load_olb_pages(Path(args.olb))
+    cache = Path(args.dev_cache)
+    THROTTLE_FILE[:] = [cache.parent / "cache" / "throttle.json"] if (cache.parent / "cache").is_dir() else [cache / "throttle.json"]
+    reuse = {}
+    for spec in args.reuse or []:  # unit_id=path: a file captured earlier (before the unit was reserved), not refetched
+        uid, path = spec.split("=", 1)
+        reuse[uid] = refuse_forbidden_path(path)
+    log_rows, filled = [], []
+    scratch = Path(tempfile.mkdtemp(prefix="olb_fill_"))
+    try:
+        for u in queue:
+            if len(filled) >= args.slots:
+                break
+            uid = u["unit_id"]
+            status = registry.status(SOURCE_ID, uid)
+            if status is None or status.value != "eval":
+                raise SystemExit(f"{uid} is not eval-reserved in the registry ({status})")
+            entry = {"unit_id": uid, "hash_rank": u["hash_rank"], "stratum": args.stratum, "year": u.get("year"),
+                     "split_source": f"{split_label(Path(args.split))}/dev_queue"}
+            if uid in reuse:
+                pdf, entry["pdf_source"] = reuse[uid], "earlier capture (not refetched)"
+                entry["pdf_sha256"] = hashlib.sha256(pdf.read_bytes()).hexdigest()
+            else:
+                records = fetch_unit_files(rows_of.get(uid, []), cache)
+                if not records:
+                    log_rows.append({**entry, "result": "empty", "reason": "not fetched"})
+                    continue
+                first = sorted(records, key=lambda r: (r.get("creation_date") or "", r["file_token"]))[0]
+                pdf = cache / "pdf" / first["file"]
+                entry.update({"pdf_source": "capture-dev", "pdf_sha256": first["sha256"], "files": len(records)})
+            entry.update(pdf_layer_stats(pdf))
+            if not entry["layer_pages"]:
+                log_rows.append({**entry, "layer_exact_lines": 0, "result": "empty", "reason": "no text layer"})
+                continue
+            b = plan_doc["booklets"].get(uid)
+            if not b or not b.get("olb_candidates"):
+                log_rows.append({**entry, "layer_exact_lines": 0, "result": "empty", "reason": "no OLB candidate"})
+                continue
+            olb_pages = [{"title": c["title"], "blocks": [asdict(x) for x in parse_olb_page(c["title"], pages[c["title"]]["content"]).blocks]}
+                         for c in b["olb_candidates"]]
+            result = booklet_job({"unit_id": uid, "slug": booklet_slug(b["series"], b["number"]), "series": b["series"],
+                                  "number": b["number"], "pdf": str(pdf), "staging": str(scratch / uid.replace(":", "_")),
+                                  "olb_pages": olb_pages, "keep_footnote_lines": False, "dev_rule": DEV_RULE,
+                                  "layer_source": "abbyy" if b["series"] == "kovetz_hatakanot" else "imagestore"})
+            n = len(result["rows"])
+            shutil.rmtree(scratch / uid.replace(":", "_"), ignore_errors=True)  # crops are never kept or viewed here
+            entry.update({"layer_exact_lines": n, "candidate_lines": result["facts"].get("candidate_lines"),
+                          "result": "filled" if n else "empty", **({} if n else {"reason": "no layer-exact line"})})
+            log_rows.append(entry)
+            if n:
+                filled.append(uid)
+    finally:
+        shutil.rmtree(scratch, ignore_errors=True)
+    doc = {"schema": "olb_dev_queue_walk.v1", "split": str(Path(args.split).resolve()), "split_sha256": args.split_sha256,
+           "stratum": args.stratum, "slots": args.slots, "filled": filled, "complete": len(filled) >= args.slots,
+           "queue_length": len(queue), "tried": log_rows, "rule": DEV_RULE,
+           "note": "units are walked in hash_rank order; the walk stops when the slots are full; dev_queue_fallback is never read"}
+    Path(args.log).write_text(json.dumps(doc, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    return doc
+
+
+DEV_README = """# {name}
 
 **Silver dev set (for decisions), not an eval reference; never report it as a test score.** Every row keeps
 `reference_eligible: false`.
@@ -2105,11 +2251,12 @@ DEV_README = """# olbreshumotlines_v1_dev
 ## What it holds
 
 Real-scan dev lines from the {units} Reshumot units (ספר החוקים, קובץ התקנות; 1948 to mid-2005) that heocr-eval's
-`midcentury_unit_split_v0.json` reserves as `dev` (5 per series × period). No line of these units is in
+`{split}.json` reserves as `dev`{replacements}. No line of these units is in
 `olbreshumotlines_v1` (they are eval-reserved in the registry, so the train build never read them). Labels are
 same-wording text of Hebrew Wikisource's ספר החוקים הפתוח (CC BY-SA 4.0, Hebrew Wikisource contributors; each row names
 its page, pinned revision and content sha256); line images are PD-IL (Copyright Act 2007 section 6). Format: one png per
-line with a logical-order `.gt.txt`, `manifest.jsonl`, `summary.json`, `olb_dev_units_v0.json`. No per-unit cap.
+line with a logical-order `.gt.txt`, `manifest.jsonl`, `summary.json`, `{units_doc}`. No per-unit cap. Every row
+names its `split_source`.
 
 ## Selection: the publisher's text layer only
 
@@ -2150,8 +2297,9 @@ Rows are silver: `adjudication_status: not_adjudicated`, `reference_eligible: fa
 
 
 def build_dev_set(args: argparse.Namespace) -> dict[str, Any]:  # pragma: no cover - operator run
-    """Cut olbreshumotlines_v1_dev from the dev-only capture with the layer-only rule. Accepts exactly the split's
-    Reshumot dev units; refuses test, non_eval and unlisted units."""
+    """Cut a dev set (olbreshumotlines_v1_dev, v1.1_dev, ...) from the dev-only capture with the layer-only rule. It
+    holds exactly the split's Reshumot dev units plus the dev_queue units that a replacement walk (``--fill-log``)
+    filled; it refuses test, non_eval, dev_retired and unlisted units."""
 
     from hocrgen.split.eval_reserved import packaged_registry
     from hocrgen.tools.reshumot_lines import tier_a_flags
@@ -2161,7 +2309,17 @@ def build_dev_set(args: argparse.Namespace) -> dict[str, Any]:  # pragma: no cov
         refuse_forbidden_path(path)
     if out.exists():
         raise SystemExit(f"{out} exists")
-    dev = {u["unit_id"]: u for u in dev_units_from_split(Path(args.split), args.split_sha256)}
+    walks = []
+    for path in args.fill_log or []:
+        walk = json.loads(refuse_forbidden_path(path).read_text(encoding="utf-8"))
+        if walk["split_sha256"] != args.split_sha256:
+            raise SystemExit(f"{path}: the walk used another split")
+        if not walk["complete"]:
+            raise SystemExit(f"{path}: the {walk['stratum']} walk did not fill its slots")
+        walks.append(walk)
+    filled = [uid for walk in walks for uid in walk["filled"]]
+    dev = {u["unit_id"]: u for u in dev_units_from_split(Path(args.split), args.split_sha256, queue=filled)}
+    split_status, _ = load_split(Path(args.split), args.split_sha256)
     registry = packaged_registry()
     for uid in dev:  # the registry reserves them (eval); they never reach a training builder
         status = registry.status(SOURCE_ID, uid)
@@ -2170,17 +2328,19 @@ def build_dev_set(args: argparse.Namespace) -> dict[str, Any]:  # pragma: no cov
     plan_doc = json.loads(Path(args.plan).read_text(encoding="utf-8"))
     if plan_doc["split_sha256"] != args.split_sha256:
         raise SystemExit("the dev plan was made from another split")
-    planned = {u: b for u, b in plan_doc["booklets"].items() if b["split_status"] == "dev"}
-    if set(planned) - set(dev) or any(b["split_status"] == "test" and b.get("olb_candidates") for b in plan_doc["booklets"].values()):
-        raise SystemExit("the dev plan lists units outside the split's dev list")
+    if any(b["split_status"] == "test" and b.get("olb_candidates") for b in plan_doc["booklets"].values()):
+        raise SystemExit("the dev plan lists test units")
+    planned = {u: b for u, b in plan_doc["booklets"].items() if u in dev}
     cache = Path(args.dev_cache)
     logged: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for line in (cache / "capture_log.jsonl").read_text(encoding="utf-8").splitlines():
         r = json.loads(line)
         if "sha256" in r:
-            if r["unit_id"] not in dev:
-                raise SystemExit(f"{r['unit_id']} in the dev cache is not a dev unit")
-            logged[r["unit_id"]].append(r)
+            # the dev cache holds only eval-reserved dev-side units (dev, retired dev, tried queue units)
+            if split_status.get(r["unit_id"]) not in ("dev", "dev_retired", "dev_queue"):
+                raise SystemExit(f"{r['unit_id']} in the dev cache is {split_status.get(r['unit_id'], 'unlisted')}")
+            if r["unit_id"] in dev:
+                logged[r["unit_id"]].append(r)
     pages = load_olb_pages(Path(args.olb))
     jobs, parsed_blocks, missing = [], {}, {}
     for uid in sorted(dev):
@@ -2228,7 +2388,8 @@ def build_dev_set(args: argparse.Namespace) -> dict[str, Any]:  # pragma: no cov
             target.with_suffix(".gt.txt").write_text(r["text"] + "\n", encoding="utf-8")
             rows.append({
                 "id": r["id"], "entry_id": r["entry_id"], "split": "dev", "book": job["slug"], "record_id": job["slug"],
-                "unit_id": uid, "source_id": SOURCE_ID, "split_source": DEV_SPLIT_LABEL, "stratum": d["stratum"],
+                "unit_id": uid, "source_id": SOURCE_ID, "split_source": d["split_source"], "stratum": d["stratum"],
+                **({"hash_rank": d["hash_rank"]} if d["split_source"].endswith("/dev_queue") else {}),
                 "series": b["series"], "booklet_number": str(b["number"]), "hebrew_year": b["hebrew_year"], "year": b["year"],
                 "decade": midcentury_decade(int(b["year"])), "page": r["page"], "line_index": r["line_index"],
                 "text": r["text"], "olb_text": r["olb_text"], "label_fold": LABEL_FOLD, "text_stratum": "unpointed",
@@ -2250,7 +2411,8 @@ def build_dev_set(args: argparse.Namespace) -> dict[str, Any]:  # pragma: no cov
             })
         kept = Counter(row["tesseract_tier"] for row in rows if row["unit_id"] == uid)
         n = int(result["facts"].get("candidate_lines") or 0)
-        units_doc.append({"unit_id": uid, "stratum": d["stratum"], "hash_rank": d["hash_rank"], "split": DEV_SPLIT_LABEL,
+        units_doc.append({"unit_id": uid, "stratum": d["stratum"], "hash_rank": d["hash_rank"],
+                          "hash_rank_basis": d["hash_rank_basis"], "split_source": d["split_source"],
                           "candidate_lines": n, "kept": sum(kept.values()), "kept_share": round(sum(kept.values()) / max(1, n), 4),
                           "kept_by_tesseract_tier": dict(kept), "dropped": result["drops"],
                           "pdf_used": {"file_token": job["files"][0]["file_token"], "sha256": result["facts"].get("pdf_sha256")},
@@ -2262,7 +2424,8 @@ def build_dev_set(args: argparse.Namespace) -> dict[str, Any]:  # pragma: no cov
     for uid, why in missing.items():
         if not any(u["unit_id"] == uid for u in units_doc):
             units_doc.append({"unit_id": uid, "stratum": dev[uid]["stratum"], "hash_rank": dev[uid]["hash_rank"],
-                              "split": DEV_SPLIT_LABEL, "candidate_lines": 0, "kept": 0, "missing": why})
+                              "hash_rank_basis": dev[uid]["hash_rank_basis"], "split_source": dev[uid]["split_source"],
+                              "candidate_lines": 0, "kept": 0, "missing": why})
     import shutil
 
     shutil.rmtree(out / ".staging", ignore_errors=True)
@@ -2270,16 +2433,21 @@ def build_dev_set(args: argparse.Namespace) -> dict[str, Any]:  # pragma: no cov
     seed = f"{args.shuffle_seed}:dev"
     manifest_sha = _write_set(out, rows, seed)
     units_doc.sort(key=lambda u: u["unit_id"])
-    (out / "olb_dev_units_v0.json").write_text(json.dumps({
-        "schema": "olb_dev_units.v0", "split": str(Path(args.split).resolve()), "split_sha256": args.split_sha256,
-        "dev_rule": DEV_RULE, "units": units_doc, "missing": missing}, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    units_doc_name = args.units_doc or "olb_dev_units_v0.json"
+    (out / units_doc_name).write_text(json.dumps({
+        "schema": "olb_dev_units.v1" if walks else "olb_dev_units.v0", "split": str(Path(args.split).resolve()),
+        "split_sha256": args.split_sha256, "split_sources": dict(Counter(u["split_source"] for u in units_doc)),
+        "dev_rule": DEV_RULE, "units": units_doc, "missing": missing,
+        "retired_units_excluded": sorted(u for u, p in split_status.items() if p == "dev_retired"),
+        "replacement_walks": walks}, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
     train = json.loads((Path(args.train) / "summary.json").read_text(encoding="utf-8")) if args.train else None
     train_cand = sum(booklet_candidates(b) for b in train["booklets"].values()) if train else 0
     train_rows = sum((train or {}).get("totals", {}).values()) if train else 0
     train_tess = (train or {}).get("match_evidence_tiers", {})
     summary = {
         "schema": SCHEMA + "+dev", "tool": TOOL, "tool_version": TOOL_VERSION, "label_source": LABEL_SOURCE, "capture": CAPTURE,
-        "normalizer": NORMALIZER, "label_fold": LABEL_FOLD, "dev_rule": DEV_RULE, "split_source": DEV_SPLIT_LABEL,
+        "normalizer": NORMALIZER, "label_fold": LABEL_FOLD, "dev_rule": DEV_RULE,
+        "split_sources": dict(Counter(d["split_source"] for d in dev.values())), "replacement_walks": walks,
         "proposed_node_hint": NODE_HINT, "proposed_node_hint_note": NODE_HINT_NOTE, "release_notice": RELEASE_NOTICE,
         "text_licence": TEXT_LICENCE, "text_attribution": TEXT_ATTRIBUTION, "image_license": IMAGE_LICENSE,
         "image_license_basis": IMAGE_LICENSE_BASIS, "shuffle_seed": seed, "max_lines_per_unit": None,
@@ -2290,7 +2458,8 @@ def build_dev_set(args: argparse.Namespace) -> dict[str, Any]:  # pragma: no cov
         "units": len(dev), "units_with_lines": sum(1 for u in units_doc if u.get("kept")), "missing_units": missing,
         "held_out": {"midcentury_split": str(Path(args.split).resolve()), "midcentury_split_sha256": args.split_sha256,
                      "source_id": SOURCE_ID, "registry_status": "eval (reserved): never a training input"},
-        "dev_selection": {"method": "heocr-eval's midcentury_unit_split_v0 Reshumot dev units", "picks": {u["unit_id"]: u["stratum"] for u in units_doc}},
+        "dev_selection": {"method": f"heocr-eval's {split_label(Path(args.split))} Reshumot dev units, plus the dev_queue "
+                                    "units the replacement walks filled", "picks": {u["unit_id"]: u["stratum"] for u in units_doc}},
         "checks": "programmatic only (counts, box sanity, text-layer match); dev crops were never viewed",
         "olb_page_permalinks": [{"title": t, "revision_id": rid, "permalink": f"https://he.wikisource.org/w/index.php?oldid={rid}"}
                                 for t, rid in sorted({(r["olb_page_title"], r["olb_revision_id"]) for r in rows})],
@@ -2303,8 +2472,13 @@ def build_dev_set(args: argparse.Namespace) -> dict[str, Any]:  # pragma: no cov
                       f"{u.get('kept_share', 0):.1%} | {(u.get('kept_by_tesseract_tier') or {}).get('exact', 0)} | "
                       f"{(u.get('kept_by_tesseract_tier') or {}).get('not_exact', 0)} |" + (f" ({u['missing']})" if u.get("missing") else "")
                       for u in units_doc)
+    filled_n = sum(len(w["filled"]) for w in walks)
+    replacements = (f", plus {filled_n} `dev_queue` units filled in place of the retired dev units "
+                    f"({', '.join(sorted(u for u, p in split_status.items() if p == 'dev_retired'))}), walked in hash_rank "
+                    f"order (the walk logs are in the units file): {len(dev)} units in all") if walks else " (5 per series × period)"
     (out / "README.md").write_text(DEV_README.format(
-        units=len(dev), table=table, train_cand=train_cand, train_kept=train_rows,
+        name=out.name, split=split_label(Path(args.split)), replacements=replacements, units_doc=units_doc_name,
+        units=len(dev) - filled_n, table=table, train_cand=train_cand, train_kept=train_rows,
         train_share=f"{train_rows / max(1, train_cand):.1%}", train_tess=train_tess.get("both_exact", 0) + train_tess.get("tesseract_exact", 0),
         train_notess=train_tess.get("layer_exact", 0) + train_tess.get("char_consensus", 0),
         audit_note=args.audit_note or ""), encoding="utf-8")
@@ -2455,7 +2629,7 @@ def add_build_arguments(sub: Any) -> None:
     b = sub.add_parser("build", help="cut the line set from captured non_eval booklets (run under python -I)")
     b.add_argument("out")
     b.add_argument("--plan", required=True)
-    b.add_argument("--split", required=True, help="heocr-eval's midcentury_unit_split_v0.json")
+    b.add_argument("--split", required=True, help="heocr-eval's midcentury unit split (v0 or later)")
     b.add_argument("--split-sha256", required=True)
     b.add_argument("--pmod-split", help="the P-mod split for guard 6 (default: the one the eval-reserved registry is "
                                         "synced from; a given file must be that one)")
@@ -2474,13 +2648,21 @@ def add_build_arguments(sub: Any) -> None:
     cd.add_argument("--units", required=True)
     cd.add_argument("--split", required=True)
     cd.add_argument("--split-sha256", required=True)
+    cd.add_argument("--queue", nargs="*", default=[], help="dev_queue unit ids (split v1) to capture as well")
     cd.add_argument("--dev-cache", required=True)
-    d = sub.add_parser("dev-set", help="cut olbreshumotlines_v1_dev from the dev cache with the layer-only rule")
+    d = sub.add_parser("dev-set", help="cut a dev set (olbreshumotlines_v1_dev, v1.1_dev) from the dev cache, layer-only rule")
     d.add_argument("out")
     for name in ("--plan", "--split", "--split-sha256", "--olb", "--dev-cache", "--units", "--shuffle-seed"):
         d.add_argument(name, required=True)
     d.add_argument("--train", help="the built olbreshumotlines_v1, for the README's train aggregate")
     d.add_argument("--audit-note", help="a paragraph on the train-side agent audit, for the README")
+    d.add_argument("--fill-log", action="append", help="a complete fill-dev-queue log: its filled units join the set")
+    d.add_argument("--units-doc", help="the units file name (default olb_dev_units_v0.json)")
+    fq = sub.add_parser("fill-dev-queue", help="walk one stratum's dev_queue (split v1) until its slots are filled")
+    for name in ("--split", "--split-sha256", "--units", "--olb", "--plan", "--dev-cache", "--stratum", "--log"):
+        fq.add_argument(name, required=True)
+    fq.add_argument("--slots", type=int, required=True)
+    fq.add_argument("--reuse", action="append", help="unit_id=path: a PDF captured earlier, used without refetching")
     d.add_argument("--workers", type=int, default=6)
     d.add_argument("--signature")
     t = sub.add_parser("drop-tiers", help="drop whole evidence tiers from a built set (audit escalation)")
@@ -2502,8 +2684,15 @@ def run_build_command(args: argparse.Namespace) -> int:  # pragma: no cover - op
         print(json.dumps({k: summary[k] for k in ("totals", "match_evidence_tiers", "dropped", "manifest_sha256")}, ensure_ascii=False))
         return 0
     if args.command == "capture-dev":
-        print(json.dumps(capture_dev(Path(args.units), Path(args.split), args.split_sha256, Path(args.dev_cache)), ensure_ascii=False))
+        print(json.dumps(capture_dev(Path(args.units), Path(args.split), args.split_sha256, Path(args.dev_cache),
+                                     queue=args.queue), ensure_ascii=False))
         return 0
+    if args.command == "fill-dev-queue":
+        doc = fill_dev_queue(args)
+        print(json.dumps({k: doc[k] for k in ("stratum", "slots", "filled", "complete")}, ensure_ascii=False))
+        for row in doc["tried"]:
+            print(json.dumps(row, ensure_ascii=False))
+        return 0 if doc["complete"] else 2
     if args.command == "dev-set":
         result = build_dev_set(args)
         print(json.dumps({k: result[k] for k in ("totals", "kept_by_tesseract_tier", "units_with_lines", "missing_units",
