@@ -35,6 +35,12 @@ The gate is `hocrgen.privacy.plenary_names`, gate id `plenary_private_names_v1`.
      - the whole name, after any title, is a roster full name or a contiguous part of one;
      - a title, then optional initials, then a surname of someone who held a position in that Knesset term ("ראש הממשלה ושר הביטחון י' רבין:");
      - the parentheses name a faction of that term (`KNS_PersonToPosition.FactionName`), and the name ends in a surname of someone in that term. This covers nicknames and spelling variants of MKs: "דני נווה (הליכוד):".
+
+     The last three proofs rest on the line's shape alone, so they have a cap:
+     - the name has at most four words, not counting titles and initials;
+     - the line before the colon contains none of a set of quotation-intro words ("כתב", "כתבה", "אמר", "אמרה", "לי", "לנו", "וכך", "כך", "שלי", ...).
+
+     "וכך כתב לי משה כהן (הליכוד):" is therefore an ordinary line, judged like any other.
    - **A public title comes immediately before it.**
      - Titles are matched exactly, with no proclitic stripping, so "מראש", "בשר", "כשר" and "משרת" are not titles. The one exception is a leading "ו" on a title of four or more letters ("והשר").
      - Single words that are also ordinary words are never titles on their own: "ראש", "סגן", "חבר", "יושב", "מנהל", "מזכיר", and military ranks.

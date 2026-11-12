@@ -230,3 +230,28 @@ def test_heading_proof_by_faction_title_and_initials():
     assert proven_speaker_heading({"text": "ראש הממשלה ושר הביטחון י' רבין:", "knesset": 13}, roster)
     # A parenthetical that is no faction: no proof.
     assert proven_speaker_heading({"text": "וכך כתבה לי רחל נוה (מבאר שבע):", "knesset": 15}, roster) is None
+
+
+def test_quotation_intro_with_faction_is_no_heading():
+    from hocrgen.privacy.plenary_names import proven_speaker_heading
+
+    roster = Roster.from_people(
+        [{"first": "משה", "last": "כהן", "knessets": [15]}, {"first": "דני", "last": "נוה", "knessets": [15]}],
+        factions={15: ["הליכוד"]},
+    )
+    intro = {"text": "וכך כתב לי משה כהן (הליכוד):", "knesset": 15, "unit_id": "plenary:K15_1",
+             "person_spans": [{"start": 11, "end": 18, "text": "משה כהן"}]}
+    assert proven_speaker_heading(intro, roster) is None
+    assert proven_speaker_heading({"text": "השר אמר לי כהן:", "knesset": 15}, roster) is None
+    # More than four name words is no speaker's name.
+    assert proven_speaker_heading({"text": "דניאל אברהם יצחק יעקב נוה (הליכוד):", "knesset": 15}, roster) is None
+    assert proven_speaker_heading({"text": "דניאל נוה (הליכוד):", "knesset": 15}, roster)
+
+
+def test_lead_quotation_intro_probe_is_dropped():
+    from hocrgen.privacy.plenary_names import packaged_roster
+
+    text = "וכך כתב לי משה כהן (הליכוד):"
+    line = {**_line(text, "משה כהן"), "unit_id": "plenary:K15_1", "knesset": 15}
+    res = gate_lines([line], packaged_roster())
+    assert len(res.dropped) == 1 and not res.kept

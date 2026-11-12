@@ -398,6 +398,16 @@ def _faction_matches(text: str, factions: frozenset[tuple[str, ...]]) -> bool:
     return any(f == toks or f[: len(toks)] == toks or toks[: len(f)] == f for f in factions)
 
 
+# Words that never occur in a speaker's name but do in a quotation intro
+# ("וכך כתב לי משה כהן (הליכוד):"). A shape-proven heading containing one is no heading.
+HEADING_STOP_WORDS: frozenset[str] = frozenset(_norm(t) for t in {
+    "כתב", "כתבה", "כתבו", "אמר", "אמרה", "אמרו", "לי", "לנו", "וכך", "כך", "שלי", "שלנו",
+    "מכתב", "מכתבו", "מכתבה", "ששלח", "ששלחה", "פנה", "פנתה", "סיפר", "סיפרה", "קורא", "קוראת",
+})
+# A speaker's name, without titles and initials, has at most this many words.
+MAX_HEADING_NAME_TOKENS = 4
+
+
 def proven_speaker_heading(line: Mapping[str, Any], roster: Roster) -> tuple[str, ...] | None:
     """The speaker's name tokens when ``line`` is a proven speaker heading, else ``None``.
 
@@ -413,6 +423,9 @@ def proven_speaker_heading(line: Mapping[str, Any], roster: Roster) -> tuple[str
       the end of a multi-word surname) of someone in that term ("דני נווה (הליכוד):"
       for the roster's "דני נוה"). A letter's intro carries no faction.
 
+    The last three need the line's own shape. They also need a name of at most
+    ``MAX_HEADING_NAME_TOKENS`` words, and no word from ``HEADING_STOP_WORDS`` anywhere in
+    the line before the colon ("וכך כתב לי משה כהן (הליכוד):" is a quotation intro).
     Anything else is judged as an ordinary line.
     """
 
@@ -423,11 +436,16 @@ def proven_speaker_heading(line: Mapping[str, Any], roster: Roster) -> tuple[str
         return tuple(toks)
     if not is_speaker_heading(text) or not toks:
         return None
+    if set(_tokens(text.split(":")[0])) & HEADING_STOP_WORDS:
+        return None
     titled = False
     for i in range(len(toks) - 1, 0, -1):  # the longest title prefix ("ראש הממשלה ושר הביטחון")
         if _title_before(toks[:i]):
             toks, titled = toks[i:], True
             break
+    bare = [{t} for t in toks if not _is_initial(t)]
+    if len(bare) > MAX_HEADING_NAME_TOKENS:
+        return None
     seq = [{t} for t in toks]
     if len(seq) >= 2 and (
         any(_ends_with(seq, n) for n in roster.full_names) or any(_contains(seq, n) for n in roster.full_names)
@@ -435,7 +453,6 @@ def proven_speaker_heading(line: Mapping[str, Any], roster: Roster) -> tuple[str
         return tuple(toks)
     knesset = _knesset_of(line)
     surnames, surname_tokens = roster.surnames_for(knesset)
-    bare = [{t} for t in toks if not _is_initial(t)]
     if titled and bare and any(_equals(bare, s) for s in surnames):
         return tuple(toks)
     factions = roster.factions_by_knesset.get(knesset, frozenset()) if knesset is not None else frozenset()
