@@ -763,6 +763,7 @@ def accept_line(label_raw: str, layer: str | None, tesseract: str | None) -> Dec
                 key_fn = compare_key(stripped)
                 if levenshtein(key_fn, label_key) < levenshtein(key, label_key):
                     footnotes = max(footnotes, removed)
+                    evidence[f"{name}_footnote_markers"] = removed
                     key = key_fn
         readings[name] = key
         evidence[f"cer_{name}"] = round(cer(key, label_key), 4)
@@ -1063,7 +1064,7 @@ def booklet_page_ranges(units: Sequence[Mapping[str, Any]], *, unnumbered: int =
 
 
 def plan(units_path: Path, split_path: Path, split_sha256: str | None, olb_dir: Path, *, slack: int = 12,
-         drift_per_booklet: float = 1.5) -> dict[str, Any]:
+         drift_per_booklet: float = 1.5, statuses: Sequence[str] = ("non_eval",)) -> dict[str, Any]:
     """OLB candidates per non_eval booklet. An OLB page is a candidate through a citation (not a "חוק קודם" one) in
     the booklet's series and Hebrew year that either names one of the booklet's DocSummary titles (ספר החוקים), or
     cites a page inside the booklet's estimated range, widened by ``slack + drift_per_booklet x position``."""
@@ -1093,7 +1094,7 @@ def plan(units_path: Path, split_path: Path, split_sha256: str | None, olb_dir: 
         b["titles"] = sorted(set(b["titles"]) | set(booklet_titles(u.get("doc_summary"))))
     counts = Counter()
     for uid, b in booklets.items():
-        if b["split_status"] != "non_eval":
+        if b["split_status"] not in statuses or b["split_status"] == "test":  # test units are never planned
             counts[f"skipped_{b['split_status']}"] += 1
             b.pop("files")
             b.pop("titles")
@@ -1119,12 +1120,13 @@ def plan(units_path: Path, split_path: Path, split_sha256: str | None, olb_dir: 
         tight = slack + 0.5 * position
         b["priority"] = sum(1 for c in b["olb_candidates"] if c["role"] in ("principal", "new_law") and (
             c["by_title"] or (c["cited_page"] is not None and lo - tight <= c["cited_page"] <= hi + tight)))
-        counts["non_eval_booklets"] += 1
-        counts["non_eval_with_candidates"] += bool(b["olb_candidates"])
-        counts["non_eval_with_priority"] += bool(b["priority"])
+        counts[f"{b['split_status']}_booklets"] += 1
+        counts[f"{b['split_status']}_with_candidates"] += bool(b["olb_candidates"])
+        counts[f"{b['split_status']}_with_priority"] += bool(b["priority"])
     return {"schema": "olb_reshumot_plan.v1", "units": str(units_path), "units_sha256": hashlib.sha256(units_path.read_bytes()).hexdigest(),
             "split": str(split_path), "split_sha256": digest, "olb_index_sha256": hashlib.sha256((olb_dir / "olb_index.json").read_bytes()).hexdigest(),
-            "page_slack": slack, "drift_per_booklet": drift_per_booklet, "counts": dict(counts), "booklets": booklets}
+            "page_slack": slack, "drift_per_booklet": drift_per_booklet, "statuses": list(statuses), "counts": dict(counts),
+            "booklets": booklets}
 
 
 # --- network: gov.il capture ----------------------------------------------------------------------------------------
@@ -1662,7 +1664,9 @@ def booklet_job(job: Mapping[str, Any]) -> dict[str, Any]:  # pragma: no cover -
                         debug.append({"page": page_no, "line": line.index, "reason": decision.reason, "olb": spot.raw_text,
                                       "layer": line.layer, "tesseract": reading, "evidence": decision.evidence})
                     continue
-                if decision.evidence["footnote_markers_stripped"] and not job["keep_footnote_lines"]:
+                footnote = (decision.evidence.get("layer_footnote_markers", 0) if job.get("dev_rule") == DEV_RULE
+                            else decision.evidence["footnote_markers_stripped"])  # dev: the layer's reading only
+                if footnote and not job["keep_footnote_lines"]:
                     drops["footnote_marker_in_print"] += 1
                     continue
                 evidence_tiers[decision.tier] += 1
@@ -1978,121 +1982,167 @@ def _write_set(out: Path, rows: list[dict[str, Any]], seed: str) -> str:
     return hashlib.sha256(manifest.read_bytes()).hexdigest()
 
 
+DEV_SPLIT_LABEL = "midcentury_unit_split_v0/dev"
+SPLIT_SALT = "heocr-eval-midcentury-v0:"
+
+
+def dev_units_from_split(split_path: Path, split_sha256: str) -> list[dict[str, Any]]:
+    """The Reshumot units heocr-eval's midcentury split reserves as dev (never test, never non_eval), with their hash
+    rank inside their stratum (sha256(salt + unit_id) order over the stratum's units, as the split was issued)."""
+
+    content = split_path.read_bytes()
+    if hashlib.sha256(content).hexdigest() != split_sha256:
+        raise SystemExit(f"{split_path}: sha256 is not the pinned {split_sha256}")
+    data = json.loads(content)
+    test = {u["unit_id"] for u in data["test"]}
+    dev = [u for u in data["dev"] if u["unit_id"].startswith(UNIT_PREFIX)]
+    if any(u["unit_id"] in test for u in dev):
+        raise SystemExit("a dev unit is also a test unit")
+    strata: dict[str, list[str]] = defaultdict(list)
+    for part in ("test", "dev", "non_eval"):
+        for u in data[part]:
+            strata[u["stratum"]].append(u["unit_id"])
+    out = []
+    for u in dev:
+        ranked = sorted(strata[u["stratum"]], key=lambda x: hashlib.sha256((SPLIT_SALT + x).encode()).hexdigest())
+        out.append({**u, "hash_rank": ranked.index(u["unit_id"]) + 1})
+    return sorted(out, key=lambda u: u["unit_id"])
+
+
+def capture_dev(units_path: Path, split_path: Path, split_sha256: str, cache: Path, *, log=print) -> dict[str, int]:  # pragma: no cover
+    """Fetch every listed file of every Reshumot dev unit into a dev-only cache (one request per 1.2 s, shared gap)."""
+
+    refuse_forbidden_path(cache)
+    dev = {u["unit_id"]: u for u in dev_units_from_split(split_path, split_sha256)}
+    THROTTLE_FILE[:] = [cache.parent / "cache" / "throttle.json"] if (cache.parent / "cache").is_dir() else [cache / "throttle.json"]
+    (cache / "pdf").mkdir(parents=True, exist_ok=True)
+    log_path = cache / "capture_log.jsonl"
+    done = set()
+    if log_path.is_file():
+        done = {json.loads(l).get("file_token") for l in log_path.read_text(encoding="utf-8").splitlines() if "sha256" in l}
+    units = json.loads(units_path.read_text(encoding="utf-8"))["units"]
+    counts = Counter()
+    for row in units:
+        uid = row.get("unit_id") or unit_id(row["series"], row["number"])
+        if uid not in dev:
+            continue
+        if row["file_token"] in done:
+            counts["cached"] += 1
+            continue
+        try:
+            content = _request(document_url(row["url"]), headers={"Referer": "https://www.gov.il/"}, gap=GOV_GAP_S)
+        except Exception as exc:  # noqa: BLE001 - recorded
+            with log_path.open("a") as handle:
+                handle.write(json.dumps({"unit_id": uid, "file_token": row["file_token"], "error": repr(exc)[:200]}) + "\n")
+            counts["failed"] += 1
+            continue
+        if not content.startswith(b"%PDF"):
+            counts["not_pdf"] += 1
+            continue
+        digest = hashlib.sha256(content).hexdigest()
+        target = cache / "pdf" / f"{booklet_slug(row['series'], row['number'])}__{digest[:12]}.pdf"
+        tmp = target.with_suffix(".part")
+        tmp.write_bytes(content)
+        tmp.replace(target)
+        with log_path.open("a") as handle:
+            handle.write(json.dumps({"unit_id": uid, "file_token": row["file_token"], "url": row["url"], "file": target.name,
+                                     "creation_date": row.get("creation_date"), "sha256": digest, "bytes": len(content),
+                                     "at": time.strftime("%Y-%m-%dT%H:%M:%S%z")}) + "\n")
+        counts["fetched"] += 1
+    return dict(counts)
+
+
 DEV_README = """# olbreshumotlines_v1_dev
 
-Real-scan dev lines from {units} whole non_eval booklets of ספר החוקים and קובץ התקנות (1948 to mid-2005), held out
-from `olbreshumotlines_v1` (no line of these booklets is in train). Labels are same-wording text of Hebrew Wikisource's
-ספר החוקים הפתוח (CC BY-SA 4.0, Hebrew Wikisource contributors; each row names its page and pinned revision); line images
-are PD-IL (Copyright Act 2007 section 6).
+Real-scan dev lines from the {units} Reshumot units (ספר החוקים, קובץ התקנות; 1948 to mid-2005) that heocr-eval's
+`midcentury_unit_split_v0.json` reserves as `dev` (5 per series × period). No line of these units is in
+`olbreshumotlines_v1` (they are eval-reserved in the registry, so the train build never read them). Labels are
+same-wording text of Hebrew Wikisource's ספר החוקים הפתוח (CC BY-SA 4.0, Hebrew Wikisource contributors; each row names
+its page, pinned revision and content sha256); line images are PD-IL (Copyright Act 2007 section 6). Format: one png per
+line with a logical-order `.gt.txt`, `manifest.jsonl`, `summary.json`, `olb_dev_units_v0.json`. No per-unit cap.
 
 ## Selection: the publisher's text layer only
 
 A located line is kept iff the PDF text layer (Imagestore or ABBYY OCR), normalised by `olb_print_compare.v1`, equals
-the OLB span, whatever Tesseract reads (`dev_rule: layer_exact_only.v1`). Tesseract-exact-only and character-consensus
-lines are not used. Each row says whether stock Tesseract also read it exactly (`tesseract_exact`, and
-`match_evidence.tier`: `both_exact` or `layer_exact`), so it can be reported as a stratum; it was never used to select.
+the OLB span, whatever Tesseract reads (`dev_rule: layer_exact_only.v1`). The train-side Tesseract gates (CER 0.35 crop
+corroboration, "other reading sees more", character consensus) are not applied. Footnote markers are judged from the
+layer's reading only. Each row records `tesseract_tier` (`exact` / `not_exact`: stock Tesseract on the crop) as a
+stratum; it was never used to select. Geometry-only checks (no Tesseract) are applied and counted: a crop under half a
+line high (`degenerate_crop`), a line whose ink touches a neighbouring line (`touches_neighbour_line`), a box over 1.8
+line heights (`merged_rows`).
 
 ## Bias
 
 Even layer-exact selection drops every line the publisher's OCR got wrong. Those lines skew harder: degraded or
 broken print, unusual layout (tables, margin notes, letter-spaced signatures), quoted or pointed text, small type,
-digits and brackets in bidi-sensitive order. The kept lines are therefore easier than the booklets' lines at large,
-and a CER on this set understates the CER on the print as a whole. The per-booklet table below gives each unit's
-candidate lines (located lines with an OLB span that reached the gate), kept lines and kept share by tier, and the
-same for `olbreshumotlines_v1` train in aggregate.
+digits and brackets in bidi-sensitive order. The kept lines are therefore easier than the units' lines at large, and a
+CER on this set understates the CER on the print as a whole. Lines are also limited to text OLB holds in the same
+wording (principal laws and regulations, not amendments' instructions, signatures' names or footnotes).
 
-## Per booklet
+## Per unit
 
-| Unit | Series | Decade | Candidate lines | Kept | Kept share | Kept both_exact | Kept layer_exact (Tesseract not exact) |
+| Unit | Stratum | Hash rank | Candidate lines | Kept | Kept share | Kept, Tesseract exact | Kept, Tesseract not exact |
 |---|---|---|---|---|---|---|---|
 {table}
-| **train (olbreshumotlines_v1, aggregate)** | | | {train_cand} | {train_kept} | {train_share} | {train_both} | {train_layer} (+ tesseract_exact {train_tess}, char_consensus {train_cons}) |
+| **train (olbreshumotlines_v1, aggregate)** | | | {train_cand} | {train_kept} | {train_share} | {train_tess} | {train_notess} |
 
-Rows are silver: `adjudication_status: not_adjudicated`, `reference_eligible: false`. Checking: {audit}.
+Candidate lines are located lines with an OLB span that reached the per-line gate. Train counts its own gate (all four
+evidence tiers); dev counts the layer-only gate.
+
+## Checks
+
+Dev crops were never viewed. Checks on this set are programmatic only: counts, box sanity, the text-layer match.
+Rows are silver: `adjudication_status: not_adjudicated`, `reference_eligible: false`.
 """
 
 
-def finalize(args: argparse.Namespace, *, registry: Any = None) -> dict[str, Any]:  # pragma: no cover - operator run
-    """Hold out the listed dev units: their lines leave the train set, and a separate dev set is cut from them with
-    the layer-only rule (``DEV_RULE``). The train set's own per-stratum dev booklets return to train."""
+def build_dev_set(args: argparse.Namespace) -> dict[str, Any]:  # pragma: no cover - operator run
+    """Cut olbreshumotlines_v1_dev from the dev-only capture with the layer-only rule. Accepts exactly the split's
+    Reshumot dev units; refuses test, non_eval and unlisted units."""
 
-    import shutil
+    from hocrgen.split.eval_reserved import packaged_registry
+    from hocrgen.tools.reshumot_lines import tier_a_flags
 
-    from hocrgen.split.eval_reserved import refuse_eval_reserved_training_input, registry_provenance
-
-    out, dev_out = Path(args.out), Path(args.dev_out)
-    for path in (args.out, args.dev_out, args.dev_units, args.plan, args.split, args.pmod_split, args.tasks, args.olb, args.cache):
+    out = Path(args.out)
+    for path in (args.out, args.plan, args.split, args.olb, args.dev_cache, args.units):
         refuse_forbidden_path(path)
-    if dev_out.exists():
-        raise SystemExit(f"{dev_out} exists")
-    split_status, split_digest = load_split(Path(args.split), args.split_sha256)
-    registry = training_registry(registry)
-    raw = Path(args.dev_units).read_text(encoding="utf-8")
-    dev_units = sorted(set(json.loads(raw) if raw.lstrip().startswith("[") else [x.strip() for x in raw.splitlines() if x.strip()]))
-    summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
-    rows = [json.loads(line) for line in (out / "manifest.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
-    if summary.get("dev_holdout"):
-        raise SystemExit(f"{out} already has a dev holdout")
-    for unit in dev_units:
-        status = registry.status(SOURCE_ID, unit)
-        if split_status.get(unit) != "non_eval" or status is None or status.value != "non_eval":
-            raise SystemExit(f"dev unit {unit} is not non_eval")
-        if unit not in summary["booklets"]:
-            raise SystemExit(f"dev unit {unit} was not captured and built")
-    refuse_eval_reserved_training_input([{"source_id": SOURCE_ID, "unit_id": u} for u in dev_units], builder=BUILDER, registry=registry)
-
-    # train: drop the dev units' lines, return the per-stratum dev booklets to train
-    held = set(dev_units)
-    train_rows = []
-    for r in rows:
-        path = out / r["image"]
-        if r["unit_id"] in held:
-            path.unlink()
-            path.with_suffix(".gt.txt").unlink()
-            continue
-        if r["split"] != "train":
-            new = Path("train") / Path(r["image"]).relative_to(r["split"])
-            (out / new).parent.mkdir(parents=True, exist_ok=True)
-            path.replace(out / new)
-            path.with_suffix(".gt.txt").replace((out / new).with_suffix(".gt.txt"))
-            r["image"], r["split"] = str(new), "train"
-        r.setdefault("tesseract_exact", bool(r["match_evidence"].get("tesseract_exact")))
-        train_rows.append(r)
-    for d in (out / "dev").glob("*") if (out / "dev").is_dir() else []:
-        shutil.rmtree(d, ignore_errors=True)
-    if (out / "dev").is_dir():
-        shutil.rmtree(out / "dev", ignore_errors=True)
-    for unit in held:
-        shutil.rmtree(out / "train" / unit_slug(unit), ignore_errors=True)
-    refuse_eval_reserved_training_input(train_rows, builder=BUILDER, registry=registry)
-    for unit, b in summary["booklets"].items():
-        b["split"] = "dev_holdout" if unit in held else "train"
-    per = defaultdict(lambda: defaultdict(Counter))
-    for r in train_rows:
-        per[r["series"]][r["decade"]]["train"] += 1
-    holdout = {"units": dev_units, "units_sha256": hashlib.sha256("\n".join(dev_units).encode()).hexdigest(),
-               "source": str(Path(args.dev_units).resolve()), "dev_set": str(dev_out.resolve()),
-               "train_lines_removed": len(rows) - len(train_rows)}
-    summary.update({
-        "totals": dict(Counter(r["split"] for r in train_rows)),
-        "lines_by_series_decade": {s: {d: dict(c) for d, c in sorted(v.items())} for s, v in sorted(per.items())},
-        "match_evidence_tiers": dict(Counter(r["match_evidence"]["tier"] for r in train_rows)),
-        "dev_selection": {"method": "external dev holdout (dev_holdout): whole units listed by the lead and heocr-eval; "
-                                    "their lines are in the separate dev set, none in train", "picks": {}, "ranking": {}},
-        "dev_holdout": holdout,
-        "yield": yield_report({u: b for u, b in summary["booklets"].items() if u not in held}, train_rows),
-    })
-    summary["manifest_sha256"] = _write_set(out, train_rows, summary["shuffle_seed"])
-    (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-
-    # dev: re-cut the held-out units with the layer-only rule
+    if out.exists():
+        raise SystemExit(f"{out} exists")
+    dev = {u["unit_id"]: u for u in dev_units_from_split(Path(args.split), args.split_sha256)}
+    registry = packaged_registry()
+    for uid in dev:  # the registry reserves them (eval); they never reach a training builder
+        status = registry.status(SOURCE_ID, uid)
+        if status is None or status.value != "eval":
+            raise SystemExit(f"{uid} is not eval-reserved in the registry ({status})")
     plan_doc = json.loads(Path(args.plan).read_text(encoding="utf-8"))
+    if plan_doc["split_sha256"] != args.split_sha256:
+        raise SystemExit("the dev plan was made from another split")
+    planned = {u: b for u, b in plan_doc["booklets"].items() if b["split_status"] == "dev"}
+    if set(planned) - set(dev) or any(b["split_status"] == "test" and b.get("olb_candidates") for b in plan_doc["booklets"].values()):
+        raise SystemExit("the dev plan lists units outside the split's dev list")
+    cache = Path(args.dev_cache)
+    logged: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for line in (cache / "capture_log.jsonl").read_text(encoding="utf-8").splitlines():
+        r = json.loads(line)
+        if "sha256" in r:
+            if r["unit_id"] not in dev:
+                raise SystemExit(f"{r['unit_id']} in the dev cache is not a dev unit")
+            logged[r["unit_id"]].append(r)
     pages = load_olb_pages(Path(args.olb))
-    cache = Path(args.cache)
-    staging = dev_out / ".staging"
-    jobs, parsed_blocks = [], {}
-    for unit in dev_units:
-        b = plan_doc["booklets"][unit]
+    jobs, parsed_blocks, missing = [], {}, {}
+    for uid in sorted(dev):
+        files = sorted(logged.get(uid, []), key=lambda r: (r.get("creation_date") or "", r["file_token"]))
+        if not files:
+            missing[uid] = "not fetched"
+            continue
+        chosen = files[0]
+        pdf = refuse_forbidden_path(cache / "pdf" / chosen["file"])
+        if hashlib.sha256(pdf.read_bytes()).hexdigest() != chosen["sha256"]:
+            raise SystemExit(f"{pdf}: sha256 differs from the capture log")
+        b = planned.get(uid)
+        if b is None:
+            missing[uid] = "not planned"
+            continue
         olb_pages = []
         for cand in b["olb_candidates"]:
             if cand["title"] not in parsed_blocks:
@@ -2102,110 +2152,150 @@ def finalize(args: argparse.Namespace, *, registry: Any = None) -> dict[str, Any
                 parsed_blocks[cand["title"]] = [asdict(x) for x in parse_olb_page(cand["title"], row["content"]).blocks]
             olb_pages.append({"title": cand["title"], "blocks": parsed_blocks[cand["title"]]})
         slug = booklet_slug(b["series"], b["number"])
-        jobs.append({"unit_id": unit, "slug": slug, "series": b["series"], "number": b["number"],
-                     "pdf": str(cache / "pdf" / f"{slug}.pdf"), "staging": str(staging / slug), "olb_pages": olb_pages,
-                     "keep_footnote_lines": False, "dev_rule": DEV_RULE,
+        jobs.append({"unit_id": uid, "slug": slug, "series": b["series"], "number": b["number"], "pdf": str(pdf),
+                     "staging": str(out / ".staging" / slug), "olb_pages": olb_pages, "keep_footnote_lines": False,
+                     "dev_rule": DEV_RULE, "files": files,
                      "layer_source": "imagestore" if b["series"] == "sefer_hachukim" else "abbyy"})
     with Pool(max(1, args.workers)) as pool:
         results = pool.map(booklet_job, jobs, chunksize=1)
-    pool_ngrams, ngram_info = eval_ngram_pool(Path(args.tasks), Path(args.pmod_split))
-    dev_rows, dev_booklets, drops = [], {}, Counter()
-    for result in results:
-        unit = result["unit_id"]
-        b = plan_doc["booklets"][unit]
-        tb = summary["booklets"][unit]
-        local = Counter(result["drops"])
-        slug = booklet_slug(b["series"], b["number"])
-        kept = []
+    job_of = {j["unit_id"]: j for j in jobs}
+    rows, units_doc, drops = [], [], Counter()
+    for result in sorted(results, key=lambda r: r["unit_id"]):
+        uid = result["unit_id"]
+        b, job, d = planned[uid], job_of[uid], dev[uid]
+        drops.update(result["drops"])
         for r in result["rows"]:
-            if word_ngrams(r["text"]) & pool_ngrams:
-                local["eval_ngram_overlap"] += 1
-                continue
-            kept.append(r)
-        drops.update(local)
-        for r in kept:
             olb = pages[r["olb_page_title"]]
             permalink = f"https://he.wikisource.org/w/index.php?oldid={olb['revision_id']}"
-            target = dev_out / "dev" / slug / f"{r['id']}.png"
+            target = out / "dev" / job["slug"] / f"{r['id']}.png"
             target.parent.mkdir(parents=True, exist_ok=True)
             Path(r["staged_image"]).replace(target)
+            if hashlib.sha256(target.read_bytes()).hexdigest() != r["image_sha256"]:
+                raise RuntimeError(f"{r['id']}: image changed")
             target.with_suffix(".gt.txt").write_text(r["text"] + "\n", encoding="utf-8")
-            from hocrgen.tools.reshumot_lines import tier_a_flags
-
-            dev_rows.append({
-                "id": r["id"], "entry_id": r["entry_id"], "split": "dev", "book": slug, "record_id": slug, "unit_id": unit,
-                "source_id": SOURCE_ID, "series": b["series"], "booklet_number": str(b["number"]), "hebrew_year": b["hebrew_year"],
-                "year": b["year"], "decade": midcentury_decade(int(b["year"])), "page": r["page"], "line_index": r["line_index"],
-                "text": r["text"], "olb_text": r["olb_text"], "label_fold": LABEL_FOLD, "stratum": "unpointed",
+            rows.append({
+                "id": r["id"], "entry_id": r["entry_id"], "split": "dev", "book": job["slug"], "record_id": job["slug"],
+                "unit_id": uid, "source_id": SOURCE_ID, "split_source": DEV_SPLIT_LABEL, "stratum": d["stratum"],
+                "series": b["series"], "booklet_number": str(b["number"]), "hebrew_year": b["hebrew_year"], "year": b["year"],
+                "decade": midcentury_decade(int(b["year"])), "page": r["page"], "line_index": r["line_index"],
+                "text": r["text"], "olb_text": r["olb_text"], "label_fold": LABEL_FOLD, "text_stratum": "unpointed",
                 "label_source": LABEL_SOURCE, "label_tier": "silver", "adjudication_status": "not_adjudicated",
                 "reference_eligible": False, "capture": CAPTURE, "proposed_node_hint": NODE_HINT, "dev_rule": DEV_RULE,
+                "tesseract_tier": "exact" if r["match_evidence"].get("tesseract_exact") else "not_exact",
                 "tesseract_exact": bool(r["match_evidence"].get("tesseract_exact")),
                 "match_evidence": r["match_evidence"], "tier_a_flags": tier_a_flags(r["text"]),
                 "olb_page_title": r["olb_page_title"], "olb_revision_id": olb["revision_id"],
-                "olb_revision_timestamp": olb["timestamp"], "olb_block_index": r["olb_block_index"],
-                "olb_block_kind": r["olb_block_kind"], "olb_words": r["olb_words"],
+                "olb_revision_timestamp": olb["timestamp"], "olb_content_sha256": olb["content_sha256"],
+                "olb_block_index": r["olb_block_index"], "olb_block_kind": r["olb_block_kind"], "olb_words": r["olb_words"],
                 "text_licence": TEXT_LICENCE, "text_licence_url": TEXT_LICENCE_URL,
                 "attribution": f"{TEXT_ATTRIBUTION}, {r['olb_page_title']}, {permalink}", "attribution_url": permalink,
                 "image_license": IMAGE_LICENSE, "image_license_basis": IMAGE_LICENSE_BASIS, "image_attribution": IMAGE_ATTRIBUTION,
-                "publisher_url": tb.get("publisher_url"), "pdf_sha256": result["facts"].get("pdf_sha256"),
+                "publisher_url": job["files"][0]["url"], "pdf_sha256": result["facts"].get("pdf_sha256"),
                 "bbox_image": r["bbox_image"], "crop_box_image": r["crop_box_image"], "scan_size": r["scan_size"],
                 "scan_ppi": r["scan_ppi"], "scan_encoding": r["scan_encoding"],
-                "image": f"dev/{slug}/{r['id']}.png", "image_sha256": r["image_sha256"],
+                "image": f"dev/{job['slug']}/{r['id']}.png", "image_sha256": r["image_sha256"],
             })
-            if hashlib.sha256(target.read_bytes()).hexdigest() != r["image_sha256"]:
-                raise RuntimeError(f"{r['id']}: image changed")
-        dev_booklets[unit] = {"series": b["series"], "number": b["number"], "year": b["year"], "hebrew_year": b["hebrew_year"],
-                              "split": "dev", "lines_candidate": len(kept), "dropped": dict(sorted(local.items())),
-                              "facts": result["facts"], "publisher_url": tb.get("publisher_url"),
-                              "olb_pages": [c["title"] for c in b["olb_candidates"]]}
-    shutil.rmtree(staging, ignore_errors=True)
-    refuse_eval_reserved_training_input(dev_rows, builder=BUILDER + " (dev holdout)", registry=registry)
-    dev_out.mkdir(parents=True, exist_ok=True)
-    dev_summary = {k: summary[k] for k in ("tool", "tool_version", "label_source", "capture", "normalizer", "label_fold",
-                                           "proposed_node_hint", "proposed_node_hint_note", "release_notice", "text_licence",
-                                           "text_attribution", "image_license", "image_license_basis", "tools", "thresholds",
-                                           "shuffle_seed", "held_out", "forbidden_input_dirs")}
-    yields = yield_report(dev_booklets, dev_rows)
-    per_booklet = {}
-    for unit, b in sorted(dev_booklets.items()):
-        n = booklet_candidates(b)
-        tiers = Counter(r["match_evidence"]["tier"] for r in dev_rows if r["unit_id"] == unit)
-        per_booklet[unit] = {"series": b["series"], "decade": midcentury_decade(int(b["year"])), "candidate_lines": n,
-                             "kept": sum(tiers.values()), "kept_share": round(sum(tiers.values()) / max(1, n), 4),
-                             "kept_by_tier": dict(tiers)}
-    train_cand = sum(booklet_candidates(b) for u, b in summary["booklets"].items() if u not in held)
-    train_tiers = Counter(r["match_evidence"]["tier"] for r in train_rows)
-    dev_summary.update({
-        "schema": SCHEMA + "+dev", "dev_rule": DEV_RULE,
-        "dev_rule_text": "kept iff the publisher's PDF text layer equals the OLB span (olb_print_compare.v1), whatever "
-                         "Tesseract reads; tesseract_exact is recorded per row as a stratum, never used to select",
-        "labels": "Hebrew Wikisource OLB text, kept per line only where the publisher's OCR layer equals it; silver dev lines",
-        "totals": {"dev": len(dev_rows)}, "match_evidence_tiers": dict(Counter(r["match_evidence"]["tier"] for r in dev_rows)),
+        kept = Counter(row["tesseract_tier"] for row in rows if row["unit_id"] == uid)
+        n = int(result["facts"].get("candidate_lines") or 0)
+        units_doc.append({"unit_id": uid, "stratum": d["stratum"], "hash_rank": d["hash_rank"], "split": DEV_SPLIT_LABEL,
+                          "candidate_lines": n, "kept": sum(kept.values()), "kept_share": round(sum(kept.values()) / max(1, n), 4),
+                          "kept_by_tesseract_tier": dict(kept), "dropped": result["drops"],
+                          "pdf_used": {"file_token": job["files"][0]["file_token"], "sha256": result["facts"].get("pdf_sha256")},
+                          "pdf_files": [{"file_token": f["file_token"], "sha256": f["sha256"], "url": f["url"]} for f in job["files"]],
+                          "olb_pages": sorted({row["olb_page_title"]: row["olb_content_sha256"] for row in rows if row["unit_id"] == uid}.items()),
+                          "facts": result["facts"]})
+        if not kept:
+            missing[uid] = "no layer-exact line"
+    for uid, why in missing.items():
+        if not any(u["unit_id"] == uid for u in units_doc):
+            units_doc.append({"unit_id": uid, "stratum": dev[uid]["stratum"], "hash_rank": dev[uid]["hash_rank"],
+                              "split": DEV_SPLIT_LABEL, "candidate_lines": 0, "kept": 0, "missing": why})
+    import shutil
+
+    shutil.rmtree(out / ".staging", ignore_errors=True)
+    out.mkdir(parents=True, exist_ok=True)
+    seed = f"{args.shuffle_seed}:dev"
+    manifest_sha = _write_set(out, rows, seed)
+    units_doc.sort(key=lambda u: u["unit_id"])
+    (out / "olb_dev_units_v0.json").write_text(json.dumps({
+        "schema": "olb_dev_units.v0", "split": str(Path(args.split).resolve()), "split_sha256": args.split_sha256,
+        "dev_rule": DEV_RULE, "units": units_doc, "missing": missing}, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    train = json.loads((Path(args.train) / "summary.json").read_text(encoding="utf-8")) if args.train else None
+    train_cand = sum(booklet_candidates(b) for b in train["booklets"].values()) if train else 0
+    train_rows = sum((train or {}).get("totals", {}).values()) if train else 0
+    train_tess = (train or {}).get("match_evidence_tiers", {})
+    summary = {
+        "schema": SCHEMA + "+dev", "tool": TOOL, "tool_version": TOOL_VERSION, "label_source": LABEL_SOURCE, "capture": CAPTURE,
+        "normalizer": NORMALIZER, "label_fold": LABEL_FOLD, "dev_rule": DEV_RULE, "split_source": DEV_SPLIT_LABEL,
+        "proposed_node_hint": NODE_HINT, "proposed_node_hint_note": NODE_HINT_NOTE, "release_notice": RELEASE_NOTICE,
+        "text_licence": TEXT_LICENCE, "text_attribution": TEXT_ATTRIBUTION, "image_license": IMAGE_LICENSE,
+        "image_license_basis": IMAGE_LICENSE_BASIS, "shuffle_seed": seed, "max_lines_per_unit": None,
+        "totals": {"dev": len(rows)}, "kept_by_tesseract_tier": dict(Counter(r["tesseract_tier"] for r in rows)),
         "dropped": dict(sorted(drops.items())), "dropped_definitions": {**DROP_DEFINITIONS,
             "dev_layer_not_exact": "dev rule: the publisher layer does not equal the OLB span"},
-        "booklets": dev_booklets, "dev_selection": {"method": "external dev holdout", "picks": {u: f"{b['series']}|{midcentury_decade(int(b['year']))}" for u, b in dev_booklets.items()}},
-        "dev_holdout": holdout, "per_booklet": per_booklet, "yield": yields,
-        "train_aggregate": {"candidate_lines": train_cand, "kept": len(train_rows), "kept_share": round(len(train_rows) / max(1, train_cand), 4),
-                            "kept_by_tier": dict(train_tiers)},
-        "line_set_condition": {**summary["line_set_condition"], **ngram_info, "dropped_lines": drops.get("eval_ngram_overlap", 0)},
+        "geometry_only_drops": {k: drops.get(k, 0) for k in ("degenerate_crop", "touches_neighbour_line", "merged_rows")},
+        "units": len(dev), "units_with_lines": sum(1 for u in units_doc if u.get("kept")), "missing_units": missing,
+        "held_out": {"midcentury_split": str(Path(args.split).resolve()), "midcentury_split_sha256": args.split_sha256,
+                     "source_id": SOURCE_ID, "registry_status": "eval (reserved): never a training input"},
+        "dev_selection": {"method": "heocr-eval's midcentury_unit_split_v0 Reshumot dev units", "picks": {u["unit_id"]: u["stratum"] for u in units_doc}},
+        "checks": "programmatic only (counts, box sanity, text-layer match); dev crops were never viewed",
         "olb_page_permalinks": [{"title": t, "revision_id": rid, "permalink": f"https://he.wikisource.org/w/index.php?oldid={rid}"}
-                                for t, rid in sorted({(r["olb_page_title"], r["olb_revision_id"]) for r in dev_rows})],
-    })
+                                for t, rid in sorted({(r["olb_page_title"], r["olb_revision_id"]) for r in rows})],
+        "manifest_sha256": manifest_sha,
+    }
     if args.signature:
-        dev_summary["signature"] = args.signature
-    if args.created_at:
-        dev_summary["created_at"] = args.created_at
-    dev_summary["manifest_sha256"] = _write_set(dev_out, dev_rows, summary["shuffle_seed"] + ":dev")
-    dev_summary["shuffle_seed_dev"] = summary["shuffle_seed"] + ":dev"
-    (dev_out / "summary.json").write_text(json.dumps(dev_summary, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
-    table = "\n".join(f"| {u} | {v['series']} | {v['decade']} | {v['candidate_lines']} | {v['kept']} | {v['kept_share']:.1%} | "
-                      f"{v['kept_by_tier'].get('both_exact', 0)} | {v['kept_by_tier'].get('layer_exact', 0)} |" for u, v in per_booklet.items())
-    (dev_out / "README.md").write_text(DEV_README.format(
-        units=len(dev_units), table=table, train_cand=train_cand, train_kept=len(train_rows),
-        train_share=f"{len(train_rows) / max(1, train_cand):.1%}", train_both=train_tiers.get("both_exact", 0),
-        train_layer=train_tiers.get("layer_exact", 0), train_tess=train_tiers.get("tesseract_exact", 0),
-        train_cons=train_tiers.get("char_consensus", 0), audit=AUDIT_NAME + " of the train set; see the PR"), encoding="utf-8")
-    return {"train": summary, "dev": dev_summary}
+        summary["signature"] = args.signature
+    (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    table = "\n".join(f"| {u['unit_id']} | {u['stratum']} | {u['hash_rank']} | {u.get('candidate_lines', 0)} | {u.get('kept', 0)} | "
+                      f"{u.get('kept_share', 0):.1%} | {(u.get('kept_by_tesseract_tier') or {}).get('exact', 0)} | "
+                      f"{(u.get('kept_by_tesseract_tier') or {}).get('not_exact', 0)} |" + (f" ({u['missing']})" if u.get("missing") else "")
+                      for u in units_doc)
+    (out / "README.md").write_text(DEV_README.format(
+        units=len(dev), table=table, train_cand=train_cand, train_kept=train_rows,
+        train_share=f"{train_rows / max(1, train_cand):.1%}", train_tess=train_tess.get("both_exact", 0) + train_tess.get("tesseract_exact", 0),
+        train_notess=train_tess.get("layer_exact", 0) + train_tess.get("char_consensus", 0)), encoding="utf-8")
+    return summary
+
+
+def drop_dev_overlap(train_out: Path, dev_out: Path) -> dict[str, Any]:  # pragma: no cover - operator run
+    """Drop train lines sharing a word 6-gram with a dev line (eval adds the dev lines as a check_train_overlap target),
+    rewrite the train manifest, lists and summary, and record the count under line_set_condition."""
+
+    summary = json.loads((train_out / "summary.json").read_text(encoding="utf-8"))
+    rows = [json.loads(l) for l in (train_out / "manifest.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+    pool: set[tuple[str, ...]] = set()
+    for line in (dev_out / "manifest.jsonl").read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            pool |= word_ngrams(json.loads(line)["text"])
+    kept, dropped = [], Counter()
+    for r in rows:
+        if word_ngrams(r["text"]) & pool:
+            path = train_out / r["image"]
+            path.unlink(missing_ok=True)
+            path.with_suffix(".gt.txt").unlink(missing_ok=True)
+            dropped[r["unit_id"]] += 1
+            summary["booklets"][r["unit_id"]]["dropped"]["dev_ngram_overlap"] = summary["booklets"][r["unit_id"]]["dropped"].get("dev_ngram_overlap", 0) + 1
+            summary["booklets"][r["unit_id"]]["lines_candidate"] -= 1
+            continue
+        r.setdefault("tesseract_exact", bool(r["match_evidence"].get("tesseract_exact")))
+        kept.append(r)
+    per = defaultdict(lambda: defaultdict(Counter))
+    for r in kept:
+        per[r["series"]][r["decade"]][r["split"]] += 1
+    n = sum(dropped.values())
+    summary["dropped"]["dev_ngram_overlap"] = n
+    summary["dropped_definitions"]["dev_ngram_overlap"] = "the label shares a word 6-gram with a line of olbreshumotlines_v1_dev"
+    summary["line_set_condition"]["dev_overlap"] = {
+        "rule": "drop a train line sharing any word 6-gram (Hebrew-letter words, logical order) with a dev line",
+        "dev_set": str(dev_out.resolve()), "dev_manifest_sha256": hashlib.sha256((dev_out / "manifest.jsonl").read_bytes()).hexdigest(),
+        "dev_ngrams": len(pool), "dropped_lines": n, "booklets_touched": len(dropped)}
+    summary["totals"] = dict(Counter(r["split"] for r in kept))
+    summary["lines_by_series_decade"] = {s: {d: dict(c) for d, c in sorted(v.items())} for s, v in sorted(per.items())}
+    summary["match_evidence_tiers"] = dict(Counter(r["match_evidence"]["tier"] for r in kept))
+    summary["yield"] = yield_report(summary["booklets"], kept)
+    summary["manifest_sha256"] = _write_set(train_out, kept, summary["shuffle_seed"])
+    (train_out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    return summary
 
 
 def verify(out: Path, *, split_path: Path, split_sha256: str, registry: Any = None) -> list[str]:
@@ -2281,15 +2371,21 @@ def add_build_arguments(sub: Any) -> None:
     b.add_argument("--keep-footnote-lines", action="store_true")
     b.add_argument("--created-at")
     b.add_argument("--signature")
-    f = sub.add_parser("finalize", help="hold out listed dev units: remove them from train, cut the dev set (layer-only rule)")
-    f.add_argument("out")
-    f.add_argument("--dev-units", required=True, help="unit ids (JSON list or one per line)")
-    f.add_argument("--dev-out", required=True)
-    for name in ("--plan", "--split", "--split-sha256", "--pmod-split", "--tasks", "--olb", "--cache"):
-        f.add_argument(name, required=True)
-    f.add_argument("--workers", type=int, default=4)
-    f.add_argument("--created-at")
-    f.add_argument("--signature")
+    cd = sub.add_parser("capture-dev", help="fetch every file of heocr-eval's Reshumot dev units into a dev-only cache")
+    cd.add_argument("--units", required=True)
+    cd.add_argument("--split", required=True)
+    cd.add_argument("--split-sha256", required=True)
+    cd.add_argument("--dev-cache", required=True)
+    d = sub.add_parser("dev-set", help="cut olbreshumotlines_v1_dev from the dev cache with the layer-only rule")
+    d.add_argument("out")
+    for name in ("--plan", "--split", "--split-sha256", "--olb", "--dev-cache", "--units", "--shuffle-seed"):
+        d.add_argument(name, required=True)
+    d.add_argument("--train", help="the built olbreshumotlines_v1, for the README's train aggregate")
+    d.add_argument("--workers", type=int, default=6)
+    d.add_argument("--signature")
+    o = sub.add_parser("dev-overlap", help="drop train lines sharing a word 6-gram with a dev line")
+    o.add_argument("out")
+    o.add_argument("--dev", required=True)
     v = sub.add_parser("verify", help="check a built set")
     v.add_argument("out")
     v.add_argument("--split", required=True)
@@ -2301,10 +2397,18 @@ def run_build_command(args: argparse.Namespace) -> int:  # pragma: no cover - op
         summary = build(args)
         print(json.dumps({k: summary[k] for k in ("totals", "match_evidence_tiers", "dropped", "manifest_sha256")}, ensure_ascii=False))
         return 0
-    if args.command == "finalize":
-        result = finalize(args)
-        print(json.dumps({"train": {k: result["train"][k] for k in ("totals", "manifest_sha256")},
-                          "dev": {k: result["dev"][k] for k in ("totals", "match_evidence_tiers", "manifest_sha256")}}, ensure_ascii=False))
+    if args.command == "capture-dev":
+        print(json.dumps(capture_dev(Path(args.units), Path(args.split), args.split_sha256, Path(args.dev_cache)), ensure_ascii=False))
+        return 0
+    if args.command == "dev-set":
+        result = build_dev_set(args)
+        print(json.dumps({k: result[k] for k in ("totals", "kept_by_tesseract_tier", "units_with_lines", "missing_units",
+                                                 "geometry_only_drops", "manifest_sha256")}, ensure_ascii=False))
+        return 0
+    if args.command == "dev-overlap":
+        result = drop_dev_overlap(Path(args.out), Path(args.dev))
+        print(json.dumps({"totals": result["totals"], "dev_overlap": result["line_set_condition"]["dev_overlap"],
+                          "manifest_sha256": result["manifest_sha256"]}, ensure_ascii=False))
         return 0
     problems = verify(Path(args.out), split_path=Path(args.split), split_sha256=args.split_sha256)
     for problem in problems[:50]:
@@ -2330,6 +2434,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     p.add_argument("--split-sha256", required=True)
     p.add_argument("--olb", required=True)
     p.add_argument("--out", required=True)
+    p.add_argument("--statuses", nargs="+", default=["non_eval"], help="split parts to plan (dev for the dev set; never test)")
     c = sub.add_parser("capture", help="fetch planned non_eval booklet PDFs (gov.il, 1 req / 1.2 s)")
     c.add_argument("--plan", required=True)
     c.add_argument("--cache", required=True)
@@ -2349,7 +2454,9 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(olb_index(Path(args.olb_dir))["stats"], ensure_ascii=False))
         return 0
     if args.command == "plan":
-        doc = plan(Path(args.units), Path(args.split), args.split_sha256, Path(args.olb))
+        if "test" in args.statuses:
+            raise SystemExit("test units are never planned")
+        doc = plan(Path(args.units), Path(args.split), args.split_sha256, Path(args.olb), statuses=args.statuses)
         Path(args.out).write_text(json.dumps(doc, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
         print(json.dumps(doc["counts"], ensure_ascii=False))
         return 0

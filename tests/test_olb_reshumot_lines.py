@@ -431,3 +431,29 @@ def test_yield_report_counts_candidates_and_tiers() -> None:
     cell = olb.yield_report(booklets, rows)["sefer_hachukim|1948-59"]
     assert (cell["booklets"], cell["pages"], cell["candidate_lines"], cell["kept"]) == (2, 8, 13, 4)
     assert cell["by_tier"]["both_exact"] == {"kept": 2, "kept_share": round(2 / 13, 4)}
+
+
+def test_dev_units_come_only_from_the_splits_dev_list(tmp_path: Path) -> None:
+    strat = "sefer_hachukim|1960s"
+    units = [f"reshumot_scanned:sefer_hachukim_{n}" for n in range(300, 312)]
+    doc = {"test": [{"unit_id": units[0], "stratum": strat}],
+           "dev": [{"unit_id": units[1], "stratum": strat}, {"unit_id": "plenary:K5_10", "stratum": "plenary|1960s"}],
+           "non_eval": [{"unit_id": u, "stratum": strat} for u in units[2:]] + [{"unit_id": "plenary:K5_11", "stratum": "plenary|1960s"}]}
+    path = tmp_path / "split.json"
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    sha = hashlib.sha256(path.read_bytes()).hexdigest()
+    (dev,) = olb.dev_units_from_split(path, sha)
+    assert dev["unit_id"] == units[1]
+    ranked = sorted(units, key=lambda u: hashlib.sha256((olb.SPLIT_SALT + u).encode()).hexdigest())
+    assert dev["hash_rank"] == ranked.index(units[1]) + 1
+    with pytest.raises(SystemExit):
+        olb.dev_units_from_split(path, "0" * 64)
+    doc["test"].append({"unit_id": units[1], "stratum": strat})
+    path.write_text(json.dumps(doc), encoding="utf-8")
+    with pytest.raises(SystemExit, match="also a test unit"):
+        olb.dev_units_from_split(path, hashlib.sha256(path.read_bytes()).hexdigest())
+
+
+def test_accept_line_records_footnote_markers_per_reading() -> None:
+    d = olb.accept_line('חוק הדגל והסמל, תש"ט-1949', 'חוק הדגל והסמל, תש"ט-1949', 'חוק הדגל והסמל, תש"ט-1949 *')
+    assert d.evidence.get("layer_footnote_markers", 0) == 0 and d.evidence["tesseract_footnote_markers"] == 1
