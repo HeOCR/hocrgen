@@ -22,7 +22,7 @@ PYTHONPATH=src python -m hocrgen.tools.olb_reshumot_lines plan --units units_enu
 # downloads (gov.il API, 1 request / 1.2 s, User-Agent "HeOCR-research/0.1 (+https://github.com/HeOCR)")
 python -I olb_runner.py capture --plan plan.json --cache CACHE --series sefer_hachukim kovetz_hatakanot
 # the build reads downloads: run it through a runner that puts src/ on sys.path itself, under python -I
-python -I olb_runner.py build OUT --plan plan.json --split ... --split-sha256 SHA --pmod-split pmod_unit_split_v1.json \
+python -I olb_runner.py build OUT --plan plan.json --split ... --split-sha256 SHA \
   --tasks TASKS --olb OLB --cache CACHE --shuffle-seed SEED --workers 8 --signature "<operator signature>"
 python -I olb_runner.py verify OUT --split ... --split-sha256 SHA
 ```
@@ -41,7 +41,8 @@ two passes, missing numbers probed). heocr-eval issues `midcentury_unit_split_v0
 1. **Held-out booklets.** The source is `reshumot_scanned`; unit ids are `reshumot_scanned:<series>_<number>` and
    page ids `reshumot_scanned_<series>_<number>__p0001` (agreed with heocr-eval; never the bare born-digital
    `<series>_<n>` shape). Only booklets that heocr-eval's midcentury split lists `non_eval` are planned, fetched or
-   read; test and dev booklets are never fetched or viewed. `refuse_eval_reserved_training_input` runs against the
+   read for train. Test booklets are never fetched. Dev booklets are fetched only by `capture-dev`, for the dev set,
+   and their crops are never viewed. `refuse_eval_reserved_training_input` runs against the
    packaged registry on the selected booklets before anything is read and on the rows before anything is written,
    and `verify` runs it again. The registry must govern `reshumot_scanned` (heocr-eval's `pmod_unit_split_v2` puts
    every enumerated booklet in it); `training_registry` fails closed before that sync. The split file is pinned by
@@ -72,7 +73,10 @@ two passes, missing numbers probed). heocr-eval issues `midcentury_unit_split_v0
    unless `--keep-footnote-lines` is given, because its label would lack a printed glyph.
 5. **Niqqud.** A span with niqqud or cantillation is dropped (`pointed`).
 6. **Eval 6-gram rule.** A line sharing a word 6-gram (Hebrew-letter words, logical order) with the committed text of
-   a P-mod v1 eval booklet or a wave-1 page is dropped (`eval_ngram_overlap`); the count is in `summary.json`.
+   an eval booklet of the P-mod split or a wave-1 page is dropped (`eval_ngram_overlap`); the count is in
+   `summary.json`. The split defaults to the one hocrgen's eval-reserved registry is synced from
+   (`registry_pmod_split`), so it cannot lag; a `--pmod-split` given by hand must be that file. The pool fails
+   closed when the split names born-digital eval booklets but none of their pages is read.
 
 ## Lines
 
@@ -103,19 +107,22 @@ two passes, missing numbers probed). heocr-eval issues `midcentury_unit_split_v0
 
 ## Split and output
 
-- **Dev holdout (`finalize`).** The lead and heocr-eval list whole non_eval booklets as dev units (about 3 per series
-  × decade). `finalize` removes every line of those units from `olbreshumotlines_v1` (which is then train only) and
-  cuts them again into a separate set, `olbreshumotlines_v1_dev`, with the **layer-only rule** (`layer_exact_only.v1`):
-  a line is kept iff the publisher's text layer equals the OLB span, whatever Tesseract reads. Each dev row records
-  `tesseract_exact` (and the tier `both_exact` or `layer_exact`) as a stratum, never as a filter. The dev set's
-  `README.md` states the selection bias (layer-exact selection drops what the publisher's OCR got wrong, which skews
-  harder) and gives per-booklet candidate and kept counts by tier, and the train aggregate.
+- **Validation split.** `build` keeps one non_eval booklet per (series, midcentury decade) stratum as its `dev`
+  split (the first by `sha256(unit_id)`): a training-validation split, not an evaluation set.
+- **Dev set (`capture-dev`, `dev-set`).** `olbreshumotlines_v1_dev` holds the Reshumot units that heocr-eval's
+  `midcentury_unit_split_v0` reserves as `dev`; `dev-set` accepts exactly those and refuses test, non_eval and
+  unlisted units. It is a **silver dev set (for decisions), not an eval reference; never report it as a test score**
+  (every row `reference_eligible: false`). Lines are kept by the **layer-only rule** (`layer_exact_only.v1`): the
+  publisher's text layer equals the OLB span, whatever Tesseract reads; each row records `tesseract_tier`
+  (`exact` / `not_exact`) as a stratum, never as a filter. Scoring (the lead's decision): every dev line is scored;
+  the `exact` and `not_exact` strata are reported separately; if the exact-only and all-lines verdicts differ in sign,
+  the comparison is unresolved. The set's `README.md` states the selection bias and gives per-unit counts.
   ```bash
-  python -I olb_runner.py finalize OUT --dev-units dev_units.json --dev-out OUT_DEV --plan ... --split ... \
-    --split-sha256 SHA --pmod-split ... --tasks TASKS --olb OLB --cache CACHE --workers 8
+  python -I olb_runner.py capture-dev --units units_enumerated.json --split ... --split-sha256 SHA --dev-cache DEV_CACHE
+  python -I olb_runner.py dev-set OUT_DEV --plan plan_dev.json --split ... --split-sha256 SHA --olb OLB \
+    --dev-cache DEV_CACHE --units units_enumerated.json --shuffle-seed SEED --train OUT
+  python -I olb_runner.py dev-overlap OUT --dev OUT_DEV
   ```
-- Without a dev list, `build` keeps one booklet per (series, midcentury decade) stratum as dev (the first by
-  `sha256(unit_id)`); `finalize` returns those to train.
 - **Yield.** `summary.json` reports per (series, decade) the candidate lines (located lines with an OLB span that
   reached the gate), the kept lines and the kept share, per tier (`yield`). Thin older decades are reported as they
   are; the match criteria are never relaxed to raise yield.

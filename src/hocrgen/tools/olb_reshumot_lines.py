@@ -40,7 +40,7 @@ Held-out units (source ``reshumot_scanned``, unit ids ``reshumot_scanned:<series
 ``reshumot_scanned_<series>_<number>__p0001``): whole booklets that heocr-eval's midcentury split marks test or dev
 are never planned, fetched or read, and ``refuse_eval_reserved_training_input`` runs against the packaged registry,
 which must govern ``reshumot_scanned`` (synced from ``pmod_unit_split_v2``; ``training_registry`` fails closed
-before that). No input path may lie under the lead's eval test-unit folder (``refuse_forbidden_path``). Lines sharing a word 6-gram with a P-mod v1 eval
+before that). No input path may lie under the lead's eval test-unit folder (``refuse_forbidden_path``). Lines sharing a word 6-gram with a current P-mod eval
 booklet's text or a wave-1 page are dropped (``eval_ngram_overlap``). Pointed lines are dropped. Every list output
 is shuffled with ``--shuffle-seed``.
 
@@ -870,12 +870,42 @@ def word_ngrams(text: str, n: int = NGRAM_N) -> set[tuple[str, ...]]:
     return {tuple(words[i:i + n]) for i in range(len(words) - n + 1)}
 
 
-def eval_ngram_pool(tasks: Path, pmod_split: Path) -> tuple[set[tuple[str, ...]], dict[str, Any]]:
-    """Word 6-grams of the P-mod v1 eval booklets' committed text and of the wave-1 pages (heocr-eval's
-    ``ngram_overlap.py`` rule, logical order). Reads only the tranche snapshot's text files."""
+def registry_pmod_split(registry: Any = None) -> Path:
+    """The P-mod split file hocrgen's eval-reserved registry is synced from (its packaged copy, sha256-checked), so
+    guard 6 can never lag the registry."""
 
-    text_dir = tasks / "real-source-mapping/intermediates/e2d3e/tranche/e2d3e_real_tranche_v5/sources/reshumot_born_digital/snapshot/text"
-    wave1 = json.loads((tasks / "eval-domains/capture/wave1/wave1_manifest.json").read_text(encoding="utf-8"))["pages"]
+    from hocrgen.config.loader import package_root
+    from hocrgen.split.eval_reserved import packaged_registry
+
+    registry = registry or packaged_registry()
+    path = package_root() / registry.split_file.packaged_copy
+    if hashlib.sha256(path.read_bytes()).hexdigest() != registry.split_file.sha256:
+        raise SystemExit(f"{path}: sha256 differs from the registry's {registry.split_file.name}")
+    return path
+
+
+def resolve_pmod_split(given: str | Path | None, registry: Any = None) -> Path:
+    """``--pmod-split`` if given (it must be the registry's split file, byte for byte), else the registry's own."""
+
+    synced = registry_pmod_split(registry)
+    if given is None:
+        return synced
+    given = refuse_forbidden_path(given)
+    if hashlib.sha256(given.read_bytes()).hexdigest() != hashlib.sha256(synced.read_bytes()).hexdigest():
+        raise SystemExit(f"--pmod-split {given} is not the split the eval-reserved registry is synced from "
+                         f"({synced.name}); omit it to use the registry's")
+    return given
+
+
+def eval_ngram_pool(tasks: Path, pmod_split: Path, *, text_dir: Path | None = None,
+                    wave1_manifest: Path | None = None) -> tuple[set[tuple[str, ...]], dict[str, Any]]:
+    """Word 6-grams of the current P-mod split's eval booklets (their committed text) and of the wave-1 pages
+    (heocr-eval's ``ngram_overlap.py`` rule, logical order). Reads only the tranche snapshot's text files. Fails
+    closed when the split names born-digital eval units but none of their pages is read (an id-shape mismatch)."""
+
+    text_dir = text_dir or tasks / "real-source-mapping/intermediates/e2d3e/tranche/e2d3e_real_tranche_v5/sources/reshumot_born_digital/snapshot/text"
+    wave1_manifest = wave1_manifest or tasks / "eval-domains/capture/wave1/wave1_manifest.json"
+    wave1 = json.loads(wave1_manifest.read_text(encoding="utf-8"))["pages"]
     split = json.loads(pmod_split.read_text(encoding="utf-8"))
     eval_units = set()
     for key, value in split.items():
@@ -894,10 +924,16 @@ def eval_ngram_pool(tasks: Path, pmod_split: Path) -> tuple[set[tuple[str, ...]]
         if match and f"reshumot:{match.group(1)}_{int(match.group(2))}" in eval_units:
             pool |= word_ngrams(path.read_text(encoding="utf-8"))
             counts["pmod_eval_pages"] += 1
+    born_digital = {u for u in eval_units if isinstance(u, str) and u.startswith("reshumot:")}
+    if born_digital and not counts["pmod_eval_pages"]:
+        raise SystemExit(f"{len(born_digital)} P-mod eval booklets in {pmod_split.name}, but none of their pages was "
+                         f"read from {text_dir}: the 6-gram pool would miss them")
     return pool, {"rule": "drop a line sharing any word 6-gram (Hebrew-letter words, logical order) with the targets",
-                  "targets": {"wave1": str(tasks / "eval-domains/capture/wave1/wave1_manifest.json"),
-                              "pmod_v1_eval_booklets": str(pmod_split), "text_dir": str(text_dir)},
-                  "pages_read": dict(counts), "ngrams": len(pool), "eval_units": len(eval_units)}
+                  "targets": {"wave1": str(wave1_manifest), "pmod_eval_booklets": str(pmod_split),
+                              "pmod_split_sha256": hashlib.sha256(pmod_split.read_bytes()).hexdigest(),
+                              "text_dir": str(text_dir)},
+                  "pages_read": dict(counts), "ngrams": len(pool), "eval_units": len(eval_units),
+                  "born_digital_eval_units": len(born_digital)}
 
 
 # --- network: Wikisource ------------------------------------------------------------------------------------------
@@ -1709,7 +1745,7 @@ DROP_DEFINITIONS = {
     "too_short": f"fewer than {MIN_LINE_CHARS} letters or digits, or fewer than {MIN_LINE_WORDS} words",
     "merged_rows": "the located box is over 1.8 times the page's median line height (two printed rows)",
     "touches_neighbour_line": "no blank row separates the line's ink from a neighbouring line's, so no clean crop exists",
-    "eval_ngram_overlap": "the label shares a word 6-gram with a P-mod v1 eval booklet or a wave-1 page",
+    "eval_ngram_overlap": "the label shares a word 6-gram with an eval booklet of the registry's P-mod split or a wave-1 page",
     "capped": f"over --max-lines-per-booklet, by sha256 of the line id",
     "page_without_scan_image": "pages counted, not lines",
     "booklet_not_scanned": "pages of a PDF without a page image, counted in pages",
@@ -1745,8 +1781,9 @@ def build(args: argparse.Namespace, *, registry: Any = None) -> dict[str, Any]: 
     out = Path(args.out)
     if out.exists():
         raise SystemExit(f"{out} exists")
-    for path in (args.out, args.plan, args.split, args.pmod_split, args.tasks, args.olb, args.cache):
+    for path in (args.out, args.plan, args.split, args.tasks, args.olb, args.cache):
         refuse_forbidden_path(path)
+    args.pmod_split = str(resolve_pmod_split(args.pmod_split))
     plan_doc = json.loads(Path(args.plan).read_text(encoding="utf-8"))
     split_status, split_digest = load_split(Path(args.split), args.split_sha256)
     if split_digest != plan_doc["split_sha256"]:
@@ -2055,6 +2092,18 @@ def capture_dev(units_path: Path, split_path: Path, split_sha256: str, cache: Pa
 
 DEV_README = """# olbreshumotlines_v1_dev
 
+**Silver dev set (for decisions), not an eval reference; never report it as a test score.** Every row keeps
+`reference_eligible: false`.
+
+## Scoring (the lead's decision)
+
+- Every dev line is scored.
+- The `tesseract_tier` strata (`exact`, `not_exact`) are reported separately, beside the all-lines score.
+- If the exact-only verdict and the all-lines verdict differ in sign (one model better on one, worse on the other),
+  the comparison is **unresolved**.
+
+## What it holds
+
 Real-scan dev lines from the {units} Reshumot units (ספר החוקים, קובץ התקנות; 1948 to mid-2005) that heocr-eval's
 `midcentury_unit_split_v0.json` reserves as `dev` (5 per series × period). No line of these units is in
 `olbreshumotlines_v1` (they are eval-reserved in the registry, so the train build never read them). Labels are
@@ -2094,7 +2143,8 @@ evidence tiers); dev counts the layer-only gate.
 
 {audit_note}
 
-Dev crops were never viewed. Checks on this set are programmatic only: counts, box sanity, the text-layer match.
+Dev booklets are fetched only by `capture-dev`, for this set; their crops were never viewed. Checks on this set are
+programmatic only: counts, box sanity, the text-layer match.
 Rows are silver: `adjudication_status: not_adjudicated`, `reference_eligible: false`.
 """
 
@@ -2407,7 +2457,8 @@ def add_build_arguments(sub: Any) -> None:
     b.add_argument("--plan", required=True)
     b.add_argument("--split", required=True, help="heocr-eval's midcentury_unit_split_v0.json")
     b.add_argument("--split-sha256", required=True)
-    b.add_argument("--pmod-split", required=True, help="heocr-eval's current pmod_unit_split (its line_set_condition and eval booklets)")
+    b.add_argument("--pmod-split", help="the P-mod split for guard 6 (default: the one the eval-reserved registry is "
+                                        "synced from; a given file must be that one)")
     b.add_argument("--tasks", required=True, help="the HeOCR tasks directory (wave-1 manifest, tranche text)")
     b.add_argument("--olb", required=True)
     b.add_argument("--cache", required=True)
