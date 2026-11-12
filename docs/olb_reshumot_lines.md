@@ -103,8 +103,23 @@ two passes, missing numbers probed). heocr-eval issues `midcentury_unit_split_v0
 
 ## Split and output
 
-- **Dev** is one booklet per (series, midcentury decade) stratum of the non_eval booklets that give lines, the first
-  by `sha256(unit_id)`; train is every other booklet.
+- **Dev holdout (`finalize`).** The lead and heocr-eval list whole non_eval booklets as dev units (about 3 per series
+  × decade). `finalize` removes every line of those units from `olbreshumotlines_v1` (which is then train only) and
+  cuts them again into a separate set, `olbreshumotlines_v1_dev`, with the **layer-only rule** (`layer_exact_only.v1`):
+  a line is kept iff the publisher's text layer equals the OLB span, whatever Tesseract reads. Each dev row records
+  `tesseract_exact` (and the tier `both_exact` or `layer_exact`) as a stratum, never as a filter. The dev set's
+  `README.md` states the selection bias (layer-exact selection drops what the publisher's OCR got wrong, which skews
+  harder) and gives per-booklet candidate and kept counts by tier, and the train aggregate.
+  ```bash
+  python -I olb_runner.py finalize OUT --dev-units dev_units.json --dev-out OUT_DEV --plan ... --split ... \
+    --split-sha256 SHA --pmod-split ... --tasks TASKS --olb OLB --cache CACHE --workers 8
+  ```
+- Without a dev list, `build` keeps one booklet per (series, midcentury decade) stratum as dev (the first by
+  `sha256(unit_id)`); `finalize` returns those to train.
+- **Yield.** `summary.json` reports per (series, decade) the candidate lines (located lines with an OLB span that
+  reached the gate), the kept lines and the kept share, per tier (`yield`). Thin older decades are reported as they
+  are; the match criteria are never relaxed to raise yield.
+- **Checking.** The sample check of the set is an *agent audit (data-collection subagent)*, not human review.
 - **Shuffle.** `manifest.jsonl`, `train_list.txt` and `dev_list.txt` are shuffled with `--shuffle-seed` (recorded in
   `summary.json`), because `lstmtraining` does not shuffle.
 - **Shape.** `bynli_lines_v2`: `{train,dev}/<series>_<number>/<id>.png` with a `.gt.txt` each, `manifest.jsonl` and

@@ -415,3 +415,19 @@ def test_layer_exact_needs_the_image_to_agree() -> None:
     assert not d.accepted and d.reason == "image_unconfirmed"
     d = olb.accept_line(label, label, None)
     assert d.accepted and d.tier == "layer_exact"
+
+
+def test_yield_report_counts_candidates_and_tiers() -> None:
+    booklets = {
+        "reshumot_scanned:sefer_hachukim_8": {"series": "sefer_hachukim", "year": 1949, "lines_candidate": 3,
+                                             "dropped": {"ocr_disagrees_with_olb": 5, "eval_ngram_overlap": 1, "no_olb_span": 50},
+                                             "facts": {"pages": 6}},
+        "reshumot_scanned:sefer_hachukim_9": {"series": "sefer_hachukim", "year": 1949, "lines_candidate": 1, "dropped": {},
+                                             "facts": {"pages": 2, "candidate_lines": 4}},
+    }
+    assert olb.booklet_candidates(booklets["reshumot_scanned:sefer_hachukim_8"]) == 9  # 3 kept + 1 6-gram + 5 gate drops
+    rows = [{"series": "sefer_hachukim", "decade": "1948-59", "match_evidence": {"tier": t}}
+            for t in ("both_exact", "both_exact", "layer_exact", "char_consensus")]
+    cell = olb.yield_report(booklets, rows)["sefer_hachukim|1948-59"]
+    assert (cell["booklets"], cell["pages"], cell["candidate_lines"], cell["kept"]) == (2, 8, 13, 4)
+    assert cell["by_tier"]["both_exact"] == {"kept": 2, "kept_share": round(2 / 13, 4)}
