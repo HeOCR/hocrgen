@@ -120,6 +120,25 @@ two passes, missing numbers probed). heocr-eval issues `midcentury_unit_split_v0
   reached the gate), the kept lines and the kept share, per tier (`yield`). Thin older decades are reported as they
   are; the match criteria are never relaxed to raise yield.
 - **Checking.** The sample check of the set is an *agent audit (data-collection subagent)*, not human review.
+
+## olbreshumotlines_v1: the release recipe
+
+1. `build` over every captured non_eval booklet (all four evidence tiers are cut).
+2. `capture-dev` + `dev-set`: `olbreshumotlines_v1_dev` from the 60 Reshumot dev units of heocr-eval's
+   `midcentury_unit_split_v0` (layer-only rule, no cap, crops never viewed; `olb_dev_units_v0.json`).
+3. `dev-overlap`: train lines sharing a word 6-gram with a dev line leave the set.
+4. Agent audit with escalation (the lead's rule: a tier whose Wilson 95% upper bound exceeds 2% gets 200 more lines;
+   still over, it leaves v1), then `drop-tiers`. Round 1 (600 lines, 150 per tier) found 10/150 errors in
+   `layer_exact` and in `char_consensus`: both left. Round 2 (+200 per remaining tier): `both_exact` 1/350
+   (0.3%, upper 1.6%), `tesseract_exact` 3/350 (0.9%, upper 2.5%): `tesseract_exact` left. **v1 keeps
+   `both_exact` only.** Every verdict is in [`olb_reshumot_lines_audit_v1.jsonl`](./olb_reshumot_lines_audit_v1.jsonl)
+   (line id, unit, tier, stratum, verdict, error class; no label text).
+5. `olb-reshumot/scripts/drop_eval_overlap.py`: lines sharing a word 6-gram with any target of heocr-eval's
+   `check_train_overlap.py` leave the set; then `check_train_overlap.py` runs last on the final lists.
+
+Error classes the audit found (all tiers): a mark or word beyond the span at the crop's edge (the layer box widened
+to ink that belongs to a neighbour), print spacing in `8 (2)`-style references that OLB writes `8(2)`, a missed
+quote or comma, a superscript footnote marker the readings missed, a cut first letter in letter-spaced signatures.
 - **Shuffle.** `manifest.jsonl`, `train_list.txt` and `dev_list.txt` are shuffled with `--shuffle-seed` (recorded in
   `summary.json`), because `lstmtraining` does not shuffle.
 - **Shape.** `bynli_lines_v2`: `{train,dev}/<series>_<number>/<id>.png` with a `.gt.txt` each, `manifest.jsonl` and

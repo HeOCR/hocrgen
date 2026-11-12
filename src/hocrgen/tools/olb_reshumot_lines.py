@@ -890,7 +890,8 @@ def eval_ngram_pool(tasks: Path, pmod_split: Path) -> tuple[set[tuple[str, ...]]
             counts["wave1_pages"] += 1
     for path in sorted(text_dir.glob("*.txt")):
         match = re.match(r"^(kovetz_hatakanot|sefer_hachukim)_(\d+)__p\d+$", path.stem)
-        if match and unit_id(match.group(1), match.group(2)) in eval_units:
+        # the tranche text is born-digital P-mod: its units are reshumot:<series>_<n> (not reshumot_scanned:)
+        if match and f"reshumot:{match.group(1)}_{int(match.group(2))}" in eval_units:
             pool |= word_ngrams(path.read_text(encoding="utf-8"))
             counts["pmod_eval_pages"] += 1
     return pool, {"rule": "drop a line sharing any word 6-gram (Hebrew-letter words, logical order) with the targets",
@@ -2091,6 +2092,8 @@ evidence tiers); dev counts the layer-only gate.
 
 ## Checks
 
+{audit_note}
+
 Dev crops were never viewed. Checks on this set are programmatic only: counts, box sanity, the text-layer match.
 Rows are silver: `adjudication_status: not_adjudicated`, `reference_eligible: false`.
 """
@@ -2253,7 +2256,8 @@ def build_dev_set(args: argparse.Namespace) -> dict[str, Any]:  # pragma: no cov
     (out / "README.md").write_text(DEV_README.format(
         units=len(dev), table=table, train_cand=train_cand, train_kept=train_rows,
         train_share=f"{train_rows / max(1, train_cand):.1%}", train_tess=train_tess.get("both_exact", 0) + train_tess.get("tesseract_exact", 0),
-        train_notess=train_tess.get("layer_exact", 0) + train_tess.get("char_consensus", 0)), encoding="utf-8")
+        train_notess=train_tess.get("layer_exact", 0) + train_tess.get("char_consensus", 0),
+        audit_note=args.audit_note or ""), encoding="utf-8")
     return summary
 
 
@@ -2261,12 +2265,23 @@ def drop_dev_overlap(train_out: Path, dev_out: Path) -> dict[str, Any]:  # pragm
     """Drop train lines sharing a word 6-gram with a dev line (eval adds the dev lines as a check_train_overlap target),
     rewrite the train manifest, lists and summary, and record the count under line_set_condition."""
 
-    summary = json.loads((train_out / "summary.json").read_text(encoding="utf-8"))
-    rows = [json.loads(l) for l in (train_out / "manifest.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
     pool: set[tuple[str, ...]] = set()
     for line in (dev_out / "manifest.jsonl").read_text(encoding="utf-8").splitlines():
         if line.strip():
             pool |= word_ngrams(json.loads(line)["text"])
+    return drop_ngram_overlap(train_out, pool, "dev_ngram_overlap",
+                              "the label shares a word 6-gram with a line of olbreshumotlines_v1_dev", "dev_overlap",
+                              {"rule": "drop a train line sharing any word 6-gram (Hebrew-letter words, logical order) with a dev line",
+                               "dev_set": str(dev_out.resolve()),
+                               "dev_manifest_sha256": hashlib.sha256((dev_out / "manifest.jsonl").read_bytes()).hexdigest()})
+
+
+def drop_ngram_overlap(train_out: Path, pool: set[tuple[str, ...]], key: str, definition: str, condition_key: str,
+                       info: Mapping[str, Any]) -> dict[str, Any]:  # pragma: no cover - operator run
+    """Drop rows whose label shares a word 6-gram with ``pool``; rewrite the set and record it under ``key``."""
+
+    summary = json.loads((train_out / "summary.json").read_text(encoding="utf-8"))
+    rows = [json.loads(l) for l in (train_out / "manifest.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
     kept, dropped = [], Counter()
     for r in rows:
         if word_ngrams(r["text"]) & pool:
@@ -2274,7 +2289,7 @@ def drop_dev_overlap(train_out: Path, dev_out: Path) -> dict[str, Any]:  # pragm
             path.unlink(missing_ok=True)
             path.with_suffix(".gt.txt").unlink(missing_ok=True)
             dropped[r["unit_id"]] += 1
-            summary["booklets"][r["unit_id"]]["dropped"]["dev_ngram_overlap"] = summary["booklets"][r["unit_id"]]["dropped"].get("dev_ngram_overlap", 0) + 1
+            summary["booklets"][r["unit_id"]]["dropped"][key] = summary["booklets"][r["unit_id"]]["dropped"].get(key, 0) + 1
             summary["booklets"][r["unit_id"]]["lines_candidate"] -= 1
             continue
         r.setdefault("tesseract_exact", bool(r["match_evidence"].get("tesseract_exact")))
@@ -2283,12 +2298,45 @@ def drop_dev_overlap(train_out: Path, dev_out: Path) -> dict[str, Any]:  # pragm
     for r in kept:
         per[r["series"]][r["decade"]][r["split"]] += 1
     n = sum(dropped.values())
-    summary["dropped"]["dev_ngram_overlap"] = n
-    summary["dropped_definitions"]["dev_ngram_overlap"] = "the label shares a word 6-gram with a line of olbreshumotlines_v1_dev"
-    summary["line_set_condition"]["dev_overlap"] = {
-        "rule": "drop a train line sharing any word 6-gram (Hebrew-letter words, logical order) with a dev line",
-        "dev_set": str(dev_out.resolve()), "dev_manifest_sha256": hashlib.sha256((dev_out / "manifest.jsonl").read_bytes()).hexdigest(),
-        "dev_ngrams": len(pool), "dropped_lines": n, "booklets_touched": len(dropped)}
+    summary["dropped"][key] = summary["dropped"].get(key, 0) + n
+    summary["dropped_definitions"][key] = definition
+    summary["line_set_condition"][condition_key] = {**info, "ngrams": len(pool), "dropped_lines": n, "booklets_touched": len(dropped)}
+    summary["totals"] = dict(Counter(r["split"] for r in kept))
+    summary["lines_by_series_decade"] = {s: {d: dict(c) for d, c in sorted(v.items())} for s, v in sorted(per.items())}
+    summary["match_evidence_tiers"] = dict(Counter(r["match_evidence"]["tier"] for r in kept))
+    summary["yield"] = yield_report(summary["booklets"], kept)
+    summary["manifest_sha256"] = _write_set(train_out, kept, summary["shuffle_seed"])
+    (train_out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    return summary
+
+
+def drop_tiers(train_out: Path, tiers: Sequence[str], reason: str) -> dict[str, Any]:  # pragma: no cover - operator run
+    """Drop every row of the given evidence tiers from a built set (the audit's escalation rule: a tier whose error
+    bound is too high leaves the set), rewrite the manifest, lists and summary, and record why."""
+
+    summary = json.loads((train_out / "summary.json").read_text(encoding="utf-8"))
+    rows = [json.loads(l) for l in (train_out / "manifest.jsonl").read_text(encoding="utf-8").splitlines() if l.strip()]
+    tiers = set(tiers)
+    kept, dropped = [], Counter()
+    for r in rows:
+        tier = r["match_evidence"]["tier"]
+        if tier in tiers:
+            path = train_out / r["image"]
+            path.unlink(missing_ok=True)
+            path.with_suffix(".gt.txt").unlink(missing_ok=True)
+            dropped[tier] += 1
+            b = summary["booklets"][r["unit_id"]]
+            b["dropped"][f"tier_dropped:{tier}"] = b["dropped"].get(f"tier_dropped:{tier}", 0) + 1
+            b["lines_candidate"] -= 1
+            continue
+        kept.append(r)
+    per = defaultdict(lambda: defaultdict(Counter))
+    for r in kept:
+        per[r["series"]][r["decade"]][r["split"]] += 1
+    for tier, n in dropped.items():
+        summary["dropped"][f"tier_dropped:{tier}"] = n
+        summary["dropped_definitions"][f"tier_dropped:{tier}"] = reason
+    summary.setdefault("tier_drops", []).append({"tiers": sorted(tiers), "reason": reason, "dropped": dict(dropped)})
     summary["totals"] = dict(Counter(r["split"] for r in kept))
     summary["lines_by_series_decade"] = {s: {d: dict(c) for d, c in sorted(v.items())} for s, v in sorted(per.items())}
     summary["match_evidence_tiers"] = dict(Counter(r["match_evidence"]["tier"] for r in kept))
@@ -2381,8 +2429,13 @@ def add_build_arguments(sub: Any) -> None:
     for name in ("--plan", "--split", "--split-sha256", "--olb", "--dev-cache", "--units", "--shuffle-seed"):
         d.add_argument(name, required=True)
     d.add_argument("--train", help="the built olbreshumotlines_v1, for the README's train aggregate")
+    d.add_argument("--audit-note", help="a paragraph on the train-side agent audit, for the README")
     d.add_argument("--workers", type=int, default=6)
     d.add_argument("--signature")
+    t = sub.add_parser("drop-tiers", help="drop whole evidence tiers from a built set (audit escalation)")
+    t.add_argument("out")
+    t.add_argument("--tiers", nargs="+", required=True, choices=list(TIERS))
+    t.add_argument("--reason", required=True)
     o = sub.add_parser("dev-overlap", help="drop train lines sharing a word 6-gram with a dev line")
     o.add_argument("out")
     o.add_argument("--dev", required=True)
@@ -2404,6 +2457,11 @@ def run_build_command(args: argparse.Namespace) -> int:  # pragma: no cover - op
         result = build_dev_set(args)
         print(json.dumps({k: result[k] for k in ("totals", "kept_by_tesseract_tier", "units_with_lines", "missing_units",
                                                  "geometry_only_drops", "manifest_sha256")}, ensure_ascii=False))
+        return 0
+    if args.command == "drop-tiers":
+        result = drop_tiers(Path(args.out), args.tiers, args.reason)
+        print(json.dumps({"totals": result["totals"], "match_evidence_tiers": result["match_evidence_tiers"],
+                          "manifest_sha256": result["manifest_sha256"]}, ensure_ascii=False))
         return 0
     if args.command == "dev-overlap":
         result = drop_dev_overlap(Path(args.out), Path(args.dev))
