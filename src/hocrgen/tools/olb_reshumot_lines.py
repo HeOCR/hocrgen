@@ -1208,7 +1208,10 @@ class PageLine:
 
 
 def _run(args: Sequence[str], **kwargs: Any) -> subprocess.CompletedProcess:  # pragma: no cover - poppler/tesseract
-    return subprocess.run(list(args), check=True, capture_output=True, **kwargs)
+    import os
+
+    env = {**os.environ, "OMP_THREAD_LIMIT": "1"}  # one thread per Tesseract: the build parallelises over booklets
+    return subprocess.run(list(args), check=True, capture_output=True, env=env, **kwargs)
 
 
 def pdf_info(path: Path) -> dict[str, str]:  # pragma: no cover - poppler
@@ -1718,19 +1721,23 @@ def build(args: argparse.Namespace, *, registry: Any = None) -> dict[str, Any]: 
     refuse_eval_reserved_training_input(selected, builder=BUILDER, registry=registry)
     staging = out / ".staging"
     jobs = []
+    parsed_blocks: dict[str, list[dict[str, Any]]] = {}  # each OLB page is parsed once
     for unit, b in sorted(booklets.items()):
         olb_pages = []
         for cand in b["olb_candidates"]:
             row = pages[cand["title"]]
             if row["revision_id"] != cand["revision_id"]:
                 raise SystemExit(f"{cand['title']}: revision {row['revision_id']} is not the planned {cand['revision_id']}")
-            parsed = parse_olb_page(cand["title"], row["content"], revision_id=row["revision_id"])
-            olb_pages.append({"title": cand["title"], "blocks": [asdict(x) for x in parsed.blocks]})
+            if cand["title"] not in parsed_blocks:
+                parsed = parse_olb_page(cand["title"], row["content"], revision_id=row["revision_id"])
+                parsed_blocks[cand["title"]] = [asdict(x) for x in parsed.blocks]
+            olb_pages.append({"title": cand["title"], "blocks": parsed_blocks[cand["title"]]})
         slug = booklet_slug(b["series"], b["number"])
         jobs.append({"unit_id": unit, "slug": slug, "series": b["series"], "number": b["number"],
                      "pdf": str(cache / "pdf" / f"{slug}.pdf"), "staging": str(staging / slug),
                      "olb_pages": olb_pages, "keep_footnote_lines": args.keep_footnote_lines,
                      "layer_source": "imagestore" if b["series"] == "sefer_hachukim" else "abbyy"})
+    print(f"build: {len(jobs)} booklets, {len(parsed_blocks)} OLB pages parsed", flush=True)
     results = []
     if args.workers > 1:
         with Pool(args.workers) as pool:
