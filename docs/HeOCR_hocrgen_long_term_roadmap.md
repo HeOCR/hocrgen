@@ -1914,11 +1914,12 @@ A run without the new flags is byte-identical to one before E2e. The plan is in 
 
 ## E2f — Evaluation-reserved units
 
-**Direction: heocr-engine decisions 0017 and 0018. `E2f1` (#178), `E2f2` (#187) and `E2f3` (#188) are merged, and `E2f4` is in review.**
+**Direction: heocr-engine decisions 0017 and 0018. `E2f1` (#178), `E2f2` (#187), `E2f3` (#188) and `E2f4` (#189) are merged, and `E2f5` is in review.**
 
 - **`E2f1`.** heocr-eval's P-mod unit split file is recorded as `eval_reserved_units.v1`. Eval and unassigned units are pinned to the `eval_reserved` release split, and every training-input builder refuses them.
 - **`E2f2`.** Governs `reshumot_scanned` (its own `reshumot_scanned:` unit prefix; one booklet, one Reshumot source) and `knesset_plenary_k1_12` (`plenary:K<knesset>_<sitting>`). Their rows are unassigned, and so refused, until a split version lists them.
 - **`E2f3`.** Sync to `pmod_unit_split_v2`, which adds only the 121 born-digital 2005 booklets, all non_eval.
 - **`E2f4`.** Sync to `pmod_unit_split_v3`, which adds the scanned Reshumot (8,211 booklets) and plenary (5,338 sittings) units, with the mid-century test and dev units as eval.
+- **`E2f5`.** Sync to `pmod_unit_split_v4`: the mid-century dev replacements (5 dev units retired, still eval; a 40-unit replacement queue moves to eval).
 
 The plan is in [`planning/tasks/e2f-eval-reserved-units.md`](../planning/tasks/e2f-eval-reserved-units.md).
