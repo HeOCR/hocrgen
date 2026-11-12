@@ -35,14 +35,17 @@ POLICY = {"train": 0.8, "validation": 0.1, "test": 0.1}
 V1_SHA256 = "184d3b77d80dc26330665271aa81e1eace722299aa2962f5b641970b9741562e"
 V2_SHA256 = "a75ed6851e8d9a689994f4ec5c61bae46e4a75dc2e51648f7a5e494306c25be7"
 V3_SHA256 = "36ab37e6f8936581ecc5647a590348c6cc244861fa50f1983dc5ccec3dad6d95"
-CURRENT = "pmod_unit_split_v4.json"
-CURRENT_SHA256 = "c641b1e31e734fce09c1ec5833ac30b553bbef162b536c9f39b31a968d3a21a5"
+V4_SHA256 = "c641b1e31e734fce09c1ec5833ac30b553bbef162b536c9f39b31a968d3a21a5"
+CURRENT = "pmod_unit_split_v5.json"
+CURRENT_SHA256 = "873cef9c30b41ccace7720258f1dcfe9db83d78c67317edbff698960c5ac8a45"
 # v2 = v1 unchanged plus the 121 born-digital 2005 booklets (all non_eval); 175 = 54 + 121
 # v3 = v2 unchanged plus the mid-century scanned sources (eval = test + dev of midcentury_unit_split_v0):
 # 8,211 scanned Reshumot booklets and 5,338 plenary sittings, every enumerated unit listed.
 # v4 = v3 with reshumot_scanned from midcentury_unit_split_v1: 40 dev replacement queue units move non_eval -> eval
 # (5 dev units retired, still eval): 160 = 120 + 40.
-CURRENT_COUNTS = {RESHUMOT: (30, 175), KNESSET: (7, 13), "reshumot_scanned": (160, 8051), "knesset_plenary_k1_12": (60, 5278)}
+# v5 = v4 with the replacement walk applied (midcentury_unit_split_v2): 5 filled queue units become dev, the other 35
+# return to non_eval: 125 = 160 - 35.
+CURRENT_COUNTS = {RESHUMOT: (30, 175), KNESSET: (7, 13), "reshumot_scanned": (125, 8086), "knesset_plenary_k1_12": (60, 5278)}
 EXPOSED = ("reshumot:kovetz_hatakanot_6609", "reshumot:sefer_hachukim_2110")
 
 
@@ -66,13 +69,13 @@ def test_committed_registry_is_generated_from_the_committed_split_file(registry:
     assert registry.split_file.packaged_copy == f"data/eval/{copy.name}"
     assert hashlib.sha256(copy.read_bytes()).hexdigest() == registry.split_file.sha256 == CURRENT_SHA256
     # From v2 the schema field names the file format (v1) and split_version names the assignment.
-    assert registry.split_file.split_version == "v4"
+    assert registry.split_file.split_version == "v5"
     assert registry.split_file.schema_version == "heocr_eval_unit_split.v1"
-    # v4 states what it supersedes: v3 (which superseded v2 and v1), by pinned sha256
+    # v5 states what it supersedes: v4 (v3, v2, v1 before it), by pinned sha256
     data = json.loads(copy.read_text(encoding="utf-8"))
-    assert data["supersedes"]["sha256"] == V3_SHA256
+    assert data["supersedes"]["sha256"] == V4_SHA256
     roles = {u["role"] for u in data["reshumot_scanned"]["eval"]}
-    assert roles == {"test", "dev", "dev_retired", "dev_queue"}
+    assert roles == {"test", "dev", "dev_retired"}
     assert data["midcentury_coverage"]["reshumot_scanned"]["enumerated"] == 8211
     assert data["midcentury_coverage"]["knesset_plenary_k1_12"]["enumerated"] == 5338
     assert registry.decision == "heocr-engine planning/decisions/0017"
@@ -121,13 +124,13 @@ def _split_json(**overrides) -> bytes:
 @pytest.mark.parametrize(
     ("name", "payload", "message"),
     [
-        ("pmod_unit_split_v4.json", _split_json(superseded_by="labels/pmod_unit_split_v5.json"), "superseded"),
+        ("pmod_unit_split_v5.json", _split_json(superseded_by="labels/pmod_unit_split_v6.json"), "superseded"),
         ("units.json", _split_json(), "is not pmod_unit_split"),
-        ("pmod_unit_split_v5.json", _split_json(), "states split_version"),
-        ("pmod_unit_split_v4.json", _split_json(usage="eval units are never training input."), "unassigned"),
-        ("pmod_unit_split_v4.json", _split_json(tenders={"eval": [], "non_eval": []}), "does not map"),
-        ("pmod_unit_split_v4.json", _split_json(owner=None), "no owner"),
-        ("pmod_unit_split_v4.json",
+        ("pmod_unit_split_v6.json", _split_json(), "states split_version"),
+        ("pmod_unit_split_v5.json", _split_json(usage="eval units are never training input."), "unassigned"),
+        ("pmod_unit_split_v5.json", _split_json(tenders={"eval": [], "non_eval": []}), "does not map"),
+        ("pmod_unit_split_v5.json", _split_json(owner=None), "no owner"),
+        ("pmod_unit_split_v5.json",
          _split_json(knesset_committee_protocols_pre1976={"eval": [{"unit_id": "knesset_protocol:1"}] * 2, "non_eval": []}),
          "repeated unit_id"),
     ],

@@ -6,11 +6,11 @@ version: 1
 registry_id: eval_reserved_units.v1
 generated_by: hocrgen.tools.eval_reserved_units sync
 split_file:
-  name: pmod_unit_split_v4.json
-  split_version: v4
+  name: pmod_unit_split_v5.json
+  split_version: v5
   schema_version: heocr_eval_unit_split.v1
-  sha256: c641b1e31e734fce09c1ec5833ac30b553bbef162b536c9f39b31a968d3a21a5
-  packaged_copy: data/eval/pmod_unit_split_v4.json
+  sha256: 873cef9c30b41ccace7720258f1dcfe9db83d78c67317edbff698960c5ac8a45
+  packaged_copy: data/eval/pmod_unit_split_v5.json
 decision: heocr-engine planning/decisions/0017
 owner: eval[claude/claude-code#shay-macbook-m4]@heocr/opensource
 usage: 'eval units: never used for training, tuning, selection, glyph harvesting or synthetic style/layout sources. non_eval
@@ -5600,53 +5600,31 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_11
   - reshumot_scanned:kovetz_hatakanot_1285
   - reshumot_scanned:kovetz_hatakanot_1410
-  - reshumot_scanned:kovetz_hatakanot_145
-  - reshumot_scanned:kovetz_hatakanot_147
   - reshumot_scanned:kovetz_hatakanot_1479
-  - reshumot_scanned:kovetz_hatakanot_149
   - reshumot_scanned:kovetz_hatakanot_1535
   - reshumot_scanned:kovetz_hatakanot_1550
   - reshumot_scanned:kovetz_hatakanot_1586
   - reshumot_scanned:kovetz_hatakanot_1874
   - reshumot_scanned:kovetz_hatakanot_1982
-  - reshumot_scanned:kovetz_hatakanot_214
   - reshumot_scanned:kovetz_hatakanot_215
-  - reshumot_scanned:kovetz_hatakanot_223
   - reshumot_scanned:kovetz_hatakanot_2294
   - reshumot_scanned:kovetz_hatakanot_2352
-  - reshumot_scanned:kovetz_hatakanot_241
-  - reshumot_scanned:kovetz_hatakanot_2670
-  - reshumot_scanned:kovetz_hatakanot_271
   - reshumot_scanned:kovetz_hatakanot_2719
-  - reshumot_scanned:kovetz_hatakanot_2733
   - reshumot_scanned:kovetz_hatakanot_2828
   - reshumot_scanned:kovetz_hatakanot_2878
-  - reshumot_scanned:kovetz_hatakanot_2992
   - reshumot_scanned:kovetz_hatakanot_2995
   - reshumot_scanned:kovetz_hatakanot_3032
   - reshumot_scanned:kovetz_hatakanot_311
-  - reshumot_scanned:kovetz_hatakanot_321
   - reshumot_scanned:kovetz_hatakanot_3361
-  - reshumot_scanned:kovetz_hatakanot_3366
-  - reshumot_scanned:kovetz_hatakanot_3413
   - reshumot_scanned:kovetz_hatakanot_3467
-  - reshumot_scanned:kovetz_hatakanot_3537
-  - reshumot_scanned:kovetz_hatakanot_3721
   - reshumot_scanned:kovetz_hatakanot_3737
   - reshumot_scanned:kovetz_hatakanot_3774
-  - reshumot_scanned:kovetz_hatakanot_3816
   - reshumot_scanned:kovetz_hatakanot_3821
   - reshumot_scanned:kovetz_hatakanot_3835
-  - reshumot_scanned:kovetz_hatakanot_3947
-  - reshumot_scanned:kovetz_hatakanot_397
-  - reshumot_scanned:kovetz_hatakanot_409
-  - reshumot_scanned:kovetz_hatakanot_415
   - reshumot_scanned:kovetz_hatakanot_4211
   - reshumot_scanned:kovetz_hatakanot_4405
   - reshumot_scanned:kovetz_hatakanot_4429
-  - reshumot_scanned:kovetz_hatakanot_452
   - reshumot_scanned:kovetz_hatakanot_4550
-  - reshumot_scanned:kovetz_hatakanot_467
   - reshumot_scanned:kovetz_hatakanot_4829
   - reshumot_scanned:kovetz_hatakanot_491
   - reshumot_scanned:kovetz_hatakanot_492
@@ -5656,7 +5634,6 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_499
   - reshumot_scanned:kovetz_hatakanot_5014
   - reshumot_scanned:kovetz_hatakanot_5063
-  - reshumot_scanned:kovetz_hatakanot_508
   - reshumot_scanned:kovetz_hatakanot_5340
   - reshumot_scanned:kovetz_hatakanot_5379
   - reshumot_scanned:kovetz_hatakanot_5471
@@ -5665,17 +5642,12 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_5561
   - reshumot_scanned:kovetz_hatakanot_5589
   - reshumot_scanned:kovetz_hatakanot_5660
-  - reshumot_scanned:kovetz_hatakanot_572
   - reshumot_scanned:kovetz_hatakanot_5825
   - reshumot_scanned:kovetz_hatakanot_5859
-  - reshumot_scanned:kovetz_hatakanot_587
   - reshumot_scanned:kovetz_hatakanot_5883
   - reshumot_scanned:kovetz_hatakanot_592
-  - reshumot_scanned:kovetz_hatakanot_597
   - reshumot_scanned:kovetz_hatakanot_5973
-  - reshumot_scanned:kovetz_hatakanot_601
   - reshumot_scanned:kovetz_hatakanot_6025
-  - reshumot_scanned:kovetz_hatakanot_606
   - reshumot_scanned:kovetz_hatakanot_6110
   - reshumot_scanned:kovetz_hatakanot_6169
   - reshumot_scanned:kovetz_hatakanot_6227
@@ -5685,18 +5657,11 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_6245
   - reshumot_scanned:kovetz_hatakanot_6269
   - reshumot_scanned:kovetz_hatakanot_6357
-  - reshumot_scanned:kovetz_hatakanot_638
   - reshumot_scanned:kovetz_hatakanot_643
-  - reshumot_scanned:kovetz_hatakanot_645
   - reshumot_scanned:kovetz_hatakanot_648
   - reshumot_scanned:kovetz_hatakanot_649
   - reshumot_scanned:kovetz_hatakanot_695
-  - reshumot_scanned:kovetz_hatakanot_702
-  - reshumot_scanned:kovetz_hatakanot_911
-  - reshumot_scanned:kovetz_hatakanot_913
   - reshumot_scanned:kovetz_hatakanot_922
-  - reshumot_scanned:kovetz_hatakanot_949
-  - reshumot_scanned:kovetz_hatakanot_967
   - reshumot_scanned:sefer_hachukim_1003
   - reshumot_scanned:sefer_hachukim_1037
   - reshumot_scanned:sefer_hachukim_1057
@@ -6255,6 +6220,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_1447
   - reshumot_scanned:kovetz_hatakanot_1448
   - reshumot_scanned:kovetz_hatakanot_1449
+  - reshumot_scanned:kovetz_hatakanot_145
   - reshumot_scanned:kovetz_hatakanot_1450
   - reshumot_scanned:kovetz_hatakanot_1451
   - reshumot_scanned:kovetz_hatakanot_1452
@@ -6276,6 +6242,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_1467
   - reshumot_scanned:kovetz_hatakanot_1468
   - reshumot_scanned:kovetz_hatakanot_1469
+  - reshumot_scanned:kovetz_hatakanot_147
   - reshumot_scanned:kovetz_hatakanot_1470
   - reshumot_scanned:kovetz_hatakanot_1471
   - reshumot_scanned:kovetz_hatakanot_1472
@@ -6295,6 +6262,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_1487
   - reshumot_scanned:kovetz_hatakanot_1488
   - reshumot_scanned:kovetz_hatakanot_1489
+  - reshumot_scanned:kovetz_hatakanot_149
   - reshumot_scanned:kovetz_hatakanot_1490
   - reshumot_scanned:kovetz_hatakanot_1491
   - reshumot_scanned:kovetz_hatakanot_1492
@@ -7012,6 +6980,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_2137
   - reshumot_scanned:kovetz_hatakanot_2138
   - reshumot_scanned:kovetz_hatakanot_2139
+  - reshumot_scanned:kovetz_hatakanot_214
   - reshumot_scanned:kovetz_hatakanot_2140
   - reshumot_scanned:kovetz_hatakanot_2141
   - reshumot_scanned:kovetz_hatakanot_2142
@@ -7110,6 +7079,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_2227
   - reshumot_scanned:kovetz_hatakanot_2228
   - reshumot_scanned:kovetz_hatakanot_2229
+  - reshumot_scanned:kovetz_hatakanot_223
   - reshumot_scanned:kovetz_hatakanot_2230
   - reshumot_scanned:kovetz_hatakanot_2231
   - reshumot_scanned:kovetz_hatakanot_2232
@@ -7307,6 +7277,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_2407
   - reshumot_scanned:kovetz_hatakanot_2408
   - reshumot_scanned:kovetz_hatakanot_2409
+  - reshumot_scanned:kovetz_hatakanot_241
   - reshumot_scanned:kovetz_hatakanot_2410
   - reshumot_scanned:kovetz_hatakanot_2411
   - reshumot_scanned:kovetz_hatakanot_2412
@@ -7595,6 +7566,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_2668
   - reshumot_scanned:kovetz_hatakanot_2669
   - reshumot_scanned:kovetz_hatakanot_267
+  - reshumot_scanned:kovetz_hatakanot_2670
   - reshumot_scanned:kovetz_hatakanot_2671
   - reshumot_scanned:kovetz_hatakanot_2672
   - reshumot_scanned:kovetz_hatakanot_2673
@@ -7638,6 +7610,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_2707
   - reshumot_scanned:kovetz_hatakanot_2708
   - reshumot_scanned:kovetz_hatakanot_2709
+  - reshumot_scanned:kovetz_hatakanot_271
   - reshumot_scanned:kovetz_hatakanot_2710
   - reshumot_scanned:kovetz_hatakanot_2711
   - reshumot_scanned:kovetz_hatakanot_2712
@@ -7662,6 +7635,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_2730
   - reshumot_scanned:kovetz_hatakanot_2731
   - reshumot_scanned:kovetz_hatakanot_2732
+  - reshumot_scanned:kovetz_hatakanot_2733
   - reshumot_scanned:kovetz_hatakanot_2734
   - reshumot_scanned:kovetz_hatakanot_2735
   - reshumot_scanned:kovetz_hatakanot_2736
@@ -7946,6 +7920,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_299
   - reshumot_scanned:kovetz_hatakanot_2990
   - reshumot_scanned:kovetz_hatakanot_2991
+  - reshumot_scanned:kovetz_hatakanot_2992
   - reshumot_scanned:kovetz_hatakanot_2993
   - reshumot_scanned:kovetz_hatakanot_2994
   - reshumot_scanned:kovetz_hatakanot_2996
@@ -8185,6 +8160,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_3207
   - reshumot_scanned:kovetz_hatakanot_3208
   - reshumot_scanned:kovetz_hatakanot_3209
+  - reshumot_scanned:kovetz_hatakanot_321
   - reshumot_scanned:kovetz_hatakanot_3210
   - reshumot_scanned:kovetz_hatakanot_3211
   - reshumot_scanned:kovetz_hatakanot_3212
@@ -8356,6 +8332,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_3363
   - reshumot_scanned:kovetz_hatakanot_3364
   - reshumot_scanned:kovetz_hatakanot_3365
+  - reshumot_scanned:kovetz_hatakanot_3366
   - reshumot_scanned:kovetz_hatakanot_3367
   - reshumot_scanned:kovetz_hatakanot_3368
   - reshumot_scanned:kovetz_hatakanot_3369
@@ -8408,6 +8385,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_3410
   - reshumot_scanned:kovetz_hatakanot_3411
   - reshumot_scanned:kovetz_hatakanot_3412
+  - reshumot_scanned:kovetz_hatakanot_3413
   - reshumot_scanned:kovetz_hatakanot_3414
   - reshumot_scanned:kovetz_hatakanot_3415
   - reshumot_scanned:kovetz_hatakanot_3416
@@ -8543,6 +8521,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_3534
   - reshumot_scanned:kovetz_hatakanot_3535
   - reshumot_scanned:kovetz_hatakanot_3536
+  - reshumot_scanned:kovetz_hatakanot_3537
   - reshumot_scanned:kovetz_hatakanot_3538
   - reshumot_scanned:kovetz_hatakanot_3539
   - reshumot_scanned:kovetz_hatakanot_354
@@ -8747,6 +8726,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_3719
   - reshumot_scanned:kovetz_hatakanot_372
   - reshumot_scanned:kovetz_hatakanot_3720
+  - reshumot_scanned:kovetz_hatakanot_3721
   - reshumot_scanned:kovetz_hatakanot_3722
   - reshumot_scanned:kovetz_hatakanot_3723
   - reshumot_scanned:kovetz_hatakanot_3724
@@ -8849,6 +8829,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_3813
   - reshumot_scanned:kovetz_hatakanot_3814
   - reshumot_scanned:kovetz_hatakanot_3815
+  - reshumot_scanned:kovetz_hatakanot_3816
   - reshumot_scanned:kovetz_hatakanot_3817
   - reshumot_scanned:kovetz_hatakanot_3818
   - reshumot_scanned:kovetz_hatakanot_3819
@@ -8991,6 +8972,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_3944
   - reshumot_scanned:kovetz_hatakanot_3945
   - reshumot_scanned:kovetz_hatakanot_3946
+  - reshumot_scanned:kovetz_hatakanot_3947
   - reshumot_scanned:kovetz_hatakanot_3948
   - reshumot_scanned:kovetz_hatakanot_3949
   - reshumot_scanned:kovetz_hatakanot_395
@@ -9015,6 +8997,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_3967
   - reshumot_scanned:kovetz_hatakanot_3968
   - reshumot_scanned:kovetz_hatakanot_3969
+  - reshumot_scanned:kovetz_hatakanot_397
   - reshumot_scanned:kovetz_hatakanot_3970
   - reshumot_scanned:kovetz_hatakanot_3971
   - reshumot_scanned:kovetz_hatakanot_3972
@@ -9148,6 +9131,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_4087
   - reshumot_scanned:kovetz_hatakanot_4088
   - reshumot_scanned:kovetz_hatakanot_4089
+  - reshumot_scanned:kovetz_hatakanot_409
   - reshumot_scanned:kovetz_hatakanot_4090
   - reshumot_scanned:kovetz_hatakanot_4091
   - reshumot_scanned:kovetz_hatakanot_4092
@@ -9214,6 +9198,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_4147
   - reshumot_scanned:kovetz_hatakanot_4148
   - reshumot_scanned:kovetz_hatakanot_4149
+  - reshumot_scanned:kovetz_hatakanot_415
   - reshumot_scanned:kovetz_hatakanot_4150
   - reshumot_scanned:kovetz_hatakanot_4151
   - reshumot_scanned:kovetz_hatakanot_4152
@@ -9621,6 +9606,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_4517
   - reshumot_scanned:kovetz_hatakanot_4518
   - reshumot_scanned:kovetz_hatakanot_4519
+  - reshumot_scanned:kovetz_hatakanot_452
   - reshumot_scanned:kovetz_hatakanot_4520
   - reshumot_scanned:kovetz_hatakanot_4521
   - reshumot_scanned:kovetz_hatakanot_4522
@@ -9785,6 +9771,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_4667
   - reshumot_scanned:kovetz_hatakanot_4668
   - reshumot_scanned:kovetz_hatakanot_4669
+  - reshumot_scanned:kovetz_hatakanot_467
   - reshumot_scanned:kovetz_hatakanot_4670
   - reshumot_scanned:kovetz_hatakanot_4671
   - reshumot_scanned:kovetz_hatakanot_4672
@@ -10230,6 +10217,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_5077
   - reshumot_scanned:kovetz_hatakanot_5078
   - reshumot_scanned:kovetz_hatakanot_5079
+  - reshumot_scanned:kovetz_hatakanot_508
   - reshumot_scanned:kovetz_hatakanot_5080
   - reshumot_scanned:kovetz_hatakanot_5081
   - reshumot_scanned:kovetz_hatakanot_5082
@@ -10931,6 +10919,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_5717
   - reshumot_scanned:kovetz_hatakanot_5718
   - reshumot_scanned:kovetz_hatakanot_5719
+  - reshumot_scanned:kovetz_hatakanot_572
   - reshumot_scanned:kovetz_hatakanot_5720
   - reshumot_scanned:kovetz_hatakanot_5721
   - reshumot_scanned:kovetz_hatakanot_5722
@@ -11094,6 +11083,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_5867
   - reshumot_scanned:kovetz_hatakanot_5868
   - reshumot_scanned:kovetz_hatakanot_5869
+  - reshumot_scanned:kovetz_hatakanot_587
   - reshumot_scanned:kovetz_hatakanot_5870
   - reshumot_scanned:kovetz_hatakanot_5871
   - reshumot_scanned:kovetz_hatakanot_5872
@@ -11202,6 +11192,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_5967
   - reshumot_scanned:kovetz_hatakanot_5968
   - reshumot_scanned:kovetz_hatakanot_5969
+  - reshumot_scanned:kovetz_hatakanot_597
   - reshumot_scanned:kovetz_hatakanot_5970
   - reshumot_scanned:kovetz_hatakanot_5971
   - reshumot_scanned:kovetz_hatakanot_5972
@@ -11246,6 +11237,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_6007
   - reshumot_scanned:kovetz_hatakanot_6008
   - reshumot_scanned:kovetz_hatakanot_6009
+  - reshumot_scanned:kovetz_hatakanot_601
   - reshumot_scanned:kovetz_hatakanot_6010
   - reshumot_scanned:kovetz_hatakanot_6011
   - reshumot_scanned:kovetz_hatakanot_6012
@@ -11299,6 +11291,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_6057
   - reshumot_scanned:kovetz_hatakanot_6058
   - reshumot_scanned:kovetz_hatakanot_6059
+  - reshumot_scanned:kovetz_hatakanot_606
   - reshumot_scanned:kovetz_hatakanot_6060
   - reshumot_scanned:kovetz_hatakanot_6061
   - reshumot_scanned:kovetz_hatakanot_6062
@@ -11643,6 +11636,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_6377
   - reshumot_scanned:kovetz_hatakanot_6378
   - reshumot_scanned:kovetz_hatakanot_6379
+  - reshumot_scanned:kovetz_hatakanot_638
   - reshumot_scanned:kovetz_hatakanot_6380
   - reshumot_scanned:kovetz_hatakanot_6381
   - reshumot_scanned:kovetz_hatakanot_6382
@@ -11663,6 +11657,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_641
   - reshumot_scanned:kovetz_hatakanot_642
   - reshumot_scanned:kovetz_hatakanot_644
+  - reshumot_scanned:kovetz_hatakanot_645
   - reshumot_scanned:kovetz_hatakanot_646
   - reshumot_scanned:kovetz_hatakanot_647
   - reshumot_scanned:kovetz_hatakanot_65
@@ -11721,6 +11716,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_70
   - reshumot_scanned:kovetz_hatakanot_700
   - reshumot_scanned:kovetz_hatakanot_701
+  - reshumot_scanned:kovetz_hatakanot_702
   - reshumot_scanned:kovetz_hatakanot_703
   - reshumot_scanned:kovetz_hatakanot_704
   - reshumot_scanned:kovetz_hatakanot_705
@@ -11803,7 +11799,9 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_909
   - reshumot_scanned:kovetz_hatakanot_91
   - reshumot_scanned:kovetz_hatakanot_910
+  - reshumot_scanned:kovetz_hatakanot_911
   - reshumot_scanned:kovetz_hatakanot_912
+  - reshumot_scanned:kovetz_hatakanot_913
   - reshumot_scanned:kovetz_hatakanot_914
   - reshumot_scanned:kovetz_hatakanot_915
   - reshumot_scanned:kovetz_hatakanot_916
@@ -11841,6 +11839,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_946
   - reshumot_scanned:kovetz_hatakanot_947
   - reshumot_scanned:kovetz_hatakanot_948
+  - reshumot_scanned:kovetz_hatakanot_949
   - reshumot_scanned:kovetz_hatakanot_95
   - reshumot_scanned:kovetz_hatakanot_950
   - reshumot_scanned:kovetz_hatakanot_951
@@ -11860,6 +11859,7 @@ sources:
   - reshumot_scanned:kovetz_hatakanot_964
   - reshumot_scanned:kovetz_hatakanot_965
   - reshumot_scanned:kovetz_hatakanot_966
+  - reshumot_scanned:kovetz_hatakanot_967
   - reshumot_scanned:kovetz_hatakanot_968
   - reshumot_scanned:kovetz_hatakanot_969
   - reshumot_scanned:kovetz_hatakanot_97
