@@ -1,11 +1,11 @@
 {
  "schema_version": "heocr_eval_unit_split.v1",
- "split_version": "v3",
+ "split_version": "v4",
  "split_version_doc": "split_version names the assignment; schema_version names the file format",
  "supersedes": {
-  "file": "pmod_unit_split_v2.json",
-  "sha256": "a75ed6851e8d9a689994f4ec5c61bae46e4a75dc2e51648f7a5e494306c25be7",
-  "change": "v2 assignments copied unchanged; mid-century scanned sources added"
+  "file": "pmod_unit_split_v3.json",
+  "sha256": "36ab37e6f8936581ecc5647a590348c6cc244861fa50f1983dc5ccec3dad6d95",
+  "change": "reshumot_scanned re-derived from midcentury_unit_split_v1: 40 dev replacement queue units move non_eval -> eval; 5 dev units are now role dev_retired (still eval); all else unchanged"
  },
  "exposed_units": {
   "reshumot:kovetz_hatakanot_6609": "used in R4f dev selection (data-collection audit, 2026-11-11)",
@@ -2243,6 +2243,24 @@
     "role": "test"
    },
    {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_145",
+    "series": "kovetz_hatakanot",
+    "year": 1951,
+    "pages": 5,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_147",
+    "series": "kovetz_hatakanot",
+    "year": 1951,
+    "pages": 5,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_1479",
     "series": "kovetz_hatakanot",
     "year": 1963,
@@ -2250,6 +2268,15 @@
     "files": 1,
     "stratum": "kovetz_hatakanot|1960s",
     "role": "test"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_149",
+    "series": "kovetz_hatakanot",
+    "year": 1951,
+    "pages": 17,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
    },
    {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_1535",
@@ -2297,13 +2324,31 @@
     "role": "test"
    },
    {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_214",
+    "series": "kovetz_hatakanot",
+    "year": 1951,
+    "pages": 33,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_215",
     "series": "kovetz_hatakanot",
     "year": 1951,
     "pages": 3,
     "files": 1,
     "stratum": "kovetz_hatakanot|1948-59",
-    "role": "dev"
+    "role": "dev_retired"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_223",
+    "series": "kovetz_hatakanot",
+    "year": 1951,
+    "pages": 13,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
    },
    {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_2294",
@@ -2324,6 +2369,51 @@
     "role": "dev"
    },
    {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_241",
+    "series": "kovetz_hatakanot",
+    "year": 1952,
+    "pages": 25,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_2670",
+    "series": "kovetz_hatakanot",
+    "year": 1971,
+    "pages": 17,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1970s",
+    "role": "dev_queue"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_271",
+    "series": "kovetz_hatakanot",
+    "year": 1952,
+    "pages": 33,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_2719",
+    "series": "kovetz_hatakanot",
+    "year": 1971,
+    "pages": 13,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1970s",
+    "role": "dev_queue"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_2733",
+    "series": "kovetz_hatakanot",
+    "year": 1971,
+    "pages": 5,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1970s",
+    "role": "dev_queue"
+   },
+   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_2828",
     "series": "kovetz_hatakanot",
     "year": 1972,
@@ -2340,6 +2430,15 @@
     "files": 1,
     "stratum": "kovetz_hatakanot|1970s",
     "role": "test"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_2992",
+    "series": "kovetz_hatakanot",
+    "year": 1973,
+    "pages": 4,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1970s",
+    "role": "dev_queue"
    },
    {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_2995",
@@ -2369,6 +2468,15 @@
     "role": "test"
    },
    {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_321",
+    "series": "kovetz_hatakanot",
+    "year": 1952,
+    "pages": 30,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_3361",
     "series": "kovetz_hatakanot",
     "year": 1975,
@@ -2378,6 +2486,24 @@
     "role": "test"
    },
    {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_3366",
+    "series": "kovetz_hatakanot",
+    "year": 1975,
+    "pages": 68,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1970s",
+    "role": "dev_queue"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_3413",
+    "series": "kovetz_hatakanot",
+    "year": 1975,
+    "pages": 17,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1970s",
+    "role": "dev_queue"
+   },
+   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_3467",
     "series": "kovetz_hatakanot",
     "year": 1976,
@@ -2385,6 +2511,24 @@
     "files": 1,
     "stratum": "kovetz_hatakanot|1970s",
     "role": "test"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_3537",
+    "series": "kovetz_hatakanot",
+    "year": 1976,
+    "pages": 21,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1970s",
+    "role": "dev_queue"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_3721",
+    "series": "kovetz_hatakanot",
+    "year": 1977,
+    "pages": 17,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1970s",
+    "role": "dev_queue"
    },
    {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_3737",
@@ -2405,6 +2549,15 @@
     "role": "test"
    },
    {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_3816",
+    "series": "kovetz_hatakanot",
+    "year": 1978,
+    "pages": 5,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1970s",
+    "role": "dev_queue"
+   },
+   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_3821",
     "series": "kovetz_hatakanot",
     "year": 1978,
@@ -2420,7 +2573,43 @@
     "pages": 19,
     "files": 1,
     "stratum": "kovetz_hatakanot|1970s",
-    "role": "dev"
+    "role": "dev_retired"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_3947",
+    "series": "kovetz_hatakanot",
+    "year": 1979,
+    "pages": 17,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1970s",
+    "role": "dev_queue"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_397",
+    "series": "kovetz_hatakanot",
+    "year": 1953,
+    "pages": 13,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_409",
+    "series": "kovetz_hatakanot",
+    "year": 1953,
+    "pages": 7,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_415",
+    "series": "kovetz_hatakanot",
+    "year": 1954,
+    "pages": 9,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
    },
    {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_4211",
@@ -2450,6 +2639,15 @@
     "role": "dev"
    },
    {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_452",
+    "series": "kovetz_hatakanot",
+    "year": 1954,
+    "pages": 13,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_4550",
     "series": "kovetz_hatakanot",
     "year": 1983,
@@ -2457,6 +2655,15 @@
     "files": 1,
     "stratum": "kovetz_hatakanot|1980s",
     "role": "test"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_467",
+    "series": "kovetz_hatakanot",
+    "year": 1954,
+    "pages": 39,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
    },
    {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_4829",
@@ -2474,7 +2681,7 @@
     "pages": 21,
     "files": 1,
     "stratum": "kovetz_hatakanot|1948-59",
-    "role": "dev"
+    "role": "dev_retired"
    },
    {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_492",
@@ -2519,7 +2726,7 @@
     "pages": 21,
     "files": 1,
     "stratum": "kovetz_hatakanot|1948-59",
-    "role": "dev"
+    "role": "dev_retired"
    },
    {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_5014",
@@ -2538,6 +2745,15 @@
     "files": 1,
     "stratum": "kovetz_hatakanot|1980s",
     "role": "test"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_508",
+    "series": "kovetz_hatakanot",
+    "year": 1955,
+    "pages": 33,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
    },
    {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_5340",
@@ -2565,6 +2781,15 @@
     "files": 1,
     "stratum": "kovetz_hatakanot|1990s",
     "role": "dev"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_555",
+    "series": "kovetz_hatakanot",
+    "year": 1955,
+    "pages": 13,
+    "files": 2,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
    },
    {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_556",
@@ -2603,6 +2828,15 @@
     "role": "dev"
    },
    {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_572",
+    "series": "kovetz_hatakanot",
+    "year": 1955,
+    "pages": 24,
+    "files": 2,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_5825",
     "series": "kovetz_hatakanot",
     "year": 1997,
@@ -2621,6 +2855,15 @@
     "role": "test"
    },
    {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_587",
+    "series": "kovetz_hatakanot",
+    "year": 1956,
+    "pages": 17,
+    "files": 2,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_5883",
     "series": "kovetz_hatakanot",
     "year": 1998,
@@ -2628,6 +2871,24 @@
     "files": 1,
     "stratum": "kovetz_hatakanot|1990s",
     "role": "dev"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_592",
+    "series": "kovetz_hatakanot",
+    "year": 1956,
+    "pages": 25,
+    "files": 2,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_597",
+    "series": "kovetz_hatakanot",
+    "year": 1956,
+    "pages": 8,
+    "files": 2,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
    },
    {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_5973",
@@ -2639,6 +2900,15 @@
     "role": "test"
    },
    {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_601",
+    "series": "kovetz_hatakanot",
+    "year": 1956,
+    "pages": 21,
+    "files": 2,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_6025",
     "series": "kovetz_hatakanot",
     "year": 2000,
@@ -2646,6 +2916,15 @@
     "files": 1,
     "stratum": "kovetz_hatakanot|2000-mid2005",
     "role": "dev"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_606",
+    "series": "kovetz_hatakanot",
+    "year": 1956,
+    "pages": 7,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
    },
    {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_6110",
@@ -2729,13 +3008,40 @@
     "role": "test"
    },
    {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_638",
+    "series": "kovetz_hatakanot",
+    "year": 1956,
+    "pages": 13,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_643",
     "series": "kovetz_hatakanot",
     "year": 1956,
     "pages": 9,
     "files": 1,
     "stratum": "kovetz_hatakanot|1948-59",
-    "role": "dev"
+    "role": "dev_retired"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_645",
+    "series": "kovetz_hatakanot",
+    "year": 1956,
+    "pages": 33,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_648",
+    "series": "kovetz_hatakanot",
+    "year": 1956,
+    "pages": 39,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
    },
    {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_649",
@@ -2747,6 +3053,42 @@
     "role": "test"
    },
    {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_695",
+    "series": "kovetz_hatakanot",
+    "year": 1957,
+    "pages": 3,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_702",
+    "series": "kovetz_hatakanot",
+    "year": 1957,
+    "pages": 5,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_911",
+    "series": "kovetz_hatakanot",
+    "year": 1959,
+    "pages": 21,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_913",
+    "series": "kovetz_hatakanot",
+    "year": 1959,
+    "pages": 17,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_922",
     "series": "kovetz_hatakanot",
     "year": 1959,
@@ -2754,6 +3096,24 @@
     "files": 1,
     "stratum": "kovetz_hatakanot|1948-59",
     "role": "test"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_949",
+    "series": "kovetz_hatakanot",
+    "year": 1959,
+    "pages": 21,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
+   },
+   {
+    "unit_id": "reshumot_scanned:kovetz_hatakanot_967",
+    "series": "kovetz_hatakanot",
+    "year": 1959,
+    "pages": 29,
+    "files": 1,
+    "stratum": "kovetz_hatakanot|1948-59",
+    "role": "dev_queue"
    },
    {
     "unit_id": "reshumot_scanned:sefer_hachukim_1003",
@@ -7771,15 +8131,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_145",
-    "series": "kovetz_hatakanot",
-    "year": 1951,
-    "pages": 5,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_1450",
     "series": "kovetz_hatakanot",
     "year": 1963,
@@ -7969,15 +8320,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_147",
-    "series": "kovetz_hatakanot",
-    "year": 1951,
-    "pages": 5,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_1470",
     "series": "kovetz_hatakanot",
     "year": 1963,
@@ -8146,15 +8488,6 @@
     "pages": 7,
     "files": 1,
     "stratum": "kovetz_hatakanot|1960s",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_149",
-    "series": "kovetz_hatakanot",
-    "year": 1951,
-    "pages": 17,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
     "role": "non_eval"
    },
    {
@@ -14611,15 +14944,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_214",
-    "series": "kovetz_hatakanot",
-    "year": 1951,
-    "pages": 33,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_2140",
     "series": "kovetz_hatakanot",
     "year": 1967,
@@ -15499,15 +15823,6 @@
     "pages": 14,
     "files": 1,
     "stratum": "kovetz_hatakanot|1960s",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_223",
-    "series": "kovetz_hatakanot",
-    "year": 1951,
-    "pages": 13,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
     "role": "non_eval"
    },
    {
@@ -17281,15 +17596,6 @@
     "pages": 28,
     "files": 1,
     "stratum": "kovetz_hatakanot|1960s",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_241",
-    "series": "kovetz_hatakanot",
-    "year": 1952,
-    "pages": 25,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
     "role": "non_eval"
    },
    {
@@ -19885,15 +20191,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_2670",
-    "series": "kovetz_hatakanot",
-    "year": 1971,
-    "pages": 17,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1970s",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_2671",
     "series": "kovetz_hatakanot",
     "year": 1971,
@@ -20281,15 +20578,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_271",
-    "series": "kovetz_hatakanot",
-    "year": 1952,
-    "pages": 33,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_2710",
     "series": "kovetz_hatakanot",
     "year": 1971,
@@ -20363,15 +20651,6 @@
    },
    {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_2718",
-    "series": "kovetz_hatakanot",
-    "year": 1971,
-    "pages": 13,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1970s",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_2719",
     "series": "kovetz_hatakanot",
     "year": 1971,
     "pages": 13,
@@ -20510,15 +20789,6 @@
     "series": "kovetz_hatakanot",
     "year": 1971,
     "pages": 24,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1970s",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_2733",
-    "series": "kovetz_hatakanot",
-    "year": 1971,
-    "pages": 5,
     "files": 1,
     "stratum": "kovetz_hatakanot|1970s",
     "role": "non_eval"
@@ -23080,15 +23350,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_2992",
-    "series": "kovetz_hatakanot",
-    "year": 1973,
-    "pages": 4,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1970s",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_2993",
     "series": "kovetz_hatakanot",
     "year": 1973,
@@ -25240,15 +25501,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_321",
-    "series": "kovetz_hatakanot",
-    "year": 1952,
-    "pages": 30,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_3210",
     "series": "kovetz_hatakanot",
     "year": 1974,
@@ -26788,15 +27040,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_3366",
-    "series": "kovetz_hatakanot",
-    "year": 1975,
-    "pages": 68,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1970s",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_3367",
     "series": "kovetz_hatakanot",
     "year": 1975,
@@ -27260,15 +27503,6 @@
     "series": "kovetz_hatakanot",
     "year": 1975,
     "pages": 9,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1970s",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_3413",
-    "series": "kovetz_hatakanot",
-    "year": 1975,
-    "pages": 17,
     "files": 1,
     "stratum": "kovetz_hatakanot|1970s",
     "role": "non_eval"
@@ -28484,15 +28718,6 @@
     "series": "kovetz_hatakanot",
     "year": 1976,
     "pages": 11,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1970s",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_3537",
-    "series": "kovetz_hatakanot",
-    "year": 1976,
-    "pages": 21,
     "files": 1,
     "stratum": "kovetz_hatakanot|1970s",
     "role": "non_eval"
@@ -30334,15 +30559,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_3721",
-    "series": "kovetz_hatakanot",
-    "year": 1977,
-    "pages": 17,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1970s",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_3722",
     "series": "kovetz_hatakanot",
     "year": 1977,
@@ -31256,15 +31472,6 @@
     "series": "kovetz_hatakanot",
     "year": 1978,
     "pages": 25,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1970s",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_3816",
-    "series": "kovetz_hatakanot",
-    "year": 1978,
-    "pages": 5,
     "files": 1,
     "stratum": "kovetz_hatakanot|1970s",
     "role": "non_eval"
@@ -32548,15 +32755,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_3947",
-    "series": "kovetz_hatakanot",
-    "year": 1979,
-    "pages": 17,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1970s",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_3948",
     "series": "kovetz_hatakanot",
     "year": 1979,
@@ -32770,15 +32968,6 @@
     "pages": 13,
     "files": 1,
     "stratum": "kovetz_hatakanot|1970s",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_397",
-    "series": "kovetz_hatakanot",
-    "year": 1953,
-    "pages": 13,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
     "role": "non_eval"
    },
    {
@@ -33979,15 +34168,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_409",
-    "series": "kovetz_hatakanot",
-    "year": 1953,
-    "pages": 7,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_4090",
     "series": "kovetz_hatakanot",
     "year": 1980,
@@ -34579,15 +34759,6 @@
     "pages": 21,
     "files": 1,
     "stratum": "kovetz_hatakanot|1980s",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_415",
-    "series": "kovetz_hatakanot",
-    "year": 1954,
-    "pages": 9,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
     "role": "non_eval"
    },
    {
@@ -38254,15 +38425,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_452",
-    "series": "kovetz_hatakanot",
-    "year": 1954,
-    "pages": 13,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_4520",
     "series": "kovetz_hatakanot",
     "year": 1983,
@@ -39736,15 +39898,6 @@
     "pages": 17,
     "files": 1,
     "stratum": "kovetz_hatakanot|1980s",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_467",
-    "series": "kovetz_hatakanot",
-    "year": 1954,
-    "pages": 39,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
     "role": "non_eval"
    },
    {
@@ -43750,15 +43903,6 @@
     "pages": 17,
     "files": 1,
     "stratum": "kovetz_hatakanot|1980s",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_508",
-    "series": "kovetz_hatakanot",
-    "year": 1955,
-    "pages": 33,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
     "role": "non_eval"
    },
    {
@@ -48415,15 +48559,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_555",
-    "series": "kovetz_hatakanot",
-    "year": 1955,
-    "pages": 13,
-    "files": 2,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_5550",
     "series": "kovetz_hatakanot",
     "year": 1993,
@@ -50080,15 +50215,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_572",
-    "series": "kovetz_hatakanot",
-    "year": 1955,
-    "pages": 24,
-    "files": 2,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_5720",
     "series": "kovetz_hatakanot",
     "year": 1995,
@@ -51556,15 +51682,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_587",
-    "series": "kovetz_hatakanot",
-    "year": 1956,
-    "pages": 17,
-    "files": 2,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_5870",
     "series": "kovetz_hatakanot",
     "year": 1997,
@@ -52048,15 +52165,6 @@
     "pages": 25,
     "files": 1,
     "stratum": "kovetz_hatakanot|1990s",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_592",
-    "series": "kovetz_hatakanot",
-    "year": 1956,
-    "pages": 25,
-    "files": 2,
-    "stratum": "kovetz_hatakanot|1948-59",
     "role": "non_eval"
    },
    {
@@ -52546,15 +52654,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_597",
-    "series": "kovetz_hatakanot",
-    "year": 1956,
-    "pages": 8,
-    "files": 2,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_5970",
     "series": "kovetz_hatakanot",
     "year": 1999,
@@ -52948,15 +53047,6 @@
     "pages": 25,
     "files": 1,
     "stratum": "kovetz_hatakanot|1990s",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_601",
-    "series": "kovetz_hatakanot",
-    "year": 1956,
-    "pages": 21,
-    "files": 2,
-    "stratum": "kovetz_hatakanot|1948-59",
     "role": "non_eval"
    },
    {
@@ -53434,15 +53524,6 @@
     "pages": 17,
     "files": 1,
     "stratum": "kovetz_hatakanot|2000-mid2005",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_606",
-    "series": "kovetz_hatakanot",
-    "year": 1956,
-    "pages": 7,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
     "role": "non_eval"
    },
    {
@@ -56542,15 +56623,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_638",
-    "series": "kovetz_hatakanot",
-    "year": 1956,
-    "pages": 13,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_6380",
     "series": "kovetz_hatakanot",
     "year": 2005,
@@ -56731,15 +56803,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_645",
-    "series": "kovetz_hatakanot",
-    "year": 1956,
-    "pages": 33,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_646",
     "series": "kovetz_hatakanot",
     "year": 1956,
@@ -56753,15 +56816,6 @@
     "series": "kovetz_hatakanot",
     "year": 1956,
     "pages": 33,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_648",
-    "series": "kovetz_hatakanot",
-    "year": 1956,
-    "pages": 39,
     "files": 1,
     "stratum": "kovetz_hatakanot|1948-59",
     "role": "non_eval"
@@ -57199,15 +57253,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_695",
-    "series": "kovetz_hatakanot",
-    "year": 1957,
-    "pages": 3,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_696",
     "series": "kovetz_hatakanot",
     "year": 1957,
@@ -57275,15 +57320,6 @@
     "series": "kovetz_hatakanot",
     "year": 1957,
     "pages": 17,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_702",
-    "series": "kovetz_hatakanot",
-    "year": 1957,
-    "pages": 5,
     "files": 1,
     "stratum": "kovetz_hatakanot|1948-59",
     "role": "non_eval"
@@ -58027,28 +58063,10 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_911",
-    "series": "kovetz_hatakanot",
-    "year": 1959,
-    "pages": 21,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_912",
     "series": "kovetz_hatakanot",
     "year": 1959,
     "pages": 4,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_913",
-    "series": "kovetz_hatakanot",
-    "year": 1959,
-    "pages": 17,
     "files": 1,
     "stratum": "kovetz_hatakanot|1948-59",
     "role": "non_eval"
@@ -58387,15 +58405,6 @@
     "role": "non_eval"
    },
    {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_949",
-    "series": "kovetz_hatakanot",
-    "year": 1959,
-    "pages": 21,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
     "unit_id": "reshumot_scanned:kovetz_hatakanot_95",
     "series": "kovetz_hatakanot",
     "year": 1950,
@@ -58562,15 +58571,6 @@
     "series": "kovetz_hatakanot",
     "year": 1959,
     "pages": 7,
-    "files": 1,
-    "stratum": "kovetz_hatakanot|1948-59",
-    "role": "non_eval"
-   },
-   {
-    "unit_id": "reshumot_scanned:kovetz_hatakanot_967",
-    "series": "kovetz_hatakanot",
-    "year": 1959,
-    "pages": 29,
     "files": 1,
     "stratum": "kovetz_hatakanot|1948-59",
     "role": "non_eval"
@@ -124169,8 +124169,8 @@
  "midcentury_coverage": {
   "reshumot_scanned": {
    "enumerated": 8211,
-   "eval": 120,
-   "non_eval": 8091
+   "eval": 160,
+   "non_eval": 8051
   },
   "knesset_plenary_k1_12": {
    "enumerated": 5338,
@@ -124179,8 +124179,8 @@
   }
  },
  "midcentury_split": {
-  "file": "midcentury_unit_split_v0.json",
-  "sha256": "d62f8ecca1321f4ba489f293a226fbda3dc109f9f5774168ac88817a4258e252",
-  "rule": "eval = test + dev units of midcentury_unit_split_v0 (role annotated); never in training"
+  "file": "midcentury_unit_split_v1.json",
+  "sha256": "f9a492388b9b6140f76a22db66c3cc28e040dddd037e85de57a2cfd7dfe59aa3",
+  "rule": "eval = test + dev + dev_retired + dev_queue units of midcentury_unit_split_v1 (role annotated); never in training. dev_queue_fallback units stay non_eval."
  }
 }
