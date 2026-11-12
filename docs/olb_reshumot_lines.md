@@ -123,10 +123,38 @@ two passes, missing numbers probed). heocr-eval issues `midcentury_unit_split_v0
     --dev-cache DEV_CACHE --units units_enumerated.json --shuffle-seed SEED --train OUT
   python -I olb_runner.py dev-overlap OUT --dev OUT_DEV
   ```
+- **Retired dev units and the replacement queue (`fill-dev-queue`).** From `midcentury_unit_split_v1` on, the split
+  file has the parts `test`, `dev`, `non_eval`, `dev_retired`, `dev_queue` (per stratum, each row with heocr-eval's
+  `hash_rank`) and `dev_queue_fallback` (per stratum, an overlay on `non_eval` units; never read here). Retired units
+  stay held out and leave the next dev version. `fill-dev-queue` walks one stratum's `dev_queue` in `hash_rank`
+  order: it captures each unit (`capture-dev`'s throttle and User-Agent; `--reuse unit_id=path` for a PDF already
+  captured), cuts it by the layer-only rule into a scratch directory that is deleted (no cap, no Tesseract gate,
+  crops never kept or viewed), and fills a slot with the first units that keep at least one line. It stops when the
+  slots are full and logs every unit tried (hash rank, pages, text-layer pages, layer-exact lines, filled or empty).
+  When the queue runs out first, the log says `complete: false` and the command exits 2 (the caller then asks
+  heocr-eval; the fallback queue is not used). `dev-set --fill-log LOG` (repeatable; each log complete, same split
+  sha256) adds the filled units. The dev-set guard accepts `dev` units and the logged `dev_queue` units and refuses
+  test, non_eval, `dev_retired` and unlisted units. Every row and the units file carry `split_source`
+  (`<split>/dev`, or `<split>/dev_queue` with the queue's `hash_rank`).
+  ```bash
+  python -I olb_runner.py fill-dev-queue --split midcentury_unit_split_v1.json --split-sha256 SHA \
+    --units units_enumerated.json --olb OLB --plan plan_dev.json --dev-cache DEV_CACHE \
+    --stratum 'kovetz_hatakanot|1948-59' --slots 4 --log walk_1948_59.json
+  python -I olb_runner.py dev-set OUT_DEV --fill-log walk_1948_59.json ... --units-doc olb_dev_units_v1.json
+  ```
 - **Yield.** `summary.json` reports per (series, decade) the candidate lines (located lines with an OLB span that
   reached the gate), the kept lines and the kept share, per tier (`yield`). Thin older decades are reported as they
   are; the match criteria are never relaxed to raise yield.
 - **Checking.** The sample check of the set is an *agent audit (data-collection subagent)*, not human review.
+
+## olbreshumotlines_v1.1_dev
+
+The 55 remaining `dev` units of `midcentury_unit_split_v1` (sha256 `f9a49238…`) plus 5 `dev_queue` units in place of
+the retired 215, 491, 499, 643 (kovetz_hatakanot|1948-59) and 3835 (kovetz_hatakanot|1970s): 592, 695, 648 and 555
+(hash ranks 3, 6, 8, 10; ranks 0, 1, 2, 4, 5 and 9 have no text layer and rank 7 no layer-exact line) and 2719 (hash
+rank 0). 3,325 lines from 60 units; the 3,254 lines of the kept units are byte-identical to `olbreshumotlines_v1_dev`,
+which stays as it is (R8b was scored on it). The walk logs are in `olb_dev_units_v1.json` and in [`olb_reshumot_dev_v1.1_walks.json`](./olb_reshumot_dev_v1.1_walks.json). Two lines of the released
+`olbreshumotlines_v1` train set share a word 6-gram with the new rows (enactment formulae); v1 is not rebuilt for it.
 
 ## olbreshumotlines_v1: the release recipe
 
