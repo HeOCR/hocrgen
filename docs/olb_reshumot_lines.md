@@ -27,6 +27,11 @@ python -I olb_runner.py build OUT --plan plan.json --split ... --split-sha256 SH
 python -I olb_runner.py verify OUT --split ... --split-sha256 SHA
 ```
 
+Capture can run as several `--shard i/n` processes on one cache: they share one gap file (`throttle.json`), so the
+host still sees at most one request per 1.2 s. A PDF is written atomically and counts as captured only while its
+sha256 equals the one `capture_log.jsonl` pins; `build` reads only such files. (On a Python whose bundled CA store
+lacks the gov.il chain, point `SSL_CERT_FILE` at a certifi bundle; verification stays on.)
+
 `units_enumerated.json` is data-collection's enumeration of every scanned booklet (gov.il Reshumot search API, with
 its quirks handled: Warn retries, the 200-result cap sliced by booklet-number prefix, unstable order unioned over
 two passes, missing numbers probed). heocr-eval issues `midcentury_unit_split_v0.json` from it.
@@ -55,7 +60,11 @@ two passes, missing numbers probed). heocr-eval issues `midcentury_unit_split_v0
    "(נמחקה)", footnote references) are stripped when OLB is parsed. A located OLB word span is kept only when:
    - `both_exact` / `layer_exact` / `tesseract_exact`: a reading equals the span; or
    - `char_consensus` (only when both readings exist, each within CER 0.25): every character of the span is read by
-     at least one reading, and no deviation from the span is shared by both readings.
+     at least one reading; no deviation from the span is shared by both readings; neither reading inserts a digit or
+     `*` (a footnote marker the other missed); the two readings never both insert something at the same place
+     (whatever they read there); and neither reads anything beyond the span's ends.
+   - An exact reading is overruled (`other_reading_sees_more`) when the other reading sees two or more characters,
+     one a letter, beyond the span's ends: the crop then holds print the label lacks.
 
    A page without a text layer (some early קובץ התקנות files) has a single Tesseract reading, which must be exact.
 4. **Footnote markers.** A marker the print adds (`*`, a lone 1–2 digit number, digits glued to a word's end) is
@@ -72,6 +81,13 @@ two passes, missing numbers probed). heocr-eval issues `midcentury_unit_split_v0
   The reading is located in the booklet's candidate OLB paragraphs by a trigram diagonal vote, a semi-global
   alignment in a window, and the word boundaries (one word either way) that minimise the edit distance; a line is
   located only within CER 0.35.
+- **Visual-order layers.** Imagestore stores each word's characters in visual order; a layer whose Hebrew final
+  letters sit at word starts is turned to logical order word by word (numbers kept whole).
+- **Fitting to the ink.** The layer's word boxes come from invisible text set in another font: they sit low and
+  stop short of a line's first or last letter. Every box is moved to its ink band (the run of inked rows through
+  its centre, never past a neighbour's centre) and widened to the ink past its ends, up to the first blank gap of
+  0.4 line heights. Fragments of one printed row are then joined (gap at most 0.9 line heights). A line whose ink
+  runs into a neighbouring line with no blank row between them is dropped (`touches_neighbour_line`).
 - **Second reading.** Stock Tesseract (`heb`, `--psm 7`) reads each located line's crop.
 - **Page images.** `pdfimages`: the page's largest image (CCITT G4 at 400 dpi for ספר החוקים, 300 dpi for its 2015
   rescans; JBIG2 at 300 dpi for קובץ התקנות), skipping the low-resolution JPX overlays. Crops are cut at the scan's
@@ -79,9 +95,9 @@ two passes, missing numbers probed). heocr-eval issues `midcentury_unit_split_v0
 - **Label.** The OLB span, with quote, geresh and dash glyphs folded to `"` `'` `-` (`olb_label_fold.v1`: the print's
   glyph shapes vary by era, so the label does not claim one); words and punctuation are OLB's. The raw span is kept
   in `olb_text`.
-- **Drops.** `no_olb_span`, `ocr_disagrees_with_olb`, `single_reading_not_exact`, `footnote_marker_in_print`,
-  `pointed`, `too_short` (fewer than 8 letters or digits, or one word), `merged_rows` (a box over 1.8 times the page's
-  median line height), `eval_ngram_overlap`, `capped`.
+- **Drops.** `no_olb_span`, `ocr_disagrees_with_olb`, `single_reading_not_exact`, `other_reading_sees_more`,
+  `footnote_marker_in_print`, `pointed`, `too_short` (fewer than 8 letters or digits, or one word), `merged_rows` (a
+  box over 1.8 times the page's median line height), `touches_neighbour_line`, `eval_ngram_overlap`, `capped`.
 - **Bias.** OCR agreement favours lines the OCR reads well. Every row records `match_evidence` (tier, the CER of
   each reading against the label, the stripped footnote markers, the locating distance), so the bias is measurable.
 
