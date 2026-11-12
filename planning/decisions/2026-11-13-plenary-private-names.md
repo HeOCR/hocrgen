@@ -29,21 +29,28 @@ The gate is `hocrgen.privacy.plenary_names`, gate id `plenary_private_names_v1`.
 
 1. **Tagging.** Every paragraph is tagged for person names by `dicta-il/dictabert-ner`, a Hebrew NER model under CC BY 4.0. It is used as a filter only, never as a training input or a released artefact. A pure-Python fallback (`heuristic_person_spans`) adds names that follow a private-person cue such as "מר", "הגברת", "האזרח" or "התושבת".
 2. **Normalising mentions.** Each tagged span is widened to whole words, because the tagger can cut a name mid-word: "נעמה לזי" for MK Naama Lazimi. Spans separated only by whitespace are merged into one mention. Judged apart, the given name and the surname of a private person can each match some MK. Together they name that private person.
-3. **Public or private.** A mention is public when:
-   - its line is a speaker heading, such as "דני נווה (הליכוד):" or "שר העבודה יואב בן צור:". Plenary speakers are MKs, ministers and the chair;
-   - a public-role word comes right before it, such as "השר", "נשיא", "מבקר המדינה", "היועצת המשפטית לממשלה", "השופט", "אלוף" or "השגריר";
-   - it is on a curated public-figure allowlist. The list starts empty and grows only through review;
-   - it matches the Knesset roster in one of these ways:
-     - by full name, or by a contiguous part of a full name ("גלית דיסטל");
-     - by a full surname ("בן צור");
-     - by one word of a multi-word surname ("אטבריאן").
+3. **Public or private.** A mention is public only when one of these holds:
+   - **It is in a proven speaker heading.** A heading-shaped line ("X (faction):", "title X:") proves nothing by its shape alone: "וכך כתבה לי <name>:" introduces a letter read aloud. A heading counts only when one of these proves it:
+     - the source's own structure: the builder sets `is_speaker_heading: true` from the document's speaker style (in the pilot, the K24–25 `<< דובר >>`, `<< יור >>`, `<< קריאה >>` markers);
+     - the whole name, after any title, is a roster full name or a contiguous part of one;
+     - a title, then optional initials, then a surname of someone who held a position in that Knesset term ("ראש הממשלה ושר הביטחון י' רבין:");
+     - the parentheses name a faction of that term (`KNS_PersonToPosition.FactionName`), and the name ends in a surname of someone in that term. This covers nicknames and spelling variants of MKs: "דני נווה (הליכוד):".
+   - **A public title comes immediately before it.**
+     - Titles are matched exactly, with no proclitic stripping, so "מראש", "בשר", "כשר" and "משרת" are not titles. The one exception is a leading "ו" on a title of four or more letters ("והשר").
+     - Single words that are also ordinary words are never titles on their own: "ראש", "סגן", "חבר", "יושב", "מנהל", "מזכיר", and military ranks.
+     - Multi-word titles are matched as whole phrases: "חבר הכנסת", "ראש הממשלה", "מבקר המדינה", "היועצת המשפטית לממשלה", "סגן השר", "מזכיר הכנסת", and so on.
+     - Ministers' titles are a head ("שר", "השר", "סגן שר") followed only by ministry words ("שר האוצר", "השר לביטחון פנים").
+     - Initials between a title and a name are skipped ("סגנית מזכיר הכנסת ש' כרם").
+   - **It is on a curated public-figure allowlist.** The list starts empty and grows only through review.
+   - **It matches the Knesset roster** in one of these ways:
+     - by full name, or by a contiguous part of a full name ("גלית דיסטל"), against the whole roster;
+     - by a bare surname ("בן צור"), or by one word of a multi-word surname ("אטבריאן"), but only against people who held a position in **that Knesset term**. When the term is unknown, no bare surname matches.
 
-     The roster is the committed `hocrgen/data/knesset_plenary/public_roster_v1.json`: 1,211 `KNS_Person` rows from the Knesset OData feed that have at least one `KNS_PersonToPosition` row, which covers MKs, ministers and deputy ministers. Hyphenated names are matched with or without the hyphen;
-   - it is a lone given name and someone with that given name spoke in the same sitting, according to its speaker headings ("תודה, מיקי").
+     The roster is the committed `hocrgen/data/knesset_plenary/public_roster_v1.json`: 1,211 `KNS_Person` rows with at least one `KNS_PersonToPosition` row (MKs, ministers, deputy ministers), with each person's terms and each term's faction names. Hyphenated names match with or without the hyphen. Doubled vav and yod are normalised ("נווה" = "נוה").
 
    Everything else is private, including:
-   - a lone given name that matches no speaker in the sitting, such as a bereaved parent named by first name in a eulogy;
-   - a first name followed by an MK's surname when that MK has a different first name. This is treated as a namesake.
+   - **a lone given name.** Common given names collide with the names of speakers and MKs, so nothing can vouch for one. Example: a bereaved parent named by first name in a eulogy;
+   - **a namesake:** a first name followed by an MK's surname, when that MK has a different first name.
 4. **Intake guard.** `refuse_ungated_plenary_lines` refuses a plenary row unless the row or its metadata carries `privacy_gate == "plenary_private_names_v1"`. A row counts as plenary when:
    - its `source_id` starts with `knesset_plenary`;
    - an identifier places it in a plenary sitting (`plenary:K<k>_<s>`, the eval-reserved id patterns); or
@@ -56,26 +63,29 @@ The gate is `hocrgen.privacy.plenary_names`, gate id `plenary_private_names_v1`.
 
 No plenary line set has been built yet. The K1–12 scans have no text, and the K13+ renders have not been made. So the gate was measured on the scout pilot's 10 born-digital sittings: 1993, 1996, 1999 and 2002 (DOCX) and 2005–2025 (DOC). Each was converted to text, and its paragraphs were wrapped at 90 characters as stand-in lines.
 
-| | Lines |
-|---|---|
-| In | 42,058 |
-| Kept | 40,761 |
-| **Dropped** | **1,297 (3.1%)** |
+| | v1 (first PR revision) | **v1 after review (hocrgen#196)** |
+|---|---|---|
+| Lines in | 42,058 | 42,058 |
+| Kept | 40,761 | 40,528 |
+| **Dropped** | 1,297 (3.1%) | **1,530 (3.6%)** |
 
-- **Drop reasons:** `not_public` on 1,098 lines and `surname_namesake` on 224. One line can carry both.
-- **Per sitting:** between 1.5% and 5.3%.
+- **Drop reasons:** `not_public` on 1,321 lines and `surname_namesake` on 238. One line can carry both.
+- **Per sitting:** between 1.8% and 6.8%.
+- **The review's seven probe sentences** (invented private names after "מראש", "בשר", a distant "השר", "החבר שלי", "סגן", a "…כתבה לי X:" letter intro, and a given name from that intro) are all dropped, and each is a test.
 - **Known private passages, all dropped:**
   - a radio caller named in a parliamentary question (K15, 2002);
   - a bereaved relative named in a eulogy (K25, 2025);
-  - a mother and her children named in a letter read aloud (K25, 2025).
+  - a mother and her children named in a letter read aloud (K25, 2025);
+  - private persons named by first name only.
 
   This record names no private person. The pilot outputs that do name them stay in the agents workspace and are never committed.
-- **Over-dropping, mostly public figures outside the roster:** foreign leaders ("אסד", "ערפאת", "קלינטון"), historical and biblical figures, IDF and security chiefs, and MKs under nicknames ("ביבי נתניהו", "אריק שרון"). Allowlist candidates are listed in the pilot output.
+- **Over-dropping, mostly public figures outside the roster:** foreign leaders ("אסד", "ערפאת", "קלינטון"), historical and biblical figures, IDF and security chiefs, MKs under nicknames outside proven headings, and the chair addressing MKs by first name. Allowlist candidates are listed in the pilot output.
 - **Artifacts:** `tasks/modern-s6-scout/knesset/privacy/` in the agents workspace, containing `pilot_gate_summary.json`, `pilot_dropped.jsonl` and `pilot_private_mentions_top.json`.
 
 ## Known limits
 
-- **Bare-surname leak.** A private person mentioned only by a surname that an MK shares is kept. A first name that is also an MK's surname leaks the same way. The pilot found one: a victim addressed by first name in a eulogy. In the record, private persons are normally named in full, and the full-name check catches those.
+- **Bare-surname leak, the largest remaining one.** A private person mentioned only by a surname (`כהן`, `לוי`, `פרץ`) that someone in that Knesset term shares is kept. A first name that is also such a surname leaks the same way; the pilot found one, a victim addressed by first name in a eulogy. Matching bare surnames per term, not against everyone since 1949, narrows this but does not close it. In the record, private persons are normally named in full, and the full-name check catches those.
+- **Faction-proven headings.** A heading-shaped line with a real faction in parentheses and a surname of that term is trusted. Text that imitates exactly that shape would pass.
 - **Full-name namesake leak.** A private person with exactly an MK's first name and surname is kept.
 - **Over-dropping.** A public figure outside the roster who appears without a role word is dropped. Examples are foreign leaders and historical figures. The allowlist is the remedy.
 - **NER recall.** The tagger can miss a name. The cue heuristic is a backstop, not a guarantee.
