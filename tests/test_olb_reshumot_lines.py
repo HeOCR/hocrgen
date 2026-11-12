@@ -457,3 +457,42 @@ def test_dev_units_come_only_from_the_splits_dev_list(tmp_path: Path) -> None:
 def test_accept_line_records_footnote_markers_per_reading() -> None:
     d = olb.accept_line('חוק הדגל והסמל, תש"ט-1949', 'חוק הדגל והסמל, תש"ט-1949', 'חוק הדגל והסמל, תש"ט-1949 *')
     assert d.evidence.get("layer_footnote_markers", 0) == 0 and d.evidence["tesseract_footnote_markers"] == 1
+
+
+def test_guard_6_uses_the_split_the_registry_is_synced_from(tmp_path: Path) -> None:
+    registry = packaged_registry()
+    synced = olb.registry_pmod_split(registry)
+    assert synced.name == registry.split_file.name
+    assert hashlib.sha256(synced.read_bytes()).hexdigest() == registry.split_file.sha256
+    assert olb.resolve_pmod_split(None, registry) == synced
+    copy = tmp_path / synced.name
+    copy.write_bytes(synced.read_bytes())
+    assert olb.resolve_pmod_split(copy, registry) == copy.resolve()
+    stale = tmp_path / "pmod_unit_split_v1.json"
+    stale.write_text(json.dumps({"reshumot_born_digital": {"eval": [], "non_eval": []}}), encoding="utf-8")
+    with pytest.raises(SystemExit, match="not the split the eval-reserved registry is synced from"):
+        olb.resolve_pmod_split(stale, registry)
+
+
+def test_eval_ngram_pool_reads_born_digital_pages_and_fails_closed(tmp_path: Path) -> None:
+    text = tmp_path / "text"
+    text.mkdir()
+    (text / "kovetz_hatakanot_10782__p0001.txt").write_text("א ב ג ד ה ו ז", encoding="utf-8")
+    (text / "kovetz_hatakanot_99__p0001.txt").write_text("ח ט י כ ל מ נ", encoding="utf-8")
+    wave1 = tmp_path / "wave1.json"
+    wave1.write_text(json.dumps({"pages": []}), encoding="utf-8")
+    split = tmp_path / "split.json"
+    split.write_text(json.dumps({"reshumot_born_digital": {"eval": [{"unit_id": "reshumot:kovetz_hatakanot_10782"}]},
+                                 "reshumot_scanned": {"eval": [{"unit_id": "reshumot_scanned:kovetz_hatakanot_99"}]}}),
+                     encoding="utf-8")
+    pool, info = olb.eval_ngram_pool(tmp_path, split, text_dir=text, wave1_manifest=wave1)
+    assert pool == {("א", "ב", "ג", "ד", "ה", "ו"), ("ב", "ג", "ד", "ה", "ו", "ז")}  # the scanned unit's id never matches
+    assert info["pages_read"] == {"pmod_eval_pages": 1} and info["born_digital_eval_units"] == 1
+    (text / "kovetz_hatakanot_10782__p0001.txt").unlink()
+    with pytest.raises(SystemExit, match="none of their pages was read"):
+        olb.eval_ngram_pool(tmp_path, split, text_dir=text, wave1_manifest=wave1)
+
+
+def test_dev_readme_says_silver_and_how_to_score() -> None:
+    assert "silver dev set (for decisions), not an eval reference; never report it as a test score" in olb.DEV_README.lower()
+    assert "unresolved" in olb.DEV_README and "fetched only by `capture-dev`" in olb.DEV_README
