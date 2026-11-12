@@ -58,6 +58,7 @@ import json
 import random
 import re
 import subprocess
+import sys
 import tempfile
 import time
 import unicodedata
@@ -713,8 +714,26 @@ def consensus(label_key: str, readings: Sequence[str]) -> tuple[bool, dict[str, 
         agreed = sum(1 for k, v in d1.items() if k in d2 and d2[k] == v)
     # an inserted digit or mark may be printed (a footnote marker the other reading missed): never out-voted
     risky = sum(1 for _, d in per_reading for (op, _), chars in d.items() if op == "I" and re.search(r"[0-9*]", chars))
-    ok = unconfirmed == 0 and agreed == 0 and risky == 0
-    return ok, {"unconfirmed_chars": unconfirmed, "agreed_deviations": agreed, "inserted_digits_or_marks": risky}
+    # both readings insert something at the same place (whatever they read there): the print has text the label lacks
+    places = [{i for (op, i) in d if op == "I"} for _, d in per_reading]
+    agreed_insertions = len(set.intersection(*places)) if len(places) >= 2 else 0
+    # a reading that sees anything beyond either end of the span (a word, a closing quote): the span may be short
+    n = len(label_key)
+    edge = sum(1 for _, d in per_reading for (op, i), chars in d.items() if op == "I" and i in (0, n))
+    ok = unconfirmed == 0 and agreed == 0 and risky == 0 and agreed_insertions == 0 and edge == 0
+    return ok, {"unconfirmed_chars": unconfirmed, "agreed_deviations": agreed, "inserted_digits_or_marks": risky,
+                "agreed_insertion_places": agreed_insertions, "edge_insertions": edge}
+
+
+def edge_insertion(label_key: str, reading: str) -> bool:
+    """The reading has two or more characters, one of them a letter, before the span's start or after its end."""
+
+    n = len(label_key)
+    found: dict[int, str] = defaultdict(str)
+    for op, i, char in alignment_ops(label_key, reading):
+        if op == "I" and i in (0, n):
+            found[i] += char
+    return any(len(chars) >= 2 and re.search("[א-ת]", chars) for chars in found.values())
 
 
 @dataclass
@@ -753,6 +772,11 @@ def accept_line(label_raw: str, layer: str | None, tesseract: str | None) -> Dec
     exact = [name for name, key in readings.items() if key == label_key]
     if exact:
         tier = "both_exact" if len(exact) == 2 else f"{exact[0]}_exact"
+        others = [key for name, key in readings.items() if name not in exact]
+        if others and edge_insertion(label_key, others[0]):
+            # the other reading sees letters beyond the span's ends: the crop holds print the label lacks
+            evidence["edge_insertions"] = 1
+            return Decision(False, "other_reading_sees_more", None, evidence)
         return Decision(True, "accepted", tier, evidence)
     if len(readings) == 2 and all(evidence[f"cer_{n}"] <= MAX_CONSENSUS_CER for n in readings):
         ok, detail = consensus(label_key, [readings["layer"], readings["tesseract"]])
@@ -873,16 +897,41 @@ def eval_ngram_pool(tasks: Path, pmod_split: Path) -> tuple[set[tuple[str, ...]]
 # --- network: Wikisource ------------------------------------------------------------------------------------------
 
 _last_request: dict[str, float] = {}
+THROTTLE_FILE: list[Path] = []  # set by capture: a gap file shared by every capture process on this cache
+
+
+def _throttle(host: str, gap: float) -> None:  # pragma: no cover - network
+    """At most one request per ``gap`` seconds to ``host``, across processes when a shared gap file is set."""
+
+    if not THROTTLE_FILE:
+        wait = _last_request.get(host, 0.0) + gap - time.time()
+        if wait > 0:
+            time.sleep(wait)
+        _last_request[host] = time.time()
+        return
+    import fcntl
+
+    path = THROTTLE_FILE[0]
+    with path.open("a+") as handle:
+        fcntl.flock(handle, fcntl.LOCK_EX)
+        handle.seek(0)
+        state = json.loads(handle.read() or "{}")
+        wait = state.get(host, 0.0) + gap - time.time()
+        if wait > 0:
+            time.sleep(wait)
+        state[host] = time.time()
+        handle.seek(0)
+        handle.truncate()
+        handle.write(json.dumps(state))
+        handle.flush()
+        fcntl.flock(handle, fcntl.LOCK_UN)
 
 
 def _request(url: str, *, data: bytes | None = None, headers: Mapping[str, str] | None = None, gap: float,
              tries: int = 4) -> bytes:  # pragma: no cover - network
     host = urllib.parse.urlsplit(url).hostname or ""
     for attempt in range(tries):
-        wait = _last_request.get(host, 0.0) + gap - time.time()
-        if wait > 0:
-            time.sleep(wait)
-        _last_request[host] = time.time()
+        _throttle(host, gap)
         req = urllib.request.Request(url, data=data, headers={"User-Agent": USER_AGENT, **(headers or {})},
                                      method="POST" if data else "GET")
         try:
@@ -891,8 +940,10 @@ def _request(url: str, *, data: bytes | None = None, headers: Mapping[str, str] 
         except urllib.error.HTTPError as exc:
             if exc.code in (400, 401, 403, 404, 473):
                 raise
+            print(f"retry {attempt + 1}: HTTP {exc.code} {url[-40:]}", file=sys.stderr, flush=True)
             time.sleep(30 * 2 ** attempt)
-        except (urllib.error.URLError, TimeoutError, ConnectionError):
+        except (urllib.error.URLError, TimeoutError, ConnectionError) as exc:
+            print(f"retry {attempt + 1}: {repr(exc)[:120]} {url[-40:]}", file=sys.stderr, flush=True)
             time.sleep(30 * 2 ** attempt)
     raise RuntimeError(f"gave up on {url[:120]}")
 
@@ -1081,10 +1132,11 @@ def document_url(url: str) -> str:
 
 
 def capture(plan_doc: Mapping[str, Any], cache: Path, *, series: Sequence[str], only_candidates: bool, limit: int | None,
-            min_priority: int = 0, log=print) -> dict[str, int]:  # pragma: no cover - network
+            min_priority: int = 0, shard: tuple[int, int] | None = None, log=print) -> dict[str, int]:  # pragma: no cover - network
     """Fetch the planned non_eval booklets' PDFs (earliest-listed file per booklet) into ``cache/pdf``."""
 
     refuse_forbidden_path(cache)
+    THROTTLE_FILE[:] = [cache / "throttle.json"]
     pdf_dir = cache / "pdf"
     pdf_dir.mkdir(parents=True, exist_ok=True)
     log_path = cache / "capture_log.jsonl"
@@ -1093,13 +1145,22 @@ def capture(plan_doc: Mapping[str, Any], cache: Path, *, series: Sequence[str], 
             and ((b.get("priority") if min_priority else b["olb_candidates"]) or not only_candidates)
             and b.get("priority", 0) >= min_priority]
     todo.sort(key=lambda b: (series.index(b["series"]), -b.get("priority", 0), -len(b["olb_candidates"]), b["number"]))
+    if shard:  # (i, n): this process takes every n-th booklet of the ordered list; all shards share the throttle
+        todo = todo[:limit][shard[0]::shard[1]]
+        limit = None
+    logged = {}
+    if log_path.is_file():
+        for line in log_path.read_text(encoding="utf-8").splitlines():
+            r = json.loads(line)
+            if "sha256" in r:
+                logged[r["unit_id"]] = r["sha256"]
     registry = training_registry()
     for b in todo[:limit]:
         status = registry.status(SOURCE_ID, b["unit_id"])
         if b["split_status"] != "non_eval" or status is None or status.value != "non_eval":  # never fetch a held-out booklet
             raise SystemExit(f"{b['unit_id']} is {b['split_status']} / {status}; refusing to fetch it")
         target = pdf_dir / f"{booklet_slug(b['series'], b['number'])}.pdf"
-        if target.is_file():
+        if target.is_file() and logged.get(b["unit_id"]) == hashlib.sha256(target.read_bytes()).hexdigest():
             counts["cached"] += 1
             continue
         files = sorted(b["files"], key=lambda f: (f.get("creation_date") or "", f.get("file_token") or ""))
@@ -1118,7 +1179,9 @@ def capture(plan_doc: Mapping[str, Any], cache: Path, *, series: Sequence[str], 
             content = None
         if content is None:
             continue
-        target.write_bytes(content)
+        tmp = target.with_suffix(".part")
+        tmp.write_bytes(content)
+        tmp.replace(target)
         with log_path.open("a") as handle:
             handle.write(json.dumps({"unit_id": b["unit_id"], "file_token": chosen["file_token"], "url": chosen["url"],
                                      "sha256": hashlib.sha256(content).hexdigest(), "bytes": len(content),
@@ -1141,6 +1204,7 @@ class PageLine:
     layer: str | None               # publisher OCR text, words in right-to-left order (None: no text layer)
     locate_text: str                # the reading used to locate the line in OLB
     tesseract: str | None = None
+    touching: bool = False          # set by ink_fit_vertical: no blank row between this line and a neighbour
 
 
 def _run(args: Sequence[str], **kwargs: Any) -> subprocess.CompletedProcess:  # pragma: no cover - poppler/tesseract
@@ -1272,9 +1336,11 @@ def merge_row_fragments(lines: Sequence[PageLine], *, max_gap: float = 1.2, min_
                 group.layer = f"{group.layer} {line.layer}" if line.layer is not None else group.layer
                 group.locate_text = f"{group.locate_text} {line.locate_text}"
                 group.index = min(group.index, line.index)
+                group.touching = group.touching or line.touching
                 break
         else:
-            merged.append(PageLine(index=line.index, box=list(line.box), layer=line.layer, locate_text=line.locate_text))
+            merged.append(PageLine(index=line.index, box=list(line.box), layer=line.layer, locate_text=line.locate_text,
+                                   touching=line.touching))
     return sorted(merged, key=lambda l: l.index)
 
 
@@ -1298,6 +1364,103 @@ def tesseract_page_lines(image: Image.Image, work: Path, *, psm: int = 4) -> lis
         box = [min(w[0] for w in words), min(w[1] for w in words), max(w[2] for w in words), max(w[3] for w in words)]
         lines.append(PageLine(index=i, box=box, layer=None, locate_text=text))
     return lines
+
+
+def column_ink(image: Image.Image, x0: int, x1: int, y0: int, y1: int) -> list[bool]:
+    """Per column of ``image[y0:y1, x0:x1]``: does it hold ink (a pixel darker than mid-grey)?"""
+
+    if x1 <= x0 or y1 <= y0:
+        return []
+    strip = image.crop((x0, y0, x1, y1)).point(lambda v: 255 if v < 128 else 0)
+    return [v > 0 for v in strip.resize((x1 - x0, 1), Image.Resampling.BOX).getdata()]
+
+
+def row_ink(image: Image.Image, x0: int, x1: int, y0: int, y1: int) -> list[bool]:
+    """Per row of ``image[y0:y1, x0:x1]``: does it hold ink?"""
+
+    if x1 <= x0 or y1 <= y0:
+        return []
+    strip = image.crop((x0, y0, x1, y1)).point(lambda v: 255 if v < 128 else 0)
+    return [v > 0 for v in strip.resize((1, y1 - y0), Image.Resampling.BOX).getdata()]
+
+
+def ink_fit_vertical(image: Image.Image, line: PageLine, lines: Sequence[PageLine]) -> list[int]:
+    """The line box moved to its ink band. OCR-layer boxes come from invisible text set in another font, so they sit
+    lower than the print and stop short of it; the band is the run of inked rows through the box's centre (blank
+    rows end it), searched from 0.7 line heights above the box to 0.3 below, never past a neighbour's centre."""
+
+    x0, y0, x1, y1 = line.box
+    h = max(1, y1 - y0)
+    top, bottom = max(0, y0 - int(0.7 * h)), min(image.height, y1 + int(0.3 * h))
+    top_by_neighbour = bottom_by_neighbour = False
+    for other in lines:
+        ox0, oy0, ox1, oy1 = other.box
+        if other is line or ox1 <= x0 or ox0 >= x1:
+            continue
+        centre = (oy0 + oy1) // 2
+        if centre < (y0 + y1) // 2:
+            if centre > top:
+                top, top_by_neighbour = centre, True
+        elif centre < bottom:
+            bottom, bottom_by_neighbour = centre, True
+    line.touching = False
+    ink = row_ink(image, x0, x1, top, bottom)
+    if not ink:
+        return list(line.box)
+    mid = min(len(ink) - 1, max(0, (y0 + y1) // 2 - top))
+    if not ink[mid]:  # the centre row is blank (between letters' strokes): start from the nearest inked row
+        near = [i for i, v in enumerate(ink) if v and y0 - top <= i < y1 - top]
+        if not near:
+            return list(line.box)
+        mid = min(near, key=lambda i: abs(i - mid))
+    a = b = mid
+    while a > 0 and ink[a - 1]:
+        a -= 1
+    while b < len(ink) - 1 and ink[b + 1]:
+        b += 1
+    if b - a + 1 < h * 0.4:  # a thin band (a rule, a speck): keep the layer's box
+        return list(line.box)
+    # the ink runs on into a neighbouring line (no blank row between them): the line cannot be cut cleanly
+    line.touching = (a == 0 and top_by_neighbour) or (b == len(ink) - 1 and bottom_by_neighbour)
+    return [x0, top + a, x1, top + b + 1]
+
+
+def ink_extend(image: Image.Image, line: PageLine, lines: Sequence[PageLine], *, gap_frac: float = 0.4,
+               limit_frac: float = 2.0) -> list[int]:
+    """The line box widened to the ink that continues past its left and right edges (OCR-layer word boxes can stop
+    short of a line's first or last letter), up to the first blank gap of ``gap_frac`` line heights, never into
+    another line's box and at most ``limit_frac`` line heights."""
+
+    x0, y0, x1, y1 = line.box
+    h = max(1, y1 - y0)
+    core_top, core_bottom = y0 + h // 4, y1 - h // 4  # the x-height band: no ascenders or descenders of neighbours
+    gap, limit = max(2, int(gap_frac * h)), int(limit_frac * h)
+    right_stop, left_stop = min(image.width, x1 + limit), max(0, x0 - limit)
+    for other in lines:
+        ox0, oy0, ox1, oy1 = other.box
+        if other is line or oy1 <= core_top or oy0 >= core_bottom:
+            continue
+        if ox0 >= x1:
+            right_stop = min(right_stop, ox0)
+        elif ox1 <= x0:
+            left_stop = max(left_stop, ox1)
+    new_x1 = x1
+    run = 0
+    for i, ink in enumerate(column_ink(image, x1, right_stop, core_top, core_bottom)):
+        run = 0 if ink else run + 1
+        if ink:
+            new_x1 = x1 + i + 1
+        if run >= gap:
+            break
+    new_x0 = x0
+    run = 0
+    for i, ink in enumerate(reversed(column_ink(image, left_stop, x0, core_top, core_bottom))):
+        run = 0 if ink else run + 1
+        if ink:
+            new_x0 = x0 - i - 1
+        if run >= gap:
+            break
+    return [new_x0, y0, new_x1, y1]
 
 
 def crop_box(line: PageLine, lines: Sequence[PageLine], size: tuple[int, int]) -> list[int]:
@@ -1411,6 +1574,15 @@ def booklet_job(job: Mapping[str, Any]) -> dict[str, Any]:  # pragma: no cover -
             else:
                 lines = tesseract_page_lines(image, work)
                 ocr_kinds["tesseract_page"] += 1
+            # fit every box to the ink (layer boxes come from invisible text in another font: they sit low and stop
+            # short of a line's ends), then join the row fragments the true gaps reveal
+            fitted = [ink_fit_vertical(image, line, lines) for line in lines]
+            for line, box in zip(lines, fitted):
+                line.box = box
+            extended = [ink_extend(image, line, lines) for line in lines]
+            for line, box in zip(lines, extended):
+                line.box = box
+            lines = merge_row_fragments(lines, max_gap=0.9)
             heights = sorted(l.box[3] - l.box[1] for l in lines if l.box[3] > l.box[1])
             median_h = heights[len(heights) // 2] if heights else 0
             located = []
@@ -1418,6 +1590,9 @@ def booklet_job(job: Mapping[str, Any]) -> dict[str, Any]:  # pragma: no cover -
                 h = line.box[3] - line.box[1]
                 if median_h and h > 1.8 * median_h:
                     drops["merged_rows"] += 1
+                    continue
+                if line.touching:
+                    drops["touches_neighbour_line"] += 1
                     continue
                 spot = locate(line.locate_text, paragraphs)
                 if spot is None:
@@ -1471,10 +1646,12 @@ DROP_DEFINITIONS = {
     "no_olb_span": "located line with no OLB word span within MAX_LOCATE_CER of its locating reading",
     "ocr_disagrees_with_olb": "both readings exist and neither equals the span nor do they confirm it character by character",
     "single_reading_not_exact": "only one reading exists (no text layer) and it does not equal the span",
+    "other_reading_sees_more": "one reading equals the span, but the other reads two or more characters (with a letter) beyond its ends",
     "footnote_marker_in_print": "the print adds a footnote marker the OLB text lacks (the label would miss a printed glyph)",
     "pointed": "the OLB span carries niqqud or cantillation",
     "too_short": f"fewer than {MIN_LINE_CHARS} letters or digits, or fewer than {MIN_LINE_WORDS} words",
     "merged_rows": "the located box is over 1.8 times the page's median line height (two printed rows)",
+    "touches_neighbour_line": "no blank row separates the line's ink from a neighbouring line's, so no clean crop exists",
     "eval_ngram_overlap": "the label shares a word 6-gram with a P-mod v1 eval booklet or a wave-1 page",
     "capped": f"over --max-lines-per-booklet, by sha256 of the line id",
     "page_without_scan_image": "pages counted, not lines",
@@ -1525,7 +1702,18 @@ def build(args: argparse.Namespace, *, registry: Any = None) -> dict[str, Any]: 
     if args.only:
         booklets = {u: b for u, b in booklets.items() if u in set(args.only)}
     cache = Path(args.cache)
-    booklets = {u: b for u, b in booklets.items() if refuse_forbidden_path(cache / "pdf" / f"{booklet_slug(b['series'], b['number'])}.pdf").is_file()}
+    logged = {}
+    if (cache / "capture_log.jsonl").is_file():
+        for line in (cache / "capture_log.jsonl").read_text(encoding="utf-8").splitlines():
+            r = json.loads(line)
+            if "sha256" in r:
+                logged[r["unit_id"]] = r["sha256"]
+
+    def captured(u: str, b: Mapping[str, Any]) -> bool:  # the file must be the one the capture log pins
+        path = refuse_forbidden_path(cache / "pdf" / f"{booklet_slug(b['series'], b['number'])}.pdf")
+        return path.is_file() and logged.get(u) == hashlib.sha256(path.read_bytes()).hexdigest()
+
+    booklets = {u: b for u, b in booklets.items() if captured(u, b)}
     selected = [{"source_id": SOURCE_ID, "unit_id": u} for u in booklets]
     refuse_eval_reserved_training_input(selected, builder=BUILDER, registry=registry)
     staging = out / ".staging"
@@ -1629,6 +1817,7 @@ def build(args: argparse.Namespace, *, registry: Any = None) -> dict[str, Any]: 
     import shutil
 
     shutil.rmtree(staging, ignore_errors=True)
+    out.mkdir(parents=True, exist_ok=True)
     manifest = out / "manifest.jsonl"
     manifest.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows), encoding="utf-8")
     for split in ("train", "dev"):
@@ -1796,6 +1985,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     c.add_argument("--series", nargs="+", default=["sefer_hachukim", "kovetz_hatakanot"])
     c.add_argument("--all-booklets", action="store_true", help="also booklets without an OLB candidate")
     c.add_argument("--limit", type=int)
+    c.add_argument("--shard", help="i/n: take every n-th planned booklet starting at i (parallel captures, one throttle)")
     c.add_argument("--min-priority", type=int, default=0, help="only booklets with at least this many first-published OLB instruments")
     add_build_arguments(sub)
     args = parser.parse_args(argv)
@@ -1815,7 +2005,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.command == "capture":
         doc = json.loads(Path(args.plan).read_text(encoding="utf-8"))
         print(json.dumps(capture(doc, Path(args.cache), series=args.series, only_candidates=not args.all_booklets,
-                                 limit=args.limit, min_priority=args.min_priority), ensure_ascii=False))
+                                 limit=args.limit, min_priority=args.min_priority,
+                                 shard=tuple(int(x) for x in args.shard.split("/")) if args.shard else None), ensure_ascii=False))
         return 0
     return run_build_command(args)
 

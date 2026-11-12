@@ -343,3 +343,59 @@ def test_rows_pass_the_guard_only_for_non_eval_scanned_units() -> None:
     for number in (8, 11):  # eval, unassigned
         with pytest.raises(EvalReservedUnitError):
             refuse_eval_reserved_training_input([row(number)], builder="t", registry=registry)
+
+
+def test_consensus_rejects_text_both_readings_see_beyond_the_label() -> None:
+    # print "ד' באלול התשס"א": both readings see a word the label lacks, though they read it differently
+    d = olb.accept_line('באלול התשס"א', 'ד\' באלול התשס"א', 'ר׳ באלול התשס"א')
+    assert not d.accepted and d.evidence["agreed_insertion_places"] == 1
+    # one reading sees an extra word at the line's end
+    d = olb.accept_line("צו חופש המידע יחידות במשרד ראש הממשלה", "צו חופש המידע יחידות במשרד ראש הממשלה אך",
+                        "צו חופש המידנ יחידות במשרד ראש הממשלה")
+    assert not d.accepted and d.evidence["edge_insertions"] == 1
+
+
+def test_exact_reading_is_overruled_when_the_other_sees_more_at_an_end() -> None:
+    d = olb.accept_line("צו חופש המידע יחידות במשרד", "צו חופש המידע יחידות במשרד", "צו חופש המידע יחידות במשרד ראש")
+    assert not d.accepted and d.reason == "other_reading_sees_more"
+    d = olb.accept_line("צו חופש המידע יחידות במשרד", "צו חופש המידע יחידות במשרד", "צו חופש המידע יחידות במשרד.")
+    assert d.accepted and d.tier == "layer_exact"
+
+
+def test_ink_extend_reaches_a_letter_the_box_misses() -> None:
+    from PIL import Image, ImageDraw
+
+    page = Image.new("L", (400, 100), 255)
+    draw = ImageDraw.Draw(page)
+    draw.rectangle((100, 40, 300, 60), fill=0)   # the line's ink, wider than its OCR box on the right
+    draw.rectangle((340, 40, 360, 60), fill=0)   # the next word, beyond a blank gap
+    line = olb.PageLine(0, [100, 38, 280, 62], "x", "x")
+    assert olb.ink_extend(page, line, [line]) == [100, 38, 301, 62]
+
+
+def test_ink_fit_vertical_moves_a_low_box_onto_its_ink() -> None:
+    from PIL import Image, ImageDraw
+
+    page = Image.new("L", (400, 200), 255)
+    ImageDraw.Draw(page).rectangle((100, 50, 300, 80), fill=0)  # the printed row
+    line = olb.PageLine(0, [100, 65, 300, 95], "x", "x")       # the layer box: half a line too low
+    assert olb.ink_fit_vertical(page, line, [line]) == [100, 50, 300, 81]
+
+
+def test_consensus_rejects_a_closing_quote_one_reading_sees() -> None:
+    label = "לרבות רישום זמני עד למתן צו על ידי בית המשפט."
+    d = olb.accept_line(label, label.replace("זמני", "זמגי") + '"', label.replace("למתן", "למחן"))
+    assert not d.accepted and d.evidence["edge_insertions"] == 1
+
+
+def test_ink_fit_vertical_flags_lines_whose_ink_touches() -> None:
+    from PIL import Image, ImageDraw
+
+    page = Image.new("L", (400, 200), 255)
+    ImageDraw.Draw(page).rectangle((100, 40, 300, 110), fill=0)  # two rows of margin type with no blank row
+    upper = olb.PageLine(0, [100, 40, 300, 72], "a", "a")
+    lower = olb.PageLine(1, [100, 76, 300, 108], "b", "b")
+    olb.ink_fit_vertical(page, lower, [upper, lower])
+    assert lower.touching
+    merged = olb.merge_row_fragments([lower, olb.PageLine(2, [10, 76, 90, 108], "c", "c")])
+    assert merged[0].touching
