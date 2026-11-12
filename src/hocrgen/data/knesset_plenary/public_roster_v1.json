@@ -1,0 +1,6061 @@
+{
+"source": "knesset.gov.il OdataV4 ParliamentInfo KNS_Person with >=1 KNS_PersonToPosition",
+"fetched": "2026-11-13",
+"people": [
+{
+"person_id": 405,
+"first": "בנימין",
+"last": "אלון"
+},
+{
+"person_id": 412,
+"first": "צבי",
+"last": "הנדל"
+},
+{
+"person_id": 417,
+"first": "רחבעם",
+"last": "זאבי"
+},
+{
+"person_id": 421,
+"first": "אליעזר",
+"last": "כהן"
+},
+{
+"person_id": 427,
+"first": "אביגדור",
+"last": "ליברמן"
+},
+{
+"person_id": 430,
+"first": "יורי",
+"last": "שטרן"
+},
+{
+"person_id": 431,
+"first": "קולט",
+"last": "אביטל"
+},
+{
+"person_id": 432,
+"first": "אפי",
+"last": "אושעיה"
+},
+{
+"person_id": 433,
+"first": "דליה",
+"last": "איציק"
+},
+{
+"person_id": 434,
+"first": "אברהם",
+"last": "בורג"
+},
+{
+"person_id": 435,
+"first": "בנימין",
+"last": "בן-אליעזר"
+},
+{
+"person_id": 437,
+"first": "אלי",
+"last": "בן-מנחם"
+},
+{
+"person_id": 439,
+"first": "שלמה",
+"last": "בן-עמי"
+},
+{
+"person_id": 441,
+"first": "יעל",
+"last": "דיין"
+},
+{
+"person_id": 442,
+"first": "סאלח",
+"last": "טריף"
+},
+{
+"person_id": 444,
+"first": "אברהם",
+"last": "יחזקאל"
+},
+{
+"person_id": 445,
+"first": "איתן",
+"last": "כבל"
+},
+{
+"person_id": 446,
+"first": "רענן",
+"last": "כהן"
+},
+{
+"person_id": 447,
+"first": "יוסי",
+"last": "כץ"
+},
+{
+"person_id": 448,
+"first": "סופה",
+"last": "לנדבר"
+},
+{
+"person_id": 449,
+"first": "מיכאל",
+"last": "מלכיאור"
+},
+{
+"person_id": 453,
+"first": "נואף",
+"last": "מסאלחה"
+},
+{
+"person_id": 454,
+"first": "אפרים",
+"last": "סנה"
+},
+{
+"person_id": 455,
+"first": "אופיר",
+"last": "פינס-פז"
+},
+{
+"person_id": 456,
+"first": "שמעון",
+"last": "פרס"
+},
+{
+"person_id": 458,
+"first": "חיים",
+"last": "רמון"
+},
+{
+"person_id": 459,
+"first": "אברהם-בייגה",
+"last": "שוחט"
+},
+{
+"person_id": 460,
+"first": "ויצמן",
+"last": "שירי"
+},
+{
+"person_id": 461,
+"first": "שלום",
+"last": "שמחון"
+},
+{
+"person_id": 462,
+"first": "מיכאל",
+"last": "איתן"
+},
+{
+"person_id": 463,
+"first": "משה",
+"last": "ארנס"
+},
+{
+"person_id": 464,
+"first": "זאב",
+"last": "בוים"
+},
+{
+"person_id": 465,
+"first": "נעמי",
+"last": "בלומנטל"
+},
+{
+"person_id": 466,
+"first": "אברהם",
+"last": "הירשזון"
+},
+{
+"person_id": 467,
+"first": "צחי",
+"last": "הנגבי"
+},
+{
+"person_id": 468,
+"first": "ישראל",
+"last": "כץ"
+},
+{
+"person_id": 469,
+"first": "ציפי",
+"last": "לבני"
+},
+{
+"person_id": 470,
+"first": "לימור",
+"last": "לבנת"
+},
+{
+"person_id": 471,
+"first": "עוזי",
+"last": "לנדאו"
+},
+{
+"person_id": 472,
+"first": "יהושע",
+"last": "מצא"
+},
+{
+"person_id": 473,
+"first": "דני",
+"last": "נוה"
+},
+{
+"person_id": 474,
+"first": "גדעון",
+"last": "עזרא"
+},
+{
+"person_id": 475,
+"first": "איוב",
+"last": "קרא"
+},
+{
+"person_id": 476,
+"first": "ראובן",
+"last": "ריבלין"
+},
+{
+"person_id": 477,
+"first": "יובל",
+"last": "שטייניץ"
+},
+{
+"person_id": 478,
+"first": "מאיר",
+"last": "שטרית"
+},
+{
+"person_id": 479,
+"first": "סילבן",
+"last": "שלום"
+},
+{
+"person_id": 482,
+"first": "אריאל",
+"last": "שרון"
+},
+{
+"person_id": 483,
+"first": "דוד",
+"last": "אזולאי"
+},
+{
+"person_id": 484,
+"first": "שלמה",
+"last": "בניזרי"
+},
+{
+"person_id": 485,
+"first": "יצחק",
+"last": "גאגולה"
+},
+{
+"person_id": 486,
+"first": "אריה",
+"last": "גמליאל"
+},
+{
+"person_id": 487,
+"first": "נסים",
+"last": "דהן"
+},
+{
+"person_id": 488,
+"first": "יצחק",
+"last": "וקנין"
+},
+{
+"person_id": 490,
+"first": "נסים",
+"last": "זאב"
+},
+{
+"person_id": 492,
+"first": "עופר",
+"last": "חוגי"
+},
+{
+"person_id": 493,
+"first": "דוד",
+"last": "טל"
+},
+{
+"person_id": 494,
+"first": "אליהו",
+"last": "ישי"
+},
+{
+"person_id": 495,
+"first": "אמנון",
+"last": "כהן"
+},
+{
+"person_id": 498,
+"first": "משולם",
+"last": "נהרי"
+},
+{
+"person_id": 499,
+"first": "יצחק",
+"last": "סבן"
+},
+{
+"person_id": 500,
+"first": "אליהו",
+"last": "סויסה"
+},
+{
+"person_id": 501,
+"first": "יאיר",
+"last": "פרץ"
+},
+{
+"person_id": 503,
+"first": "אילן",
+"last": "גילאון"
+},
+{
+"person_id": 504,
+"first": "זהבה",
+"last": "גלאון"
+},
+{
+"person_id": 505,
+"first": "אבשלום",
+"last": "וילן"
+},
+{
+"person_id": 506,
+"first": "נעמי",
+"last": "חזן"
+},
+{
+"person_id": 507,
+"first": "רן",
+"last": "כהן"
+},
+{
+"person_id": 509,
+"first": "ענת",
+"last": "מאור"
+},
+{
+"person_id": 510,
+"first": "אמנון",
+"last": "רובינשטיין"
+},
+{
+"person_id": 511,
+"first": "מוסי",
+"last": "רז"
+},
+{
+"person_id": 512,
+"first": "יוסי",
+"last": "שריד"
+},
+{
+"person_id": 513,
+"first": "ויקטור",
+"last": "בריילובסקי"
+},
+{
+"person_id": 517,
+"first": "יוסף (טומי)",
+"last": "לפיד"
+},
+{
+"person_id": 518,
+"first": "יהודית",
+"last": "נאות"
+},
+{
+"person_id": 519,
+"first": "אברהם",
+"last": "פורז"
+},
+{
+"person_id": 520,
+"first": "יוסף יצחק",
+"last": "פריצקי"
+},
+{
+"person_id": 521,
+"first": "זבולון",
+"last": "אורלב"
+},
+{
+"person_id": 522,
+"first": "יגאל",
+"last": "ביבי"
+},
+{
+"person_id": 523,
+"first": "חיים",
+"last": "דרוקמן"
+},
+{
+"person_id": 524,
+"first": "שאול",
+"last": "יהלום"
+},
+{
+"person_id": 525,
+"first": "נחום",
+"last": "לנגנטל"
+},
+{
+"person_id": 526,
+"first": "משה",
+"last": "גפני"
+},
+{
+"person_id": 527,
+"first": "שמואל",
+"last": "הלפרט"
+},
+{
+"person_id": 528,
+"first": "יעקב",
+"last": "ליצמן"
+},
+{
+"person_id": 531,
+"first": "אברהם",
+"last": "רביץ"
+},
+{
+"person_id": 532,
+"first": "יולי יואל",
+"last": "אדלשטיין"
+},
+{
+"person_id": 533,
+"first": "מרינה",
+"last": "סולודקין"
+},
+{
+"person_id": 534,
+"first": "גנדי",
+"last": "ריגר"
+},
+{
+"person_id": 535,
+"first": "נתן",
+"last": "שרנסקי"
+},
+{
+"person_id": 536,
+"first": "דוד",
+"last": "לוי"
+},
+{
+"person_id": 537,
+"first": "מקסים",
+"last": "לוי"
+},
+{
+"person_id": 538,
+"first": "מרדכי",
+"last": "משעני"
+},
+{
+"person_id": 539,
+"first": "דליה",
+"last": "רבין-פילוסוף"
+},
+{
+"person_id": 540,
+"first": "מוחמד",
+"last": "ברכה"
+},
+{
+"person_id": 541,
+"first": "תמר",
+"last": "גוז'נסקי"
+},
+{
+"person_id": 542,
+"first": "עסאם",
+"last": "מח'ול"
+},
+{
+"person_id": 543,
+"first": "יחיאל",
+"last": "לסרי"
+},
+{
+"person_id": 544,
+"first": "דוד",
+"last": "מגן"
+},
+{
+"person_id": 545,
+"first": "רוני",
+"last": "מילוא"
+},
+{
+"person_id": 546,
+"first": "דן",
+"last": "מרידור"
+},
+{
+"person_id": 548,
+"first": "נחמה",
+"last": "רונן"
+},
+{
+"person_id": 549,
+"first": "טלב",
+"last": "אלסאנע"
+},
+{
+"person_id": 550,
+"first": "עבד-אלמאלכ",
+"last": "דהאמשה"
+},
+{
+"person_id": 551,
+"first": "האשם",
+"last": "מחאמיד"
+},
+{
+"person_id": 552,
+"first": "רומן",
+"last": "ברונפמן"
+},
+{
+"person_id": 553,
+"first": "אלכסנדר",
+"last": "צינקר"
+},
+{
+"person_id": 554,
+"first": "תאופיק",
+"last": "חטיב"
+},
+{
+"person_id": 555,
+"first": "מוחמד",
+"last": "כנעאן"
+},
+{
+"person_id": 556,
+"first": "חיים",
+"last": "כץ"
+},
+{
+"person_id": 557,
+"first": "עמיר",
+"last": "פרץ"
+},
+{
+"person_id": 558,
+"first": "עזמי",
+"last": "בשארה"
+},
+{
+"person_id": 559,
+"first": "מיכאל",
+"last": "קליינר"
+},
+{
+"person_id": 560,
+"first": "אחמד",
+"last": "טיבי"
+},
+{
+"person_id": 563,
+"first": "מאיר",
+"last": "פרוש"
+},
+{
+"person_id": 564,
+"first": "רחמים",
+"last": "מלול"
+},
+{
+"person_id": 565,
+"first": "מיכאל",
+"last": "נודלמן"
+},
+{
+"person_id": 567,
+"first": "אליעזר",
+"last": "זנדברג"
+},
+{
+"person_id": 580,
+"first": "יצחק",
+"last": "כהן"
+},
+{
+"person_id": 584,
+"first": "שמואל",
+"last": "אביטל"
+},
+{
+"person_id": 585,
+"first": "אשר",
+"last": "אוחנה"
+},
+{
+"person_id": 713,
+"first": "אורי",
+"last": "אריאל"
+},
+{
+"person_id": 755,
+"first": "אלי",
+"last": "כהן"
+},
+{
+"person_id": 763,
+"first": "אפי",
+"last": "איתם"
+},
+{
+"person_id": 765,
+"first": "יצחק",
+"last": "לוי"
+},
+{
+"person_id": 818,
+"first": "יהודה",
+"last": "גלעד"
+},
+{
+"person_id": 860,
+"first": "אלי",
+"last": "גולדשמידט"
+},
+{
+"person_id": 861,
+"first": "עוזי",
+"last": "ברעם"
+},
+{
+"person_id": 862,
+"first": "משה",
+"last": "קצב"
+},
+{
+"person_id": 865,
+"first": "אורית",
+"last": "נוקד"
+},
+{
+"person_id": 889,
+"first": "צלי",
+"last": "רשף"
+},
+{
+"person_id": 926,
+"first": "עוזי",
+"last": "אבן"
+},
+{
+"person_id": 949,
+"first": "שאול",
+"last": "מופז"
+},
+{
+"person_id": 965,
+"first": "בנימין",
+"last": "נתניהו"
+},
+{
+"person_id": 986,
+"first": "פנחס",
+"last": "צברי"
+},
+{
+"person_id": 1025,
+"first": "גילה",
+"last": "גמליאל"
+},
+{
+"person_id": 1026,
+"first": "רוחמה",
+"last": "אברהם-בלילא"
+},
+{
+"person_id": 1027,
+"first": "גדעון",
+"last": "סער"
+},
+{
+"person_id": 1028,
+"first": "דניאל",
+"last": "בנלולו"
+},
+{
+"person_id": 1029,
+"first": "מיכאל",
+"last": "רצון"
+},
+{
+"person_id": 1030,
+"first": "מגלי",
+"last": "והבה"
+},
+{
+"person_id": 1031,
+"first": "יעקב",
+"last": "אדרי"
+},
+{
+"person_id": 1032,
+"first": "אהוד",
+"last": "יתום"
+},
+{
+"person_id": 1033,
+"first": "אלי",
+"last": "אפללו"
+},
+{
+"person_id": 1034,
+"first": "משה",
+"last": "כחלון"
+},
+{
+"person_id": 1035,
+"first": "עמרי",
+"last": "שרון"
+},
+{
+"person_id": 1036,
+"first": "מיכאל",
+"last": "גורלובסקי"
+},
+{
+"person_id": 1037,
+"first": "גלעד",
+"last": "ארדן"
+},
+{
+"person_id": 1038,
+"first": "רוני",
+"last": "בר-און"
+},
+{
+"person_id": 1039,
+"first": "ענבל",
+"last": "גבריאלי"
+},
+{
+"person_id": 1040,
+"first": "יחיאל",
+"last": "חזן"
+},
+{
+"person_id": 1041,
+"first": "לאה",
+"last": "נס"
+},
+{
+"person_id": 1042,
+"first": "עמרם",
+"last": "מצנע"
+},
+{
+"person_id": 1043,
+"first": "יולי",
+"last": "תמיר"
+},
+{
+"person_id": 1044,
+"first": "יצחק",
+"last": "הרצוג"
+},
+{
+"person_id": 1045,
+"first": "דני",
+"last": "יתום"
+},
+{
+"person_id": 1046,
+"first": "אילן",
+"last": "שלגי"
+},
+{
+"person_id": 1047,
+"first": "מלי",
+"last": "פולישוק-בלוך"
+},
+{
+"person_id": 1048,
+"first": "רשף",
+"last": "חן"
+},
+{
+"person_id": 1049,
+"first": "רוני",
+"last": "בריזון"
+},
+{
+"person_id": 1050,
+"first": "אהוד",
+"last": "רצאבי"
+},
+{
+"person_id": 1051,
+"first": "אתי",
+"last": "לבני"
+},
+{
+"person_id": 1052,
+"first": "אילן",
+"last": "ליבוביץ"
+},
+{
+"person_id": 1053,
+"first": "חמי",
+"last": "דורון"
+},
+{
+"person_id": 1054,
+"first": "יגאל",
+"last": "יאסינוב"
+},
+{
+"person_id": 1055,
+"first": "אריה",
+"last": "אלדד"
+},
+{
+"person_id": 1056,
+"first": "יעקב",
+"last": "מרגי"
+},
+{
+"person_id": 1057,
+"first": "ישראל",
+"last": "אייכלר"
+},
+{
+"person_id": 1059,
+"first": "גילה",
+"last": "פינקלשטיין"
+},
+{
+"person_id": 1061,
+"first": "ג'מאל",
+"last": "זחאלקה"
+},
+{
+"person_id": 1062,
+"first": "ואסל",
+"last": "טאהא"
+},
+{
+"person_id": 1063,
+"first": "אילנה",
+"last": "כהן"
+},
+{
+"person_id": 1064,
+"first": "אהוד",
+"last": "אולמרט"
+},
+{
+"person_id": 1065,
+"first": "חיים",
+"last": "אורון"
+},
+{
+"person_id": 1067,
+"first": "מתן",
+"last": "וילנאי"
+},
+{
+"person_id": 1068,
+"first": "ניסן",
+"last": "סלומינסקי"
+},
+{
+"person_id": 2014,
+"first": "ראלב",
+"last": "מג'אדלה"
+},
+{
+"person_id": 2114,
+"first": "משה",
+"last": "שרת"
+},
+{
+"person_id": 2116,
+"first": "אחמד",
+"last": "א'-דאהר"
+},
+{
+"person_id": 2117,
+"first": "חמאד",
+"last": "אבו-רביעה"
+},
+{
+"person_id": 2118,
+"first": "לביב",
+"last": "אבו-רוכן"
+},
+{
+"person_id": 2119,
+"first": "אהרן",
+"last": "אבוחצירא"
+},
+{
+"person_id": 2120,
+"first": "אליעזר",
+"last": "אבטבי"
+},
+{
+"person_id": 2121,
+"first": "מאיר",
+"last": "אביזוהר"
+},
+{
+"person_id": 2122,
+"first": "אבא",
+"last": "אבן"
+},
+{
+"person_id": 2123,
+"first": "בנימין",
+"last": "אבניאל"
+},
+{
+"person_id": 2124,
+"first": "אורי",
+"last": "אבנרי"
+},
+{
+"person_id": 2125,
+"first": "אהוד",
+"last": "אבריאל"
+},
+{
+"person_id": 2126,
+"first": "שניאור זלמן",
+"last": "אברמוב"
+},
+{
+"person_id": 2127,
+"first": "יהודה-מאיר",
+"last": "אברמוביץ"
+},
+{
+"person_id": 2128,
+"first": "רפאל",
+"last": "אדרי"
+},
+{
+"person_id": 2129,
+"first": "אהרן",
+"last": "אוזן"
+},
+{
+"person_id": 2130,
+"first": "מרדכי",
+"last": "אולמרט"
+},
+{
+"person_id": 2131,
+"first": "משה",
+"last": "אונא"
+},
+{
+"person_id": 2132,
+"first": "אורי",
+"last": "אור"
+},
+{
+"person_id": 2133,
+"first": "יעקב",
+"last": "אורי"
+},
+{
+"person_id": 2134,
+"first": "ברוך",
+"last": "אזניה"
+},
+{
+"person_id": 2135,
+"first": "יוסף",
+"last": "אחימאיר"
+},
+{
+"person_id": 2136,
+"first": "בבה",
+"last": "אידלסון"
+},
+{
+"person_id": 2137,
+"first": "עזרא",
+"last": "איכילוב"
+},
+{
+"person_id": 2138,
+"first": "רפאל",
+"last": "איתן"
+},
+{
+"person_id": 2139,
+"first": "מרדכי",
+"last": "אלגרבלי"
+},
+{
+"person_id": 2140,
+"first": "צבי",
+"last": "אלדרוטי"
+},
+{
+"person_id": 2141,
+"first": "רפאל",
+"last": "אלול"
+},
+{
+"person_id": 2142,
+"first": "יגאל",
+"last": "אלון"
+},
+{
+"person_id": 2143,
+"first": "שולמית",
+"last": "אלוני"
+},
+{
+"person_id": 2144,
+"first": "סיף-אלדין",
+"last": "אלזועבי"
+},
+{
+"person_id": 2145,
+"first": "אריה",
+"last": "אלטמן"
+},
+{
+"person_id": 2146,
+"first": "אריה לובה",
+"last": "אליאב"
+},
+{
+"person_id": 2147,
+"first": "שלמה",
+"last": "אליהו"
+},
+{
+"person_id": 2148,
+"first": "נסים",
+"last": "אליעד"
+},
+{
+"person_id": 2149,
+"first": "אליהו",
+"last": "אלישר"
+},
+{
+"person_id": 2150,
+"first": "יוסף-אהרון",
+"last": "אלמוגי"
+},
+{
+"person_id": 2151,
+"first": "אברהם",
+"last": "אלמליח"
+},
+{
+"person_id": 2152,
+"first": "עדיאל",
+"last": "אמוראי"
+},
+{
+"person_id": 2153,
+"first": "יעקב-ז'אק",
+"last": "אמיר"
+},
+{
+"person_id": 2154,
+"first": "מחמוד",
+"last": "אנאשף"
+},
+{
+"person_id": 2155,
+"first": "ארי",
+"last": "אנקוריון"
+},
+{
+"person_id": 2156,
+"first": "ירחמיאל",
+"last": "אסא"
+},
+{
+"person_id": 2157,
+"first": "אסעד",
+"last": "אסעד"
+},
+{
+"person_id": 2158,
+"first": "שפיק",
+"last": "אסעד"
+},
+{
+"person_id": 2159,
+"first": "עמי",
+"last": "אסף"
+},
+{
+"person_id": 2160,
+"first": "אהרון",
+"last": "אפרת"
+},
+{
+"person_id": 2161,
+"first": "יוסף",
+"last": "אפרתי"
+},
+{
+"person_id": 2162,
+"first": "שושנה",
+"last": "ארבלי-אלמוזלינו"
+},
+{
+"person_id": 2163,
+"first": "מאיר",
+"last": "ארגוב"
+},
+{
+"person_id": 2164,
+"first": "נאוה",
+"last": "ארד"
+},
+{
+"person_id": 2165,
+"first": "בנימין",
+"last": "ארדיטי"
+},
+{
+"person_id": 2166,
+"first": "ראובן",
+"last": "ארזי"
+},
+{
+"person_id": 2167,
+"first": "חיים",
+"last": "אריאב"
+},
+{
+"person_id": 2168,
+"first": "יורם",
+"last": "ארידור"
+},
+{
+"person_id": 2169,
+"first": "שמחה",
+"last": "ארליך"
+},
+{
+"person_id": 2170,
+"first": "משה",
+"last": "ארם"
+},
+{
+"person_id": 2171,
+"first": "זלמן",
+"last": "ארן"
+},
+{
+"person_id": 2172,
+"first": "יצחק",
+"last": "ארצי"
+},
+{
+"person_id": 2173,
+"first": "לוי",
+"last": "אשכול"
+},
+{
+"person_id": 2174,
+"first": "תמר",
+"last": "אשל"
+},
+{
+"person_id": 2175,
+"first": "יוסף",
+"last": "בא-גד"
+},
+{
+"person_id": 2176,
+"first": "ידידיה",
+"last": "בארי"
+},
+{
+"person_id": 2177,
+"first": "שמחה",
+"last": "בבה"
+},
+{
+"person_id": 2178,
+"first": "זאב בנימין",
+"last": "בגין"
+},
+{
+"person_id": 2179,
+"first": "מנחם",
+"last": "בגין"
+},
+{
+"person_id": 2180,
+"first": "אליקים-גוסטב",
+"last": "בדיאן"
+},
+{
+"person_id": 2181,
+"first": "יוחנן",
+"last": "בדר"
+},
+{
+"person_id": 2182,
+"first": "מנחם",
+"last": "בדר"
+},
+{
+"person_id": 2183,
+"first": "פיני",
+"last": "בדש"
+},
+{
+"person_id": 2184,
+"first": "אריה",
+"last": "בהיר"
+},
+{
+"person_id": 2185,
+"first": "חיים",
+"last": "בוגר"
+},
+{
+"person_id": 2186,
+"first": "שלמה",
+"last": "בוחבוט"
+},
+{
+"person_id": 2187,
+"first": "יוסף",
+"last": "בורג"
+},
+{
+"person_id": 2188,
+"first": "שמעון",
+"last": "בז'רנו"
+},
+{
+"person_id": 2189,
+"first": "מרדכי",
+"last": "ביבי"
+},
+{
+"person_id": 2190,
+"first": "אברהם",
+"last": "ביטון"
+},
+{
+"person_id": 2191,
+"first": "צ'רלי",
+"last": "ביטון"
+},
+{
+"person_id": 2192,
+"first": "יוסי",
+"last": "ביילין"
+},
+{
+"person_id": 2193,
+"first": "נפתלי",
+"last": "בלומנטל"
+},
+{
+"person_id": 2194,
+"first": "יצחק",
+"last": "בן-אהרן"
+},
+{
+"person_id": 2195,
+"first": "אריה",
+"last": "בן-אליעזר"
+},
+{
+"person_id": 2196,
+"first": "אליהו",
+"last": "בן-אלישר"
+},
+{
+"person_id": 2197,
+"first": "חיים",
+"last": "בן-אשר"
+},
+{
+"person_id": 2198,
+"first": "דוד",
+"last": "בן-גוריון"
+},
+{
+"person_id": 2199,
+"first": "זלמן",
+"last": "בן-יעקב"
+},
+{
+"person_id": 2200,
+"first": "גדעון",
+"last": "בן-ישראל"
+},
+{
+"person_id": 2201,
+"first": "דב",
+"last": "בן-מאיר"
+},
+{
+"person_id": 2202,
+"first": "יהודה",
+"last": "בן-מאיר"
+},
+{
+"person_id": 2203,
+"first": "שלמה-ישראל",
+"last": "בן-מאיר"
+},
+{
+"person_id": 2204,
+"first": "משה",
+"last": "בן-עמי"
+},
+{
+"person_id": 2206,
+"first": "מרדכי",
+"last": "בן-פורת"
+},
+{
+"person_id": 2207,
+"first": "יצחק",
+"last": "בן-צבי"
+},
+{
+"person_id": 2208,
+"first": "שמריהו",
+"last": "בן-צור"
+},
+{
+"person_id": 2209,
+"first": "שמעון",
+"last": "בן-שלמה"
+},
+{
+"person_id": 2210,
+"first": "מרדכי",
+"last": "בנטוב"
+},
+{
+"person_id": 2211,
+"first": "רוסתם",
+"last": "בסטוני"
+},
+{
+"person_id": 2212,
+"first": "אהרן",
+"last": "בקר"
+},
+{
+"person_id": 2213,
+"first": "מרדכי",
+"last": "בר-און"
+},
+{
+"person_id": 2214,
+"first": "מיכאל",
+"last": "בר-זהר"
+},
+{
+"person_id": 2215,
+"first": "ישראל",
+"last": "בר-יהודה"
+},
+{
+"person_id": 2216,
+"first": "חיים",
+"last": "בר-לב"
+},
+{
+"person_id": 2217,
+"first": "דב",
+"last": "בר-ניר"
+},
+{
+"person_id": 2218,
+"first": "דוד",
+"last": "בר-רב-האי"
+},
+{
+"person_id": 2219,
+"first": "הרצל",
+"last": "ברגר"
+},
+{
+"person_id": 2220,
+"first": "ישראל",
+"last": "ברזילי"
+},
+{
+"person_id": 2221,
+"first": "אברהם",
+"last": "ברמן"
+},
+{
+"person_id": 2222,
+"first": "יצחק",
+"last": "ברמן"
+},
+{
+"person_id": 2223,
+"first": "פרץ",
+"last": "ברנשטיין"
+},
+{
+"person_id": 2224,
+"first": "משה",
+"last": "ברעם"
+},
+{
+"person_id": 2225,
+"first": "יוסף",
+"last": "ברץ"
+},
+{
+"person_id": 2226,
+"first": "אהוד",
+"last": "ברק"
+},
+{
+"person_id": 2227,
+"first": "ראובן",
+"last": "ברקת"
+},
+{
+"person_id": 2228,
+"first": "רפאל",
+"last": "בש"
+},
+{
+"person_id": 2229,
+"first": "חוסניה",
+"last": "ג'בארה"
+},
+{
+"person_id": 2230,
+"first": "חליל-סלים",
+"last": "ג'בארה"
+},
+{
+"person_id": 2231,
+"first": "אמין",
+"last": "ג'רג'ורה"
+},
+{
+"person_id": 2232,
+"first": "אליהו",
+"last": "גבאי"
+},
+{
+"person_id": 2233,
+"first": "חיים",
+"last": "גבתי"
+},
+{
+"person_id": 2234,
+"first": "גדעון",
+"last": "גדות"
+},
+{
+"person_id": 2235,
+"first": "עקיבא",
+"last": "גוברין"
+},
+{
+"person_id": 2236,
+"first": "שאול",
+"last": "גוטמן"
+},
+{
+"person_id": 2237,
+"first": "יוסף",
+"last": "גולדברג"
+},
+{
+"person_id": 2238,
+"first": "מיכה",
+"last": "גולדמן"
+},
+{
+"person_id": 2239,
+"first": "אלכס",
+"last": "גולדפרב"
+},
+{
+"person_id": 2240,
+"first": "אברהם",
+"last": "גולדרט"
+},
+{
+"person_id": 2241,
+"first": "אהרן",
+"last": "גולדשטיין"
+},
+{
+"person_id": 2242,
+"first": "פנחס",
+"last": "גולדשטיין"
+},
+{
+"person_id": 2243,
+"first": "יוסף",
+"last": "גולדשמידט"
+},
+{
+"person_id": 2244,
+"first": "דוד",
+"last": "גולומב"
+},
+{
+"person_id": 2245,
+"first": "יצחק",
+"last": "גולן"
+},
+{
+"person_id": 2246,
+"first": "אפרים",
+"last": "גור"
+},
+{
+"person_id": 2247,
+"first": "מרדכי",
+"last": "גור"
+},
+{
+"person_id": 2248,
+"first": "ישראל",
+"last": "גורי"
+},
+{
+"person_id": 2249,
+"first": "שרגא",
+"last": "גורן"
+},
+{
+"person_id": 2250,
+"first": "מטילדה",
+"last": "גז"
+},
+{
+"person_id": 2251,
+"first": "אברהם",
+"last": "גיבלבר"
+},
+{
+"person_id": 2252,
+"first": "יעקב",
+"last": "גיל"
+},
+{
+"person_id": 2253,
+"first": "יעקב",
+"last": "גיל"
+},
+{
+"person_id": 2254,
+"first": "גדליה",
+"last": "גל"
+},
+{
+"person_id": 2255,
+"first": "זכריה",
+"last": "גלוסקא"
+},
+{
+"person_id": 2256,
+"first": "מרים",
+"last": "גלזר-תעסה"
+},
+{
+"person_id": 2257,
+"first": "ישראל",
+"last": "גלילי"
+},
+{
+"person_id": 2258,
+"first": "דוד",
+"last": "גלס"
+},
+{
+"person_id": 2259,
+"first": "אליהו-משה",
+"last": "גנחובסקי"
+},
+{
+"person_id": 2260,
+"first": "שלמה-יעקב",
+"last": "גרוס"
+},
+{
+"person_id": 2261,
+"first": "חייקה",
+"last": "גרוסמן"
+},
+{
+"person_id": 2262,
+"first": "פסח",
+"last": "גרופר"
+},
+{
+"person_id": 2263,
+"first": "שמעון",
+"last": "גרידי"
+},
+{
+"person_id": 2264,
+"first": "אהרן-יעקב",
+"last": "גרינברג"
+},
+{
+"person_id": 2265,
+"first": "אורי-צבי",
+"last": "גרינברג"
+},
+{
+"person_id": 2266,
+"first": "אברהם",
+"last": "גרנות"
+},
+{
+"person_id": 2267,
+"first": "אלעזר",
+"last": "גרנות"
+},
+{
+"person_id": 2268,
+"first": "צבי",
+"last": "גרשוני"
+},
+{
+"person_id": 2269,
+"first": "עמוס",
+"last": "דגני"
+},
+{
+"person_id": 2270,
+"first": "יחיאל",
+"last": "דובדבני"
+},
+{
+"person_id": 2271,
+"first": "אברהם",
+"last": "דויטש"
+},
+{
+"person_id": 2272,
+"first": "שבתאי",
+"last": "דון-יחיא"
+},
+{
+"person_id": 2273,
+"first": "שרה",
+"last": "דורון"
+},
+{
+"person_id": 2274,
+"first": "יוסף",
+"last": "דיאב"
+},
+{
+"person_id": 2275,
+"first": "אלי",
+"last": "דיין"
+},
+{
+"person_id": 2276,
+"first": "חיים",
+"last": "דיין"
+},
+{
+"person_id": 2277,
+"first": "משה",
+"last": "דיין"
+},
+{
+"person_id": 2278,
+"first": "שלמה",
+"last": "דיין"
+},
+{
+"person_id": 2279,
+"first": "שמואל",
+"last": "דיין"
+},
+{
+"person_id": 2280,
+"first": "בן-ציון",
+"last": "דינור"
+},
+{
+"person_id": 2281,
+"first": "שמחה",
+"last": "דיניץ"
+},
+{
+"person_id": 2282,
+"first": "צבי",
+"last": "דינשטיין"
+},
+{
+"person_id": 2283,
+"first": "ליאון",
+"last": "דיציאן"
+},
+{
+"person_id": 2284,
+"first": "דוד",
+"last": "דנינו"
+},
+{
+"person_id": 2285,
+"first": "מיכאל",
+"last": "דקל"
+},
+{
+"person_id": 2286,
+"first": "עבד-אלוהב",
+"last": "דראושה"
+},
+{
+"person_id": 2287,
+"first": "מתתיהו",
+"last": "דרובלס"
+},
+{
+"person_id": 2288,
+"first": "אברהם",
+"last": "דרורי"
+},
+{
+"person_id": 2289,
+"first": "חסיה",
+"last": "דרורי"
+},
+{
+"person_id": 2290,
+"first": "יהודה (יודין)",
+"last": "דרניצקי"
+},
+{
+"person_id": 2291,
+"first": "אריה מכלוף",
+"last": "דרעי"
+},
+{
+"person_id": 2292,
+"first": "גדעון",
+"last": "האוזנר"
+},
+{
+"person_id": 2293,
+"first": "עמוס",
+"last": "הדר"
+},
+{
+"person_id": 2294,
+"first": "יגאל",
+"last": "הורביץ"
+},
+{
+"person_id": 2295,
+"first": "דוד",
+"last": "הכהן"
+},
+{
+"person_id": 2296,
+"first": "מנחם",
+"last": "הכהן"
+},
+{
+"person_id": 2297,
+"first": "אליהו",
+"last": "הכרמלי"
+},
+{
+"person_id": 2298,
+"first": "בנימין",
+"last": "הלוי"
+},
+{
+"person_id": 2299,
+"first": "שלמה",
+"last": "הלל"
+},
+{
+"person_id": 2300,
+"first": "זבולון",
+"last": "המר"
+},
+{
+"person_id": 2301,
+"first": "יחזקאל",
+"last": "הן"
+},
+{
+"person_id": 2302,
+"first": "אליקים",
+"last": "העצני"
+},
+{
+"person_id": 2303,
+"first": "רות",
+"last": "הקטין"
+},
+{
+"person_id": 2304,
+"first": "אהרן",
+"last": "הראל"
+},
+{
+"person_id": 2305,
+"first": "איסר",
+"last": "הראל"
+},
+{
+"person_id": 2306,
+"first": "בן-ציון",
+"last": "הראל"
+},
+{
+"person_id": 2307,
+"first": "יהודה",
+"last": "הראל"
+},
+{
+"person_id": 2308,
+"first": "זאב",
+"last": "הרינג"
+},
+{
+"person_id": 2309,
+"first": "אסתר",
+"last": "הרליץ"
+},
+{
+"person_id": 2310,
+"first": "זינה",
+"last": "הרמן"
+},
+{
+"person_id": 2311,
+"first": "נטע",
+"last": "הרפז"
+},
+{
+"person_id": 2312,
+"first": "חיים",
+"last": "הרצוג"
+},
+{
+"person_id": 2313,
+"first": "אברהם",
+"last": "הרצפלד"
+},
+{
+"person_id": 2314,
+"first": "יזהר",
+"last": "הררי"
+},
+{
+"person_id": 2315,
+"first": "צבי",
+"last": "ויינברג"
+},
+{
+"person_id": 2316,
+"first": "אריאל",
+"last": "ויינשטיין"
+},
+{
+"person_id": 2317,
+"first": "שבח",
+"last": "וייס"
+},
+{
+"person_id": 2318,
+"first": "אסתר",
+"last": "וילנסקה"
+},
+{
+"person_id": 2319,
+"first": "מאיר",
+"last": "וילנר"
+},
+{
+"person_id": 2320,
+"first": "עזר",
+"last": "ויצמן"
+},
+{
+"person_id": 2321,
+"first": "מרדכי",
+"last": "וירשובסקי"
+},
+{
+"person_id": 2322,
+"first": "אליעזר",
+"last": "ולדמן"
+},
+{
+"person_id": 2323,
+"first": "יוסף",
+"last": "ונונו"
+},
+{
+"person_id": 2324,
+"first": "אברהם",
+"last": "ורדיגר"
+},
+{
+"person_id": 2325,
+"first": "זרח",
+"last": "ורהפטיג"
+},
+{
+"person_id": 2326,
+"first": "זאב",
+"last": "ורטהיימר"
+},
+{
+"person_id": 2327,
+"first": "משה",
+"last": "ורטמן"
+},
+{
+"person_id": 2328,
+"first": "מחמד",
+"last": "ותד"
+},
+{
+"person_id": 2329,
+"first": "ערי",
+"last": "ז'בוטינסקי"
+},
+{
+"person_id": 2330,
+"first": "פריג'ה",
+"last": "זוארץ"
+},
+{
+"person_id": 2331,
+"first": "נסים",
+"last": "זוילי"
+},
+{
+"person_id": 2332,
+"first": "עבדול-עזיז",
+"last": "זועבי"
+},
+{
+"person_id": 2333,
+"first": "מאיר",
+"last": "זורע"
+},
+{
+"person_id": 2334,
+"first": "תופיק",
+"last": "זיאד"
+},
+{
+"person_id": 2335,
+"first": "יצחק",
+"last": "זיגר"
+},
+{
+"person_id": 2336,
+"first": "דרור",
+"last": "זייגרמן"
+},
+{
+"person_id": 2337,
+"first": "הלל",
+"last": "זיידל"
+},
+{
+"person_id": 2338,
+"first": "אברהם",
+"last": "זילברברג"
+},
+{
+"person_id": 2339,
+"first": "עמנואל",
+"last": "זיסמן"
+},
+{
+"person_id": 2340,
+"first": "שלום",
+"last": "זיסמן"
+},
+{
+"person_id": 2341,
+"first": "יחזקאל",
+"last": "זכאי"
+},
+{
+"person_id": 2342,
+"first": "דב",
+"last": "זכין"
+},
+{
+"person_id": 2343,
+"first": "מרדכי",
+"last": "זר"
+},
+{
+"person_id": 2344,
+"first": "אמיל",
+"last": "חביבי"
+},
+{
+"person_id": 2345,
+"first": "רפיק",
+"last": "חג' יחיא"
+},
+{
+"person_id": 2346,
+"first": "חנא",
+"last": "חדאד"
+},
+{
+"person_id": 2347,
+"first": "אבא",
+"last": "חושי"
+},
+{
+"person_id": 2348,
+"first": "יעקב",
+"last": "חזן"
+},
+{
+"person_id": 2349,
+"first": "מיכאל",
+"last": "חזני"
+},
+{
+"person_id": 2350,
+"first": "חמד",
+"last": "חלאילה"
+},
+{
+"person_id": 2351,
+"first": "בן-ציון",
+"last": "חלפון"
+},
+{
+"person_id": 2352,
+"first": "פארס",
+"last": "חמדאן"
+},
+{
+"person_id": 2353,
+"first": "יוסף",
+"last": "חמיס"
+},
+{
+"person_id": 2354,
+"first": "סאלח",
+"last": "חניפס"
+},
+{
+"person_id": 2355,
+"first": "אשר",
+"last": "חסין"
+},
+{
+"person_id": 2356,
+"first": "משה",
+"last": "חריף"
+},
+{
+"person_id": 2357,
+"first": "מיכאל",
+"last": "חריש"
+},
+{
+"person_id": 2358,
+"first": "יהודה",
+"last": "חשאי"
+},
+{
+"person_id": 2359,
+"first": "נחום",
+"last": "חת"
+},
+{
+"person_id": 2360,
+"first": "אברהם",
+"last": "טביב"
+},
+{
+"person_id": 2361,
+"first": "יצחק",
+"last": "טבנקין"
+},
+{
+"person_id": 2362,
+"first": "ז'ניה",
+"last": "טברסקי"
+},
+{
+"person_id": 2363,
+"first": "תופיק",
+"last": "טובי"
+},
+{
+"person_id": 2364,
+"first": "שמואל",
+"last": "טולידאנו"
+},
+{
+"person_id": 2365,
+"first": "אברהם",
+"last": "טיאר"
+},
+{
+"person_id": 2366,
+"first": "בנימין",
+"last": "טמקין"
+},
+{
+"person_id": 2367,
+"first": "אסף",
+"last": "יגורי"
+},
+{
+"person_id": 2368,
+"first": "מנחם",
+"last": "ידיד"
+},
+{
+"person_id": 2369,
+"first": "יגאל",
+"last": "ידין"
+},
+{
+"person_id": 2370,
+"first": "אהרן",
+"last": "ידלין"
+},
+{
+"person_id": 2371,
+"first": "יונה",
+"last": "יהב"
+},
+{
+"person_id": 2372,
+"first": "חיים",
+"last": "יהודה"
+},
+{
+"person_id": 2373,
+"first": "צבי",
+"last": "יהודה"
+},
+{
+"person_id": 2374,
+"first": "שמשון",
+"last": "יוניצ'מן"
+},
+{
+"person_id": 2375,
+"first": "דב",
+"last": "יוסף"
+},
+{
+"person_id": 2376,
+"first": "יעקב",
+"last": "יוסף"
+},
+{
+"person_id": 2377,
+"first": "גיורא",
+"last": "יוספטל"
+},
+{
+"person_id": 2378,
+"first": "סנטה",
+"last": "יוספטל"
+},
+{
+"person_id": 2379,
+"first": "נתן",
+"last": "ילין-מור"
+},
+{
+"person_id": 2380,
+"first": "גד",
+"last": "יעקבי"
+},
+{
+"person_id": 2381,
+"first": "מאיר",
+"last": "יערי"
+},
+{
+"person_id": 2382,
+"first": "אביעד",
+"last": "יפה"
+},
+{
+"person_id": 2383,
+"first": "אברהם",
+"last": "יפה"
+},
+{
+"person_id": 2384,
+"first": "יהונתן",
+"last": "יפרח"
+},
+{
+"person_id": 2385,
+"first": "יצחק",
+"last": "יצחקי"
+},
+{
+"person_id": 2386,
+"first": "יצחק",
+"last": "יצחקי"
+},
+{
+"person_id": 2387,
+"first": "גדי",
+"last": "יציב"
+},
+{
+"person_id": 2388,
+"first": "אהרן",
+"last": "יריב"
+},
+{
+"person_id": 2389,
+"first": "ישראל",
+"last": "ישעיהו-שרעבי"
+},
+{
+"person_id": 2390,
+"first": "אידוב",
+"last": "כהן"
+},
+{
+"person_id": 2391,
+"first": "בנו",
+"last": "כהן"
+},
+{
+"person_id": 2392,
+"first": "גאולה",
+"last": "כהן"
+},
+{
+"person_id": 2393,
+"first": "גבריאל",
+"last": "כהן"
+},
+{
+"person_id": 2394,
+"first": "יגאל",
+"last": "כהן"
+},
+{
+"person_id": 2395,
+"first": "יוחנן",
+"last": "כהן"
+},
+{
+"person_id": 2396,
+"first": "מנחם",
+"last": "כהן"
+},
+{
+"person_id": 2397,
+"first": "שלום",
+"last": "כהן"
+},
+{
+"person_id": 2398,
+"first": "מאיר",
+"last": "כהן-אבידב"
+},
+{
+"person_id": 2399,
+"first": "יגאל",
+"last": "כהן-אורגד"
+},
+{
+"person_id": 2400,
+"first": "רחל",
+"last": "כהן-כגן"
+},
+{
+"person_id": 2401,
+"first": "חיים",
+"last": "כהן-מגורי"
+},
+{
+"person_id": 2402,
+"first": "שלמה",
+"last": "כהן-צידון"
+},
+{
+"person_id": 2403,
+"first": "מאיר",
+"last": "כהנא"
+},
+{
+"person_id": 2404,
+"first": "קלמן",
+"last": "כהנא"
+},
+{
+"person_id": 2405,
+"first": "אברהם",
+"last": "כלפון"
+},
+{
+"person_id": 2406,
+"first": "שמעון",
+"last": "כנוביץ"
+},
+{
+"person_id": 2407,
+"first": "יונה",
+"last": "כסה"
+},
+{
+"person_id": 2408,
+"first": "שרה",
+"last": "כפרית"
+},
+{
+"person_id": 2409,
+"first": "אברהם",
+"last": "כץ"
+},
+{
+"person_id": 2410,
+"first": "זאב",
+"last": "כץ"
+},
+{
+"person_id": 2411,
+"first": "יעקב",
+"last": "כ\"ץ"
+},
+{
+"person_id": 2412,
+"first": "שמואל",
+"last": "כץ"
+},
+{
+"person_id": 2413,
+"first": "אברהם",
+"last": "כץ-עוז"
+},
+{
+"person_id": 2414,
+"first": "בת-שבע",
+"last": "כצנלסון"
+},
+{
+"person_id": 2415,
+"first": "משה",
+"last": "כרמל"
+},
+{
+"person_id": 2416,
+"first": "פנחס",
+"last": "לבון"
+},
+{
+"person_id": 2417,
+"first": "שלמה",
+"last": "לביא"
+},
+{
+"person_id": 2418,
+"first": "אברהם",
+"last": "לבנבראון"
+},
+{
+"person_id": 2419,
+"first": "איתן",
+"last": "לבני"
+},
+{
+"person_id": 2420,
+"first": "אלכסנדר",
+"last": "לובוצקי"
+},
+{
+"person_id": 2421,
+"first": "מאשה",
+"last": "לובלסקי"
+},
+{
+"person_id": 2422,
+"first": "מאיר-דוד",
+"last": "לוונשטיין"
+},
+{
+"person_id": 2423,
+"first": "קדיש",
+"last": "לוז"
+},
+{
+"person_id": 2424,
+"first": "דניאל יצחק",
+"last": "לוי"
+},
+{
+"person_id": 2425,
+"first": "יאיר",
+"last": "לוי"
+},
+{
+"person_id": 2426,
+"first": "סטלה",
+"last": "לוי"
+},
+{
+"person_id": 2427,
+"first": "יצחק-מאיר",
+"last": "לוין"
+},
+{
+"person_id": 2428,
+"first": "נחום",
+"last": "לוין"
+},
+{
+"person_id": 2429,
+"first": "שלום",
+"last": "לוין"
+},
+{
+"person_id": 2430,
+"first": "ברל",
+"last": "לוקר"
+},
+{
+"person_id": 2431,
+"first": "שלמה",
+"last": "לורינץ"
+},
+{
+"person_id": 2432,
+"first": "דוד",
+"last": "ליבאי"
+},
+{
+"person_id": 2433,
+"first": "אליעזר",
+"last": "ליבנה"
+},
+{
+"person_id": 2434,
+"first": "דוד",
+"last": "ליבשיץ"
+},
+{
+"person_id": 2435,
+"first": "אברהם יוסף",
+"last": "לייזרזון"
+},
+{
+"person_id": 2436,
+"first": "אוריאל",
+"last": "לין"
+},
+{
+"person_id": 2437,
+"first": "אמנון",
+"last": "לין"
+},
+{
+"person_id": 2438,
+"first": "ציטה",
+"last": "לינקר"
+},
+{
+"person_id": 2439,
+"first": "אמנון",
+"last": "ליפקין-שחק"
+},
+{
+"person_id": 2440,
+"first": "יוסף",
+"last": "לם"
+},
+{
+"person_id": 2441,
+"first": "חנה",
+"last": "למדן"
+},
+{
+"person_id": 2442,
+"first": "חיים",
+"last": "לנדאו"
+},
+{
+"person_id": 2443,
+"first": "אליהו",
+"last": "לנקין"
+},
+{
+"person_id": 2444,
+"first": "יהודה",
+"last": "לנקרי"
+},
+{
+"person_id": 2445,
+"first": "יורם",
+"last": "לס"
+},
+{
+"person_id": 2446,
+"first": "יחיאל",
+"last": "לקט"
+},
+{
+"person_id": 2447,
+"first": "משה",
+"last": "מאיה"
+},
+{
+"person_id": 2448,
+"first": "גולדה",
+"last": "מאיר"
+},
+{
+"person_id": 2449,
+"first": "אדיסו",
+"last": "מאסלה"
+},
+{
+"person_id": 2450,
+"first": "בועז",
+"last": "מואב"
+},
+{
+"person_id": 2451,
+"first": "יצחק",
+"last": "מודעי"
+},
+{
+"person_id": 2452,
+"first": "חנא",
+"last": "מוויס"
+},
+{
+"person_id": 2453,
+"first": "אליהו",
+"last": "מויאל"
+},
+{
+"person_id": 2454,
+"first": "ג'בר",
+"last": "מועדי"
+},
+{
+"person_id": 2455,
+"first": "דוד",
+"last": "מור"
+},
+{
+"person_id": 2456,
+"first": "אליהו",
+"last": "מזור"
+},
+{
+"person_id": 2457,
+"first": "אליעזר",
+"last": "מזרחי"
+},
+{
+"person_id": 2458,
+"first": "יעקב",
+"last": "מזרחי"
+},
+{
+"person_id": 2459,
+"first": "דב",
+"last": "מילמן"
+},
+{
+"person_id": 2460,
+"first": "יהודה לייב",
+"last": "מימון"
+},
+{
+"person_id": 2461,
+"first": "עדה",
+"last": "מימון"
+},
+{
+"person_id": 2462,
+"first": "בנימין",
+"last": "מינץ"
+},
+{
+"person_id": 2463,
+"first": "מוחמד",
+"last": "מיעארי"
+},
+{
+"person_id": 2464,
+"first": "שמואל",
+"last": "מיקוניס"
+},
+{
+"person_id": 2465,
+"first": "חגי",
+"last": "מירום"
+},
+{
+"person_id": 2466,
+"first": "אברהם",
+"last": "מלמד"
+},
+{
+"person_id": 2467,
+"first": "דוד",
+"last": "מנע"
+},
+{
+"person_id": 2468,
+"first": "יצחק",
+"last": "מרדכי"
+},
+{
+"person_id": 2469,
+"first": "משה",
+"last": "מרון"
+},
+{
+"person_id": 2470,
+"first": "אליהו",
+"last": "מרידור"
+},
+{
+"person_id": 2471,
+"first": "יעקב",
+"last": "מרידור"
+},
+{
+"person_id": 2472,
+"first": "שמואל",
+"last": "מרלין"
+},
+{
+"person_id": 2473,
+"first": "סעדיה",
+"last": "מרציאנו"
+},
+{
+"person_id": 2474,
+"first": "ירוחם",
+"last": "משל"
+},
+{
+"person_id": 2475,
+"first": "יובל",
+"last": "נאמן"
+},
+{
+"person_id": 2476,
+"first": "יצחק",
+"last": "נבון"
+},
+{
+"person_id": 2477,
+"first": "עקיבא",
+"last": "נוף"
+},
+{
+"person_id": 2478,
+"first": "מרדכי",
+"last": "נורוק"
+},
+{
+"person_id": 2479,
+"first": "יעקב",
+"last": "נחושתן"
+},
+{
+"person_id": 2480,
+"first": "אליאס",
+"last": "נחלה"
+},
+{
+"person_id": 2481,
+"first": "אהרן",
+"last": "נחמיאס"
+},
+{
+"person_id": 2482,
+"first": "רון",
+"last": "נחמן"
+},
+{
+"person_id": 2483,
+"first": "אריה",
+"last": "נחמקין"
+},
+{
+"person_id": 2484,
+"first": "יעקב",
+"last": "ניצני"
+},
+{
+"person_id": 2485,
+"first": "צביקה",
+"last": "ניר"
+},
+{
+"person_id": 2486,
+"first": "נחום",
+"last": "ניר-רפאלקס"
+},
+{
+"person_id": 2487,
+"first": "אורה",
+"last": "נמיר"
+},
+{
+"person_id": 2488,
+"first": "מרדכי",
+"last": "נמיר"
+},
+{
+"person_id": 2489,
+"first": "משה",
+"last": "נסים"
+},
+{
+"person_id": 2490,
+"first": "אמל",
+"last": "נסראלדין"
+},
+{
+"person_id": 2491,
+"first": "רענן",
+"last": "נעים"
+},
+{
+"person_id": 2492,
+"first": "מוחמד",
+"last": "נפאע"
+},
+{
+"person_id": 2493,
+"first": "פרץ",
+"last": "נפתלי"
+},
+{
+"person_id": 2494,
+"first": "דבורה",
+"last": "נצר"
+},
+{
+"person_id": 2495,
+"first": "צבי-משה",
+"last": "נריה"
+},
+{
+"person_id": 2496,
+"first": "אורי",
+"last": "סבג"
+},
+{
+"person_id": 2497,
+"first": "מנחם",
+"last": "סבידור"
+},
+{
+"person_id": 2498,
+"first": "אורי",
+"last": "סביר"
+},
+{
+"person_id": 2499,
+"first": "דב",
+"last": "סדן"
+},
+{
+"person_id": 2500,
+"first": "זלמן",
+"last": "סוזאייב"
+},
+{
+"person_id": 2501,
+"first": "רפאל",
+"last": "סויסה"
+},
+{
+"person_id": 2502,
+"first": "עדנה",
+"last": "סולודר"
+},
+{
+"person_id": 2503,
+"first": "מרדכי",
+"last": "סורקיס"
+},
+{
+"person_id": 2504,
+"first": "אברהם",
+"last": "סטופ"
+},
+{
+"person_id": 2505,
+"first": "סאלח",
+"last": "סלים"
+},
+{
+"person_id": 2506,
+"first": "צלאח",
+"last": "סלימאן"
+},
+{
+"person_id": 2507,
+"first": "אסתר",
+"last": "סלמוביץ"
+},
+{
+"person_id": 2508,
+"first": "יזהר",
+"last": "סמילנסקי"
+},
+{
+"person_id": 2509,
+"first": "משה",
+"last": "סנה"
+},
+{
+"person_id": 2510,
+"first": "טובה",
+"last": "סנהדראי"
+},
+{
+"person_id": 2511,
+"first": "אחמד",
+"last": "סעד"
+},
+{
+"person_id": 2512,
+"first": "יוסף",
+"last": "ספיר"
+},
+{
+"person_id": 2513,
+"first": "פנחס",
+"last": "ספיר"
+},
+{
+"person_id": 2514,
+"first": "משה",
+"last": "סרדינס"
+},
+{
+"person_id": 2515,
+"first": "אמירה",
+"last": "סרטני"
+},
+{
+"person_id": 2516,
+"first": "יוסף",
+"last": "סרלין"
+},
+{
+"person_id": 2517,
+"first": "אברהם",
+"last": "עבאס"
+},
+{
+"person_id": 2518,
+"first": "דיאב",
+"last": "עוביד"
+},
+{
+"person_id": 2519,
+"first": "ברוך",
+"last": "עוזיאל"
+},
+{
+"person_id": 2520,
+"first": "אברהם",
+"last": "עופר"
+},
+{
+"person_id": 2521,
+"first": "מרדכי",
+"last": "עופר"
+},
+{
+"person_id": 2522,
+"first": "יוסף",
+"last": "עזרן"
+},
+{
+"person_id": 2523,
+"first": "זיידאן",
+"last": "עטשי"
+},
+{
+"person_id": 2524,
+"first": "עובדיה",
+"last": "עלי"
+},
+{
+"person_id": 2525,
+"first": "משה",
+"last": "עמאר"
+},
+{
+"person_id": 2526,
+"first": "שאול",
+"last": "עמור"
+},
+{
+"person_id": 2527,
+"first": "מאיר",
+"last": "עמית"
+},
+{
+"person_id": 2528,
+"first": "שלמה חיים",
+"last": "עמר"
+},
+{
+"person_id": 2529,
+"first": "חסיין חוסיין",
+"last": "פארס"
+},
+{
+"person_id": 2530,
+"first": "נפתלי",
+"last": "פדר"
+},
+{
+"person_id": 2531,
+"first": "ישעיהו",
+"last": "פורדר"
+},
+{
+"person_id": 2532,
+"first": "חנן",
+"last": "פורת"
+},
+{
+"person_id": 2533,
+"first": "אילנית",
+"last": "פייגה"
+},
+{
+"person_id": 2534,
+"first": "עדה",
+"last": "פיינברג-סירני"
+},
+{
+"person_id": 2535,
+"first": "עוזי",
+"last": "פיינרמן"
+},
+{
+"person_id": 2536,
+"first": "יוסף",
+"last": "פישר"
+},
+{
+"person_id": 2537,
+"first": "שמואל",
+"last": "פלאטו-שרון"
+},
+{
+"person_id": 2538,
+"first": "משה",
+"last": "פלד"
+},
+{
+"person_id": 2539,
+"first": "מתתיהו",
+"last": "פלד"
+},
+{
+"person_id": 2540,
+"first": "נתן",
+"last": "פלד"
+},
+{
+"person_id": 2541,
+"first": "משה-זאב",
+"last": "פלדמן"
+},
+{
+"person_id": 2542,
+"first": "ראובן",
+"last": "פלדמן"
+},
+{
+"person_id": 2543,
+"first": "יחזקאל",
+"last": "פלומין"
+},
+{
+"person_id": 2544,
+"first": "ג'ורג'",
+"last": "פלש"
+},
+{
+"person_id": 2545,
+"first": "רפאל",
+"last": "פנחסי"
+},
+{
+"person_id": 2546,
+"first": "דוד-צבי",
+"last": "פנקס"
+},
+{
+"person_id": 2547,
+"first": "מאיר",
+"last": "פעיל"
+},
+{
+"person_id": 2548,
+"first": "השל",
+"last": "פרומקין"
+},
+{
+"person_id": 2549,
+"first": "מנחם",
+"last": "פרוש"
+},
+{
+"person_id": 2550,
+"first": "יהודה",
+"last": "פרח"
+},
+{
+"person_id": 2551,
+"first": "אליעזר",
+"last": "פרי"
+},
+{
+"person_id": 2552,
+"first": "מרשה",
+"last": "פרידמן"
+},
+{
+"person_id": 2553,
+"first": "שמחה",
+"last": "פרידמן"
+},
+{
+"person_id": 2554,
+"first": "שלמה",
+"last": "פרלשטיין"
+},
+{
+"person_id": 2555,
+"first": "אליעזר",
+"last": "פרמינגר"
+},
+{
+"person_id": 2556,
+"first": "יעקב",
+"last": "פרנק"
+},
+{
+"person_id": 2557,
+"first": "שושנה",
+"last": "פרסיץ"
+},
+{
+"person_id": 2558,
+"first": "יצחק",
+"last": "פרץ"
+},
+{
+"person_id": 2559,
+"first": "יצחק-חיים",
+"last": "פרץ"
+},
+{
+"person_id": 2560,
+"first": "גדעון",
+"last": "פת"
+},
+{
+"person_id": 2561,
+"first": "דוד",
+"last": "פתל"
+},
+{
+"person_id": 2562,
+"first": "וליד",
+"last": "צאדק חאג'-יחיא"
+},
+{
+"person_id": 2563,
+"first": "יאיר",
+"last": "צבן"
+},
+{
+"person_id": 2564,
+"first": "רחל",
+"last": "צברי"
+},
+{
+"person_id": 2565,
+"first": "חיים יוסף",
+"last": "צדוק"
+},
+{
+"person_id": 2566,
+"first": "דוד",
+"last": "צוקר"
+},
+{
+"person_id": 2567,
+"first": "זאב",
+"last": "צור"
+},
+{
+"person_id": 2568,
+"first": "יעקב",
+"last": "צור"
+},
+{
+"person_id": 2569,
+"first": "צבי",
+"last": "צור"
+},
+{
+"person_id": 2570,
+"first": "יואש",
+"last": "צידון"
+},
+{
+"person_id": 2571,
+"first": "אהרן",
+"last": "ציזלינג"
+},
+{
+"person_id": 2572,
+"first": "צבי",
+"last": "צימרמן"
+},
+{
+"person_id": 2573,
+"first": "מרדכי",
+"last": "צפורי-הנדין"
+},
+{
+"person_id": 2574,
+"first": "אביגדור",
+"last": "קהלני"
+},
+{
+"person_id": 2575,
+"first": "משה",
+"last": "קול"
+},
+{
+"person_id": 2576,
+"first": "אליעזר",
+"last": "קולס"
+},
+{
+"person_id": 2577,
+"first": "חיים",
+"last": "קופמן"
+},
+{
+"person_id": 2578,
+"first": "הלל",
+"last": "קוק"
+},
+{
+"person_id": 2579,
+"first": "דוד",
+"last": "קורן"
+},
+{
+"person_id": 2580,
+"first": "יצחק",
+"last": "קורן"
+},
+{
+"person_id": 2581,
+"first": "חיים",
+"last": "קורפו"
+},
+{
+"person_id": 2582,
+"first": "יוסף",
+"last": "קושניר"
+},
+{
+"person_id": 2583,
+"first": "ישראל",
+"last": "קיסר"
+},
+{
+"person_id": 2584,
+"first": "יעקב",
+"last": "קליבנוב"
+},
+{
+"person_id": 2585,
+"first": "יצחק-הנס",
+"last": "קלינגהופר"
+},
+{
+"person_id": 2586,
+"first": "משה",
+"last": "קלמר"
+},
+{
+"person_id": 2587,
+"first": "ברוך",
+"last": "קמין"
+},
+{
+"person_id": 2588,
+"first": "יצחק",
+"last": "קנב"
+},
+{
+"person_id": 2589,
+"first": "מסעד",
+"last": "קסיס"
+},
+{
+"person_id": 2590,
+"first": "אליעזר",
+"last": "קפלן"
+},
+{
+"person_id": 2591,
+"first": "נוזהת",
+"last": "קצב"
+},
+{
+"person_id": 2592,
+"first": "ישראל",
+"last": "קרגמן"
+},
+{
+"person_id": 2593,
+"first": "יוסף",
+"last": "קרמרמן"
+},
+{
+"person_id": 2594,
+"first": "דוד",
+"last": "ראם"
+},
+{
+"person_id": 2595,
+"first": "יצחק",
+"last": "רבין"
+},
+{
+"person_id": 2596,
+"first": "יהושע",
+"last": "רבינוביץ"
+},
+{
+"person_id": 2597,
+"first": "בן-ציון",
+"last": "רובין"
+},
+{
+"person_id": 2598,
+"first": "חנן",
+"last": "רובין"
+},
+{
+"person_id": 2599,
+"first": "דניאל",
+"last": "רוזוליו"
+},
+{
+"person_id": 2600,
+"first": "פנחס",
+"last": "רוזן"
+},
+{
+"person_id": 2601,
+"first": "שלמה",
+"last": "רוזן"
+},
+{
+"person_id": 2602,
+"first": "יוסף",
+"last": "רום"
+},
+{
+"person_id": 2603,
+"first": "אמרי",
+"last": "רון"
+},
+{
+"person_id": 2604,
+"first": "אליעזר",
+"last": "רונן"
+},
+{
+"person_id": 2605,
+"first": "ישראל",
+"last": "רוקח"
+},
+{
+"person_id": 2606,
+"first": "נחמן",
+"last": "רז"
+},
+{
+"person_id": 2607,
+"first": "אסתר",
+"last": "רזיאל-נאור"
+},
+{
+"person_id": 2608,
+"first": "מיכאל",
+"last": "רייסר"
+},
+{
+"person_id": 2609,
+"first": "אלימלך-שמעון",
+"last": "רימלט"
+},
+{
+"person_id": 2610,
+"first": "יעקב",
+"last": "ריפתין"
+},
+{
+"person_id": 2611,
+"first": "שמואל",
+"last": "רכטמן"
+},
+{
+"person_id": 2612,
+"first": "אהרן",
+"last": "רמז"
+},
+{
+"person_id": 2613,
+"first": "דוד",
+"last": "רמז"
+},
+{
+"person_id": 2614,
+"first": "צבי",
+"last": "רנר"
+},
+{
+"person_id": 2615,
+"first": "יצחק",
+"last": "רפאל"
+},
+{
+"person_id": 2616,
+"first": "ברל",
+"last": "רפטור"
+},
+{
+"person_id": 2617,
+"first": "מנחם",
+"last": "רצון"
+},
+{
+"person_id": 2618,
+"first": "אברהם",
+"last": "רקנטי"
+},
+{
+"person_id": 2619,
+"first": "אברהם חיים",
+"last": "שאג"
+},
+{
+"person_id": 2620,
+"first": "אבנר-חי",
+"last": "שאקי"
+},
+{
+"person_id": 2621,
+"first": "שלום אברהם",
+"last": "שאקי"
+},
+{
+"person_id": 2622,
+"first": "גונן",
+"last": "שגב"
+},
+{
+"person_id": 2623,
+"first": "גדעון",
+"last": "שגיא"
+},
+{
+"person_id": 2624,
+"first": "יהושע",
+"last": "שגיא"
+},
+{
+"person_id": 2625,
+"first": "זלמן",
+"last": "שובל"
+},
+{
+"person_id": 2626,
+"first": "פנחס",
+"last": "שומר"
+},
+{
+"person_id": 2627,
+"first": "אליעזר",
+"last": "שוסטק"
+},
+{
+"person_id": 2628,
+"first": "יוסף",
+"last": "שופמן"
+},
+{
+"person_id": 2629,
+"first": "גרשום",
+"last": "שוקן"
+},
+{
+"person_id": 2630,
+"first": "שמואל",
+"last": "שורש"
+},
+{
+"person_id": 2631,
+"first": "זלמן",
+"last": "שזר"
+},
+{
+"person_id": 2632,
+"first": "בנימין",
+"last": "שחור"
+},
+{
+"person_id": 2633,
+"first": "משה",
+"last": "שחל"
+},
+{
+"person_id": 2634,
+"first": "שמעון",
+"last": "שטרית"
+},
+{
+"person_id": 2635,
+"first": "אברהם",
+"last": "שטרן"
+},
+{
+"person_id": 2636,
+"first": "דוד",
+"last": "שטרן"
+},
+{
+"person_id": 2637,
+"first": "מרדכי-חיים",
+"last": "שטרן"
+},
+{
+"person_id": 2638,
+"first": "שרה",
+"last": "שטרן-קטן"
+},
+{
+"person_id": 2639,
+"first": "בכור-שלום",
+"last": "שיטרית"
+},
+{
+"person_id": 2640,
+"first": "שבתאי",
+"last": "שיכמן"
+},
+{
+"person_id": 2641,
+"first": "צבי",
+"last": "שילוח"
+},
+{
+"person_id": 2642,
+"first": "דב",
+"last": "שילנסקי"
+},
+{
+"person_id": 2643,
+"first": "פנחס",
+"last": "שינמן"
+},
+{
+"person_id": 2644,
+"first": "דוד",
+"last": "שיפמן"
+},
+{
+"person_id": 2645,
+"first": "אברהם",
+"last": "שכטרמן"
+},
+{
+"person_id": 2646,
+"first": "אפרים",
+"last": "שלום"
+},
+{
+"person_id": 2647,
+"first": "בני",
+"last": "שליטא"
+},
+{
+"person_id": 2648,
+"first": "ויקטור",
+"last": "שם-טוב"
+},
+{
+"person_id": 2649,
+"first": "יעקב",
+"last": "שמאי"
+},
+{
+"person_id": 2650,
+"first": "דורון",
+"last": "שמואלי"
+},
+{
+"person_id": 2651,
+"first": "יהודית",
+"last": "שמחונית"
+},
+{
+"person_id": 2652,
+"first": "יצחק",
+"last": "שמיר"
+},
+{
+"person_id": 2653,
+"first": "משה",
+"last": "שמיר"
+},
+{
+"person_id": 2654,
+"first": "חביב",
+"last": "שמעוני"
+},
+{
+"person_id": 2655,
+"first": "יהודה",
+"last": "שערי"
+},
+{
+"person_id": 2656,
+"first": "גרשון",
+"last": "שפט"
+},
+{
+"person_id": 2657,
+"first": "אריה",
+"last": "שפטל"
+},
+{
+"person_id": 2658,
+"first": "יעקב",
+"last": "שפי"
+},
+{
+"person_id": 2659,
+"first": "אליהו",
+"last": "שפייזר"
+},
+{
+"person_id": 2660,
+"first": "אברהם",
+"last": "שפירא"
+},
+{
+"person_id": 2661,
+"first": "חיים משה",
+"last": "שפירא"
+},
+{
+"person_id": 2662,
+"first": "יעקב-שמשון",
+"last": "שפירא"
+},
+{
+"person_id": 2663,
+"first": "זאב",
+"last": "שפר"
+},
+{
+"person_id": 2664,
+"first": "יאיר",
+"last": "שפרינצק"
+},
+{
+"person_id": 2665,
+"first": "יוסף",
+"last": "שפרינצק"
+},
+{
+"person_id": 2666,
+"first": "ראובן",
+"last": "שרי"
+},
+{
+"person_id": 2667,
+"first": "אברהם",
+"last": "שריר"
+},
+{
+"person_id": 2668,
+"first": "זאב",
+"last": "שרף"
+},
+{
+"person_id": 2669,
+"first": "אליהו",
+"last": "ששון"
+},
+{
+"person_id": 2670,
+"first": "בנימין",
+"last": "ששון-סילס"
+},
+{
+"person_id": 2671,
+"first": "אפרים",
+"last": "תבורי"
+},
+{
+"person_id": 2672,
+"first": "דן",
+"last": "תיכון"
+},
+{
+"person_id": 2673,
+"first": "אמה",
+"last": "תלמי"
+},
+{
+"person_id": 2674,
+"first": "מאיר",
+"last": "תלמי"
+},
+{
+"person_id": 2675,
+"first": "יוסף",
+"last": "תמיר"
+},
+{
+"person_id": 2676,
+"first": "שמואל",
+"last": "תמיר"
+},
+{
+"person_id": 3175,
+"first": "אראלה",
+"last": "גולן"
+},
+{
+"person_id": 3256,
+"first": "יעקב מאיר",
+"last": "גרי"
+},
+{
+"person_id": 3257,
+"first": "אריה",
+"last": "דולצ'ין"
+},
+{
+"person_id": 3258,
+"first": "יעקב משה",
+"last": "טולידאנו"
+},
+{
+"person_id": 3259,
+"first": "חיים",
+"last": "כהן"
+},
+{
+"person_id": 3260,
+"first": "ישראל",
+"last": "כץ"
+},
+{
+"person_id": 3261,
+"first": "יעקב",
+"last": "נאמן"
+},
+{
+"person_id": 3262,
+"first": "יהודה",
+"last": "עמיטל"
+},
+{
+"person_id": 3263,
+"first": "יוסף",
+"last": "שפירא"
+},
+{
+"person_id": 4035,
+"first": "פנינה",
+"last": "רוזנבלום"
+},
+{
+"person_id": 4155,
+"first": "טובה",
+"last": "אילן"
+},
+{
+"person_id": 4156,
+"first": "רונן",
+"last": "צור"
+},
+{
+"person_id": 4175,
+"first": "דני",
+"last": "קורן"
+},
+{
+"person_id": 4217,
+"first": "אסתרינה",
+"last": "טרטמן"
+},
+{
+"person_id": 4218,
+"first": "אורנה",
+"last": "אנג'ל"
+},
+{
+"person_id": 4235,
+"first": "נטע",
+"last": "דוברין"
+},
+{
+"person_id": 4295,
+"first": "חנא",
+"last": "סוייד"
+},
+{
+"person_id": 4297,
+"first": "אברהים",
+"last": "צרצור"
+},
+{
+"person_id": 4298,
+"first": "רפי",
+"last": "איתן"
+},
+{
+"person_id": 4299,
+"first": "יעקב",
+"last": "בן-יזרי"
+},
+{
+"person_id": 4300,
+"first": "משה",
+"last": "שרוני"
+},
+{
+"person_id": 4301,
+"first": "יצחק",
+"last": "זיו"
+},
+{
+"person_id": 4302,
+"first": "יצחק",
+"last": "גלנטי"
+},
+{
+"person_id": 4303,
+"first": "אלחנן",
+"last": "גלזר"
+},
+{
+"person_id": 4304,
+"first": "שרה",
+"last": "מרום שלו"
+},
+{
+"person_id": 4355,
+"first": "יואל",
+"last": "חסון"
+},
+{
+"person_id": 4375,
+"first": "עמירה",
+"last": "דותן"
+},
+{
+"person_id": 4376,
+"first": "ישראל",
+"last": "חסון"
+},
+{
+"person_id": 4395,
+"first": "אבי",
+"last": "דיכטר"
+},
+{
+"person_id": 4396,
+"first": "אוריאל",
+"last": "רייכמן"
+},
+{
+"person_id": 4397,
+"first": "זאב",
+"last": "אלקין"
+},
+{
+"person_id": 4398,
+"first": "מנחם",
+"last": "בן-ששון"
+},
+{
+"person_id": 4399,
+"first": "שלמה",
+"last": "ברזניץ"
+},
+{
+"person_id": 4400,
+"first": "רונית",
+"last": "תירוש"
+},
+{
+"person_id": 4401,
+"first": "עתניאל",
+"last": "שנלר"
+},
+{
+"person_id": 4402,
+"first": "אביגדור",
+"last": "יצחקי"
+},
+{
+"person_id": 4403,
+"first": "יורם",
+"last": "מרציאנו"
+},
+{
+"person_id": 4404,
+"first": "נאדיה",
+"last": "חילו"
+},
+{
+"person_id": 4405,
+"first": "שלי",
+"last": "יחימוביץ'"
+},
+{
+"person_id": 4406,
+"first": "עמיחי",
+"last": "אילון"
+},
+{
+"person_id": 4407,
+"first": "אבישי",
+"last": "ברוורמן"
+},
+{
+"person_id": 4408,
+"first": "ליה",
+"last": "שמטוב"
+},
+{
+"person_id": 4409,
+"first": "אלכס",
+"last": "מילר"
+},
+{
+"person_id": 4410,
+"first": "יוסף",
+"last": "שגל"
+},
+{
+"person_id": 4411,
+"first": "סטס",
+"last": "מיסז'ניקוב"
+},
+{
+"person_id": 4412,
+"first": "רוברט",
+"last": "אילטוב"
+},
+{
+"person_id": 4413,
+"first": "יצחק",
+"last": "אהרונוביץ'"
+},
+{
+"person_id": 4414,
+"first": "יעקב",
+"last": "כהן"
+},
+{
+"person_id": 4415,
+"first": "עבאס",
+"last": "זכור"
+},
+{
+"person_id": 4416,
+"first": "דב",
+"last": "חנין"
+},
+{
+"person_id": 4417,
+"first": "אריאל",
+"last": "אטיאס"
+},
+{
+"person_id": 4418,
+"first": "חיים",
+"last": "אמסלם"
+},
+{
+"person_id": 4419,
+"first": "אברהם",
+"last": "מיכאלי"
+},
+{
+"person_id": 4635,
+"first": "שי",
+"last": "חרמש"
+},
+{
+"person_id": 5895,
+"first": "הרצל",
+"last": "ורדי"
+},
+{
+"person_id": 5897,
+"first": "צבי",
+"last": "לוריא"
+},
+{
+"person_id": 5898,
+"first": "צבי",
+"last": "סגל"
+},
+{
+"person_id": 5899,
+"first": "מרדכי",
+"last": "שטנר"
+},
+{
+"person_id": 5900,
+"first": "בן-ציון",
+"last": "שטרנברג"
+},
+{
+"person_id": 5901,
+"first": "דניאל ",
+"last": "אוסטר"
+},
+{
+"person_id": 5902,
+"first": "אליהו",
+"last": "ברלין"
+},
+{
+"person_id": 5903,
+"first": "זאב",
+"last": "גולד"
+},
+{
+"person_id": 5904,
+"first": "יצחק",
+"last": "גרינבוים"
+},
+{
+"person_id": 5906,
+"first": "אליהו",
+"last": "דובקין"
+},
+{
+"person_id": 5907,
+"first": "סעדיה",
+"last": "כובאשי"
+},
+{
+"person_id": 5908,
+"first": "אברהם",
+"last": "קצנלסון"
+},
+{
+"person_id": 5909,
+"first": "יהודה לייב הכהן",
+"last": "פישמן"
+},
+{
+"person_id": 5955,
+"first": "בן-ציון",
+"last": "קשת"
+},
+{
+"person_id": 5956,
+"first": "ציפורה",
+"last": "לסקוב"
+},
+{
+"person_id": 5975,
+"first": "אריה",
+"last": "אופיר"
+},
+{
+"person_id": 5976,
+"first": "זאב",
+"last": "אירסרזון"
+},
+{
+"person_id": 5977,
+"first": "יהודה",
+"last": "בורלא"
+},
+{
+"person_id": 5978,
+"first": "מאיר",
+"last": "ברלין"
+},
+{
+"person_id": 5979,
+"first": "מנחם",
+"last": "הגר"
+},
+{
+"person_id": 5980,
+"first": "מאיר",
+"last": "הרטמן"
+},
+{
+"person_id": 5981,
+"first": "אסף",
+"last": "וילקומיץ"
+},
+{
+"person_id": 5982,
+"first": "ברוך",
+"last": "וינשטיין"
+},
+{
+"person_id": 5983,
+"first": "משה",
+"last": "טצה"
+},
+{
+"person_id": 5984,
+"first": "ישראל",
+"last": "כהן"
+},
+{
+"person_id": 5985,
+"first": "רחל",
+"last": "כצנלסון"
+},
+{
+"person_id": 5986,
+"first": "יצחק",
+"last": "לופבן"
+},
+{
+"person_id": 5987,
+"first": "שמואל",
+"last": "למברגר"
+},
+{
+"person_id": 5988,
+"first": "יעקב",
+"last": "לנדוי"
+},
+{
+"person_id": 5989,
+"first": "יהודה",
+"last": "משאט"
+},
+{
+"person_id": 5990,
+"first": "דניאל",
+"last": "סירקיס"
+},
+{
+"person_id": 5991,
+"first": "יעקב",
+"last": "רובין"
+},
+{
+"person_id": 5992,
+"first": "קופל",
+"last": "שוורץ"
+},
+{
+"person_id": 6076,
+"first": "דוד",
+"last": "רותם"
+},
+{
+"person_id": 6095,
+"first": "דניאל",
+"last": "פרידמן"
+},
+{
+"person_id": 6235,
+"first": "סעיד",
+"last": "נפאע"
+},
+{
+"person_id": 7035,
+"first": "יצחק",
+"last": "בן ישראל"
+},
+{
+"person_id": 7736,
+"first": "יוחנן",
+"last": "פלסנר"
+},
+{
+"person_id": 9315,
+"first": "שלמה",
+"last": "מולה"
+},
+{
+"person_id": 9615,
+"first": "יחיאל חיליק",
+"last": "בר"
+},
+{
+"person_id": 10355,
+"first": "מזור",
+"last": "בהיינה"
+},
+{
+"person_id": 10555,
+"first": "שכיב מוראד",
+"last": "שנאן"
+},
+{
+"person_id": 11235,
+"first": "לאון",
+"last": "ליטינצקי"
+},
+{
+"person_id": 11835,
+"first": "אורי",
+"last": "מקלב"
+},
+{
+"person_id": 12595,
+"first": "צביה",
+"last": "גרינפילד"
+},
+{
+"person_id": 12835,
+"first": "יהושע מנחם",
+"last": "פולק"
+},
+{
+"person_id": 12935,
+"first": "רחל",
+"last": "אדטו"
+},
+{
+"person_id": 12936,
+"first": "עפו",
+"last": "אגבאריה"
+},
+{
+"person_id": 12937,
+"first": "אופיר",
+"last": "אקוניס"
+},
+{
+"person_id": 12938,
+"first": "חמד",
+"last": "עמאר"
+},
+{
+"person_id": 12939,
+"first": "דניאל",
+"last": "אילון"
+},
+{
+"person_id": 12941,
+"first": "זאב",
+"last": "בילסקי"
+},
+{
+"person_id": 12942,
+"first": "מיכאל",
+"last": "בן-ארי"
+},
+{
+"person_id": 12943,
+"first": "אריה",
+"last": "ביבי"
+},
+{
+"person_id": 12944,
+"first": "דני",
+"last": "דנון"
+},
+{
+"person_id": 12945,
+"first": "מסעוד",
+"last": "גנאים"
+},
+{
+"person_id": 12946,
+"first": "דניאל",
+"last": "הרשקוביץ"
+},
+{
+"person_id": 12947,
+"first": "ניצן",
+"last": "הורוביץ"
+},
+{
+"person_id": 12948,
+"first": "ציפי",
+"last": "חוטובלי"
+},
+{
+"person_id": 12949,
+"first": "יעקב",
+"last": "כץ"
+},
+{
+"person_id": 12950,
+"first": "פניה",
+"last": "קירשנבאום"
+},
+{
+"person_id": 12951,
+"first": "יריב",
+"last": "לוין"
+},
+{
+"person_id": 12952,
+"first": "אורלי",
+"last": "לוי אבקסיס"
+},
+{
+"person_id": 12953,
+"first": "משה (מוץ)",
+"last": "מטלון"
+},
+{
+"person_id": 12954,
+"first": "אנסטסיה",
+"last": "מיכאלי"
+},
+{
+"person_id": 12955,
+"first": "מנחם אליעזר",
+"last": "מוזס"
+},
+{
+"person_id": 12956,
+"first": "אורי",
+"last": "אורבך"
+},
+{
+"person_id": 12957,
+"first": "יוסי",
+"last": "פלד"
+},
+{
+"person_id": 12958,
+"first": "ציון",
+"last": "פיניאן"
+},
+{
+"person_id": 12959,
+"first": "מירי מרים",
+"last": "רגב"
+},
+{
+"person_id": 12960,
+"first": "כרמל",
+"last": "שאמה-הכהן"
+},
+{
+"person_id": 12961,
+"first": "נחמן",
+"last": "שי"
+},
+{
+"person_id": 12962,
+"first": "רוברט",
+"last": "טיבייב"
+},
+{
+"person_id": 12963,
+"first": "משה",
+"last": "יעלון"
+},
+{
+"person_id": 12964,
+"first": "חנין",
+"last": "זועבי"
+},
+{
+"person_id": 12965,
+"first": "אורית",
+"last": "זוארץ"
+},
+{
+"person_id": 12966,
+"first": "דניאל",
+"last": "בן-סימון"
+},
+{
+"person_id": 13830,
+"first": "יוליה",
+"last": "שמאלוב-ברקוביץ"
+},
+{
+"person_id": 14470,
+"first": "עינת",
+"last": "וילף"
+},
+{
+"person_id": 17630,
+"first": "נינו",
+"last": "אבסדזה"
+},
+{
+"person_id": 18990,
+"first": "דורון",
+"last": "אביטל"
+},
+{
+"person_id": 21431,
+"first": "אברהם",
+"last": "דואן"
+},
+{
+"person_id": 22091,
+"first": "יובל",
+"last": "צלנר"
+},
+{
+"person_id": 22151,
+"first": "אכרם",
+"last": "חסון"
+},
+{
+"person_id": 22811,
+"first": "אחמד",
+"last": "דבאח"
+},
+{
+"person_id": 22911,
+"first": "אללי",
+"last": "אדמסו"
+},
+{
+"person_id": 23511,
+"first": "נפתלי",
+"last": "בנט"
+},
+{
+"person_id": 23512,
+"first": "אילת",
+"last": "שקד"
+},
+{
+"person_id": 23531,
+"first": "אלי",
+"last": "בן-דהן"
+},
+{
+"person_id": 23532,
+"first": "זבולון",
+"last": "כלפה"
+},
+{
+"person_id": 23533,
+"first": "אברהם",
+"last": "וורצמן"
+},
+{
+"person_id": 23534,
+"first": "מרדכי",
+"last": "יוגב"
+},
+{
+"person_id": 23551,
+"first": "אורית מלכה",
+"last": "סטרוק"
+},
+{
+"person_id": 23552,
+"first": "יוני",
+"last": "שטבון"
+},
+{
+"person_id": 23553,
+"first": "שולי",
+"last": "מועלם-רפאלי"
+},
+{
+"person_id": 23555,
+"first": "יאיר",
+"last": "שמיר"
+},
+{
+"person_id": 23556,
+"first": "משה זלמן",
+"last": "פייגלין"
+},
+{
+"person_id": 23557,
+"first": "שמעון",
+"last": "אוחיון"
+},
+{
+"person_id": 23558,
+"first": "דוד",
+"last": "ביטן"
+},
+{
+"person_id": 23560,
+"first": "יוליה",
+"last": "מלינובסקי"
+},
+{
+"person_id": 23564,
+"first": "דוד",
+"last": "אמסלם"
+},
+{
+"person_id": 23565,
+"first": "מרב",
+"last": "מיכאלי"
+},
+{
+"person_id": 23566,
+"first": "סתיו",
+"last": "שפיר"
+},
+{
+"person_id": 23567,
+"first": "אראל",
+"last": "מרגלית"
+},
+{
+"person_id": 23568,
+"first": "איציק",
+"last": "שמולי"
+},
+{
+"person_id": 23569,
+"first": "מיקי",
+"last": "רוזנטל"
+},
+{
+"person_id": 23570,
+"first": "מיכל",
+"last": "בירן"
+},
+{
+"person_id": 23571,
+"first": "משה",
+"last": "מזרחי"
+},
+{
+"person_id": 23572,
+"first": "דניאל",
+"last": "עטר"
+},
+{
+"person_id": 23573,
+"first": "יוסי",
+"last": "יונה"
+},
+{
+"person_id": 23591,
+"first": "אלעזר",
+"last": "שטרן"
+},
+{
+"person_id": 23592,
+"first": "דוד",
+"last": "צור"
+},
+{
+"person_id": 23594,
+"first": "יאיר",
+"last": "לפיד"
+},
+{
+"person_id": 23595,
+"first": "שי",
+"last": "פירון"
+},
+{
+"person_id": 23596,
+"first": "יעל",
+"last": "גרמן"
+},
+{
+"person_id": 23597,
+"first": "מאיר",
+"last": "כהן"
+},
+{
+"person_id": 23598,
+"first": "יעקב",
+"last": "פרי"
+},
+{
+"person_id": 23599,
+"first": "עליזה",
+"last": "לביא"
+},
+{
+"person_id": 23600,
+"first": "עפר",
+"last": "שלח"
+},
+{
+"person_id": 23601,
+"first": "יואל",
+"last": "רזבוזוב"
+},
+{
+"person_id": 23602,
+"first": "עדי",
+"last": "קול"
+},
+{
+"person_id": 23631,
+"first": "קארין",
+"last": "אלהרר"
+},
+{
+"person_id": 23632,
+"first": "מיקי",
+"last": "לוי"
+},
+{
+"person_id": 23633,
+"first": "שמעון",
+"last": "סולומון"
+},
+{
+"person_id": 23634,
+"first": "רות",
+"last": "קלדרון"
+},
+{
+"person_id": 23635,
+"first": "פנינה",
+"last": "תמנו"
+},
+{
+"person_id": 23636,
+"first": "רינה",
+"last": "פרנקל"
+},
+{
+"person_id": 23637,
+"first": "יפעת",
+"last": "קריב"
+},
+{
+"person_id": 23638,
+"first": "דב",
+"last": "ליפמן"
+},
+{
+"person_id": 23639,
+"first": "בועז",
+"last": "טופורובסקי"
+},
+{
+"person_id": 23640,
+"first": "רונן",
+"last": "הופמן"
+},
+{
+"person_id": 23641,
+"first": "יעקב",
+"last": "אשר"
+},
+{
+"person_id": 23642,
+"first": "טלב",
+"last": "אבו עראר"
+},
+{
+"person_id": 23643,
+"first": "באסל",
+"last": "גטאס"
+},
+{
+"person_id": 23651,
+"first": "תמר",
+"last": "זנדברג"
+},
+{
+"person_id": 23652,
+"first": "עיסאווי",
+"last": "פריג'"
+},
+{
+"person_id": 23653,
+"first": "מיכל",
+"last": "רוזין"
+},
+{
+"person_id": 23673,
+"first": "עמר",
+"last": "בר לב"
+},
+{
+"person_id": 28513,
+"first": "יואב",
+"last": "בן צור"
+},
+{
+"person_id": 29855,
+"first": "ליאור",
+"last": "אדרי"
+},
+{
+"person_id": 30014,
+"first": "הלל אילן",
+"last": "הורוביץ"
+},
+{
+"person_id": 30054,
+"first": "ינון",
+"last": "מגל"
+},
+{
+"person_id": 30055,
+"first": "בצלאל",
+"last": "סמוטריץ'"
+},
+{
+"person_id": 30056,
+"first": "ז'קי",
+"last": "לוי"
+},
+{
+"person_id": 30057,
+"first": "יואב",
+"last": "קיש"
+},
+{
+"person_id": 30058,
+"first": "מכלוף מיקי",
+"last": "זוהר"
+},
+{
+"person_id": 30059,
+"first": "ענת",
+"last": "ברקו"
+},
+{
+"person_id": 30060,
+"first": "מנואל",
+"last": "טרכטנברג"
+},
+{
+"person_id": 30061,
+"first": "רויטל",
+"last": "סויד"
+},
+{
+"person_id": 30062,
+"first": "זוהיר",
+"last": "בהלול"
+},
+{
+"person_id": 30063,
+"first": "איתן",
+"last": "ברושי"
+},
+{
+"person_id": 30064,
+"first": "קסניה",
+"last": "סבטלובה"
+},
+{
+"person_id": 30065,
+"first": "איילת",
+"last": "נחמיאס ורבין"
+},
+{
+"person_id": 30066,
+"first": "איימן",
+"last": "עודה"
+},
+{
+"person_id": 30067,
+"first": "עאידה",
+"last": "תומא סלימאן"
+},
+{
+"person_id": 30068,
+"first": "עבד אל חכים",
+"last": "חאג' יחיא"
+},
+{
+"person_id": 30069,
+"first": "יוסף",
+"last": "ג'בארין"
+},
+{
+"person_id": 30070,
+"first": "אוסאמה",
+"last": "סעדי"
+},
+{
+"person_id": 30071,
+"first": "עבדאללה",
+"last": "אבו מערוף"
+},
+{
+"person_id": 30074,
+"first": "חיים",
+"last": "ילין"
+},
+{
+"person_id": 30076,
+"first": "שרון",
+"last": "גל"
+},
+{
+"person_id": 30077,
+"first": "יואב",
+"last": "גלנט"
+},
+{
+"person_id": 30078,
+"first": "אלי",
+"last": "אלאלוף"
+},
+{
+"person_id": 30079,
+"first": "מיכאל",
+"last": "אורן"
+},
+{
+"person_id": 30080,
+"first": "רחל",
+"last": "עזריה"
+},
+{
+"person_id": 30081,
+"first": "טלי",
+"last": "פלוסקוב"
+},
+{
+"person_id": 30082,
+"first": "יפעת",
+"last": "שאשא ביטון"
+},
+{
+"person_id": 30083,
+"first": "אלי",
+"last": "כהן"
+},
+{
+"person_id": 30084,
+"first": "רועי",
+"last": "פולקמן"
+},
+{
+"person_id": 30094,
+"first": "נאוה",
+"last": "בוקר"
+},
+{
+"person_id": 30095,
+"first": "אברהם",
+"last": "נגוסה"
+},
+{
+"person_id": 30096,
+"first": "נורית",
+"last": "קורן"
+},
+{
+"person_id": 30097,
+"first": "ירון",
+"last": "מזוז"
+},
+{
+"person_id": 30098,
+"first": "אורן אסף",
+"last": "חזן"
+},
+{
+"person_id": 30099,
+"first": "איל",
+"last": "בן ראובן"
+},
+{
+"person_id": 30102,
+"first": "מירב",
+"last": "בן ארי"
+},
+{
+"person_id": 30106,
+"first": "נעמה",
+"last": "לזימי"
+},
+{
+"person_id": 30117,
+"first": "אבי",
+"last": "גבאי"
+},
+{
+"person_id": 30118,
+"first": "שרן מרים",
+"last": "השכל"
+},
+{
+"person_id": 30121,
+"first": "עודד",
+"last": "פורר"
+},
+{
+"person_id": 30289,
+"first": "יעל",
+"last": "כהן-פארן"
+},
+{
+"person_id": 30299,
+"first": "אין",
+"last": "נתונים"
+},
+{
+"person_id": 30300,
+"first": "אמיר",
+"last": "אוחנה"
+},
+{
+"person_id": 30328,
+"first": "יגאל",
+"last": "גואטה"
+},
+{
+"person_id": 30407,
+"first": "יהודה",
+"last": "גליק"
+},
+{
+"person_id": 30470,
+"first": "מיכאל",
+"last": "מלכיאלי"
+},
+{
+"person_id": 30480,
+"first": "אברהם",
+"last": "בצלאל"
+},
+{
+"person_id": 30520,
+"first": "ג'מעה",
+"last": "אזברגה"
+},
+{
+"person_id": 30548,
+"first": "סעיד",
+"last": "אלחרומי"
+},
+{
+"person_id": 30549,
+"first": "דן",
+"last": "סיידה"
+},
+{
+"person_id": 30550,
+"first": "אבראהים",
+"last": "חג'אזי"
+},
+{
+"person_id": 30554,
+"first": "סאלח",
+"last": "סעד"
+},
+{
+"person_id": 30555,
+"first": "לאה",
+"last": "פדידה"
+},
+{
+"person_id": 30558,
+"first": "יוסף",
+"last": "עטאונה"
+},
+{
+"person_id": 30588,
+"first": "ואאל",
+"last": "יונס"
+},
+{
+"person_id": 30601,
+"first": "ינון",
+"last": "אזולאי"
+},
+{
+"person_id": 30628,
+"first": "ניבין",
+"last": "אבו רחמון"
+},
+{
+"person_id": 30646,
+"first": "אוסנת הילה",
+"last": "מארק"
+},
+{
+"person_id": 30654,
+"first": "פנתהון",
+"last": "סיום"
+},
+{
+"person_id": 30657,
+"first": "בנימין",
+"last": "גנץ"
+},
+{
+"person_id": 30660,
+"first": "משה",
+"last": "ארבל"
+},
+{
+"person_id": 30662,
+"first": "מתן",
+"last": "כהנא"
+},
+{
+"person_id": 30671,
+"first": "יעקב",
+"last": "טסלר"
+},
+{
+"person_id": 30672,
+"first": "יצחק",
+"last": "פינדרוס"
+},
+{
+"person_id": 30677,
+"first": "גבי",
+"last": "אשכנזי"
+},
+{
+"person_id": 30678,
+"first": "אבי",
+"last": "ניסנקורן"
+},
+{
+"person_id": 30679,
+"first": "מיקי",
+"last": "חיימוביץ'"
+},
+{
+"person_id": 30680,
+"first": "יועז",
+"last": "הנדל"
+},
+{
+"person_id": 30681,
+"first": "אורנה",
+"last": "ברביבאי"
+},
+{
+"person_id": 30682,
+"first": "מיכאל מרדכי",
+"last": "ביטון"
+},
+{
+"person_id": 30683,
+"first": "חילי",
+"last": "טרופר"
+},
+{
+"person_id": 30684,
+"first": "צבי",
+"last": "האוזר"
+},
+{
+"person_id": 30685,
+"first": "אורית",
+"last": "פרקש הכהן"
+},
+{
+"person_id": 30686,
+"first": "מירב",
+"last": "כהן"
+},
+{
+"person_id": 30687,
+"first": "אסף",
+"last": "זמיר"
+},
+{
+"person_id": 30688,
+"first": "יזהר",
+"last": "שי"
+},
+{
+"person_id": 30689,
+"first": "עומר",
+"last": "ינקלביץ'"
+},
+{
+"person_id": 30690,
+"first": "ע'דיר",
+"last": "כמאל מריח"
+},
+{
+"person_id": 30691,
+"first": "רם",
+"last": "בן ברק"
+},
+{
+"person_id": 30692,
+"first": "אורלי",
+"last": "פרומן"
+},
+{
+"person_id": 30693,
+"first": "איתן",
+"last": "גינזבורג"
+},
+{
+"person_id": 30694,
+"first": "אלון",
+"last": "שוסטר"
+},
+{
+"person_id": 30695,
+"first": "יואב",
+"last": "סגלוביץ'"
+},
+{
+"person_id": 30696,
+"first": "רם",
+"last": "שפע"
+},
+{
+"person_id": 30698,
+"first": "טל",
+"last": "רוסו"
+},
+{
+"person_id": 30700,
+"first": "ניר",
+"last": "ברקת"
+},
+{
+"person_id": 30701,
+"first": "אופיר",
+"last": "כץ"
+},
+{
+"person_id": 30702,
+"first": "חוה אתי",
+"last": "עטייה"
+},
+{
+"person_id": 30703,
+"first": "קרן",
+"last": "ברק"
+},
+{
+"person_id": 30704,
+"first": "שלמה",
+"last": "קרעי"
+},
+{
+"person_id": 30705,
+"first": "מיכל",
+"last": "שיר סגמן"
+},
+{
+"person_id": 30706,
+"first": "קטי קטרין",
+"last": "שטרית"
+},
+{
+"person_id": 30707,
+"first": "פטין",
+"last": "מולא"
+},
+{
+"person_id": 30708,
+"first": "מאי",
+"last": "גולן"
+},
+{
+"person_id": 30709,
+"first": "עוזי",
+"last": "דיין"
+},
+{
+"person_id": 30710,
+"first": "אריאל",
+"last": "קלנר"
+},
+{
+"person_id": 30711,
+"first": "עמית",
+"last": "הלוי"
+},
+{
+"person_id": 30713,
+"first": "מנסור",
+"last": "עבאס"
+},
+{
+"person_id": 30714,
+"first": "אנטאנס",
+"last": "שחאדה"
+},
+{
+"person_id": 30715,
+"first": "היבה",
+"last": "יזבק"
+},
+{
+"person_id": 30716,
+"first": "רפי",
+"last": "פרץ"
+},
+{
+"person_id": 30717,
+"first": "אופיר",
+"last": "סופר"
+},
+{
+"person_id": 30718,
+"first": "עידית",
+"last": "סילמן"
+},
+{
+"person_id": 30719,
+"first": "עופר",
+"last": "כסיף"
+},
+{
+"person_id": 30720,
+"first": "יוראי",
+"last": "להב הרצנו"
+},
+{
+"person_id": 30721,
+"first": "עידן",
+"last": "רול"
+},
+{
+"person_id": 30722,
+"first": "יבגני",
+"last": "סובה"
+},
+{
+"person_id": 30723,
+"first": "אלי",
+"last": "אבידר"
+},
+{
+"person_id": 30724,
+"first": "דסטה גדי",
+"last": "יברקן"
+},
+{
+"person_id": 30741,
+"first": "אלכס",
+"last": "קושניר"
+},
+{
+"person_id": 30743,
+"first": "יאיר",
+"last": "גולן"
+},
+{
+"person_id": 30745,
+"first": "לימור",
+"last": "מגן תלם"
+},
+{
+"person_id": 30746,
+"first": "מרק",
+"last": "איפראימוב"
+},
+{
+"person_id": 30749,
+"first": "משה",
+"last": "אבוטבול"
+},
+{
+"person_id": 30750,
+"first": "ג'אבר",
+"last": "עסאקלה"
+},
+{
+"person_id": 30751,
+"first": "סמי",
+"last": "אבו שחאדה"
+},
+{
+"person_id": 30752,
+"first": "ווליד",
+"last": "טאהא"
+},
+{
+"person_id": 30758,
+"first": "אימאן",
+"last": "ח'טיב יאסין"
+},
+{
+"person_id": 30759,
+"first": "סונדוס",
+"last": "סאלח"
+},
+{
+"person_id": 30760,
+"first": "אנדרי",
+"last": "קוז'ינוב"
+},
+{
+"person_id": 30761,
+"first": "יעקב",
+"last": "אביטן"
+},
+{
+"person_id": 30762,
+"first": "מיכל",
+"last": "וונש"
+},
+{
+"person_id": 30763,
+"first": "עינב",
+"last": "קאבלה"
+},
+{
+"person_id": 30764,
+"first": "תהלה",
+"last": "פרידמן"
+},
+{
+"person_id": 30765,
+"first": "אוריאל",
+"last": "בוסו"
+},
+{
+"person_id": 30766,
+"first": "הילה",
+"last": "שי וזאן"
+},
+{
+"person_id": 30767,
+"first": "אליהו",
+"last": "חסיד"
+},
+{
+"person_id": 30768,
+"first": "אליהו",
+"last": "ברוכי"
+},
+{
+"person_id": 30770,
+"first": "יוסף",
+"last": "טייב"
+},
+{
+"person_id": 30772,
+"first": "ניסים",
+"last": "ואטורי"
+},
+{
+"person_id": 30773,
+"first": "שבח",
+"last": "שטרן"
+},
+{
+"person_id": 30774,
+"first": "מטי",
+"last": "יוגב"
+},
+{
+"person_id": 30775,
+"first": "יעל",
+"last": "רון בן משה"
+},
+{
+"person_id": 30776,
+"first": "ולדימיר",
+"last": "בליאק"
+},
+{
+"person_id": 30777,
+"first": "משה",
+"last": "טור פז"
+},
+{
+"person_id": 30778,
+"first": "רות",
+"last": "וסרמן לנדה"
+},
+{
+"person_id": 30779,
+"first": "ענת",
+"last": "כנפו"
+},
+{
+"person_id": 30780,
+"first": "רון",
+"last": "כץ"
+},
+{
+"person_id": 30781,
+"first": "נירה",
+"last": "שפק"
+},
+{
+"person_id": 30782,
+"first": "טטיאנה",
+"last": "מזרסקי"
+},
+{
+"person_id": 30783,
+"first": "יסמין",
+"last": "פרידמן"
+},
+{
+"person_id": 30784,
+"first": "ענבר",
+"last": "בזק"
+},
+{
+"person_id": 30786,
+"first": "עמיחי",
+"last": "שיקלי"
+},
+{
+"person_id": 30787,
+"first": "ניר",
+"last": "אורבך"
+},
+{
+"person_id": 30788,
+"first": "אביר",
+"last": "קארה"
+},
+{
+"person_id": 30789,
+"first": "שירלי",
+"last": "פינטו קדוש"
+},
+{
+"person_id": 30791,
+"first": "יום טוב חי",
+"last": "כלפון"
+},
+{
+"person_id": 30794,
+"first": "אורנה",
+"last": "שטרקמן"
+},
+{
+"person_id": 30796,
+"first": "יוסף",
+"last": "שיין"
+},
+{
+"person_id": 30797,
+"first": "מאיר",
+"last": "יצחק-הלוי"
+},
+{
+"person_id": 30799,
+"first": "מישל",
+"last": "בוסקילה"
+},
+{
+"person_id": 30803,
+"first": "מאזן",
+"last": "גנאים"
+},
+{
+"person_id": 30804,
+"first": "חיים",
+"last": "ביטון"
+},
+{
+"person_id": 30805,
+"first": "ג'ידא",
+"last": "רינאוי-זועבי"
+},
+{
+"person_id": 30806,
+"first": "אמילי חיה",
+"last": "מואטי"
+},
+{
+"person_id": 30807,
+"first": "גלעד",
+"last": "קריב"
+},
+{
+"person_id": 30808,
+"first": "אפרת",
+"last": "רייטן מרום"
+},
+{
+"person_id": 30809,
+"first": "גלית",
+"last": "דיסטל אטבריאן"
+},
+{
+"person_id": 30810,
+"first": "מיכל מרים",
+"last": "וולדיגר"
+},
+{
+"person_id": 30811,
+"first": "איתמר",
+"last": "בן גביר"
+},
+{
+"person_id": 30812,
+"first": "שמחה",
+"last": "רוטמן"
+},
+{
+"person_id": 30813,
+"first": "אבתיסאם",
+"last": "מראענה"
+},
+{
+"person_id": 30814,
+"first": "אבי",
+"last": "מעוז"
+},
+{
+"person_id": 30815,
+"first": "אלינה",
+"last": "ברדץ' יאלוב"
+},
+{
+"person_id": 30816,
+"first": "מופיד",
+"last": "מרעי"
+},
+{
+"person_id": 30817,
+"first": "אלון",
+"last": "טל"
+},
+{
+"person_id": 30818,
+"first": "גבי",
+"last": "לסקי"
+},
+{
+"person_id": 30820,
+"first": "סימון",
+"last": "דוידסון"
+},
+{
+"person_id": 30821,
+"first": "עלי",
+"last": "סלאלחה"
+},
+{
+"person_id": 30823,
+"first": "שרון",
+"last": "רופא אופיר"
+},
+{
+"person_id": 30830,
+"first": "אוהד",
+"last": "טל"
+},
+{
+"person_id": 30831,
+"first": "אלי",
+"last": "דלל"
+},
+{
+"person_id": 30832,
+"first": "אליהו",
+"last": "רביבו"
+},
+{
+"person_id": 30833,
+"first": "אלמוג",
+"last": "כהן"
+},
+{
+"person_id": 30835,
+"first": "בועז",
+"last": "ביסמוט"
+},
+{
+"person_id": 30836,
+"first": "גדי",
+"last": "איזנקוט"
+},
+{
+"person_id": 30837,
+"first": "דבי",
+"last": "ביטון"
+},
+{
+"person_id": 30839,
+"first": "דן",
+"last": "אילוז"
+},
+{
+"person_id": 30840,
+"first": "ואליד",
+"last": "אלהואשלה"
+},
+{
+"person_id": 30842,
+"first": "חנוך דב",
+"last": "מלביצקי"
+},
+{
+"person_id": 30843,
+"first": "יאסר",
+"last": "חוג'יראת"
+},
+{
+"person_id": 30846,
+"first": "יצחק",
+"last": "גולדקנופ"
+},
+{
+"person_id": 30847,
+"first": "יצחק שמעון",
+"last": "וסרלאוף"
+},
+{
+"person_id": 30849,
+"first": "לימור",
+"last": "סון הר מלך"
+},
+{
+"person_id": 30851,
+"first": "מטי",
+"last": "צרפתי הרכבי"
+},
+{
+"person_id": 30852,
+"first": "משה",
+"last": "סולומון"
+},
+{
+"person_id": 30853,
+"first": "משה",
+"last": "סעדה"
+},
+{
+"person_id": 30854,
+"first": "נאור",
+"last": "שירי"
+},
+{
+"person_id": 30857,
+"first": "עמיחי",
+"last": "אליהו"
+},
+{
+"person_id": 30859,
+"first": "צביקה",
+"last": "פוגל"
+},
+{
+"person_id": 30860,
+"first": "טלי",
+"last": "גוטליב"
+},
+{
+"person_id": 30861,
+"first": "שלום",
+"last": "דנינו"
+},
+{
+"person_id": 30863,
+"first": "שרון",
+"last": "ניר"
+},
+{
+"person_id": 30866,
+"first": "רון",
+"last": "דרמר"
+},
+{
+"person_id": 30867,
+"first": "יצחק",
+"last": "קרויזר"
+},
+{
+"person_id": 30868,
+"first": "יונתן",
+"last": "מישרקי"
+},
+{
+"person_id": 30870,
+"first": "משה",
+"last": "רוט"
+},
+{
+"person_id": 30871,
+"first": "שלי טל",
+"last": "מירון"
+},
+{
+"person_id": 30872,
+"first": "סימון",
+"last": "מושיאשוילי"
+},
+{
+"person_id": 30873,
+"first": "ארז",
+"last": "מלול"
+},
+{
+"person_id": 30874,
+"first": "צבי ידידיה",
+"last": "סוכות"
+},
+{
+"person_id": 30875,
+"first": "צגה",
+"last": "מלקו"
+},
+{
+"person_id": 30876,
+"first": "אושר",
+"last": "שקלים"
+},
+{
+"person_id": 30877,
+"first": "משה",
+"last": "פסל"
+},
+{
+"person_id": 30879,
+"first": "ששון ששי",
+"last": "גואטה"
+},
+{
+"person_id": 30880,
+"first": "אביחי אברהם",
+"last": "בוארון"
+},
+{
+"person_id": 30881,
+"first": "ירון",
+"last": "לוי"
+},
+{
+"person_id": 30893,
+"first": "עפיף",
+"last": "עבד"
+},
+{
+"person_id": 30894,
+"first": "סמיר",
+"last": "בן סעיד"
+},
+{
+"person_id": 30895,
+"first": "עדי",
+"last": "עזוז"
+},
+{
+"person_id": 30896,
+"first": "ראובן",
+"last": "אהרונוביץ'"
+},
+{
+"person_id": 30897,
+"first": "לאה",
+"last": "וילנסקי"
+},
+{
+"person_id": 30899,
+"first": "משה",
+"last": "סבירסקי"
+},
+{
+"person_id": 30900,
+"first": "לודוויג",
+"last": "פינר"
+},
+{
+"person_id": 30901,
+"first": "צבי",
+"last": "ברנזון"
+},
+{
+"person_id": 30902,
+"first": "זאב",
+"last": "אברמוביץ"
+},
+{
+"person_id": 30903,
+"first": "אלעזר",
+"last": "הופמן"
+},
+{
+"person_id": 30904,
+"first": "ישראל",
+"last": "בר-שירה"
+},
+{
+"person_id": 30905,
+"first": "חיים",
+"last": "קוגל"
+},
+{
+"person_id": 30906,
+"first": "דב",
+"last": "ארקין"
+},
+{
+"person_id": 30907,
+"first": "דוד",
+"last": "מובסוביץ"
+},
+{
+"person_id": 30908,
+"first": "לוסה",
+"last": "הנמן-שטראוס"
+},
+{
+"person_id": 30909,
+"first": "אליעזר",
+"last": "כהן"
+},
+{
+"person_id": 30910,
+"first": "משה דב",
+"last": "מגיד"
+},
+{
+"person_id": 30911,
+"first": "יצחק",
+"last": "קורלנד"
+},
+{
+"person_id": 30912,
+"first": "שלום",
+"last": "זכאי"
+},
+{
+"person_id": 30913,
+"first": "שמואל זנוויל",
+"last": "כהנא"
+},
+{
+"person_id": 30914,
+"first": "משה",
+"last": "סקורטובסקי"
+},
+{
+"person_id": 30916,
+"first": "עוז",
+"last": "חיים"
+},
+{
+"person_id": 30917,
+"first": "מוחמד",
+"last": "אבו אל היג'א"
+},
+{
+"person_id": 30921,
+"first": "מיכל",
+"last": "סלבני כבביה"
+},
+{
+"person_id": 30922,
+"first": "שבתאי",
+"last": "קטש"
+},
+{
+"person_id": 30923,
+"first": "רוני",
+"last": "מלכאי"
+},
+{
+"person_id": 30924,
+"first": "קרן",
+"last": "טרנר"
+},
+{
+"person_id": 30925,
+"first": "לירן",
+"last": "אבישר בן חורין"
+},
+{
+"person_id": 30926,
+"first": "נעם",
+"last": "תיבון"
+},
+{
+"person_id": 30927,
+"first": "מיכל",
+"last": "נגרי"
+},
+{
+"person_id": 30928,
+"first": "יונתן",
+"last": "שלו"
+},
+{
+"person_id": 30929,
+"first": "יאיא (יאיר)",
+"last": "פינק"
+},
+{
+"person_id": 30930,
+"first": "עמרי",
+"last": "רונן"
+},
+{
+"person_id": 30935,
+"first": "טליק",
+"last": "גואילי"
+},
+{
+"person_id": 30936,
+"first": "יעקב",
+"last": "ברדוגו"
+},
+{
+"person_id": 30938,
+"first": "אלישע",
+"last": "מדן"
+},
+{
+"person_id": 30939,
+"first": "דוד",
+"last": "פטר"
+},
+{
+"person_id": 30941,
+"first": "ארז",
+"last": "תדמור"
+},
+{
+"person_id": 30947,
+"first": "צבי",
+"last": "מור"
+},
+{
+"person_id": 30948,
+"first": "איתמר",
+"last": "איתם"
+},
+{
+"person_id": 30949,
+"first": "פאתן",
+"last": "גטאס"
+},
+{
+"person_id": 30950,
+"first": "בכר",
+"last": "עואודה"
+},
+{
+"person_id": 30951,
+"first": "מהא",
+"last": "כרכבי סבאח"
+},
+{
+"person_id": 30953,
+"first": "משה",
+"last": "רוזנטל"
+},
+{
+"person_id": 30954,
+"first": "אליקים",
+"last": "שטארק"
+},
+{
+"person_id": 30955,
+"first": "יהודה",
+"last": "וויספיש"
+},
+{
+"person_id": 30957,
+"first": "יורם",
+"last": "כהן"
+},
+{
+"person_id": 30958,
+"first": "עדי",
+"last": "אלטשולר"
+},
+{
+"person_id": 30959,
+"first": "שאול",
+"last": "מרידור"
+},
+{
+"person_id": 30960,
+"first": "תאיר",
+"last": "איפרגן"
+},
+{
+"person_id": 30961,
+"first": "אושרת",
+"last": "גני גונן"
+},
+{
+"person_id": 30962,
+"first": "שירה",
+"last": "שפירא"
+},
+{
+"person_id": 30963,
+"first": "ענבר",
+"last": "הרוש גיטי"
+},
+{
+"person_id": 30964,
+"first": "כמיל",
+"last": "אבו רוקן"
+},
+{
+"person_id": 30965,
+"first": "דבורה",
+"last": "בכר"
+},
+{
+"person_id": 30966,
+"first": "אלקס",
+"last": "ריף"
+},
+{
+"person_id": 30967,
+"first": "ענבר",
+"last": "יחזקאלי"
+},
+{
+"person_id": 30968,
+"first": "ישראל",
+"last": "זרי"
+},
+{
+"person_id": 30969,
+"first": "טל",
+"last": "אוחנה"
+},
+{
+"person_id": 30970,
+"first": "אליסף",
+"last": "פרץ"
+},
+{
+"person_id": 30971,
+"first": "יפה",
+"last": "טבג'ה"
+},
+{
+"person_id": 30974,
+"first": "טליה",
+"last": "לנקרי"
+},
+{
+"person_id": 30975,
+"first": "שרון",
+"last": "שרעבי"
+},
+{
+"person_id": 30981,
+"first": "חנמאל",
+"last": "דורפמן"
+},
+{
+"person_id": 30990,
+"first": "ברוריה",
+"last": "נעים ארמן"
+},
+{
+"person_id": 30991,
+"first": "אחמד",
+"last": "דראושה"
+},
+{
+"person_id": 30992,
+"first": "נהאיה",
+"last": "ושאחי"
+},
+{
+"person_id": 30993,
+"first": "חסן",
+"last": "אלנסאסרה"
+},
+{
+"person_id": 30994,
+"first": "האיתם",
+"last": "זחאלקה"
+},
+{
+"person_id": 30995,
+"first": "איברהים",
+"last": "אל טורי"
+},
+{
+"person_id": 30996,
+"first": "עבד אלכרים",
+"last": "מסרי"
+},
+{
+"person_id": 30997,
+"first": "רפאל",
+"last": "בן שטרית"
+}
+]
+}
