@@ -399,3 +399,19 @@ def test_ink_fit_vertical_flags_lines_whose_ink_touches() -> None:
     assert lower.touching
     merged = olb.merge_row_fragments([lower, olb.PageLine(2, [10, 76, 90, 108], "c", "c")])
     assert merged[0].touching
+
+
+def test_scan_covers_page_refuses_strips() -> None:
+    full = {"width": 2558, "height": 3664, "x_ppi": 400, "y_ppi": 400}
+    strip = {"width": 1904, "height": 133, "x_ppi": 300, "y_ppi": 300}
+    assert olb.scan_covers_page(full, 460.44, 659.52)
+    assert not olb.scan_covers_page(strip, 460.44, 659.52)
+    assert not olb.scan_covers_page({**full, "x_ppi": 0}, 460.44, 659.52)
+
+
+def test_layer_exact_needs_the_image_to_agree() -> None:
+    label = "לא ישתמש אדם שימוש כל שהוא בדגל המדינה"
+    d = olb.accept_line(label, label, "ד")
+    assert not d.accepted and d.reason == "image_unconfirmed"
+    d = olb.accept_line(label, label, None)
+    assert d.accepted and d.tier == "layer_exact"

@@ -770,6 +770,9 @@ def accept_line(label_raw: str, layer: str | None, tesseract: str | None) -> Dec
     if not readings:
         return Decision(False, "no_ocr_evidence", None, evidence)
     exact = [name for name, key in readings.items() if key == label_key]
+    if exact == ["layer"] and "tesseract" in readings and evidence["cer_tesseract"] > MAX_LOCATE_CER:
+        # the layer is text, not the image: a crop Tesseract cannot read near the label is not shown to hold it
+        return Decision(False, "image_unconfirmed", None, evidence)
     if exact:
         tier = "both_exact" if len(exact) == 2 else f"{exact[0]}_exact"
         others = [key for name, key in readings.items() if name not in exact]
@@ -1239,6 +1242,27 @@ def page_scan_row(rows: Sequence[Mapping[str, Any]], page: int) -> Mapping[str, 
     return max(images, key=lambda r: r["width"] * r["height"]) if images else None
 
 
+def scan_covers_page(row: Mapping[str, Any], page_w: float, page_h: float, *, min_share: float = 0.9) -> bool:
+    """True when the image, at its stated resolution, covers the page (one full-page scan, not a strip of one)."""
+
+    if not (row.get("x_ppi") and row.get("y_ppi") and page_w and page_h):
+        return False
+    placed_w, placed_h = row["width"] * 72.0 / row["x_ppi"], row["height"] * 72.0 / row["y_ppi"]
+    return placed_w >= min_share * page_w and placed_h >= min_share * page_h
+
+
+def render_page(path: Path, page: int, dpi: int, work: Path) -> Image.Image:  # pragma: no cover - poppler
+    """The whole page rendered by pdftoppm (grey), for pages stored as several image strips."""
+
+    prefix = work / f"r{page:04d}"
+    _run(["pdftoppm", "-f", str(page), "-l", str(page), "-r", str(int(dpi)), "-gray", "-png", str(path), str(prefix)])
+    (file,) = sorted(work.glob(f"r{page:04d}*.png"))
+    with Image.open(file) as im:
+        image = im.convert("L")
+    file.unlink()
+    return image
+
+
 def extract_scan(path: Path, page: int, row: Mapping[str, Any], work: Path) -> Image.Image:  # pragma: no cover - poppler
     prefix = work / f"p{page:04d}"
     _run(["pdfimages", "-f", str(page), "-l", str(page), "-png", str(path), str(prefix)])
@@ -1559,6 +1583,7 @@ def booklet_job(job: Mapping[str, Any]) -> dict[str, Any]:  # pragma: no cover -
         return {"unit_id": job["unit_id"], "rows": [], "drops": dict(drops), "facts": facts}
     staging.mkdir(parents=True, exist_ok=True)
     debug: list[dict[str, Any]] = []
+    page_sources: Counter = Counter()
     pages_with_layer = 0
     ocr_kinds: Counter = Counter()
     with tempfile.TemporaryDirectory() as tmp:
@@ -1568,8 +1593,13 @@ def booklet_job(job: Mapping[str, Any]) -> dict[str, Any]:  # pragma: no cover -
             if row is None:
                 drops["page_without_scan_image"] += 1
                 continue
-            image = extract_scan(pdf, page_no, row, work)
             lay = layout.get(page_no) or {"lines": [], "width": 0, "height": 0}
+            if scan_covers_page(row, lay.get("width") or 0, lay.get("height") or 0):
+                image = extract_scan(pdf, page_no, row, work)
+                page_sources["pdfimages"] += 1
+            else:  # the page is several image strips: render it whole at the strips' resolution
+                image = render_page(pdf, page_no, row.get("x_ppi") or SCAN_DPI.get(job["series"], 300), work)
+                page_sources["pdftoppm_composite"] += 1
             if lay["lines"] and lay["width"]:
                 lines = layer_lines(lay, image.width / lay["width"], image.height / lay["height"])
                 pages_with_layer += 1
@@ -1607,6 +1637,10 @@ def booklet_job(job: Mapping[str, Any]) -> dict[str, Any]:  # pragma: no cover -
                     continue
                 located.append((line, spot))
             boxes = [crop_box(line, lines, image.size) for line, _ in located]
+            min_h = max(10, int(0.5 * median_h)) if median_h else 10
+            keep = [i for i, b in enumerate(boxes) if b[3] - b[1] >= min_h and b[2] - b[0] >= min_h]
+            drops["degenerate_crop"] += len(boxes) - len(keep)
+            located, boxes = [located[i] for i in keep], [boxes[i] for i in keep]
             crops = [image.crop(tuple(b)) for b in boxes]
             readings = tesseract_lines(crops, work)
             for (line, spot), box, crop, reading in zip(located, boxes, crops, readings):
@@ -1637,7 +1671,7 @@ def booklet_job(job: Mapping[str, Any]) -> dict[str, Any]:  # pragma: no cover -
                     "scan_ppi": [row["x_ppi"], row["y_ppi"]], "scan_encoding": row["enc"],
                     "staged_image": str(path), "image_sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
                 })
-    facts.update({"pages_with_text_layer": pages_with_layer, "line_sources": dict(ocr_kinds)})
+    facts.update({"pages_with_text_layer": pages_with_layer, "line_sources": dict(ocr_kinds), "page_images": dict(page_sources)})
     return {"unit_id": job["unit_id"], "rows": rows, "drops": dict(drops), "facts": facts, "tiers": dict(evidence_tiers),
             **({"debug": debug} if job.get("debug") else {})}
 
@@ -1649,6 +1683,8 @@ DROP_DEFINITIONS = {
     "no_olb_span": "located line with no OLB word span within MAX_LOCATE_CER of its locating reading",
     "ocr_disagrees_with_olb": "both readings exist and neither equals the span nor do they confirm it character by character",
     "single_reading_not_exact": "only one reading exists (no text layer) and it does not equal the span",
+    "image_unconfirmed": "only the layer equals the span and Tesseract's reading of the crop is beyond MAX_LOCATE_CER of it",
+    "degenerate_crop": "the crop is under half the page's median line height (or 10 px) high or wide",
     "other_reading_sees_more": "one reading equals the span, but the other reads two or more characters (with a letter) beyond its ends",
     "footnote_marker_in_print": "the print adds a footnote marker the OLB text lacks (the label would miss a printed glyph)",
     "pointed": "the OLB span carries niqqud or cantillation",
