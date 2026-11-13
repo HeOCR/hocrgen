@@ -31,12 +31,35 @@ K13_ENUM = Path.home() / "agents/environments/opensource/projects/heocr/tasks/mo
 CMT_ENUM = Path.home() / "agents/environments/opensource/projects/heocr/tasks/modern-s6-scout/knesset/committee_docs_k16plus.json"
 
 
+MODERN_SOURCES = ("knesset_plenary_k13_25", "knesset_committee_protocols_k16plus")
+
+
 def _registry(non_eval=(), eval_units=()):
+    """The packaged registry made hermetic for these tests: the modern Knesset sources (E2f7: plenary K13-25, committee
+    K16-25) hold only the test units given here, placed in the source their id routes to."""
+
     registry = load_and_validate_bundle().eval_reserved_units
     data = registry.model_dump(mode="json")
-    plenary = next(s for s in data["sources"] if s["source_id"] == "knesset_plenary_k1_12")
-    plenary["non_eval_units"] = sorted(set(plenary["non_eval_units"]) | set(non_eval))
-    plenary["eval_units"] = sorted(set(plenary["eval_units"]) | set(eval_units))
+    k13 = next(s for s in data["sources"] if s["source_id"] == "knesset_plenary_k13_25")
+    if not any(s["source_id"] == "knesset_committee_protocols_k16plus" for s in data["sources"]):
+        data["sources"].append({**json.loads(json.dumps(k13)), "source_id": "knesset_committee_protocols_k16plus"})
+    for src in data["sources"]:
+        if src["source_id"] in MODERN_SOURCES:
+            src["eval_units"], src["non_eval_units"] = [], []
+
+    def source_of(unit):
+        if unit.startswith("committee:"):
+            return "knesset_committee_protocols_k16plus"
+        k = int(unit.split(":K", 1)[1].split("_", 1)[0])
+        return "knesset_plenary_k1_12" if k <= 12 else "knesset_plenary_k13_25"
+
+    for units, key in ((non_eval, "non_eval_units"), (eval_units, "eval_units")):
+        for unit in units:
+            for src in data["sources"]:
+                for field in ("non_eval_units", "eval_units"):
+                    src[field] = [u for u in src.get(field, []) if u != unit]
+            target = next(s for s in data["sources"] if s["source_id"] == source_of(unit))
+            target[key] = sorted(set(target[key]) | {unit})
     return type(registry).model_validate(data)
 
 
@@ -72,8 +95,8 @@ def test_plan_picks_the_protocol_document_and_skips_unassigned_sittings() -> Non
     assert [u["unit_id"] for u in plan["units"]] == ["plenary:K13_1"]
     assert plan["units"][0]["document"]["document_id"] == 9 and kl.document_ext(plan["units"][0]["document"]) == "docx"
     assert plan["skipped_before_selection"]["13"] == {"no_protocol_document": 1, "unassigned": 1}
-    # The packaged registry does not list K13+ sittings yet: nothing is planned.
-    assert kl.plan_units({"units": units}, kl.PLENARY)["units"] == []
+    # With only K13_3 assigned, the other sittings stay unassigned and are never planned.
+    assert [u["unit_id"] for u in kl.plan_units({"units": units}, kl.PLENARY, registry=_registry(non_eval=["plenary:K13_3"]))["units"]] == ["plenary:K13_3"]
 
 
 def test_committee_plan_groups_documents_by_session() -> None:
@@ -82,9 +105,10 @@ def test_committee_plan_groups_documents_by_session() -> None:
             for d in (216179, 216180)]
     docs.append({**docs[0], "document_id": 1, "group_type": "חומר רקע"})
     docs.append({**docs[0], "committee_session_id": 5, "knesset": 15})  # before K16: outside the series
-    plan = kl.plan_units({"documents": docs}, kl.COMMITTEE)
+    assert kl.plan_units({"documents": docs}, kl.COMMITTEE, registry=_registry())["units"] == []  # unassigned: refused
+    plan = kl.plan_units({"documents": docs}, kl.COMMITTEE, registry=_registry(non_eval=["committee:K18_471534"]))
     assert [(u["unit_id"], u["document"]["document_id"], u["eval_status"]) for u in plan["units"]] == [
-        ("committee:K18_471534", 216179, "not_governed")]
+        ("committee:K18_471534", 216179, "non_eval")]
     assert not kl.committee_unit_id(18, 471534).startswith("knesset_committee")
 
 
@@ -357,7 +381,8 @@ def test_committee_build_uses_the_committee_gate_denylist_and_scope(tmp_path: Pa
             "documents": [{"document_id": 216179, "format": "DOC", "url": "https://fs.knesset.gov.il//18/Committees/18_ptv_216179.doc"}]}
     env = _setup(tmp_path, "committee", [unit], {"committee:K18_471534": COMMITTEE_TEXT})
     calls: list = []
-    summary = kl.build(env["args"], registry=_registry(), to_text=env["to_text"], ner=_fake_ner(calls), roster=ROSTER)
+    committee_registry = _registry(non_eval=["committee:K18_471534"])
+    summary = kl.build(env["args"], registry=committee_registry, to_text=env["to_text"], ner=_fake_ner(calls), roster=ROSTER)
     rows = _rows(tmp_path / "out")
     texts = {row["text"] for row in rows}
     # The attendance block drops whole; the guest's heading and the body mention of the guest's surname drop too.
@@ -371,12 +396,13 @@ def test_committee_build_uses_the_committee_gate_denylist_and_scope(tmp_path: Pa
     # The tagger saw only the lines outside the attendance block (the stream gate_committee_lines judges).
     lines = kl.unit_lines(unit, COMMITTEE_TEXT, kl.COMMITTEE)["lines"]
     assert calls[0]["text"] == stream_text([line for line in lines if not line.get("in_attendance_block")])[0]
-    assert kl.verify(tmp_path / "out", registry=_registry()) == []
+    assert kl.verify(tmp_path / "out", registry=committee_registry) == []
+    assert any("unassigned" in problem for problem in kl.verify(tmp_path / "out", registry=_registry()))
 
 
 def test_verify_finds_tampering_and_the_packaged_registry_refuses_k13_plus(plenary: dict) -> None:
     out, registry = plenary["out"], plenary["registry"]
-    assert any("unassigned" in problem for problem in kl.verify(out))  # K13+ not assigned by eval yet
+    assert any("unassigned" in problem for problem in kl.verify(out, registry=_registry()))  # sittings no split lists
     rows = _rows(out)
     rows[0].pop("privacy_gate")
     rows[1]["capture"] = "rendered"
