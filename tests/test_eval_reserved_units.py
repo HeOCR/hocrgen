@@ -36,8 +36,9 @@ V1_SHA256 = "184d3b77d80dc26330665271aa81e1eace722299aa2962f5b641970b9741562e"
 V2_SHA256 = "a75ed6851e8d9a689994f4ec5c61bae46e4a75dc2e51648f7a5e494306c25be7"
 V3_SHA256 = "36ab37e6f8936581ecc5647a590348c6cc244861fa50f1983dc5ccec3dad6d95"
 V4_SHA256 = "c641b1e31e734fce09c1ec5833ac30b553bbef162b536c9f39b31a968d3a21a5"
-CURRENT = "pmod_unit_split_v5.json"
-CURRENT_SHA256 = "873cef9c30b41ccace7720258f1dcfe9db83d78c67317edbff698960c5ac8a45"
+V5_SHA256 = "873cef9c30b41ccace7720258f1dcfe9db83d78c67317edbff698960c5ac8a45"
+CURRENT = "pmod_unit_split_v6.json"
+CURRENT_SHA256 = "2519bc8fe5565570de41b064dc5ae3d9db7d30ed4a6d79e1224781089fc50aab"
 # v2 = v1 unchanged plus the 121 born-digital 2005 booklets (all non_eval); 175 = 54 + 121
 # v3 = v2 unchanged plus the mid-century scanned sources (eval = test + dev of midcentury_unit_split_v0):
 # 8,211 scanned Reshumot booklets and 5,338 plenary sittings, every enumerated unit listed.
@@ -45,7 +46,10 @@ CURRENT_SHA256 = "873cef9c30b41ccace7720258f1dcfe9db83d78c67317edbff698960c5ac8a
 # (5 dev units retired, still eval): 160 = 120 + 40.
 # v5 = v4 with the replacement walk applied (midcentury_unit_split_v2): 5 filled queue units become dev, the other 35
 # return to non_eval: 125 = 160 - 35.
-CURRENT_COUNTS = {RESHUMOT: (30, 175), KNESSET: (7, 13), "reshumot_scanned": (125, 8086), "knesset_plenary_k1_12": (60, 5278)}
+# v6 = v5 unchanged plus knesset_plenary_k13_25 (E2f7, R9): 3,411 K13-25 sittings; a 2% per-Knesset hold-out (min 3)
+# is eval (78), the rest non_eval (3,333). Two enumerated rows have no sitting number and stay unassigned.
+CURRENT_COUNTS = {RESHUMOT: (30, 175), KNESSET: (7, 13), "reshumot_scanned": (125, 8086), "knesset_plenary_k1_12": (60, 5278),
+                  "knesset_plenary_k13_25": (78, 3333)}
 EXPOSED = ("reshumot:kovetz_hatakanot_6609", "reshumot:sefer_hachukim_2110")
 
 
@@ -69,11 +73,14 @@ def test_committed_registry_is_generated_from_the_committed_split_file(registry:
     assert registry.split_file.packaged_copy == f"data/eval/{copy.name}"
     assert hashlib.sha256(copy.read_bytes()).hexdigest() == registry.split_file.sha256 == CURRENT_SHA256
     # From v2 the schema field names the file format (v1) and split_version names the assignment.
-    assert registry.split_file.split_version == "v5"
+    assert registry.split_file.split_version == "v6"
     assert registry.split_file.schema_version == "heocr_eval_unit_split.v1"
-    # v5 states what it supersedes: v4 (v3, v2, v1 before it), by pinned sha256
+    # v6 states what it supersedes: v5 (v4, v3, v2, v1 before it), by pinned sha256
     data = json.loads(copy.read_text(encoding="utf-8"))
-    assert data["supersedes"]["sha256"] == V4_SHA256
+    assert data["supersedes"]["sha256"] == V5_SHA256
+    modern = data["modern_knesset_coverage"]["knesset_plenary_k13_25"]
+    assert {u["role"] for u in data["knesset_plenary_k13_25"]["eval"]} == {"holdout_modern_plenary"}
+    assert sum(k["holdout"] for k in modern["per_knesset"].values()) == 78 and len(modern["unassigned_rows"]) == 2
     roles = {u["role"] for u in data["reshumot_scanned"]["eval"]}
     assert roles == {"test", "dev", "dev_retired"}
     assert data["midcentury_coverage"]["reshumot_scanned"]["enumerated"] == 8211
@@ -124,13 +131,13 @@ def _split_json(**overrides) -> bytes:
 @pytest.mark.parametrize(
     ("name", "payload", "message"),
     [
-        ("pmod_unit_split_v5.json", _split_json(superseded_by="labels/pmod_unit_split_v6.json"), "superseded"),
+        ("pmod_unit_split_v6.json", _split_json(superseded_by="labels/pmod_unit_split_v7.json"), "superseded"),
         ("units.json", _split_json(), "is not pmod_unit_split"),
-        ("pmod_unit_split_v6.json", _split_json(), "states split_version"),
-        ("pmod_unit_split_v5.json", _split_json(usage="eval units are never training input."), "unassigned"),
-        ("pmod_unit_split_v5.json", _split_json(tenders={"eval": [], "non_eval": []}), "does not map"),
-        ("pmod_unit_split_v5.json", _split_json(owner=None), "no owner"),
-        ("pmod_unit_split_v5.json",
+        ("pmod_unit_split_v7.json", _split_json(), "states split_version"),
+        ("pmod_unit_split_v6.json", _split_json(usage="eval units are never training input."), "unassigned"),
+        ("pmod_unit_split_v6.json", _split_json(tenders={"eval": [], "non_eval": []}), "does not map"),
+        ("pmod_unit_split_v6.json", _split_json(owner=None), "no owner"),
+        ("pmod_unit_split_v6.json",
          _split_json(knesset_committee_protocols_pre1976={"eval": [{"unit_id": "knesset_protocol:1"}] * 2, "non_eval": []}),
          "repeated unit_id"),
     ],
@@ -499,3 +506,85 @@ def test_sync_maps_split_files_listing_the_new_sources() -> None:
     sources = {source["source_id"]: source for source in data["sources"]}
     assert sources[SCANNED]["non_eval_units"] == ["reshumot_scanned:sefer_hachukim_500"]
     assert sources[PLENARY]["eval_units"] == ["plenary:K1_2"] and sources[PLENARY]["unit"].startswith("one Knesset plenary")
+
+
+# --- E2f7: born-digital Knesset plenary K13-25 and committee sessions K16-25 ------------------------------------------
+
+PLENARY_MODERN, COMMITTEE_MODERN = "knesset_plenary_k13_25", "knesset_committee_protocols_k16plus"
+
+
+@pytest.fixture(scope="module")
+def modern(registry: EvalReservedUnitsRegistry) -> EvalReservedUnitsRegistry:
+    return _with_sources(
+        registry,
+        knesset_plenary_k13_25={"eval": ["plenary:K13_2"], "non_eval": ["plenary:K13_1", "plenary:K25_7"]},
+        knesset_committee_protocols_k16plus={"non_eval": ["committee:K16_2001", "committee:K25_4123456"]},
+    )
+
+
+@pytest.mark.parametrize(
+    ("identifier", "expected"),
+    [
+        ("plenary:K13_1", (PLENARY_MODERN, "plenary:K13_1")),
+        ("plenary_K25_007__p0003", (PLENARY_MODERN, "plenary:K25_7")),
+        ("knesset_plenary_k13_25:plenary_K13_1__p0001", (PLENARY_MODERN, "plenary:K13_1")),
+        ("plenary:K12_340", (PLENARY, "plenary:K12_340")),
+        ("committee:K16_2001", (COMMITTEE_MODERN, "committee:K16_2001")),
+        ("committee_K25_4123456__p0002", (COMMITTEE_MODERN, "committee:K25_4123456")),
+        ("knesset_committee_protocols_k16plus:committee_K16_2001", (COMMITTEE_MODERN, "committee:K16_2001")),
+        # the pre-1976 committee shapes are unchanged and never collide with the new one
+        ("knesset_committee:398637", (KNESSET, "knesset_protocol:398637")),
+        ("knesset_committee_398637__p0001", (KNESSET, "knesset_protocol:398637")),
+        ("committee:398637", None),  # a look-alike: governed by the new source with no unit (below)
+    ],
+)
+def test_modern_knesset_unit_ids(identifier, expected) -> None:
+    assert unit_from_identifier(identifier) == expected
+
+
+def test_modern_knesset_rows_follow_eval_non_eval_and_unassigned(modern: EvalReservedUnitsRegistry) -> None:
+    assert unit_status({"page_id": "plenary_K13_1__p0001"}, modern)[1] is EvalUnitStatus.non_eval
+    assert unit_status({"unit_id": "plenary:K13_2"}, modern)[1] is EvalUnitStatus.eval
+    assert unit_status({"unit_id": "committee:K16_2001", "source_id": COMMITTEE_MODERN}, modern)[1] is EvalUnitStatus.non_eval
+    assert refuse_eval_reserved_training_input(
+        [{"unit_id": "plenary:K25_7"}, {"item_id": "committee_K25_4123456__p0001"}], builder="t", registry=modern) == 2
+    for row in ({"unit_id": "plenary:K13_2"}, {"unit_id": "plenary:K14_9"}, {"unit_id": "committee:K17_1"},
+                {"item_id": "committee:398637"}, {"source_id": COMMITTEE_MODERN, "item_id": "page-1"},
+                {"source_id": PLENARY_MODERN, "item_id": "page-1"}):
+        with pytest.raises(EvalReservedUnitError):
+            refuse_eval_reserved_training_input([row], builder="t", registry=modern)
+    # a K13+ sitting declared as the K1-12 source names two sources: refused, never let through
+    with pytest.raises(EvalReservedUnitError, match="more than one"):
+        unit_status({"source_id": PLENARY, "unit_id": "plenary:K13_1"}, modern)
+
+
+def test_registry_refuses_a_sitting_outside_its_knesset_range(registry: EvalReservedUnitsRegistry) -> None:
+    with pytest.raises(ValidationError, match="K<13-25>"):
+        _with_sources(registry, knesset_plenary_k13_25={"non_eval": ["plenary:K12_1"]})
+    with pytest.raises(ValidationError, match="K<1-12>"):
+        _with_sources(registry, knesset_plenary_k1_12={"non_eval": ["plenary:K13_1"]})
+    with pytest.raises(ValidationError, match="K<16-25>"):
+        _with_sources(registry, knesset_committee_protocols_k16plus={"non_eval": ["committee:K15_1"]})
+
+
+def test_sync_maps_split_files_listing_the_modern_knesset_sources() -> None:
+    payload = _split_json(knesset_plenary_k13_25={"eval": [{"unit_id": "plenary:K13_2"}],
+                                                  "non_eval": [{"unit_id": "plenary:K13_1"}]},
+                          knesset_committee_protocols_k16plus={"eval": [], "non_eval": [{"unit_id": "committee:K16_1"}]})
+    sources = {s["source_id"]: s for s in tool.registry_data(payload, _split_copy().name)["sources"]}
+    assert sources[PLENARY_MODERN]["eval_units"] == ["plenary:K13_2"]
+    assert sources[COMMITTEE_MODERN]["non_eval_units"] == ["committee:K16_1"]
+
+
+def test_r9_row_shapes_are_governed_by_unit_id_and_source_id(modern: EvalReservedUnitsRegistry) -> None:
+    """R9 rows (data-collection, 2026-11-13): unit_id + source_id; the line id and book match no governed shape."""
+    plen = {"id": "K13_1_p00077_l03", "book": "K13_1", "unit_id": "plenary:K13_1", "source_id": PLENARY_MODERN,
+            "knesset": 13, "sitting": 1, "document_id": 532132}
+    comm = {"id": "K16_2001_p00001_l01", "book": "K16_2001", "unit_id": "committee:K16_2001",
+            "source_id": COMMITTEE_MODERN, "knesset": 16, "sitting": 2001, "release_scope": "training_only"}
+    assert refuse_eval_reserved_training_input([plen, comm], builder="r9", registry=modern) == 2
+    assert unit_from_identifier(plen["id"]) is None and unit_from_identifier(plen["book"]) is None
+    with pytest.raises(EvalReservedUnitError, match="is eval"):
+        refuse_eval_reserved_training_input([{**plen, "unit_id": "plenary:K13_2"}], builder="r9", registry=modern)
+    with pytest.raises(EvalReservedUnitError, match="unassigned"):
+        refuse_eval_reserved_training_input([{**comm, "unit_id": "committee:K16_9"}], builder="r9", registry=modern)
