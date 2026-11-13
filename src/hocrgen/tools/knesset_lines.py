@@ -106,14 +106,20 @@ DEFAULT_SOFFICE = "/opt/homebrew/bin/soffice"
 DEFAULT_NER_PYTHON = str(Path.home() / ".venvs" / "heocr-ner" / "bin" / "python")
 NER_SCRIPT = Path(__file__).resolve().parent.parent / "privacy" / "ner_stream.py"
 NER_TAGGER = "dicta-il/dictabert-ner over each unit's line stream (ner_stream.py) + cue heuristic"
-HOCRSYNGEN_PIN = "90aa2bf354479965f5a079223f97a9101c8e056c"  # HeOCR/hocrsyngen#99, render-lines
+HOCRSYNGEN_PIN = "32af108112afc51354e398239e7e6376b329b60a"  # HeOCR/hocrsyngen#100 (render-lines #99 + the 9 OFL faces)
 DEFAULT_RENDER_CMD = "hocrsyngen render-lines"  # + --input/--output/--seed/--band-range/--preset/--font, set per band
 RENDER_SEED = 20261113
 RENDER_PRESET = "modern_print_scan_v1"
 # lead 2026-11-13: half the units at the IA-like ink band (27-34 px, the R9 face-stats range), half at 35-48 px.
 RENDER_BANDS: tuple[tuple[int, int], ...] = ((27, 34), (35, 48))
-# The governed OFL faces of hocrsyngen 90aa2bf; more faces later are a re-render, not a rebuild (--font).
-RENDER_FONTS: tuple[str, ...] = ("alef-regular", "david-libre-regular", "frank-ruhl-libre")
+# The governed OFL faces of hocrsyngen 32af108 (maintainer approved the 6 google/fonts additions, 2026-11-13);
+# more faces later are a re-render, not a rebuild (--font).
+RENDER_FONTS: tuple[str, ...] = (
+    "alef-regular", "assistant", "david-libre-regular", "frank-ruhl-libre", "heebo", "miriam-libre", "noto-sans-hebrew",
+    "noto-serif-hebrew", "rubik",
+)
+# Weight drawn per unit and clipped to each variable face's axis (static faces keep their own weight).
+RENDER_WEIGHTS: tuple[int, int] = (350, 600)
 RENDER_LICENSES = frozenset({"OFL-1.1"})  # decision 0018 as amended 2026-11-13: open-licensed rendering fonts only
 
 MARKER = re.compile(r"\s*<<\s*([^<>]*?)\s*>>\s*")
@@ -863,7 +869,7 @@ def band_of(group: str, bands: Sequence[tuple[int, int]] = RENDER_BANDS) -> int:
 
 def render(out: Path, render_dir: Path, command: str = DEFAULT_RENDER_CMD, *, fonts: Sequence[str] = RENDER_FONTS,
            bands: Sequence[tuple[int, int]] = RENDER_BANDS, seed: int = RENDER_SEED,
-           preset: str = RENDER_PRESET) -> dict[str, Any]:  # pragma: no cover - runs hocrsyngen
+           preset: str = RENDER_PRESET, weights: tuple[int, int] = RENDER_WEIGHTS) -> dict[str, Any]:  # pragma: no cover
     """Run ``hocrsyngen render-lines`` (pinned at ``HOCRSYNGEN_PIN``) once per ink band on that band's units, merge the
     manifests into ``render_dir/manifest.jsonl`` and join it."""
 
@@ -878,7 +884,8 @@ def render(out: Path, render_dir: Path, command: str = DEFAULT_RENDER_CMD, *, fo
         part_input = render_dir / f"input_band{index}.jsonl"
         part_input.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in part), encoding="utf-8")
         args = shlex.split(command) + ["--input", str(part_input), "--output", str(sub_dir), "--seed", str(seed),
-                                       "--band-range", str(low), str(high), "--preset", preset]
+                                       "--band-range", str(low), str(high), "--preset", preset,
+                                       "--weight-range", str(weights[0]), str(weights[1])]
         for font in fonts:
             args += ["--font", font]
         subprocess.run(args, check=True)
@@ -892,7 +899,7 @@ def render(out: Path, render_dir: Path, command: str = DEFAULT_RENDER_CMD, *, fo
     summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
     summary["render"]["config"] = {"hocrsyngen_pin": HOCRSYNGEN_PIN, "command": command, "fonts": list(fonts),
                                    "bands": [list(b) for b in bands], "band_rule": "sha256('heocr-knessetlines-band:'+unit_id) mod bands",
-                                   "seed": seed, "preset": preset}
+                                   "seed": seed, "preset": preset, "weight_range": list(weights)}
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return result
 
