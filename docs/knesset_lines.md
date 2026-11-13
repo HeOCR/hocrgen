@@ -23,7 +23,9 @@ only in their `Series` record:
 python -I kl_runner.py plan PLAN.json --enumeration plenary_units_k13plus.json --series plenary
 python -I kl_runner.py capture PLAN.json --cache CACHE
 python -I kl_runner.py build OUT --plan PLAN.json --cache CACHE --series plenary --signature "<operator>"
-python -I kl_runner.py render OUT --render-dir RENDER   # runs hocrsyngen render-lines, then joins its manifest
+python -I kl_runner.py render OUT --render-dir RENDER \
+  --render-command "env DYLD_LIBRARY_PATH=/opt/homebrew/lib uv run --no-project --python 3.12 --with pillow==12.2.0 \
+    --with jsonschema --with pyyaml env PYTHONPATH=<hocrsyngen@32af108>/src python -m hocrsyngen.cli render-lines"
 python -I kl_runner.py verify OUT
 ```
 
@@ -65,8 +67,12 @@ The runner puts `src/` on `sys.path` and calls `hocrgen.tools.knesset_lines.main
    block, the stream `gate_committee_lines` judges). Then the series gate runs. Dropped lines get no row; their text
    goes only to `--private-dir` (default `OUT/private`, never committed). `refuse_ungated_plenary_lines` and
    `refuse_ungated_committee_lines` run before anything is written.
-8. **Dedup and cap.** At most 3 lines share one text across the set, then `--max-lines-per-unit` (default 800). Both
-   keep lines by sha256 of the line id.
+8. **Dedup and cap.** At most 3 lines share one text across the set (training-only series: exactly one, safeguard 3
+   of the 2026-11-11 decision), then `--max-lines-per-unit` (default 800). Both keep lines by sha256 of the line id.
+9. **Render.** `render` runs hocrsyngen (pinned at `HOCRSYNGEN_PIN`, 32af108) once per ink band: units are split by
+   `sha256("heocr-knessetlines-band:" + unit_id)` between 27–34 px and 35–48 px. All 9 governed OFL faces are used
+   (`--font` to restrict), weight 350–600, preset `modern_print_scan_v1`. The R9 build report is
+   [`knesset_lines_r9_report.md`](./knesset_lines_r9_report.md).
 
 ## Output
 
