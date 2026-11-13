@@ -1914,7 +1914,7 @@ A run without the new flags is byte-identical to one before E2e. The plan is in 
 
 ## E2f — Evaluation-reserved units
 
-**Direction: heocr-engine decisions 0017 and 0018. `E2f1` (#178), `E2f2` (#187), `E2f3` (#188) and `E2f4` (#189), `E2f5` (#193) and `E2f6` (#195) are merged, and `E2f7` is in review.**
+**Direction: heocr-engine decisions 0017 and 0018. `E2f1` (#178), `E2f2` (#187), `E2f3` (#188) and `E2f4` (#189), `E2f5` (#193) and `E2f6` (#195) and `E2f7` (#198) are merged, and `E2f7b` is in review.**
 
 - **`E2f1`.** heocr-eval's P-mod unit split file is recorded as `eval_reserved_units.v1`. Eval and unassigned units are pinned to the `eval_reserved` release split, and every training-input builder refuses them.
 - **`E2f2`.** Governs `reshumot_scanned` (its own `reshumot_scanned:` unit prefix; one booklet, one Reshumot source) and `knesset_plenary_k1_12` (`plenary:K<knesset>_<sitting>`). Their rows are unassigned, and so refused, until a split version lists them.
@@ -1923,6 +1923,7 @@ A run without the new flags is byte-identical to one before E2e. The plan is in 
 - **`E2f5`.** Sync to `pmod_unit_split_v4`: the mid-century dev replacements (5 dev units retired, still eval; a 40-unit replacement queue moves to eval).
 - **`E2f6`.** Sync to `pmod_unit_split_v5`: the replacement walk applied (5 queue units become dev, the other 35 return to non_eval).
 - **`E2f7`.** Born-digital Knesset sources for R9. `knesset_plenary_k13_25` (K13–25 sittings, routed by Knesset number) and `knesset_committee_protocols_k16plus` (`committee:K<k>_<id>`). Sync to `pmod_unit_split_v6`: a 2% hold-out of K13–25 sittings is eval, the rest non_eval. Committees follow in v7.
+- **`E2f7b`.** Sync to `pmod_unit_split_v7`: the 44,942 K16–25 committee sessions, all non_eval (train-only).
 
 The plan is in [`planning/tasks/e2f-eval-reserved-units.md`](../planning/tasks/e2f-eval-reserved-units.md).
 
