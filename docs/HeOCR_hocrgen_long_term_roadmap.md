@@ -1923,6 +1923,7 @@ A run without the new flags is byte-identical to one before E2e. The plan is in 
 - **`E2f5`.** Sync to `pmod_unit_split_v4`: the mid-century dev replacements (5 dev units retired, still eval; a 40-unit replacement queue moves to eval).
 - **`E2f6`.** Sync to `pmod_unit_split_v5`: the replacement walk applied (5 queue units become dev, the other 35 return to non_eval).
 - **`E2f7`.** Born-digital Knesset sources for R9. `knesset_plenary_k13_25` (K13–25 sittings, routed by Knesset number) and `knesset_committee_protocols_k16plus` (`committee:K<k>_<id>`). Sync to `pmod_unit_split_v6`: a 2% hold-out of K13–25 sittings is eval, the rest non_eval. Committees follow in v7.
+- **`E2f7b`.** Sync to `pmod_unit_split_v7`: the 44,942 K16–25 committee sessions, all non_eval (train-only).
 
 The plan is in [`planning/tasks/e2f-eval-reserved-units.md`](../planning/tasks/e2f-eval-reserved-units.md).
 
