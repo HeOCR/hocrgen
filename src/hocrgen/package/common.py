@@ -38,6 +38,8 @@ from hocrgen.manifests.models import (
 from hocrgen.normalize.files import sanitize_item_id
 from hocrgen.package.release_terms import item_release_terms, write_paired_text
 from hocrgen.privacy.plenary_names import UngatedPlenaryLinesError, refuse_ungated_plenary_lines
+from hocrgen.privacy.committee_names import UngatedCommitteeLinesError, refuse_ungated_committee_lines
+from hocrgen.privacy.training_only import TrainingOnlyReleaseError, refuse_training_only_release
 from hocrgen.split.eval_reserved import EVAL_RESERVED_SPLIT, EvalReservedUnitError, refuse_eval_reserved_training_input
 
 
@@ -129,6 +131,16 @@ def _refuse_ungated_plenary(items: list[Any]) -> None:
         raise StageExecutionError(str(exc)) from exc
 
 
+def _refuse_training_only(items: list[Any]) -> None:
+    """Post-1975 committee protocol material is training-only and never released (2026-11-11 decision)."""
+
+    try:
+        refuse_ungated_committee_lines(items, builder="release export")
+        refuse_training_only_release(items, builder="release export")
+    except (UngatedCommitteeLinesError, TrainingOnlyReleaseError) as exc:
+        raise StageExecutionError(str(exc)) from exc
+
+
 def copy_export_assets(
     items: list[PrivacyScannedItemRecord],
     data_dir: Path,
@@ -148,6 +160,7 @@ def copy_export_assets(
     release_root = release_root or data_dir.parent
     _refuse_eval_reserved_outside_holdout(items, eval_reserved_units)
     _refuse_ungated_plenary(items)
+    _refuse_training_only(items)
     exported_items: list[ExportedItemRecord] = []
     for item in items:
         if item.split is None:
