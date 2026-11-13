@@ -33,6 +33,9 @@ UNIT_NAMES = {
     "knesset_committee_protocols_pre1976": "one Knesset committee protocol (knesset_protocol:<document id>)",
     "reshumot_scanned": "one scanned Reshumot booklet (reshumot_scanned:<series>_<booklet number>)",
     "knesset_plenary_k1_12": "one Knesset plenary sitting (plenary:K<knesset>_<sitting>)",
+    "knesset_plenary_k13_25": "one born-digital Knesset plenary sitting, K13-25 (plenary:K<knesset>_<sitting>)",
+    "knesset_committee_protocols_k16plus": "one born-digital Knesset committee session, K16-25 "
+                                           "(committee:K<knesset>_<CommitteeSessionID>)",
 }
 UNASSIGNED_SENTENCE = re.compile(r"[^.]*\bneither list\b[^.]*\.")
 HEADER = """\

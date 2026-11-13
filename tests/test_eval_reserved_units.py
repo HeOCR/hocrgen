@@ -499,3 +499,85 @@ def test_sync_maps_split_files_listing_the_new_sources() -> None:
     sources = {source["source_id"]: source for source in data["sources"]}
     assert sources[SCANNED]["non_eval_units"] == ["reshumot_scanned:sefer_hachukim_500"]
     assert sources[PLENARY]["eval_units"] == ["plenary:K1_2"] and sources[PLENARY]["unit"].startswith("one Knesset plenary")
+
+
+# --- E2f7: born-digital Knesset plenary K13-25 and committee sessions K16-25 ------------------------------------------
+
+PLENARY_MODERN, COMMITTEE_MODERN = "knesset_plenary_k13_25", "knesset_committee_protocols_k16plus"
+
+
+@pytest.fixture(scope="module")
+def modern(registry: EvalReservedUnitsRegistry) -> EvalReservedUnitsRegistry:
+    return _with_sources(
+        registry,
+        knesset_plenary_k13_25={"eval": ["plenary:K13_2"], "non_eval": ["plenary:K13_1", "plenary:K25_7"]},
+        knesset_committee_protocols_k16plus={"non_eval": ["committee:K16_2001", "committee:K25_4123456"]},
+    )
+
+
+@pytest.mark.parametrize(
+    ("identifier", "expected"),
+    [
+        ("plenary:K13_1", (PLENARY_MODERN, "plenary:K13_1")),
+        ("plenary_K25_007__p0003", (PLENARY_MODERN, "plenary:K25_7")),
+        ("knesset_plenary_k13_25:plenary_K13_1__p0001", (PLENARY_MODERN, "plenary:K13_1")),
+        ("plenary:K12_340", (PLENARY, "plenary:K12_340")),
+        ("committee:K16_2001", (COMMITTEE_MODERN, "committee:K16_2001")),
+        ("committee_K25_4123456__p0002", (COMMITTEE_MODERN, "committee:K25_4123456")),
+        ("knesset_committee_protocols_k16plus:committee_K16_2001", (COMMITTEE_MODERN, "committee:K16_2001")),
+        # the pre-1976 committee shapes are unchanged and never collide with the new one
+        ("knesset_committee:398637", (KNESSET, "knesset_protocol:398637")),
+        ("knesset_committee_398637__p0001", (KNESSET, "knesset_protocol:398637")),
+        ("committee:398637", None),  # a look-alike: governed by the new source with no unit (below)
+    ],
+)
+def test_modern_knesset_unit_ids(identifier, expected) -> None:
+    assert unit_from_identifier(identifier) == expected
+
+
+def test_modern_knesset_rows_follow_eval_non_eval_and_unassigned(modern: EvalReservedUnitsRegistry) -> None:
+    assert unit_status({"page_id": "plenary_K13_1__p0001"}, modern)[1] is EvalUnitStatus.non_eval
+    assert unit_status({"unit_id": "plenary:K13_2"}, modern)[1] is EvalUnitStatus.eval
+    assert unit_status({"unit_id": "committee:K16_2001", "source_id": COMMITTEE_MODERN}, modern)[1] is EvalUnitStatus.non_eval
+    assert refuse_eval_reserved_training_input(
+        [{"unit_id": "plenary:K25_7"}, {"item_id": "committee_K25_4123456__p0001"}], builder="t", registry=modern) == 2
+    for row in ({"unit_id": "plenary:K13_2"}, {"unit_id": "plenary:K14_9"}, {"unit_id": "committee:K17_1"},
+                {"item_id": "committee:398637"}, {"source_id": COMMITTEE_MODERN, "item_id": "page-1"},
+                {"source_id": PLENARY_MODERN, "item_id": "page-1"}):
+        with pytest.raises(EvalReservedUnitError):
+            refuse_eval_reserved_training_input([row], builder="t", registry=modern)
+    # a K13+ sitting declared as the K1-12 source names two sources: refused, never let through
+    with pytest.raises(EvalReservedUnitError, match="more than one"):
+        unit_status({"source_id": PLENARY, "unit_id": "plenary:K13_1"}, modern)
+
+
+def test_registry_refuses_a_sitting_outside_its_knesset_range(registry: EvalReservedUnitsRegistry) -> None:
+    with pytest.raises(ValidationError, match="K<13-25>"):
+        _with_sources(registry, knesset_plenary_k13_25={"non_eval": ["plenary:K12_1"]})
+    with pytest.raises(ValidationError, match="K<1-12>"):
+        _with_sources(registry, knesset_plenary_k1_12={"non_eval": ["plenary:K13_1"]})
+    with pytest.raises(ValidationError, match="K<16-25>"):
+        _with_sources(registry, knesset_committee_protocols_k16plus={"non_eval": ["committee:K15_1"]})
+
+
+def test_sync_maps_split_files_listing_the_modern_knesset_sources() -> None:
+    payload = _split_json(knesset_plenary_k13_25={"eval": [{"unit_id": "plenary:K13_2"}],
+                                                  "non_eval": [{"unit_id": "plenary:K13_1"}]},
+                          knesset_committee_protocols_k16plus={"eval": [], "non_eval": [{"unit_id": "committee:K16_1"}]})
+    sources = {s["source_id"]: s for s in tool.registry_data(payload, _split_copy().name)["sources"]}
+    assert sources[PLENARY_MODERN]["eval_units"] == ["plenary:K13_2"]
+    assert sources[COMMITTEE_MODERN]["non_eval_units"] == ["committee:K16_1"]
+
+
+def test_r9_row_shapes_are_governed_by_unit_id_and_source_id(modern: EvalReservedUnitsRegistry) -> None:
+    """R9 rows (data-collection, 2026-11-13): unit_id + source_id; the line id and book match no governed shape."""
+    plen = {"id": "K13_1_p00077_l03", "book": "K13_1", "unit_id": "plenary:K13_1", "source_id": PLENARY_MODERN,
+            "knesset": 13, "sitting": 1, "document_id": 532132}
+    comm = {"id": "K16_2001_p00001_l01", "book": "K16_2001", "unit_id": "committee:K16_2001",
+            "source_id": COMMITTEE_MODERN, "knesset": 16, "sitting": 2001, "release_scope": "training_only"}
+    assert refuse_eval_reserved_training_input([plen, comm], builder="r9", registry=modern) == 2
+    assert unit_from_identifier(plen["id"]) is None and unit_from_identifier(plen["book"]) is None
+    with pytest.raises(EvalReservedUnitError, match="is eval"):
+        refuse_eval_reserved_training_input([{**plen, "unit_id": "plenary:K13_2"}], builder="r9", registry=modern)
+    with pytest.raises(EvalReservedUnitError, match="unassigned"):
+        refuse_eval_reserved_training_input([{**comm, "unit_id": "committee:K16_9"}], builder="r9", registry=modern)

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from datetime import date
 from enum import Enum
 from typing import Any, Literal
@@ -437,6 +439,16 @@ EVAL_RESERVED_UNIT_PREFIXES = {
     # so every unit id names exactly one source; one Knesset plenary sitting is ``plenary:K<knesset>_<sitting>``.
     "reshumot_scanned": "reshumot_scanned:",
     "knesset_plenary_k1_12": "plenary:",
+    # E2f7: born-digital Knesset text. Plenary K13-25 shares the plenary unit shape and is told apart by the Knesset
+    # number; committee sessions K16-25 are committee:K<knesset>_<CommitteeSessionID>.
+    "knesset_plenary_k13_25": "plenary:",
+    "knesset_committee_protocols_k16plus": "committee:",
+}
+# The Knesset range each Knesset-numbered source governs (inclusive).
+EVAL_RESERVED_KNESSET_RANGES = {
+    "knesset_plenary_k1_12": (1, 12),
+    "knesset_plenary_k13_25": (13, 25),
+    "knesset_committee_protocols_k16plus": (16, 25),
 }
 # The Reshumot sources whose units are booklets: one (series, number) booklet belongs to at most one of them.
 RESHUMOT_BOOKLET_SOURCES = ("reshumot_born_digital", "reshumot_scanned")
@@ -454,7 +466,7 @@ class EvalSplitFileRecord(ConfigBaseModel):
 
 class EvalReservedSource(ConfigBaseModel):
     source_id: Literal["reshumot_born_digital", "knesset_committee_protocols_pre1976", "reshumot_scanned",
-                       "knesset_plenary_k1_12"]
+                       "knesset_plenary_k1_12", "knesset_plenary_k13_25", "knesset_committee_protocols_k16plus"]
     unit: str = Field(min_length=1)  # what one unit is: a booklet, a protocol
     eval_units: list[str]
     non_eval_units: list[str]
@@ -468,6 +480,12 @@ class EvalReservedSource(ConfigBaseModel):
             wrong = [unit for unit in units if not unit.startswith(prefix)]
             if wrong:
                 raise ValueError(f"{self.source_id} {name} must start with {prefix!r}: {wrong[:3]}")
+            if self.source_id in EVAL_RESERVED_KNESSET_RANGES:
+                low, high = EVAL_RESERVED_KNESSET_RANGES[self.source_id]
+                shape = re.compile(rf"^{re.escape(prefix)}K(\d+)_\d+$")
+                out = [u for u in units if not ((hit := shape.match(u)) and low <= int(hit[1]) <= high)]
+                if out:
+                    raise ValueError(f"{self.source_id} {name} must be {prefix}K<{low}-{high}>_<n>: {out[:3]}")
         both = sorted(set(self.eval_units) & set(self.non_eval_units))
         if both:
             raise ValueError(f"{self.source_id} units are both eval and non_eval: {both}")

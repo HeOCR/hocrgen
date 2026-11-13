@@ -40,7 +40,10 @@ RESHUMOT_SOURCE_ID = "reshumot_born_digital"
 KNESSET_SOURCE_ID = "knesset_committee_protocols_pre1976"
 RESHUMOT_SCANNED_SOURCE_ID = "reshumot_scanned"
 PLENARY_SOURCE_ID = "knesset_plenary_k1_12"
-GOVERNED_SOURCE_IDS = (RESHUMOT_SOURCE_ID, KNESSET_SOURCE_ID, RESHUMOT_SCANNED_SOURCE_ID, PLENARY_SOURCE_ID)
+PLENARY_MODERN_SOURCE_ID = "knesset_plenary_k13_25"
+COMMITTEE_MODERN_SOURCE_ID = "knesset_committee_protocols_k16plus"
+GOVERNED_SOURCE_IDS = (RESHUMOT_SOURCE_ID, KNESSET_SOURCE_ID, RESHUMOT_SCANNED_SOURCE_ID, PLENARY_SOURCE_ID,
+                       PLENARY_MODERN_SOURCE_ID, COMMITTEE_MODERN_SOURCE_ID)
 __all__ = ["EVAL_RESERVED_SPLIT", "EvalReservedUnitError", "refuse_eval_reserved_training_input", "unit_status"]
 PIN_EVAL_RESERVED_UNIT = "eval_reserved_unit"
 DECISION = "heocr-engine decision 0017"
@@ -70,7 +73,13 @@ _RESHUMOT_SCANNED_PATTERNS = (
 )
 _PLENARY_PATTERNS = (
     re.compile(r"^plenary:K(?P<knesset>\d+)_(?P<sitting>\d+)$"),
-    re.compile(rf"^(?:{PLENARY_SOURCE_ID}:)?plenary_K(?P<knesset>\d+)_(?P<sitting>\d+){_PAGE}$"),
+    re.compile(rf"^(?:(?:{PLENARY_SOURCE_ID}|{PLENARY_MODERN_SOURCE_ID}):)?plenary_K(?P<knesset>\d+)_(?P<sitting>\d+){_PAGE}$"),
+)
+# E2f7, born-digital committee sessions K16-25: the unit id (committee:K<knesset>_<CommitteeSessionID>) and the page /
+# item id (committee_K<knesset>_<id>__p0001, optionally source-prefixed). The pre-1976 committee shapes never match it.
+_COMMITTEE_MODERN_PATTERNS = (
+    re.compile(r"^committee:K(?P<knesset>\d+)_(?P<session>\d+)$"),
+    re.compile(rf"^(?:{COMMITTEE_MODERN_SOURCE_ID}:)?committee_K(?P<knesset>\d+)_(?P<session>\d+){_PAGE}$"),
 )
 # Fail closed: an id that starts like a scanned-Reshumot or plenary id but matches no pattern above is governed by
 # that source with no derivable unit (unassigned, so refused). The born-digital and committee shapes keep their
@@ -78,6 +87,8 @@ _PLENARY_PATTERNS = (
 _LOOKALIKE = (
     (re.compile(rf"^(?:{RESHUMOT_SCANNED_SOURCE_ID}[:_])", re.IGNORECASE), RESHUMOT_SCANNED_SOURCE_ID),
     (re.compile(rf"^(?:{PLENARY_SOURCE_ID}:)?plenary[:_]", re.IGNORECASE), PLENARY_SOURCE_ID),
+    (re.compile(rf"^(?:{PLENARY_MODERN_SOURCE_ID}:)", re.IGNORECASE), PLENARY_MODERN_SOURCE_ID),
+    (re.compile(rf"^(?:{COMMITTEE_MODERN_SOURCE_ID}:)?committee[:_]", re.IGNORECASE), COMMITTEE_MODERN_SOURCE_ID),
 )
 # Row fields the guard reads identifiers from (a mapping's keys or an object's attributes).
 IDENTIFIER_FIELDS = (
@@ -115,6 +126,16 @@ def plenary_unit_id(knesset: str | int, sitting: str | int) -> str:
     return f"plenary:K{int(str(knesset))}_{int(str(sitting))}"
 
 
+def plenary_source_id(knesset: str | int) -> str:
+    """K1-12 sittings are knesset_plenary_k1_12; K13 and later are the born-digital knesset_plenary_k13_25."""
+
+    return PLENARY_SOURCE_ID if int(str(knesset)) <= 12 else PLENARY_MODERN_SOURCE_ID
+
+
+def committee_modern_unit_id(knesset: str | int, session: str | int) -> str:
+    return f"committee:K{int(str(knesset))}_{int(str(session))}"
+
+
 def unit_from_identifier(value: Any) -> tuple[str, str] | None:
     """``(source_id, unit_id)`` when ``value`` is a governed unit, group, page or item id; else ``None``."""
 
@@ -127,7 +148,11 @@ def unit_from_identifier(value: Any) -> tuple[str, str] | None:
     for pattern in _PLENARY_PATTERNS:
         match = pattern.match(value)
         if match:
-            return PLENARY_SOURCE_ID, plenary_unit_id(match["knesset"], match["sitting"])
+            return plenary_source_id(match["knesset"]), plenary_unit_id(match["knesset"], match["sitting"])
+    for pattern in _COMMITTEE_MODERN_PATTERNS:
+        match = pattern.match(value)
+        if match:
+            return COMMITTEE_MODERN_SOURCE_ID, committee_modern_unit_id(match["knesset"], match["session"])
     for pattern in _RESHUMOT_PATTERNS:
         match = pattern.match(value)
         if match:
