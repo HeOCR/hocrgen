@@ -397,6 +397,8 @@ def test_committee_build_uses_the_committee_gate_denylist_and_scope(tmp_path: Pa
     lines = kl.unit_lines(unit, COMMITTEE_TEXT, kl.COMMITTEE)["lines"]
     assert calls[0]["text"] == stream_text([line for line in lines if not line.get("in_attendance_block")])[0]
     assert kl.verify(tmp_path / "out", registry=committee_registry) == []
+    # Training-only text keeps one copy of each exact label (2026-11-11, safeguard 3).
+    assert summary["dedup"]["max_copies"] == 1 and len(texts) == len(rows)
     assert any("unassigned" in problem for problem in kl.verify(tmp_path / "out", registry=_registry()))
 
 

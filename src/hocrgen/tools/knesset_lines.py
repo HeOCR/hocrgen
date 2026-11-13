@@ -717,7 +717,10 @@ def build(args: argparse.Namespace, *, registry: EvalReservedUnitsRegistry | Non
                 candidates.append(make_row(series, unit, records[unit["unit_id"]], line, verdict[line["id"]], lines["wrap_width"]))
 
     # Guard 6: exact dedup across the set, then the per-unit cap.
-    rows, dedup = dedup_rows(candidates, args.max_label_copies)
+    # Training-only text (committee protocols from 1976 on): exact duplicates removed, one copy (decision
+    # 2026-11-11, safeguard 3).
+    copies = 1 if series.training_only else args.max_label_copies
+    rows, dedup = dedup_rows(candidates, copies)
     drops["dedup"] += dedup["rows_removed"]
     by_unit: dict[str, list[dict[str, Any]]] = defaultdict(list)
     for row in rows:
@@ -929,7 +932,8 @@ def verify(out: Path, *, registry: EvalReservedUnitsRegistry | None = None) -> l
     except ValueError as exc:
         problems.append(f"gate: {exc}")
     problems += [f"duplicate id {i}" for i, n in Counter(r["id"] for r in rows).items() if n > 1]
-    problems += [f"text repeated {n} times (cap {MAX_LABEL_COPIES})" for n in Counter(r["text"] for r in rows).values() if n > MAX_LABEL_COPIES]
+    cap = 1 if series.training_only else MAX_LABEL_COPIES
+    problems += [f"text repeated {n} times (cap {cap})" for n in Counter(r["text"] for r in rows).values() if n > cap]
     for row in rows:
         where = row["id"]
         if row.get("capture") != CAPTURE or row.get("label_source") != LABEL_SOURCE or row.get("reference_eligible") is not False \
