@@ -37,8 +37,9 @@ V2_SHA256 = "a75ed6851e8d9a689994f4ec5c61bae46e4a75dc2e51648f7a5e494306c25be7"
 V3_SHA256 = "36ab37e6f8936581ecc5647a590348c6cc244861fa50f1983dc5ccec3dad6d95"
 V4_SHA256 = "c641b1e31e734fce09c1ec5833ac30b553bbef162b536c9f39b31a968d3a21a5"
 V5_SHA256 = "873cef9c30b41ccace7720258f1dcfe9db83d78c67317edbff698960c5ac8a45"
-CURRENT = "pmod_unit_split_v6.json"
-CURRENT_SHA256 = "2519bc8fe5565570de41b064dc5ae3d9db7d30ed4a6d79e1224781089fc50aab"
+V6_SHA256 = "2519bc8fe5565570de41b064dc5ae3d9db7d30ed4a6d79e1224781089fc50aab"
+CURRENT = "pmod_unit_split_v7.json"
+CURRENT_SHA256 = "de528a4ee4645c95e009372c39f20c99187c799528930ea2bb9c370e8db50856"
 # v2 = v1 unchanged plus the 121 born-digital 2005 booklets (all non_eval); 175 = 54 + 121
 # v3 = v2 unchanged plus the mid-century scanned sources (eval = test + dev of midcentury_unit_split_v0):
 # 8,211 scanned Reshumot booklets and 5,338 plenary sittings, every enumerated unit listed.
@@ -48,8 +49,10 @@ CURRENT_SHA256 = "2519bc8fe5565570de41b064dc5ae3d9db7d30ed4a6d79e1224781089fc50a
 # return to non_eval: 125 = 160 - 35.
 # v6 = v5 unchanged plus knesset_plenary_k13_25 (E2f7, R9): 3,411 K13-25 sittings; a 2% per-Knesset hold-out (min 3)
 # is eval (78), the rest non_eval (3,333). Two enumerated rows have no sitting number and stay unassigned.
+# v7 = v6 unchanged plus knesset_committee_protocols_k16plus: 44,942 K16-25 sessions (45,194 protocol documents), all
+# non_eval (train-only).
 CURRENT_COUNTS = {RESHUMOT: (30, 175), KNESSET: (7, 13), "reshumot_scanned": (125, 8086), "knesset_plenary_k1_12": (60, 5278),
-                  "knesset_plenary_k13_25": (78, 3333)}
+                  "knesset_plenary_k13_25": (78, 3333), "knesset_committee_protocols_k16plus": (0, 44942)}
 EXPOSED = ("reshumot:kovetz_hatakanot_6609", "reshumot:sefer_hachukim_2110")
 
 
@@ -73,11 +76,13 @@ def test_committed_registry_is_generated_from_the_committed_split_file(registry:
     assert registry.split_file.packaged_copy == f"data/eval/{copy.name}"
     assert hashlib.sha256(copy.read_bytes()).hexdigest() == registry.split_file.sha256 == CURRENT_SHA256
     # From v2 the schema field names the file format (v1) and split_version names the assignment.
-    assert registry.split_file.split_version == "v6"
+    assert registry.split_file.split_version == "v7"
     assert registry.split_file.schema_version == "heocr_eval_unit_split.v1"
-    # v6 states what it supersedes: v5 (v4, v3, v2, v1 before it), by pinned sha256
+    # v7 states what it supersedes: v6 (v5, v4, v3, v2, v1 before it), by pinned sha256
     data = json.loads(copy.read_text(encoding="utf-8"))
-    assert data["supersedes"]["sha256"] == V5_SHA256
+    assert data["supersedes"]["sha256"] == V6_SHA256
+    committees = data["modern_knesset_coverage"]["knesset_committee_protocols_k16plus"]
+    assert committees["sessions"] == 44942 and committees["protocol_documents"] == 45194
     modern = data["modern_knesset_coverage"]["knesset_plenary_k13_25"]
     assert {u["role"] for u in data["knesset_plenary_k13_25"]["eval"]} == {"holdout_modern_plenary"}
     assert sum(k["holdout"] for k in modern["per_knesset"].values()) == 78 and len(modern["unassigned_rows"]) == 2
@@ -131,13 +136,13 @@ def _split_json(**overrides) -> bytes:
 @pytest.mark.parametrize(
     ("name", "payload", "message"),
     [
-        ("pmod_unit_split_v6.json", _split_json(superseded_by="labels/pmod_unit_split_v7.json"), "superseded"),
+        ("pmod_unit_split_v7.json", _split_json(superseded_by="labels/pmod_unit_split_v8.json"), "superseded"),
         ("units.json", _split_json(), "is not pmod_unit_split"),
-        ("pmod_unit_split_v7.json", _split_json(), "states split_version"),
-        ("pmod_unit_split_v6.json", _split_json(usage="eval units are never training input."), "unassigned"),
-        ("pmod_unit_split_v6.json", _split_json(tenders={"eval": [], "non_eval": []}), "does not map"),
-        ("pmod_unit_split_v6.json", _split_json(owner=None), "no owner"),
-        ("pmod_unit_split_v6.json",
+        ("pmod_unit_split_v8.json", _split_json(), "states split_version"),
+        ("pmod_unit_split_v7.json", _split_json(usage="eval units are never training input."), "unassigned"),
+        ("pmod_unit_split_v7.json", _split_json(tenders={"eval": [], "non_eval": []}), "does not map"),
+        ("pmod_unit_split_v7.json", _split_json(owner=None), "no owner"),
+        ("pmod_unit_split_v7.json",
          _split_json(knesset_committee_protocols_pre1976={"eval": [{"unit_id": "knesset_protocol:1"}] * 2, "non_eval": []}),
          "repeated unit_id"),
     ],
