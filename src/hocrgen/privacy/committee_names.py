@@ -44,18 +44,34 @@ ATTENDANCE_CLOSE = re.compile(r"^\s*(סדר היום|סדר-היום|<<\s*נוש
 
 
 def attendance_block(paragraphs: Sequence[str]) -> tuple[int, int] | None:
-    """The paragraph range [start, end) of the attendance block, or ``None`` if there is none."""
+    """The paragraph range [start, end) of the attendance block, or ``None`` if there is none.
+
+    The block ends at the agenda, a speaker marker, or the first speaker heading by shape
+    (``היו"ר ...:``), since unmarked protocols (K16–20) carry no marker. It never runs to the
+    end of the protocol.
+    """
 
     start = next((i for i, p in enumerate(paragraphs) if ATTENDANCE_OPEN.match(p)), None)
     if start is None:
         return None
-    end = next((i for i in range(start + 1, len(paragraphs)) if ATTENDANCE_CLOSE.match(paragraphs[i])), len(paragraphs))
+    end = next((i for i in range(start + 1, len(paragraphs))
+                if ATTENDANCE_CLOSE.match(paragraphs[i]) or _CHAIR_HEADING.match(paragraphs[i])), len(paragraphs))
     return start, end
 
 
-def _name_part(entry: str) -> str:
-    """The person part of an attendance entry ("ישראל ישראלי – משרד הבריאות" → "ישראל ישראלי")."""
+_CHAIR_HEADING = re.compile(r'^\s*(?:<<[^>]*>>\s*)?(?:היו"ר|היו״ר|היושב[- ]ראש)\s[^:]{1,60}:')
+_LIST_HEAD = re.compile(r"^\s*<?([^:<>\t]{2,40}):\s*>?\s*")
 
+
+def _name_part(entry: str) -> str:
+    """The person part of an attendance entry ("ישראל ישראלי – משרד הבריאות" → "ישראל ישראלי").
+
+    A list heading sharing the entry's line ("מוזמנים:<tab>ישראל ישראלי – ...") is cut off first.
+    """
+
+    head = _LIST_HEAD.match(entry)
+    if head and ATTENDANCE_OPEN.match(head.group(1)):
+        entry = entry[head.end():]
     return re.split(r"\s[–—-]\s|,|\s{2,}|\t", entry, maxsplit=1)[0].strip()
 
 

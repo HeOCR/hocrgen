@@ -93,3 +93,13 @@ def test_lead_probe_name_broken_across_two_physical_lines():
     res = gate_committee_lines(lines, spans, ROSTER)
     assert [r["line_id"] for r in res.dropped] == ["l0", "l1"]
     assert [r["line_id"] for r in res.kept] == ["l2"]
+
+
+def test_attendance_block_ends_at_unmarked_chair_heading():
+    paras = ["מוזמנים:", "אורי כהן – עמותה", 'היו"ר יואב בן צור:', "בוקר טוב"]
+    assert attendance_block(paras) == (0, 2)
+
+
+def test_denylist_entry_sharing_the_list_heading_line():
+    deny = session_denylist(["מוזמנים:\tאורי מזרחי – עמותה"], ROSTER, 24)
+    assert deny == frozenset({"מזרחי"})
