@@ -568,6 +568,122 @@ def gate_lines(
     return result
 
 
+STREAM_JOINER = " "
+
+
+def stream_text(lines: Sequence[Mapping[str, Any]]) -> tuple[str, list[tuple[int, int]]]:
+    """Join physical lines in reading order into one text, and each line's offsets in it.
+
+    A builder runs the named-entity tagger over this exact text, so the spans it hands
+    :func:`gate_stream_lines` are in the same coordinates.
+    """
+
+    parts: list[str] = []
+    offsets: list[tuple[int, int]] = []
+    pos = 0
+    for i, line in enumerate(lines):
+        text = str(line.get("text", ""))
+        if i:
+            parts.append(STREAM_JOINER)
+            pos += len(STREAM_JOINER)
+        offsets.append((pos, pos + len(text)))
+        parts.append(text)
+        pos += len(text)
+    return "".join(parts), offsets
+
+
+def _surname_hit(mention: str, denylist: frozenset[str]) -> bool:
+    return bool(denylist) and any(v in denylist for t in _tokens(mention) for v in _variants(t))
+
+
+def gate_stream_lines(
+    lines: Sequence[Mapping[str, Any]],
+    stream_spans: Iterable[Mapping[str, Any]] | None,
+    roster: Roster,
+    allowlist: Allowlist = Allowlist(),
+    *,
+    denylist: Iterable[str] = (),
+    structural_headings: bool = True,
+    use_heuristic: bool = True,
+    context_chars: int = 80,
+    gate_id: str = GATE_ID,
+) -> GateResult:
+    """Gate *physical* lines (a rendered or scanned page's lines, in reading order).
+
+    :func:`gate_lines` judges each line alone, so a name broken across a line end
+    ("... משה" | "כהן ...") is judged as two fragments, and a title or cue at the end of
+    the previous line is lost. Here a mention is found and judged in the joined text
+    (:func:`stream_text`), with up to ``context_chars`` of left context across line
+    ends, and every physical line it touches is dropped when it is private. Each line is
+    then also judged alone by :func:`gate_lines` (spans clipped to the line); a line is
+    kept only when both passes keep it.
+
+    ``stream_spans`` are the tagger's spans in stream coordinates; ``None`` means the
+    stream was never tagged, and every line is dropped as ``untagged``. ``denylist``
+    holds surname tokens known to belong to private persons in this unit (for example a
+    committee session's invited guests): a mention containing one is private
+    (``session_denylist``) even if an MK shares the surname, unless it sits in a proven
+    heading. With ``structural_headings=False`` a source-structure heading flag
+    (``is_speaker_heading``) is no proof; only the roster shapes are.
+    """
+
+    lines = [dict(line) for line in lines]
+    if not structural_headings:
+        for line in lines:
+            line.pop("is_speaker_heading", None)
+    result = GateResult()
+    if stream_spans is None:
+        for line in lines:
+            result.dropped.append({**line, "privacy_drop": ["untagged"]})
+            result.reasons["untagged"] += 1
+        return result
+    deny = frozenset(v for name in denylist for t in _tokens(name) for v in _variants(t))
+    stream, offsets = stream_text(lines)
+    spans = list(stream_spans) + (heuristic_person_spans(stream) if use_heuristic else [])
+    headings = {i for i, line in enumerate(lines) if proven_speaker_heading(line, roster) is not None}
+    drop: dict[int, set[str]] = {}
+    for start, mention in _mentions(stream, spans):
+        end = start + len(mention)
+        touched = [i for i, (a, b) in enumerate(offsets) if a < end and start < b]
+        if not touched:
+            continue
+        if len(touched) == 1 and touched[0] in headings:
+            continue
+        knesset = _knesset_of(lines[touched[0]])
+        if _surname_hit(mention, deny):
+            kind, reason = "private", "session_denylist"
+        else:
+            kind, reason = classify_person(
+                mention, stream[max(0, start - context_chars):start], roster, allowlist, knesset,
+            )
+        if kind == "private":
+            for i in touched:
+                drop.setdefault(i, set()).add(reason)
+    per_line = []
+    for i, line in enumerate(lines):
+        a, b = offsets[i]
+        clipped = []
+        for span in spans:
+            s, e = int(span.get("start", 0)), int(span.get("end", 0))
+            if s < b and a < e:
+                s, e = max(s, a), min(e, b)
+                clipped.append({"start": s - a, "end": e - a, "text": stream[s:e]})
+        per_line.append({**line, "person_spans": clipped, "_stream_index": i})
+    alone = gate_lines(per_line, roster, allowlist, use_heuristic=use_heuristic)
+    for row in alone.dropped:
+        drop.setdefault(int(row["_stream_index"]), set()).update(row["privacy_drop"])
+    for i, line in enumerate(lines):
+        reasons = drop.get(i, set())
+        if reasons:
+            result.dropped.append({**line, "privacy_drop": sorted(reasons)})
+            for reason in reasons:
+                result.reasons[reason] += 1
+        else:
+            note = {"privacy_note": "speaker_heading"} if i in headings else {}
+            result.kept.append({**line, "privacy_gate": gate_id, **note})
+    return result
+
+
 class UngatedPlenaryLinesError(ValueError):
     """Raised when plenary lines reach intake without passing this gate."""
 
