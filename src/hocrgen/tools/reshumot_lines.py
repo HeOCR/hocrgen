@@ -167,6 +167,41 @@ def tier_a_flags(line: str) -> list[str]:
 BIDI_FLAGS = frozenset({"compound_number", "latin", "bracket_order_or_balance"})
 # --- end of vendored rules -----------------------------------------------------------------------------------------
 
+# --- heocr-eval's word 6-gram rule (vendored) ----------------------------------------------------------------------
+# From tasks/eval-domains/scripts/ngram_overlap.py (N, WORD, grams; sha256 pinned in NGRAM_ORIGIN): Hebrew-letter
+# words in logical order; a line overlaps when it shares any word 6-gram with the pool. The pool (``--exclude-6grams``)
+# holds only sha256 digests of the 6-grams of eval text (v1 eval booklets and wave-1 pages), built by heocr-eval's
+# script, so no eval text reaches this tool or its output. Owner: heocr-eval.
+NGRAM_ORIGIN = {
+    "path": "tasks/eval-domains/scripts/ngram_overlap.py",
+    "sha256": "e87e0a9d5c9df7251cf743b4c6a0a1ee89bdb3278a23f170eca120603de58550",
+    "owner": "heocr-eval",
+}
+NGRAM_N = 6
+NGRAM_WORD = re.compile(r"[א-ת]+")
+
+
+def word_grams(text: str) -> set[tuple[str, ...]]:
+    words = NGRAM_WORD.findall(text)
+    return {tuple(words[i:i + NGRAM_N]) for i in range(len(words) - NGRAM_N + 1)}
+
+
+def gram_digest(gram: Sequence[str]) -> str:
+    """The pool's form of a 6-gram: sha256 of its words joined by one space."""
+
+    return hashlib.sha256(" ".join(gram).encode("utf-8")).hexdigest()
+
+
+def load_gram_pool(path: Path) -> dict[str, Any]:
+    pool = json.loads(path.read_text(encoding="utf-8"))
+    if pool.get("schema") != GRAM_POOL_SCHEMA or pool.get("n") != NGRAM_N or pool.get("digest") != "sha256":
+        raise SystemExit(f"{path}: not a {GRAM_POOL_SCHEMA} pool of sha256 word {NGRAM_N}-grams")
+    return pool
+
+
+GRAM_POOL_SCHEMA = "heocr_eval_word_ngram_pool.v1"
+DEFAULT_SHUFFLE_SEED = "reshumotlines-v2"
+
 POINTS = re.compile("[\u0591-\u05bd\u05bf\u05c1\u05c2\u05c4\u05c5\u05c7]")  # niqqud + cantillation; keeps maqaf, paseq, sof pasuq
 GLYPH_ISSUES = frozenset({"unmapped_glyph", "private_use_glyph", "glyph_identity_unverified"})
 BRACKETS = str.maketrans({char: "|" for char in "()[]{}<>"})
@@ -481,23 +516,54 @@ def cap_lines(ids: Sequence[str], cap: int) -> list[str]:
     return [value for value in ids if value in keep]
 
 
-def choose_dev(booklets: Mapping[str, Mapping[str, Any]], per_stratum: int = 1) -> dict[str, Any]:
-    """Dev booklets: per (series, decade), the first ``per_stratum`` by sha256(unit_id) that pass and give lines."""
+def choose_dev(booklets: Mapping[str, Mapping[str, Any]], per_stratum: int = 1,
+               pinned: Mapping[str, str] | None = None) -> dict[str, Any]:
+    """Dev booklets: per (series, decade), the first ``per_stratum`` by sha256(unit_id) that pass and give lines.
+
+    ``pinned`` (an earlier build's picks, ``--keep-dev-from``) are kept first, when they still pass and give lines, so
+    a later build that adds booklets keeps the earlier dev split; a stratum with fewer pinned picks is filled by the
+    rule."""
 
     strata: dict[str, list[str]] = defaultdict(list)
     for unit, booklet in booklets.items():
         strata[f"{booklet['series']} {decade(booklet['publish_date'])}"].append(unit)
     picks, considered = {}, {}
+    pinned = dict(pinned or {})
     for stratum in sorted(strata):
         ranked = sorted(strata[stratum], key=lambda unit: sha256_bytes(unit.encode()))
         considered[stratum] = ranked
         eligible = [unit for unit in ranked if booklets[unit]["born_digital"]["passed"] and booklets[unit]["candidate_lines"] > 0]
-        for unit in eligible[:per_stratum]:
+        kept = [unit for unit in eligible if pinned.get(unit) == stratum]
+        for unit in (kept + [unit for unit in eligible if unit not in kept])[:per_stratum]:
             picks[unit] = stratum
-    return {"method": ("per (series, decade) stratum of the non_eval booklets, ranked by sha256(unit_id) hex digest "
-                       f"ascending: the first {per_stratum} booklet(s) that pass the born-digital check and give at least "
-                       "one line; dev is never drawn from eval or unassigned units"),
-            "per_stratum": per_stratum, "picks": picks, "ranking": considered}
+    result = {"method": ("per (series, decade) stratum of the non_eval booklets, ranked by sha256(unit_id) hex digest "
+                         f"ascending: the first {per_stratum} booklet(s) that pass the born-digital check and give at least "
+                         "one line; dev is never drawn from eval or unassigned units"),
+              "per_stratum": per_stratum, "picks": picks, "ranking": considered}
+    if pinned:
+        result["pinned"] = {"picks": pinned, "kept": sorted(unit for unit in picks if pinned.get(unit) == picks[unit]),
+                            "dropped": sorted(unit for unit in pinned if unit not in picks),
+                            "rule": "pinned picks kept first in their stratum while they pass and give lines; the rest by the rule"}
+    return result
+
+
+def shuffle_key(seed: str, row_id: str) -> str:
+    """A row's place in the seeded order of every list output (lstmtraining does not shuffle)."""
+
+    return sha256_bytes(f"{seed}\0{row_id}".encode("utf-8"))
+
+
+def _as_list(value: Any) -> list[str]:
+    if value is None:
+        return []
+    return [str(item) for item in value] if isinstance(value, (list, tuple)) else [str(value)]
+
+
+def _first_with(dirs: Sequence[str], name_for: Callable[[Path], Path]) -> Path | None:
+    for directory in dirs:
+        if name_for(Path(directory)).exists():
+            return Path(directory)
+    return None
 
 
 # --- build -------------------------------------------------------------------------------------------------------
@@ -526,11 +592,28 @@ def build(args: argparse.Namespace, *, registry: EvalReservedUnitsRegistry | Non
     out = Path(args.out)
     if out.exists():
         raise SystemExit(f"{out} exists")
-    snapshot = Path(args.snapshot).resolve()
+    snapshots = [Path(path).resolve() for path in _as_list(args.snapshot)]
+    pdf_caches = _as_list(args.pdf_cache)
+    layer_dirs = _as_list(getattr(args, "page_layers", None))
     registry = registry or packaged_registry()
     source = source or _reshumot_source()
     facts_for = facts_for or pdf_facts
-    entries = _load_entries(snapshot)
+    entries, root_of = [], {}
+    units_in: dict[str, Path] = {}
+    for snapshot in snapshots:
+        for entry in _load_entries(snapshot):
+            unit = entry_unit(entry)
+            if units_in.setdefault(unit, snapshot) != snapshot or entry["entry_id"] in root_of:
+                raise SystemExit(f"{unit}: booklet in more than one snapshot")
+            root_of[entry["entry_id"]] = snapshot
+            entries.append(entry)
+    seed = getattr(args, "shuffle_seed", None) or DEFAULT_SHUFFLE_SEED
+    pool_path = getattr(args, "exclude_6grams", None)
+    gram_pool = load_gram_pool(Path(pool_path)) if pool_path else None
+    pool_digests = frozenset(gram_pool["digests"]) if gram_pool else frozenset()
+    pinned = None
+    if getattr(args, "keep_dev_from", None):
+        pinned = json.loads(Path(args.keep_dev_from).read_text(encoding="utf-8"))["dev_selection"]["picks"]
 
     # Guard 1: select non_eval booklets from metadata alone; eval and unassigned booklets are counted, never opened.
     by_unit: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -551,19 +634,22 @@ def build(args: argparse.Namespace, *, registry: EvalReservedUnitsRegistry | Non
         es = sorted(by_unit[unit], key=lambda e: e["page"]["pdf_page_index"])
         first = es[0]
         slug = unit_slug(unit)
-        pdf_path = Path(args.pdf_cache) / f"{slug}.pdf"
-        pinned = {e["pdf"]["sha256"] for e in es}
+        snapshot = root_of[first["entry_id"]]
+        pdf_path = (_first_with(pdf_caches, lambda d: d / f"{slug}.pdf") or Path(pdf_caches[0])) / f"{slug}.pdf"
+        pins = {e["pdf"]["sha256"] for e in es}
         record = {"series": first["booklet"]["series"], "series_name_he": first["booklet"].get("series_name_he"),
                   "booklet_number": str(first["booklet"]["booklet_number"]), "publish_date": first["booklet"]["publish_date"],
                   "display_name": first["booklet"].get("display_name"), "publisher_url": first["pdf"].get("document_url"),
                   "pdf_sha256": first["pdf"]["sha256"], "pages_in_snapshot": len(es), "pdf_page_count": first["pdf"].get("page_count")}
         if not pdf_path.is_file():
             check = {"passed": False, "reasons": ["pdf_missing"], "evidence": {}}
-        elif len(pinned) != 1 or sha256_bytes(pdf_path.read_bytes()) not in pinned:
+        elif len(pins) != 1 or sha256_bytes(pdf_path.read_bytes()) not in pins:
             check = {"passed": False, "reasons": ["pdf_sha256_mismatch"], "evidence": {}}
         else:
             page_count = int(first["pdf"].get("page_count") or 0)
-            layers = load_page_layers(Path(args.page_layers) if args.page_layers else None, slug, page_count, pdf_path)
+            layer_dir = _first_with(layer_dirs, lambda d: d / f"{slug}__p0001.json") or _first_with(
+                layer_dirs, lambda d: d / f"{slug}__p0001.json.gz") or (Path(layer_dirs[0]) if layer_dirs else None)
+            layers = load_page_layers(layer_dir, slug, page_count, pdf_path)
             check = born_digital_check(facts_for(pdf_path, layers))
             mismatched = []
             for e in es:  # the layers checked must be the tranche's own extraction of the same pages
@@ -578,7 +664,7 @@ def build(args: argparse.Namespace, *, registry: EvalReservedUnitsRegistry | Non
         booklets[unit] = record
 
     # Pages and candidate lines (born-digital booklets only).
-    jobs = [(e, str(snapshot), source) for unit in sorted(by_unit) if booklets[unit]["born_digital"]["passed"]
+    jobs = [(e, str(root_of[e["entry_id"]]), source) for unit in sorted(by_unit) if booklets[unit]["born_digital"]["passed"]
             for e in sorted(by_unit[unit], key=lambda e: e["page"]["pdf_page_index"])]
     entry_of = {e["entry_id"]: e for es in by_unit.values() for e in es}
     drops: Counter = Counter()
@@ -601,6 +687,10 @@ def build(args: argparse.Namespace, *, registry: EvalReservedUnitsRegistry | Non
             drops[f"page_refused:{refused}"] += 1
             drops_by_booklet[unit][f"page_refused:{refused}"] += 1
         for row in rows:
+            if pool_digests and any(gram_digest(gram) in pool_digests for gram in word_grams(row["text"])):
+                drops["shares_word_6gram_with_eval_text"] += 1
+                drops_by_booklet[unit]["shares_word_6gram_with_eval_text"] += 1
+                continue
             candidates[unit].append({**row, "entry_id": entry_id})
     for unit, booklet in booklets.items():
         booklet["candidate_lines"] = len(candidates.get(unit, []))
@@ -608,7 +698,7 @@ def build(args: argparse.Namespace, *, registry: EvalReservedUnitsRegistry | Non
             drops["booklet_not_born_digital"] += booklet["pages_in_snapshot"]
             drops_by_booklet[unit]["booklet_not_born_digital"] += booklet["pages_in_snapshot"]
 
-    dev = choose_dev(booklets, per_stratum=args.dev_per_stratum)
+    dev = choose_dev(booklets, per_stratum=args.dev_per_stratum, pinned=pinned)
     cap = args.max_lines_per_booklet
     rows: list[dict[str, Any]] = []
     capped: dict[str, int] = {}
@@ -652,6 +742,8 @@ def build(args: argparse.Namespace, *, registry: EvalReservedUnitsRegistry | Non
 
     # Guard 1 again, on the rows, before anything is written.
     refuse_eval_reserved_training_input(rows, builder=BUILDER, registry=registry)
+    # Every list output in one seeded order: lstmtraining reads its list as given and does not shuffle.
+    rows.sort(key=lambda row: shuffle_key(seed, row["id"]))
 
     out.mkdir(parents=True)
     by_entry: dict[str, list[dict[str, Any]]] = defaultdict(list)
@@ -659,7 +751,7 @@ def build(args: argparse.Namespace, *, registry: EvalReservedUnitsRegistry | Non
         by_entry[row["entry_id"]].append(row)
     for entry_id, entry_rows in by_entry.items():
         entry = entry_of[entry_id]
-        root = snapshot
+        root = root_of[entry_id]
         text = entry["text"]
         layer = json.loads(read_glyph_layer_bytes(root / text["extraction"]["raw_local_path"]))
         table = json.loads((root / text["extraction"]["outline_table_path"]).read_text(encoding="utf-8"))
@@ -681,6 +773,8 @@ def build(args: argparse.Namespace, *, registry: EvalReservedUnitsRegistry | Non
                 row["image_sha256"] = sha256_bytes(path.read_bytes())
     manifest = out / "manifest.jsonl"
     manifest.write_text("".join(json.dumps(row, ensure_ascii=False) + "\n" for row in rows), encoding="utf-8")
+    for split in ("train", "dev"):
+        (out / f"{split}.txt").write_text("".join(row["image"] + "\n" for row in rows if row["split"] == split), encoding="utf-8")
 
     lines: dict[str, Counter] = defaultdict(Counter)
     by_series: dict[str, Counter] = defaultdict(Counter)
@@ -703,7 +797,7 @@ def build(args: argparse.Namespace, *, registry: EvalReservedUnitsRegistry | Non
     tagger = [{"unit_id": unit, "series": b["series"], "series_name_he": b["series_name_he"], "booklet_number": b["booklet_number"],
                "publish_date": b["publish_date"], "split": b["split"], "proposed_node_hint": NODE_HINT,
                "lines": sum(b["lines"].values()), "publisher_url": b["publisher_url"],
-               "page_images": _page_image_paths(snapshot, by_unit[unit], lines_per_entry)}
+               "page_images": _page_image_paths(units_in[unit], by_unit[unit], lines_per_entry)}
               for unit, b in sorted(booklets.items())]
     (out / "tagger_units.json").write_text(json.dumps({"schema": "s16c_reshumot_tagger_units.v1", "proposed_node_hint": NODE_HINT,
                                                        "note": NODE_HINT_NOTE, "units": tagger}, ensure_ascii=False, indent=2) + "\n",
@@ -713,8 +807,8 @@ def build(args: argparse.Namespace, *, registry: EvalReservedUnitsRegistry | Non
                                     "training labels, never evaluation references", "label_source": LABEL_SOURCE,
         "capture": CAPTURE, "proposed_node_hint": NODE_HINT, "proposed_node_hint_note": NODE_HINT_NOTE,
         "license": LICENSE, "license_basis": LICENSE_BASIS, "attribution": ATTRIBUTION, "release_notice": RELEASE_NOTICE,
-        "snapshot": str(snapshot), "pdf_cache": str(Path(args.pdf_cache).resolve()),
-        "page_layers": str(Path(args.page_layers).resolve()) if args.page_layers else None,
+        "snapshot": str(snapshots[0]), "pdf_cache": str(Path(pdf_caches[0]).resolve()),
+        "page_layers": str(Path(layer_dirs[0]).resolve()) if layer_dirs else None,
         "totals": {split: sum(c.values()) for split, c in lines.items()},
         "lines": {split: dict(sorted(c.items())) for split, c in lines.items()},
         "lines_by_series": {split: dict(sorted(c.items())) for split, c in by_series.items()},
@@ -744,13 +838,43 @@ def build(args: argparse.Namespace, *, registry: EvalReservedUnitsRegistry | Non
         "characters": dict(sorted(chars.items(), key=lambda item: (-item[1], item[0]))),
         "crop": {"method": CROP_METHOD, "pad_pt": CROP_PAD_PT, "glyph_pad_px": INK_GLYPH_PAD_PX},
         "manifest_sha256": sha256_bytes(manifest.read_bytes()),
+        "shuffle_seed": seed,
+        "shuffle": {"seed": seed, "method": "rows ordered by sha256(seed + NUL + row id) hex digest ascending",
+                    "applies_to": ["manifest.jsonl", "train.txt", "dev.txt"],
+                    "why": "lstmtraining reads its list files in order and does not shuffle"},
+        "list_files": {split: {"path": f"{split}.txt", "lines": sum(1 for row in rows if row["split"] == split),
+                               "sha256": sha256_bytes((out / f"{split}.txt").read_bytes())} for split in ("train", "dev")},
     }
+    if len(snapshots) > 1 or len(pdf_caches) > 1 or len(layer_dirs) > 1:
+        summary["snapshots"] = [str(path) for path in snapshots]
+        summary["pdf_caches"] = [str(Path(path).resolve()) for path in pdf_caches]
+        summary["page_layer_dirs"] = [str(Path(path).resolve()) for path in layer_dirs]
+    if gram_pool is not None:
+        summary["eval_text_overlap_filter"] = {
+            "rule": ("a line sharing any word 6-gram (Hebrew-letter words, logical order) with the pool is dropped "
+                     "(shares_word_6gram_with_eval_text): amendments quote the text they amend"),
+            "pool": str(Path(pool_path).resolve()), "pool_sha256": sha256_bytes(Path(pool_path).read_bytes()),
+            "pool_digests": len(pool_digests), "pool_targets": gram_pool.get("targets"), "pool_built_by": gram_pool.get("built_by"),
+            "rule_origin": NGRAM_ORIGIN, "lines_dropped": drops.get("shares_word_6gram_with_eval_text", 0),
+            "line_set_condition": _line_set_condition(registry),
+        }
     if getattr(args, "created_at", None):
         summary["created_at"] = args.created_at
     if getattr(args, "signature", None):
         summary["signature"] = args.signature
     (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return summary
+
+
+def _line_set_condition(registry: EvalReservedUnitsRegistry) -> dict[str, Any]:
+    """heocr-eval's ``line_set_condition``, verbatim from the registry's packaged split file (absent before v2)."""
+
+    from hocrgen.config.loader import package_root
+
+    path = package_root() / str(registry.split_file.packaged_copy)
+    data = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {}
+    return {"split_file": registry.split_file.name, "split_file_sha256": registry.split_file.sha256,
+            "text": data.get("line_set_condition")}
 
 
 DROP_DEFINITIONS = {
@@ -761,6 +885,8 @@ DROP_DEFINITIONS = {
     "bidi_or_digit_order_unverified": "lines tier-A flags for bidi or digit order whose order is not verified within the line",
     "no_letters_or_digits": "lines without a letter or digit",
     "ink_overlaps_other_ink": "lines whose glyph boxes touch another line, a page image, a rule or a coloured fill",
+    "shares_word_6gram_with_eval_text": ("lines sharing a word 6-gram (logical order) with a v1 eval booklet or a wave-1 "
+                                         "page (heocr-eval's ngram_overlap.py rule, --exclude-6grams)"),
 }
 
 
@@ -811,6 +937,14 @@ def verify(out: Path, *, registry: EvalReservedUnitsRegistry | None = None) -> l
             problems.append(f"{where}: gt.txt missing or differs from the label")
     if summary["eval_reserved_check"]["eval_rows"] or summary["eval_reserved_check"]["unassigned_rows"]:
         problems.append("summary counts eval or unassigned rows")
+    seed = summary.get("shuffle_seed")
+    if seed is not None:
+        if [row["id"] for row in rows] != sorted((row["id"] for row in rows), key=lambda value: shuffle_key(seed, value)):
+            problems.append("manifest is not in the seeded shuffle order")
+        for split in ("train", "dev"):
+            listed = (out / f"{split}.txt").read_text(encoding="utf-8").splitlines() if (out / f"{split}.txt").is_file() else None
+            if listed != [row["image"] for row in rows if row["split"] == split]:
+                problems.append(f"{split}.txt missing or not the manifest's {split} rows in order")
     return problems
 
 
@@ -819,9 +953,16 @@ def main(argv: Sequence[str] | None = None) -> int:
     sub = parser.add_subparsers(dest="command", required=True)
     b = sub.add_parser("build", help="cut a labelled line set from a tranche's Reshumot snapshot")
     b.add_argument("out")
-    b.add_argument("--snapshot", required=True, help="the tranche's sources/reshumot_born_digital/snapshot")
-    b.add_argument("--pdf-cache", required=True, help="the capture cache's reshumot/pdf directory (<series>_<n>.pdf)")
-    b.add_argument("--page-layers", help="glyph layers of every PDF page (<series>_<n>__pNNNN.json[.gz]); else extracted")
+    b.add_argument("--snapshot", required=True, action="append",
+                   help="a sources/reshumot_born_digital/snapshot; repeat to read several (a booklet may be in only one)")
+    b.add_argument("--pdf-cache", required=True, action="append",
+                   help="a capture cache's reshumot/pdf directory (<series>_<n>.pdf); repeat, searched in order")
+    b.add_argument("--page-layers", action="append",
+                   help="glyph layers of every PDF page (<series>_<n>__pNNNN.json[.gz]); repeat; else extracted")
+    b.add_argument("--keep-dev-from", help="an earlier build's summary.json: keep its dev booklets (dev_selection.picks)")
+    b.add_argument("--exclude-6grams", help="a heocr_eval_word_ngram_pool.v1 file: drop lines sharing a word 6-gram with it")
+    b.add_argument("--shuffle-seed", default=DEFAULT_SHUFFLE_SEED,
+                   help="seed of the order of manifest.jsonl, train.txt and dev.txt (recorded in summary.json)")
     b.add_argument("--max-lines-per-booklet", type=int, default=DEFAULT_MAX_LINES)
     b.add_argument("--dev-per-stratum", type=int, default=1)
     b.add_argument("--workers", type=int, default=1)

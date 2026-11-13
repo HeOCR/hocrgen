@@ -221,7 +221,7 @@ def test_reshumot_series_era_and_provenance_gates() -> None:
     for folder_type in ("2", "6", "8", "4"):
         assert reasons(lambda e, ft=folder_type: e["booklet"].update(folder_type=ft)) == ["series_not_section_6"]
     assert reasons(lambda e: e["booklet"].update(series="kovetz_hatakanot")) == ["series_folder_type_mismatch"]
-    assert reasons(lambda e: e["booklet"].update(publish_date="2005-12-31")) == ["before_born_digital_era"]
+    assert reasons(lambda e: e["booklet"].update(publish_date="2004-12-31")) == ["before_born_digital_era"]
     assert reasons(lambda e: e["booklet"].update(publish_date=None)) == ["publish_date_unknown"]
     assert reasons(lambda e: e["pdf"].update(born_digital=False)) == ["pdf_not_born_digital"]
     assert reasons(lambda e: e["pdf"].update(page_image_count=1)) == ["pdf_not_born_digital"]

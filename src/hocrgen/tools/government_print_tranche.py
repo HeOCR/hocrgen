@@ -26,6 +26,7 @@ import re
 import subprocess
 import tempfile
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from collections.abc import Callable, Iterable
@@ -42,7 +43,11 @@ RESHUMOT_SEARCH_URL = "https://pub-justice.openapi.gov.il/pub/moj/portal/rest/se
 # The public client id embedded in the gov.il gazette collector page (verification note, Source 3).
 RESHUMOT_CLIENT_ID = "149a5bad-edde-49a6-9fb9-188bd17d4788"
 RESHUMOT_SERIES = {"1": ("sefer_hachukim", "ספר החוקים"), "3": ("kovetz_hatakanot", "קובץ התקנות")}
-RESHUMOT_BORN_DIGITAL_FROM = "2006-01-01"
+# Era floor only (2005: ספר החוקים from 1976, קובץ התקנות from 6395); each booklet's PDF decides born-digital.
+RESHUMOT_BORN_DIGITAL_FROM = "2005-01-01"
+RESHUMOT_RESULT_CAP = 200  # the search answers at most this many results (TotalResults is capped too)
+RESHUMOT_PAGE_SIZE = 10  # results per answer; ``skip`` pages through them
+RESHUMOT_WARN_BACKOFF = (30.0, 60.0, 120.0)  # seconds before each retry of a transient empty answer
 RESHUMOT_HEBREW_YEAR_OFFSET = 5692  # BookletYear = Hebrew year - 5692 (verification note: 17 = 1949, 94 = 2026)
 RESHUMOT_GLYPH_LIMITATIONS = [
     "reading order is rebuilt from glyph geometry: body lines top to bottom; a narrower block (a side heading, a signature, a table column) is read whole where it starts, side headings before the body line beside them, blocks on one row right to left",
@@ -90,8 +95,11 @@ def reshumot_booklet_year_index(hebrew_year: int) -> str:
 
 
 def select_reshumot_booklets(results: Iterable[dict[str, Any]], *, seed: str, per_query: int, max_pages: int) -> list[dict[str, Any]]:
-    """The ``per_query`` §6 booklets of one search answer to capture: born-digital era, at most ``max_pages`` pages.
+    """The ``per_query`` §6 booklets of one search answer to capture: not before the era floor, at most ``max_pages``
+    pages.
 
+    ``PublishDate`` only rules out a booklet dated before ``RESHUMOT_BORN_DIGITAL_FROM``; an empty date (common for
+    ספר החוקים) keeps it, and the fetched PDF decides whether it is born digital (``reshumot_pdf_born_digital``).
     The order is a seeded hash of series and booklet number, so the choice of one booklet never depends on another.
     """
 
@@ -100,13 +108,285 @@ def select_reshumot_booklets(results: Iterable[dict[str, Any]], *, seed: str, pe
         data = result.get("Data") or {}
         if str(data.get("FolderType")) not in RESHUMOT_SERIES:
             continue
-        if str(data.get("PublishDate") or "")[:10] < RESHUMOT_BORN_DIGITAL_FROM:
+        published = str(data.get("PublishDate") or "")[:10]
+        if published and published < RESHUMOT_BORN_DIGITAL_FROM:
             continue
         if not data.get("Document") or not isinstance(data.get("Pages"), int) or not 0 < data["Pages"] <= max_pages:
             continue
         eligible.append(data)
     eligible.sort(key=lambda data: seeded_key(seed, f"{data['FolderType']}:{data['BookletNum']}"))
     return eligible[:per_query]
+
+
+# --- complete listing (pure; ``search`` is injected) -----------------------------------------------------------------
+#
+# The gazette search API (modern-s6-scout report §1): result order is not stable between calls (some years ascend
+# by booklet number, others descend by date); an existing year sometimes answers ``Status: Warn`` with no results;
+# an answer holds at most ``RESHUMOT_RESULT_CAP`` results; ``BookletNum`` is a substring match; and one booklet may be
+# listed twice (the 2015 rescan and the InDesign original). So listings are collected as a set keyed by series,
+# booklet number and document URL, paged until the set holds ``TotalResults``, and a capped year is sliced by
+# ``BookletNum`` substrings.
+
+
+def reshumot_series(data: dict[str, Any]) -> str | None:
+    found = RESHUMOT_SERIES.get(str(data.get("FolderType")))
+    return found[0] if found else None
+
+
+def reshumot_listing_key(data: dict[str, Any]) -> tuple[str, str, str]:
+    """A listing before its PDF is fetched: (series, booklet number, document URL)."""
+
+    documents = data.get("Document") or [{}]
+    return (reshumot_series(data) or str(data.get("FolderType")), str(data.get("BookletNum")), str(documents[0].get("FileName") or ""))
+
+
+def reshumot_booklet_key(series: str, booklet_number: str, sha256: str) -> tuple[str, str, str]:
+    """A captured booklet file: (series, booklet number, PDF sha256). Two listings of one booklet are two keys."""
+
+    return (series, str(booklet_number), sha256)
+
+
+def reshumot_answer_is_transient_empty(answer: dict[str, Any]) -> bool:
+    """``Status: Warn`` with no results: the API's transient "items not found" for a year that exists."""
+
+    return str(answer.get("Status") or "").lower() == "warn" and not answer.get("Results")
+
+
+def reshumot_search_retrying(
+    search: Callable[[dict[str, Any]], dict[str, Any]],
+    body: dict[str, Any],
+    *,
+    sleep: Callable[[float], None] = time.sleep,
+    backoff: Iterable[float] = RESHUMOT_WARN_BACKOFF,
+) -> tuple[dict[str, Any], int]:
+    """One search answer, retrying a transient empty answer after each ``backoff`` wait; (answer, requests made).
+
+    After the last retry the empty answer is returned as it is; the caller records it (``empty_after_retries``)."""
+
+    answer = search(dict(body))
+    requests = 1
+    for wait in backoff:
+        if not reshumot_answer_is_transient_empty(answer):
+            break
+        sleep(wait)
+        answer = search(dict(body))
+        requests += 1
+    return answer, requests
+
+
+def _matches(data: dict[str, Any], folder_type: str, year_index: str, number_part: str | None) -> bool:
+    return (str(data.get("FolderType")) == str(folder_type) and str(data.get("BookletYear")) == str(year_index)
+            and (number_part is None or number_part in str(data.get("BookletNum"))))
+
+
+def _page_through(
+    search: Callable[[dict[str, Any]], dict[str, Any]],
+    body: dict[str, Any],
+    *,
+    folder_type: str,
+    year_index: str,
+    number_part: str | None,
+    sleep: Callable[[float], None],
+    backoff: Iterable[float],
+    page_size: int,
+    max_passes: int,
+) -> dict[str, Any]:
+    """Every listing of one query, in whatever order the API returns them: paged by ``skip`` and re-paged (up to
+    ``max_passes`` passes) until the set of listings holds ``TotalResults``."""
+
+    backoff = tuple(backoff)
+    listings: dict[tuple[str, str, str], dict[str, Any]] = {}
+    first, requests = reshumot_search_retrying(search, {**body, "skip": 0}, sleep=sleep, backoff=backoff)
+    total = int(first.get("TotalResults") or 0)
+    empty = reshumot_answer_is_transient_empty(first)
+    passes = 0
+    answers = {0: first}
+    while passes < max_passes:
+        passes += 1
+        for skip in range(0, min(total, RESHUMOT_RESULT_CAP), page_size):
+            answer = answers.pop(skip, None)
+            if answer is None:
+                answer, made = reshumot_search_retrying(search, {**body, "skip": skip}, sleep=sleep, backoff=backoff)
+                requests += made
+            for result in answer.get("Results") or []:
+                data = result.get("Data") or {}
+                if _matches(data, folder_type, year_index, number_part):
+                    listings[reshumot_listing_key(data)] = data
+        if len(listings) >= min(total, RESHUMOT_RESULT_CAP):
+            break
+    return {"listings": listings, "total": total, "requests": requests, "passes": passes,
+            "empty_after_retries": empty, "capped": total >= RESHUMOT_RESULT_CAP}
+
+
+def reshumot_enumerate_year(
+    search: Callable[[dict[str, Any]], dict[str, Any]],
+    folder_type: str,
+    year_index: str,
+    *,
+    sleep: Callable[[float], None] = time.sleep,
+    backoff: Iterable[float] = RESHUMOT_WARN_BACKOFF,
+    page_size: int = RESHUMOT_PAGE_SIZE,
+    max_passes: int = 3,
+    max_slices: int = 400,
+) -> dict[str, Any]:
+    """Every listing of one (series, Hebrew year index), whatever order the API returns them in.
+
+    A year whose ``TotalResults`` reaches the cap is sliced by ``BookletNum`` substring: the digits 0-9 first (every
+    number holds one), and a slice ``s`` that is capped again is refined into ``s`` + digit and digit + ``s``. Only
+    a number equal to a capped slice itself can escape the refinement; it is reported in ``unconfirmed`` when it was
+    not seen. ``complete`` holds when every query answered and its listings reached its ``TotalResults``.
+    """
+
+    body = {"FolderType": str(folder_type), "BookletYear": str(year_index)}
+    common = dict(folder_type=str(folder_type), year_index=str(year_index), sleep=sleep, backoff=tuple(backoff),
+                  page_size=page_size, max_passes=max_passes)
+    whole = _page_through(search, body, number_part=None, **common)
+    listings = dict(whole["listings"])
+    requests = whole["requests"]
+    queries = [{"number_part": None, "total": whole["total"], "found": len(whole["listings"]), "passes": whole["passes"],
+                "empty_after_retries": whole["empty_after_retries"], "capped": whole["capped"]}]
+    if not whole["capped"] and not whole["empty_after_retries"] and len(listings) < whole["total"]:
+        # Re-paging did not reach TotalResults (the order changed between calls): look the missing numbers up.
+        for number in reshumot_number_gaps(str(data.get("BookletNum")) for data in listings.values()):
+            if len(listings) >= whole["total"]:
+                break
+            looked = _page_through(search, {**body, "BookletNum": str(number)}, number_part=str(number), **common)
+            requests += looked["requests"]
+            listings.update(looked["listings"])
+            queries.append({"number_part": str(number), "total": looked["total"], "found": len(looked["listings"]),
+                            "passes": looked["passes"], "empty_after_retries": looked["empty_after_retries"], "capped": looked["capped"]})
+    complete = not whole["empty_after_retries"] and len(listings) >= whole["total"] and not whole["capped"]
+    unconfirmed: list[str] = []
+    if whole["capped"]:
+        complete = True
+        pending, seen = [str(digit) for digit in range(10)], set()
+        while pending:
+            part = pending.pop(0)
+            if part in seen:
+                continue
+            seen.add(part)
+            if len(seen) > max_slices:
+                complete = False
+                break
+            sliced = _page_through(search, {**body, "BookletNum": part}, number_part=part, **common)
+            requests += sliced["requests"]
+            listings.update(sliced["listings"])
+            queries.append({"number_part": part, "total": sliced["total"], "found": len(sliced["listings"]),
+                            "passes": sliced["passes"], "empty_after_retries": sliced["empty_after_retries"], "capped": sliced["capped"]})
+            if sliced["capped"]:
+                pending.extend(f"{part}{digit}" for digit in range(10))
+                pending.extend(f"{digit}{part}" for digit in range(10))
+                unconfirmed.append(part)
+            elif sliced["empty_after_retries"] or len(sliced["listings"]) < sliced["total"]:
+                complete = False
+        numbers = {str(data.get("BookletNum")) for data in listings.values()}
+        unconfirmed = [part for part in unconfirmed if part not in numbers and not part.startswith("0")]
+    rows = sorted(listings.values(), key=lambda data: (_number_key(str(data.get("BookletNum"))), reshumot_listing_key(data)))
+    return {"folder_type": str(folder_type), "booklet_year": str(year_index), "listings": rows, "complete": complete,
+            "requests": requests, "queries": queries, "unconfirmed": unconfirmed,
+            "numbers": sorted({str(data.get("BookletNum")) for data in rows}, key=_number_key)}
+
+
+def _number_key(number: str) -> tuple[int, str]:
+    digits = re.match(r"\d+", number)
+    return (int(digits.group()) if digits else 10**9, number)
+
+
+def reshumot_number_gaps(numbers: Iterable[str]) -> list[int]:
+    """Booklet numbers missing between the lowest and the highest of ``numbers`` (series are numbered without gaps)."""
+
+    values = sorted({int(number) for number in numbers if str(number).isdigit()})
+    if not values:
+        return []
+    have = set(values)
+    return [number for number in range(values[0], values[-1] + 1) if number not in have]
+
+
+# --- born digital, from the PDF itself ------------------------------------------------------------------------------
+
+
+def reshumot_pdf_born_digital(facts: dict[str, Any], layers: dict[int, dict[str, Any] | None] | None = None) -> dict[str, Any]:
+    """Whether a fetched booklet PDF is born digital, from the PDF itself (never from ``PublishDate``).
+
+    ``facts`` are poppler's (``pdfinfo`` fields as ``info``, ``pdfinfo -meta`` as ``xmp``, ``pdffonts`` rows as
+    ``font_rows``, ``pdfimages -list`` rows as ``image_rows``, per-page sizes as ``page_sizes``). This reuses
+    ``reshumot_lines.born_digital_check`` (Creator / Producer / XMP tools naming OCR or scanning software, no embedded
+    fonts, a page image covering most of a page). With ``layers`` (every page's glyph layer) it is the full check,
+    as ``reshumot_lines`` runs it; without, the metadata check: the glyph-layer reasons are not tested yet."""
+
+    from hocrgen.tools.reshumot_lines import born_digital_check, page_layer_facts
+
+    info = facts.get("info") or {}
+    page_count = int(info.get("Pages") or 0)
+    sizes = facts.get("page_sizes") or {}
+    pages: dict[int, Any] = {}
+    for number in range(1, page_count + 1):
+        layer = (layers or {}).get(number)
+        if layer is not None:
+            pages[number] = {"layer": page_layer_facts(layer), "size": (float(layer["page"]["width"]), float(layer["page"]["height"]))}
+        elif layers is None:
+            size = sizes.get(number) or sizes.get(str(number)) or facts.get("page_size") or (595.0, 842.0)
+            pages[number] = {"layer": {"invisible_text_glyphs": 0, "visible_text_glyphs": 0, "images": 0, "max_image_share": 0.0,
+                                       "invisible_glyphs_over_page_image": 0}, "size": tuple(size)}
+    check = born_digital_check({"info": info, "xmp": facts.get("xmp") or "", "fonts": facts.get("font_rows") or [],
+                                "image_rows": facts.get("image_rows") or [], "page_count": page_count, "pages": pages})
+    check["scope"] = "pdf_and_glyph_layers" if layers is not None else "pdf_metadata"
+    return check
+
+
+def reshumot_pick_born_digital_file(files: list[dict[str, Any]]) -> tuple[dict[str, Any] | None, str]:
+    """The one born-digital file of a booklet listed once or more (each ``file`` has ``born_digital``), and why.
+
+    None when no file passes (``no_born_digital_file``) or when two different files pass (``ambiguous``)."""
+
+    passing = {file["pdf_sha256"]: file for file in files if (file.get("born_digital") or {}).get("passed")}
+    if not passing:
+        return None, "no_born_digital_file"
+    if len(passing) > 1:
+        return None, "ambiguous_born_digital_files"
+    return next(iter(passing.values())), "born_digital"
+
+
+# --- publication dates the gazette API leaves empty (from the cover; pure) -----------------------------------------
+
+HEBREW_MONTHS = {"ינואר": 1, "פברואר": 2, "מרס": 3, "מרץ": 3, "אפריל": 4, "מאי": 5, "יוני": 6, "יולי": 7, "אוגוסט": 8,
+                 "ספטמבר": 9, "אוקטובר": 10, "נובמבר": 11, "דצמבר": 12}
+_BIDI_MARKS = re.compile("[\u200e\u200f\u202a-\u202e\u2066-\u2069]")
+_COVER_DATE = re.compile(r"(?<!\d)(\d{1,2})\s*ב(" + "|".join(HEBREW_MONTHS) + r")\s*(\d{4})(?!\d)")
+
+
+def reshumot_cover_date(text: str) -> str | None:
+    """The Gregorian date a booklet's cover prints ("26 בינואר 2005"), ISO; None unless exactly one valid date."""
+
+    found = set()
+    for day, month, year in _COVER_DATE.findall(_BIDI_MARKS.sub("", text)):
+        try:
+            found.add(date(int(year), HEBREW_MONTHS[month], int(day)).isoformat())
+        except ValueError:
+            continue
+    return next(iter(found)) if len(found) == 1 else None
+
+
+def reshumot_date_in_number_order(number: str, candidate: str, dated: dict[str, str], *, floor: str) -> bool:
+    """Whether ``candidate`` fits the series' number order: not before the nearest lower-numbered booklet's date
+    (or ``floor``), not after the nearest higher-numbered one's. ``dated``: booklet number to API date."""
+
+    lower = [(int(n), d) for n, d in dated.items() if n.isdigit() and int(n) < int(number)]
+    higher = [(int(n), d) for n, d in dated.items() if n.isdigit() and int(n) > int(number)]
+    low = max(lower)[1] if lower else floor
+    high = min(higher)[1] if higher else "9999-12-31"
+    return low <= candidate <= high
+
+
+def reshumot_publish_date(data: dict[str, Any]) -> str:
+    """The booklet's publication date: the recorded ``publish_date`` (filling an empty API date, or an operator's
+    correction of a typo), else the API's ``PublishDate``."""
+
+    return str(data.get("publish_date") or data.get("PublishDate") or "")[:10]
+
+
+def reshumot_publish_date_source(data: dict[str, Any]) -> str:
+    return str(data.get("publish_date_source") or "gazette API PublishDate")
 
 
 def knesset_document_is_candidate(document: dict[str, Any]) -> bool:
@@ -168,7 +448,7 @@ def reshumot_expected_phrases(data: dict[str, Any], page: int, logical: str) -> 
 
     _, series_he = RESHUMOT_SERIES[str(data["FolderType"])]
     booklet = str(data["BookletNum"])
-    year, month, day = (int(part) for part in str(data["PublishDate"])[:10].split("-"))
+    year, month, day = (int(part) for part in reshumot_publish_date(data).split("-"))
     titles = docsummary_titles(((data.get("DocSummary") or {}).get("DescriptionHtmlString")) or "")
     if page == 1:
         return [
@@ -179,7 +459,7 @@ def reshumot_expected_phrases(data: dict[str, Any], page: int, logical: str) -> 
     printed = printed_page_number(logical)
     return [
         {"text": f"{series_he} {booklet},", "source": "gazette API BookletNum and FolderType"},
-        {"text": f"{day}.{month}.{year}", "source": "gazette API PublishDate"},
+        {"text": f"{day}.{month}.{year}", "source": reshumot_publish_date_source(data)},
         *({"text": title, "source": "gazette API DocSummary"} for title, title_page in titles if printed and title_page == printed),
     ]
 
@@ -195,12 +475,14 @@ def reshumot_entry_skeleton(
     """The booklet, PDF, rights and upstream parts of one Reshumot page entry; ``reshumot_glyph_page_entry`` adds
     the text, its verification, the files and the crop.
 
-    ``pdf`` holds the PDF facts (``sha256``, ``bytes``, ``info`` from pdfinfo, ``fonts``).
+    ``pdf`` holds the PDF facts (``sha256``, ``bytes``, ``info`` from pdfinfo, ``fonts``). When it also holds
+    ``born_digital`` (``reshumot_pdf_born_digital`` on the PDF and its glyph layers), that verdict decides
+    ``pdf.born_digital``; otherwise the F8g2 rule does (an InDesign Creator and embedded fonts).
     """
 
     series_key, series_he = RESHUMOT_SERIES[str(data["FolderType"])]
     booklet = str(data["BookletNum"])
-    publish_date = str(data["PublishDate"])[:10]
+    publish_date = reshumot_publish_date(data)
     year, month, day = (int(part) for part in publish_date.split("-"))
     info = pdf["info"]
     document = data["Document"][0]
@@ -223,10 +505,14 @@ def reshumot_entry_skeleton(
         "languages": ["he"],
         "page": {"pdf_page_index": page, "printed_page_number": None},
         "pdf": {
-            "born_digital": "InDesign" in str(info.get("Creator", "")) and bool(pdf["fonts"]),
+            "born_digital": (bool(pdf["born_digital"]["passed"]) and bool(pdf["fonts"])) if pdf.get("born_digital")
+            else "InDesign" in str(info.get("Creator", "")) and bool(pdf["fonts"]),
             "born_digital_evidence": (
                 f"Creator {info.get('Creator')!r}, Producer {info.get('Producer')!r}; embedded fonts with Unicode maps; "
                 f"{'no page image' if page_image_count == 0 else f'{page_image_count} page image(s)'} on this page (pdfimages)"
+                + (f"; born_digital_check ({pdf['born_digital'].get('scope')}): "
+                   f"{'passed' if pdf['born_digital']['passed'] else 'refused ' + ','.join(pdf['born_digital']['reasons'])}"
+                   if pdf.get("born_digital") else "")
             ),
             "bytes": pdf["bytes"],
             "creation_date": info.get("CreationDate"),
@@ -309,6 +595,8 @@ def reshumot_glyph_page_entry(
 
     result = verify_glyph_page(layer, table, render_image, dpi, expected=expected)
     entry = reshumot_entry_skeleton(data=data, pdf=pdf, page=page, page_image_count=page_image_count, captured_at=captured_at)
+    if data.get("publish_date_source"):
+        entry["booklet"]["publish_date_source"] = data["publish_date_source"]
     stem = entry["entry_id"]
     logical = result.text
     printed = printed_page_number(logical)
@@ -540,10 +828,20 @@ def pdf_facts(path: Path) -> dict[str, Any]:  # pragma: no cover - poppler
     for line in _run(["pdfinfo", str(path)]).splitlines():
         key, _, value = line.partition(":")
         info[key.strip()] = value.strip()
-    fonts = sorted({line.split()[0].split("+", 1)[-1] for line in _run(["pdffonts", str(path)]).splitlines()[2:] if line.strip()})
+    font_rows = [line.split() for line in _run(["pdffonts", str(path)]).splitlines()[2:] if line.strip()]
+    fonts = sorted({row[0].split("+", 1)[-1] for row in font_rows})
     rows = [line.split() for line in _run(["pdfimages", "-list", str(path)]).splitlines()[2:]]
+    xmp = subprocess.run(["pdfinfo", "-meta", str(path)], capture_output=True, text=True).stdout
+    page_sizes = {}
+    pages = int(info.get("Pages") or 0)
+    if pages:
+        for line in _run(["pdfinfo", "-f", "1", "-l", str(pages), str(path)]).splitlines():
+            match = re.match(r"Page\s+(\d+)\s+size:\s+([\d.]+)\s+x\s+([\d.]+)", line)
+            if match:
+                page_sizes[int(match.group(1))] = (float(match.group(2)), float(match.group(3)))
     content = path.read_bytes()
-    return {"info": info, "fonts": fonts, "image_rows": rows, "sha256": _sha256(content), "bytes": len(content)}
+    return {"info": info, "fonts": fonts, "image_rows": rows, "sha256": _sha256(content), "bytes": len(content),
+            "xmp": xmp, "font_rows": font_rows, "page_sizes": page_sizes}
 
 
 def render_gray_page(path: Path, page: int) -> tuple[bytes, str, tuple[int, int]]:  # pragma: no cover - poppler
@@ -624,12 +922,12 @@ def capture_reshumot(
             if search_path.is_file():
                 answer = json.loads(search_path.read_text(encoding="utf-8"))
             else:
-                body = json.dumps({"FolderType": folder_type, "BookletYear": year_index, "skip": 0}).encode()
+                body = {"FolderType": folder_type, "BookletYear": year_index, "skip": 0}
                 try:
-                    raw = _request(RESHUMOT_SEARCH_URL, data=body, headers=headers)
-                    answer = json.loads(raw)
-                    _write(search_path, raw)
-                    counts["searches"] += 1
+                    answer, made = reshumot_search_retrying(
+                        lambda query: json.loads(_request(RESHUMOT_SEARCH_URL, data=json.dumps(query).encode(), headers=headers)), body)
+                    _write(search_path, json.dumps(answer, ensure_ascii=False).encode("utf-8"))
+                    counts["searches"] += made
                     _log(root, {"kind": "search", "folder_type": folder_type, "booklet_year": year_index, "results": len(answer.get("Results") or [])})
                 except Exception as exc:  # noqa: BLE001 - recorded and counted
                     counts["search_failures"] += 1
@@ -659,14 +957,127 @@ def capture_reshumot(
                     time.sleep(delay)
                     continue
                 _write(pdf_path, content)
-                row = {**data, "pdf_sha256": _sha256(content), "pdf_bytes": len(content), "pdf_file": pdf_path.name}
+                verdict = reshumot_pdf_born_digital(pdf_facts(pdf_path))
+                row = {**data, "pdf_sha256": _sha256(content), "pdf_bytes": len(content), "pdf_file": pdf_path.name,
+                       "born_digital_metadata": verdict}
                 known[key] = row
                 counts["pdfs_fetched"] += 1
                 _log(root, {"kind": "pdf", "booklet": key[1], "folder_type": key[0], "bytes": len(content)})
-                log(f"reshumot {key[0]}:{key[1]} ({data['PublishDate'][:10]}, {data['Pages']} pages)")
+                log(f"reshumot {key[0]}:{key[1]} ({reshumot_publish_date(data) or 'no date'}, {data['Pages']} pages, "
+                    f"born_digital={verdict['passed']})")
                 time.sleep(delay)
     _write(booklets_path, "".join(json.dumps(row, ensure_ascii=False, sort_keys=True) + "\n" for _, row in sorted(known.items())).encode())
     return counts
+
+
+RESHUMOT_LISTING_USER_AGENT = "HeOCR-research/0.1 (+https://github.com/HeOCR)"
+RESHUMOT_MIN_GAP = 1.2  # seconds between any two requests, at least
+
+
+class ThrottledClient:  # pragma: no cover - network
+    """Every request at least ``gap`` seconds after the last, with one descriptive User-Agent (never an address),
+    and logged; HTTP and network errors back off ``backoff`` seconds and retry."""
+
+    def __init__(self, log_path: Path, *, gap: float = RESHUMOT_MIN_GAP, user_agent: str = RESHUMOT_LISTING_USER_AGENT,
+                 backoff: Iterable[float] = RESHUMOT_WARN_BACKOFF) -> None:
+        self.log_path, self.gap, self.user_agent, self.backoff = log_path, max(gap, RESHUMOT_MIN_GAP), user_agent, tuple(backoff)
+        self.last = 0.0
+        self.requests = 0
+
+    def request(self, url: str, *, data: bytes | None = None, headers: dict[str, str] | None = None) -> bytes:
+        for attempt, wait in enumerate((0.0, *self.backoff)):
+            if wait:
+                time.sleep(wait)
+            pause = self.gap - (time.monotonic() - self.last)
+            if pause > 0:
+                time.sleep(pause)
+            self.last = time.monotonic()
+            self.requests += 1
+            request = urllib.request.Request(url, data=data, headers={"User-Agent": self.user_agent, **(headers or {})},
+                                             method="POST" if data else "GET")
+            record: dict[str, Any] = {"url": url[:200], "post": data.decode("utf-8")[:200] if data else None, "attempt": attempt}
+            try:
+                with urllib.request.urlopen(request, timeout=180) as response:
+                    body = response.read()
+                _log_to(self.log_path, {**record, "status": 200, "bytes": len(body)})
+                return body
+            except Exception as exc:  # noqa: BLE001 - logged, backed off, retried
+                _log_to(self.log_path, {**record, "error": repr(exc)[:200]})
+                if isinstance(exc, urllib.error.HTTPError) and exc.code in (400, 401, 403, 404):
+                    raise
+        raise RuntimeError(f"gave up on {url[:120]}")
+
+    def reshumot_search(self, body: dict[str, Any]) -> dict[str, Any]:
+        return json.loads(self.request(RESHUMOT_SEARCH_URL, data=json.dumps(body).encode(), headers={
+            "Content-Type": "application/json", "x-client-id": RESHUMOT_CLIENT_ID, "Origin": "https://www.gov.il",
+            "Referer": "https://www.gov.il/"}))
+
+    def reshumot_document(self, url: str) -> bytes:
+        head, token = url.rsplit("/", 1)
+        return self.request(head + "/" + urllib.parse.quote(urllib.parse.unquote(token), safe="~"), headers={"Referer": "https://www.gov.il/"})
+
+
+def _log_to(path: Path, record: dict[str, Any]) -> None:  # pragma: no cover - network
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps({"at": time.strftime("%Y-%m-%dT%H:%M:%S%z"), **record}, ensure_ascii=False, sort_keys=True) + "\n")
+
+
+def enumerate_reshumot_listing(cache: Path, client: Any, targets: Iterable[tuple[str, str]], *,
+                               log: Callable[[str], None] = print) -> list[dict[str, Any]]:  # pragma: no cover - network
+    """Every listing of each (FolderType, BookletYear) target, complete and order-free (``reshumot_enumerate_year``),
+    written to ``cache/reshumot/listing/ft<FT>_y<Y>.json``."""
+
+    results = []
+    for folder_type, year_index in targets:
+        path = cache / "reshumot" / "listing" / f"ft{folder_type}_y{year_index}.json"
+        if path.is_file():
+            result = json.loads(path.read_text(encoding="utf-8"))
+        else:
+            result = reshumot_enumerate_year(client.reshumot_search, folder_type, year_index)
+            _write(path, json.dumps(result, ensure_ascii=False, indent=1, sort_keys=True).encode("utf-8"))
+        log(f"listing ft{folder_type} y{year_index}: {len(result['listings'])} listings, {len(result['numbers'])} numbers, "
+            f"complete={result['complete']}, requests={result['requests']}")
+        results.append(result)
+    return results
+
+
+def fetch_reshumot_files(cache: Path, downloads: Path, client: Any, listings: Iterable[dict[str, Any]], *,
+                         facts_for: Callable[[Path], dict[str, Any]] | None = None,
+                         log: Callable[[str], None] = print) -> list[dict[str, Any]]:  # pragma: no cover - network
+    """Fetch every listed document into ``downloads/<sha256>.pdf`` (untrusted; its own folder) and record one row
+    per file, keyed by (series, booklet number, sha256), with poppler's facts and the metadata born-digital verdict
+    (``cache/reshumot/files.jsonl``). A file already recorded for the same listing is not fetched again."""
+
+    facts_for = facts_for or pdf_facts
+    files_path = cache / "reshumot" / "files.jsonl"
+    rows = {}
+    if files_path.is_file():
+        for line in files_path.read_text(encoding="utf-8").splitlines():
+            row = json.loads(line)
+            rows[tuple(row["listing_key"])] = row
+    for data in listings:
+        key = reshumot_listing_key(data)
+        if key in rows and (downloads / f"{rows[key]['pdf_sha256']}.pdf").is_file():
+            continue
+        content = client.reshumot_document(key[2])
+        if not content.startswith(b"%PDF"):
+            log(f"not a PDF: {key[0]} {key[1]} ({len(content)} bytes)")
+            continue
+        sha = _sha256(content)
+        path = downloads / f"{sha}.pdf"
+        _write(path, content)
+        facts = facts_for(path)
+        verdict = reshumot_pdf_born_digital(facts)
+        rows[key] = {"listing_key": list(key), "booklet_key": list(reshumot_booklet_key(key[0], key[1], sha)),
+                     "series": key[0], "booklet_number": key[1], "pdf_sha256": sha, "pdf_bytes": len(content),
+                     "pdf_pages": int(facts["info"].get("Pages") or 0), "creator": facts["info"].get("Creator"),
+                     "producer": facts["info"].get("Producer"), "creation_date": facts["info"].get("CreationDate"),
+                     "fonts": facts["fonts"], "born_digital": verdict, "listing": data}
+        log(f"{key[0]} {key[1]}: {sha[:12]} {rows[key]['pdf_pages']} pages, {facts['info'].get('Creator')!r}, "
+            f"born_digital={verdict['passed']} {verdict['reasons']}")
+        _write(files_path, _json_lines([rows[k] for k in sorted(rows, key=lambda k: (k[0], _number_key(k[1]), k[2]))]))
+    return [rows[k] for k in sorted(rows, key=lambda k: (k[0], _number_key(k[1]), k[2]))]
 
 
 def _odata(query: str) -> dict[str, Any]:  # pragma: no cover - network
@@ -771,6 +1182,9 @@ def materialize_reshumot(
     layer_cache: Path | None = None,
     report: Path | None = None,
     log: Callable[[str], None] = print,
+    layer_out: Path | None = None,
+    extract_only: bool = False,
+    born_digital_from_pdf: bool = False,
 ) -> dict[str, Any]:  # pragma: no cover - poppler and pdfminer.six; exercised by the operator run
     """Every page of every cached booklet through the F8e2 method and the gate; only admitted pages are written.
 
@@ -778,6 +1192,11 @@ def materialize_reshumot(
     layers extracted before, used only when their extractor version is the installed one), rendered with pdftoppm,
     converted, checked and, where needed, cropped to its verified regions (``reshumot_glyph_page_entry``). The gate
     then re-derives everything from the written files.
+
+    ``packaged_root`` None writes a snapshot of the captured booklets only. ``layer_out`` keeps every page's glyph
+    layer (``<series>_<number>__pNNNN.json.gz``, admitted or not; ``reshumot_lines --page-layers`` reads them), and
+    ``extract_only`` stops there. ``born_digital_from_pdf`` decides each booklet's ``pdf.born_digital`` with
+    ``reshumot_pdf_born_digital`` on the PDF and all its glyph layers, instead of the F8g2 Creator rule.
     """
 
     import yaml
@@ -787,11 +1206,14 @@ def materialize_reshumot(
 
     from hocrgen.parsers.pdf_glyphs import extract_glyph_layer
 
+    from hocrgen.fetchers.government_print import read_glyph_layer_bytes
+
     root = out_root / "sources" / "reshumot_born_digital" / "snapshot"
     version = poppler_version()
     table_bytes = outline_table.read_bytes()
     table = json.loads(table_bytes)
-    _write(root / RESHUMOT_OUTLINE_TABLE, table_bytes)
+    if not extract_only:
+        _write(root / RESHUMOT_OUTLINE_TABLE, table_bytes)
     table_sha = _sha256(table_bytes)
     entries: list[dict[str, Any]] = []
     skipped: dict[str, int] = {}
@@ -801,18 +1223,37 @@ def materialize_reshumot(
     rows = [json.loads(line) for line in booklets_path.read_text(encoding="utf-8").splitlines()] if booklets_path.is_file() else []
     booklet_results = []
     for row in sorted(rows, key=lambda row: (row["FolderType"], row["BookletNum"])):
+        if not (row.get("born_digital_metadata") or {"passed": True})["passed"] or not reshumot_publish_date(row):
+            _count(skipped, "booklet_skipped:" + ("not_born_digital" if reshumot_publish_date(row) else "publish_date_unknown"))
+            continue
         pdf_path = cache / "reshumot" / "pdf" / row["pdf_file"]
         facts = pdf_facts(pdf_path)
         if facts["sha256"] != row["pdf_sha256"]:
             raise RuntimeError(f"cached Reshumot PDF {pdf_path.name} does not match its capture checksum")
         passed = 0
-        for page in range(1, int(facts["info"].get("Pages", 0)) + 1):
-            image_count = sum(1 for image_row in facts["image_rows"] if image_row and image_row[0] == str(page) and image_row[2] == "image")
+        page_count = int(facts["info"].get("Pages", 0))
+        booklet_layers: dict[int, dict[str, Any]] = {}
+        for page in range(1, page_count + 1):
             stem = f"{RESHUMOT_SERIES[str(row['FolderType'])][0]}_{row['BookletNum']}__p{page:04d}"
             cached = layer_cache / f"{stem}.json" if layer_cache else None
+            kept = layer_out / f"{stem}.json.gz" if layer_out else None
             layer = json.loads(cached.read_text(encoding="utf-8")) if cached and cached.is_file() else None
+            if layer is None and kept is not None and kept.is_file():
+                layer = json.loads(read_glyph_layer_bytes(kept))
             if layer is None or layer.get("extractor_version") != pdfminer_version:
                 layer = extract_glyph_layer(pdf_path, page)
+            if kept is not None and not kept.is_file():
+                _write(kept, glyph_layer_bytes(layer))
+            booklet_layers[page] = layer
+        if extract_only:
+            booklet_results.append({"booklet": f"{row['FolderType']}:{row['BookletNum']}", "pages": page_count, "passed": 0})
+            continue
+        if born_digital_from_pdf:
+            facts = {**facts, "born_digital": reshumot_pdf_born_digital(facts, booklet_layers)}
+        for page in range(1, page_count + 1):
+            image_count = sum(1 for image_row in facts["image_rows"] if image_row and image_row[0] == str(page) and image_row[2] == "image")
+            stem = f"{RESHUMOT_SERIES[str(row['FolderType'])][0]}_{row['BookletNum']}__p{page:04d}"
+            layer = booklet_layers[page]
             layer_bytes = glyph_layer_bytes(layer)
             png, pixel_sha, size = render_gray_page(pdf_path, page)
             render_file = reshumot_render_file(stem, png, pixel_sha, size, page=page, poppler_version=version)
@@ -833,7 +1274,7 @@ def materialize_reshumot(
                 _write(root / written[-1], cropped[1])
             reasons = gate(entry, source, root)
             pages.append({
-                "entry_id": stem, "year": str(row["PublishDate"])[:4], "series": RESHUMOT_SERIES[str(row["FolderType"])][0],
+                "entry_id": stem, "year": reshumot_publish_date(row)[:4], "series": RESHUMOT_SERIES[str(row["FolderType"])][0],
                 "admitted": not reasons, "reasons": reasons, "cropped": "crop" in entry,
                 "units_left_out": (entry.get("crop") or {}).get("units_left_out") or entry.get("text_units_left_out") or {},
             })
@@ -845,8 +1286,10 @@ def materialize_reshumot(
             entries.append(entry)
             passed += 1
         booklet_results.append({"booklet": f"{row['FolderType']}:{row['BookletNum']}", "pages": int(facts["info"].get("Pages", 0)), "passed": passed})
+    if extract_only:
+        return {"booklet_count": len(rows), "layers_written_to": str(layer_out), "booklets": booklet_results}
     captured_ids = {entry["entry_id"] for entry in entries}
-    packaged = [json.loads(line) for line in (packaged_root / "entries.jsonl").read_text(encoding="utf-8").splitlines()]
+    packaged = [json.loads(line) for line in (packaged_root / "entries.jsonl").read_text(encoding="utf-8").splitlines()] if packaged_root else []
     for entry in packaged:
         if entry["entry_id"] in captured_ids or gate(entry, source, packaged_root):
             continue
@@ -855,7 +1298,7 @@ def materialize_reshumot(
         entries.append(entry)
     entries.sort(key=lambda entry: entry["entry_id"])
     _write(root / "entries.jsonl", _json_lines(entries))
-    snapshot = yaml.safe_load((packaged_root / "snapshot.yaml").read_text(encoding="utf-8"))
+    snapshot = yaml.safe_load((packaged_root or _packaged_reshumot_root()).joinpath("snapshot.yaml").read_text(encoding="utf-8"))
     snapshot.update(
         {
             "captured_at": captured_at,
@@ -873,6 +1316,13 @@ def materialize_reshumot(
             ),
         }
     )
+    if packaged_root is None:
+        snapshot["capture"] = (
+            "Operator capture through hocrgen.tools.reshumot_capture: every listing of the span, complete and order-free, "
+            "each file keyed by series, booklet number and sha256 and decided born digital from the PDF itself; throttled, "
+            "descriptive User-Agent; raw PDFs stay in the operator cache and each entry pins the PDF sha256."
+        )
+        snapshot["notes"] = snapshot["notes"].replace(" The packaged fixture's admitted pages are kept as packaged.", " No packaged page is included.")
     _write(root / "snapshot.yaml", yaml.safe_dump(snapshot, allow_unicode=True, sort_keys=False).encode())
     by_year: dict[str, dict[str, int]] = {}
     for record in pages:
@@ -899,6 +1349,10 @@ def materialize_reshumot(
         f"({result['pages_cropped']} cropped); skipped {skipped}"
     )
     return result
+
+
+def _packaged_reshumot_root() -> Path:
+    return Path(__file__).resolve().parents[1] / "data" / "reshumot" / "snapshot"
 
 
 def materialize_knesset(
@@ -959,8 +1413,10 @@ def materialize_knesset(
                 "passed": passed,
             }
         )
+    if extract_only:
+        return {"booklet_count": len(rows), "layers_written_to": str(layer_out), "booklets": booklet_results}
     captured_ids = {entry["entry_id"] for entry in entries}
-    packaged = [json.loads(line) for line in (packaged_root / "entries.jsonl").read_text(encoding="utf-8").splitlines()]
+    packaged = [json.loads(line) for line in (packaged_root / "entries.jsonl").read_text(encoding="utf-8").splitlines()] if packaged_root else []
     for entry in packaged:
         if entry["entry_id"] in captured_ids or gate(entry, source, packaged_root):
             continue
@@ -969,7 +1425,7 @@ def materialize_knesset(
         entries.append(entry)
     entries.sort(key=lambda entry: entry["entry_id"])
     _write(root / "entries.jsonl", _json_lines(entries))
-    snapshot = yaml.safe_load((packaged_root / "snapshot.yaml").read_text(encoding="utf-8"))
+    snapshot = yaml.safe_load((packaged_root or _packaged_reshumot_root()).joinpath("snapshot.yaml").read_text(encoding="utf-8"))
     snapshot.update(
         {
             "captured_at": captured_at,

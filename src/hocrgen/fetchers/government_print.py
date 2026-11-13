@@ -2,7 +2,7 @@
 
 Two packaged-static-records adapters over pinned snapshots:
 
-- ``reshumot``: pages of ספר החוקים and קובץ התקנות booklets from 2006 on (Copyright Act section 6). Each
+- ``reshumot``: pages of ספר החוקים and קובץ התקנות booklets from 2005 on (Copyright Act section 6). Each
   page is rendered from the born-digital PDF (``rendering.is_scan`` false, so evaluation never mistakes it
   for a scan) and carries the PDF's embedded text in logical order. Every entry carries the page's glyph layer
   (F8e2, ``pdf_glyph_geometry_logical.v1``); the text is admitted only when ``hocrgen.parsers.pdf_geometry``
@@ -41,7 +41,9 @@ RASTER_MEDIA_TYPES = {"image/png", "image/jpeg"}
 # Reshumot. Only laws (ספר החוקים, FolderType 1) and regulations (קובץ התקנות, FolderType 3) are section-6
 # material. ילקוט הפרסומים (2), bills (6, 8) and the other series are not.
 RESHUMOT_SECTION_6_SERIES = {"1": "sefer_hachukim", "3": "kovetz_hatakanot"}
-RESHUMOT_BORN_DIGITAL_FROM = date(2006, 1, 1)
+# The era floor: no booklet before 2005 is born digital (the 2005 boundary is ספר החוקים 1976 and קובץ התקנות 6395,
+# modern-s6-scout §2.2). It is a floor only: each booklet's PDF decides whether it is born digital (``pdf.born_digital``).
+RESHUMOT_BORN_DIGITAL_FROM = date(2005, 1, 1)
 
 # Knesset committees. Maintainer decision 5 (2026-11-06): protocols from 1976 on wait for a legal opinion.
 KNESSET_SESSION_DATE_CUTOFF = date(1975, 12, 31)
