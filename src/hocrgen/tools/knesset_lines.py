@@ -20,8 +20,8 @@ Subcommands:
 Build, per unit (all guards fail closed):
 
 1. **Eval reserve (decision 0017).** ``refuse_eval_reserved_training_input`` on the selected units and on the rows.
-2. **Input.** The cache is untrusted: a document must match the sha256 its plan entry or capture pin gives and the
-   OLE or ZIP signature of its extension, and is copied into a per-run temp dir before ``soffice --convert-to txt``
+2. **Input.** The cache is untrusted: a document must match the sha256 its plan entry or capture pin gives and carry
+   a Word signature (OLE or ZIP; K23+ serves OOXML under .doc names), and is copied into a per-run temp dir before ``soffice --convert-to txt``
    (UTF-8, a fresh profile) reads it. One paragraph per text line.
 3. **Paragraphs.** The ``<< דובר >>``-style markers (hidden text in the document) are removed, a paragraph wrapped
    whole in ``<...>`` is unwrapped, format characters go, whitespace runs become one space. A paragraph that carried
@@ -100,6 +100,8 @@ CAPTURE_MAX_BYTES = 64 * 1024 * 1024
 BLOCK_STATUSES = frozenset({403, 429, 473})
 KNESSET_HOST = re.compile(r"^(?:[a-z0-9-]+\.)*knesset\.gov\.il$")
 MAGIC = {"doc": b"\xd0\xcf\x11\xe0\xa1\xb1\x1a\xe1", "docx": b"PK\x03\x04"}
+# The Knesset serves OOXML under a .doc name too (K23+): either Word signature is accepted for either extension.
+WORD_SIGNATURES = tuple(MAGIC.values())
 DEFAULT_SOFFICE = "/opt/homebrew/bin/soffice"
 DEFAULT_NER_PYTHON = str(Path.home() / ".venvs" / "heocr-ner" / "bin" / "python")
 NER_SCRIPT = Path(__file__).resolve().parent.parent / "privacy" / "ner_stream.py"
@@ -315,7 +317,7 @@ def capture(plan: Mapping[str, Any], cache: Path, *, opener: Callable[..., Any] 
             status, error = -1, repr(exc)
         last[0] = clock()
         blocked = status in BLOCK_STATUSES or _is_challenge(body)
-        bad_magic = status == 200 and not blocked and not body.startswith(MAGIC.get(document_ext(doc), b"\x00\x00"))
+        bad_magic = status == 200 and not blocked and not (document_ext(doc) in MAGIC and body.startswith(WORD_SIGNATURES))
         entry = {"t": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "unit_id": unit["unit_id"], "url": url, "status": status,
                  "bytes": len(body), "blocked": blocked, "bad_magic": bad_magic, "error": error}
         with log_path.open("a", encoding="utf-8") as log:
@@ -345,7 +347,7 @@ def check_document(unit: Mapping[str, Any], cache: Path, pins: Mapping[str, Any]
     data = path.read_bytes()
     if sha256_bytes(data) != expected:
         return None, expected, "sha256_mismatch"
-    if not data.startswith(MAGIC.get(document_ext(doc), b"\x00\x00")):
+    if document_ext(doc) not in MAGIC or not data.startswith(WORD_SIGNATURES):
         return None, expected, "bad_signature"
     return path, expected, None
 

@@ -334,6 +334,15 @@ def test_a_document_off_its_pin_refuses_the_unit(plenary: dict) -> None:
     assert {row["unit_id"] for row in _rows(plenary["tmp"] / "out6")} == {"plenary:K25_7"}
 
 
+def test_document_signature_accepts_ooxml_under_a_doc_name(tmp_path: Path) -> None:
+    doc = {"url": "https://fs.knesset.gov.il//24/Plenum/24_ptm_1.doc"}
+    for data, refused in ((kl.MAGIC["docx"] + b"x", None), (kl.MAGIC["doc"] + b"x", None), (b"<html>no</html>", "bad_signature")):
+        (tmp_path / "24_ptm_1.doc").write_bytes(data)
+        unit = {"document": {**doc, "sha256": hashlib.sha256(data).hexdigest()}}
+        assert kl.check_document(unit, tmp_path, {})[2] == refused
+    assert kl.check_document({"document": doc}, tmp_path, {})[2] == "unpinned"
+
+
 def test_dedup_keeps_at_most_three_copies_by_sha256_of_the_id() -> None:
     rows = [{"id": f"r{i}", "text": "הישיבה נעולה."} for i in range(6)] + [{"id": "x", "text": "אחר"}]
     kept, stats = kl.dedup_rows(rows)

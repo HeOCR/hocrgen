@@ -44,7 +44,8 @@ The runner puts `src/` on `sys.path` and calls `hocrgen.tools.knesset_lines.main
 3. **Capture.** Only `https://*.knesset.gov.il` URLs are fetched, with at most one request every 3 s and the HeOCR user
    agent. Capture stops at the first 403, 429 or 473, challenge page, other failure or wrong file signature. Every
    request is logged (`capture_log.jsonl`) and every file pinned (`capture_pins.json`).
-4. **Input.** The cache is untrusted. A document must match its pin and the OLE or ZIP signature of its extension.
+4. **Input.** The cache is untrusted. A document must match its pin and carry a Word signature, OLE or ZIP. K23+
+   serves OOXML under `.doc` names, so either signature is accepted for either extension.
    It is copied into a temp dir and converted with `soffice --convert-to txt` (UTF-8, fresh profile).
 5. **Paragraphs.** The `<< דובר >>`-style markers are removed, a paragraph wrapped whole in `<...>` is unwrapped,
    format characters are dropped and whitespace runs become one space.
