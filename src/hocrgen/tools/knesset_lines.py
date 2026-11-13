@@ -107,8 +107,13 @@ DEFAULT_NER_PYTHON = str(Path.home() / ".venvs" / "heocr-ner" / "bin" / "python"
 NER_SCRIPT = Path(__file__).resolve().parent.parent / "privacy" / "ner_stream.py"
 NER_TAGGER = "dicta-il/dictabert-ner over each unit's line stream (ner_stream.py) + cue heuristic"
 HOCRSYNGEN_PIN = "90aa2bf354479965f5a079223f97a9101c8e056c"  # HeOCR/hocrsyngen#99, render-lines
-DEFAULT_RENDER_CMD = ("hocrsyngen render-lines --input {input} --output {out} --seed 20261113 --band-range 27 34 "
-                      "--preset modern_print_scan_v1")
+DEFAULT_RENDER_CMD = "hocrsyngen render-lines"  # + --input/--output/--seed/--band-range/--preset/--font, set per band
+RENDER_SEED = 20261113
+RENDER_PRESET = "modern_print_scan_v1"
+# lead 2026-11-13: half the units at the IA-like ink band (27-34 px, the R9 face-stats range), half at 35-48 px.
+RENDER_BANDS: tuple[tuple[int, int], ...] = ((27, 34), (35, 48))
+# The governed OFL faces of hocrsyngen 90aa2bf; more faces later are a re-render, not a rebuild (--font).
+RENDER_FONTS: tuple[str, ...] = ("alef-regular", "david-libre-regular", "frank-ruhl-libre")
 RENDER_LICENSES = frozenset({"OFL-1.1"})  # decision 0018 as amended 2026-11-13: open-licensed rendering fonts only
 
 MARKER = re.compile(r"\s*<<\s*([^<>]*?)\s*>>\s*")
@@ -850,12 +855,46 @@ def join_render(out: Path, render_dir: Path, *, licenses: frozenset[str] = RENDE
     return summary["render"]
 
 
-def render(out: Path, render_dir: Path, command: str = DEFAULT_RENDER_CMD) -> dict[str, Any]:  # pragma: no cover
-    """Run ``hocrsyngen render-lines`` (pinned at ``HOCRSYNGEN_PIN``) on ``render_input.jsonl``, then join its manifest."""
+def band_of(group: str, bands: Sequence[tuple[int, int]] = RENDER_BANDS) -> int:
+    """The band index of a unit: sha256("heocr-knessetlines-band:" + unit id), so each band gets about an equal share."""
 
-    args = [part.format(input=str(out / "render_input.jsonl"), out=str(render_dir)) for part in shlex.split(command)]
-    subprocess.run(args, check=True)
-    return join_render(out, render_dir)
+    return int(hashlib.sha256(f"heocr-knessetlines-band:{group}".encode()).hexdigest(), 16) % len(bands)
+
+
+def render(out: Path, render_dir: Path, command: str = DEFAULT_RENDER_CMD, *, fonts: Sequence[str] = RENDER_FONTS,
+           bands: Sequence[tuple[int, int]] = RENDER_BANDS, seed: int = RENDER_SEED,
+           preset: str = RENDER_PRESET) -> dict[str, Any]:  # pragma: no cover - runs hocrsyngen
+    """Run ``hocrsyngen render-lines`` (pinned at ``HOCRSYNGEN_PIN``) once per ink band on that band's units, merge the
+    manifests into ``render_dir/manifest.jsonl`` and join it."""
+
+    inputs = [json.loads(line) for line in (out / "render_input.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    render_dir.mkdir(parents=True, exist_ok=True)
+    merged = []
+    for index, (low, high) in enumerate(bands):
+        part = [row for row in inputs if band_of(str(row["group"]), bands) == index]
+        if not part:
+            continue
+        sub_dir = render_dir / f"band{index}_{low}_{high}"
+        part_input = render_dir / f"input_band{index}.jsonl"
+        part_input.write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in part), encoding="utf-8")
+        args = shlex.split(command) + ["--input", str(part_input), "--output", str(sub_dir), "--seed", str(seed),
+                                       "--band-range", str(low), str(high), "--preset", preset]
+        for font in fonts:
+            args += ["--font", font]
+        subprocess.run(args, check=True)
+        for row in map(json.loads, (sub_dir / "manifest.jsonl").read_text(encoding="utf-8").splitlines()):
+            for key in ("image", "label"):
+                if row.get(key):
+                    row[key] = f"{sub_dir.name}/{row[key]}"
+            merged.append(row)
+    (render_dir / "manifest.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in merged), encoding="utf-8")
+    result = join_render(out, render_dir)
+    summary = json.loads((out / "summary.json").read_text(encoding="utf-8"))
+    summary["render"]["config"] = {"hocrsyngen_pin": HOCRSYNGEN_PIN, "command": command, "fonts": list(fonts),
+                                   "bands": [list(b) for b in bands], "band_rule": "sha256('heocr-knessetlines-band:'+unit_id) mod bands",
+                                   "seed": seed, "preset": preset}
+    (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return result
 
 
 # --- verify ------------------------------------------------------------------------------------------------------
@@ -948,7 +987,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     r = sub.add_parser("render", help="run hocrsyngen render-lines on render_input.jsonl and join its manifest")
     r.add_argument("out")
     r.add_argument("--render-dir", required=True)
-    r.add_argument("--render-command", default=DEFAULT_RENDER_CMD, help="with {input} and {out} placeholders")
+    r.add_argument("--render-command", default=DEFAULT_RENDER_CMD, help="the renderer command; per-band flags are appended")
+    r.add_argument("--font", action="append", dest="fonts", help=f"render face (repeatable; default {', '.join(RENDER_FONTS)})")
+    r.add_argument("--seed", type=int, default=RENDER_SEED)
+    r.add_argument("--preset", default=RENDER_PRESET)
     r.add_argument("--join-only", action="store_true", help="join an existing render dir without running the renderer")
     v = sub.add_parser("verify", help="check a built set")
     v.add_argument("out")
@@ -967,7 +1009,8 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "render":
         out, render_dir = Path(args.out), Path(args.render_dir)
-        result = join_render(out, render_dir) if args.join_only else render(out, render_dir, args.render_command)
+        result = join_render(out, render_dir) if args.join_only else render(
+            out, render_dir, args.render_command, fonts=args.fonts or RENDER_FONTS, seed=args.seed, preset=args.preset)
         print(json.dumps({k: result[k] for k in ("rendered_rows", "not_rendered", "refused")}, ensure_ascii=False))
         return 0
     problems = verify(Path(args.out))

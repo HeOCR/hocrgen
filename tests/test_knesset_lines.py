@@ -463,3 +463,10 @@ def test_ner_windows_cover_the_text_with_overlap() -> None:
     assert all(len(chunk) <= 120 and text[off:off + len(chunk)] == chunk for off, chunk in wins)
     assert wins[0][0] == 0 and wins[-1][0] + len(wins[-1][1]) == len(text)
     assert all(b[0] < a[0] + len(a[1]) for a, b in zip(wins, wins[1:]))  # consecutive windows overlap
+
+
+def test_band_of_splits_units_about_evenly_and_is_stable() -> None:
+    units = [f"plenary:K{k}_{s}" for k in range(13, 26) for s in range(1, 41)]
+    counts = [sum(1 for u in units if kl.band_of(u) == i) for i in range(len(kl.RENDER_BANDS))]
+    assert abs(counts[0] - counts[1]) < 0.15 * len(units) and kl.band_of(units[0]) == kl.band_of(units[0])
+    assert kl.RENDER_BANDS[0] == (27, 34) and set(kl.RENDER_FONTS) == {"alef-regular", "david-libre-regular", "frank-ruhl-libre"}
