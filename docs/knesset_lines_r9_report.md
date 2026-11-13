@@ -143,6 +143,23 @@ Lines can carry several reasons, so the reasons add up to more than the dropped 
 - **A generic per-face cap doesn't help.** A 5% cap removes 1,989 Knesset lines and raises the open-ח share to 11.5%.
 - **reshumotlines_v2** contributes no IA-like lines. Its renders are 150 dpi, with a median band of 11 px.
 
+## Known limits, with a worked example
+
+The gate's known limits are the ones the 2026-11-13 decision lists: a bare surname shared with someone in that term, exact full-name namesakes, imitation of a faction heading, and over-dropping of foreign, historical and security figures.
+
+**Worked example of the exact-namesake limit** (heocr-lead's agent check on #203):
+- In a K24 committee protocol, a Knesset legal-department adviser appears as an advocate and as a speaker under the legal department. The adviser has the same full name as MK Elazar Stern, who served in that term.
+- The roster match therefore makes the mention public, and its lines are kept.
+- No fix is needed: the adviser is an official speaking in an official role, not a private person.
+- The example shows that an exact full-name namesake passes the gate. A private person with an MK's exact full name in the same term would pass the same way.
+
+## Release preconditions
+
+- **Committee lines are training-only in every form.** `refuse_training_only_release` stops the hocrgen release export.
+- **A marker file goes with every copy.** `committee/out/` and every lstmf directory built from committee lines carry a `TRAINING_ONLY.md`.
+- **heocr-engine needs its own refusal.** hocrgen's export isn't the only upload path. Before any R9 dataset release, heocr-engine's release tooling must also refuse committee material: rows with `release_scope: training_only`, source `knesset_committee_protocols_k16plus`, a `committee:` unit, or a directory holding `TRAINING_ONLY.md`. That refusal is not built yet.
+- **Weights.** Models trained on committee lines can be released under Apache-2.0, with the Knesset attribution in the model card and NOTICE, and after the blank-image probe (safeguard 4).
+
 ## For the R9 recipe (lead's call)
 
 1. **Do not stack reshumot v1 and v2.** reshumotlines_v2 contains v1's 22,303 surviving rows byte for byte. The R9 list should replace R8b main's reshumotlines_v1 part with `reshumotlines_v2_train.clean2.list`, not add v2 on top. The pool above counts both, so it overstates Reshumot by about 19.5k lines.
