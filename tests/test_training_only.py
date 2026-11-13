@@ -59,3 +59,9 @@ def test_committee_row_without_date_fails_closed_and_marker_in_metadata():
 def test_old_committee_and_other_rows_pass():
     rows = [{"line_id": "f", "unit_id": "committee:K8_9", "session_date": "1974-02-01"}, {"line_id": "g"}]
     assert refuse_training_only_release(rows, today=TODAY) == 2
+
+
+def test_pre1976_scanned_committee_source_is_not_governed():
+    row = {"item_id": "knesset_committee_protocols_pre1976:knesset_committee_399388__p0002",
+           "source_id": "knesset_committee_protocols_pre1976"}
+    assert refuse_training_only_release([row], today=TODAY) == 1

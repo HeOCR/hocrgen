@@ -22,6 +22,8 @@ TRAINING_ONLY = "training_only"
 PUBLISHABLE = "publishable"
 COMMITTEE_SOURCE_PREFIX = "knesset_committee"
 COMMITTEE_UNIT_PREFIX = "committee:"
+# Scanned protocols up to 1975 (period 1, publishable, screened per page under F8 decision 5): not governed here.
+PRE1976_SOURCE_ID = "knesset_committee_protocols_pre1976"
 _YEAR = re.compile(r"^(\d{4})")
 
 
@@ -59,6 +61,8 @@ def committee_release_scope(session_date: str | date | None, *, today: date | No
 
 def is_committee_row(row: Any) -> bool:
     source = str(_get(row, "source_id") or "")
+    if source == PRE1976_SOURCE_ID:
+        return False
     if source.startswith(COMMITTEE_SOURCE_PREFIX):
         return True
     return any(str(_get(row, name) or "").startswith(COMMITTEE_UNIT_PREFIX) for name in ("unit_id", "source_unit"))
