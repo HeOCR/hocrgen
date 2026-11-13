@@ -192,13 +192,12 @@ def test_claude_predictions_subset_and_coincidence(tmp_path):
     (rd / "batches" / "batch_00.json").write_text(json.dumps([{"key": key_c}]))
     rep = mr.claude_predictions(rd, m, m, tmp_path / "claude")
     assert rep["pages_with_reading"] == 2
-    only = json.loads((tmp_path / "claude/claude_only" / f"{mr.safe(key_a)}.json").read_text())
-    filled = json.loads((tmp_path / "claude/with_prefill_short" / f"{mr.safe(key_a)}.json").read_text())
+    only = json.loads((tmp_path / "claude/predictions" / f"{mr.safe(key_a)}.json").read_text())
     assert only["text"] == "סעיף אחד ושתיים\nסעיף שלש\nהערת שוליים"
-    assert filled["text"].startswith("חוק הדוגמה\n") and only["track"] == "proprietary"
+    assert only["track"] == "proprietary" and rep["unread_prefill_lines"] == 1   # page a's line 0 was not read
     n = mr.subset(tmp_path / "sets/pass1", tmp_path / "claude/items.txt", tmp_path / "sets/pass1_claude")
     assert n == 2
-    r = _evaluate(tmp_path / "sets/pass1_claude", tmp_path / "claude/claude_only", tmp_path / "rc.json")
+    r = _evaluate(tmp_path / "sets/pass1_claude", tmp_path / "claude/predictions", tmp_path / "rc.json")
     assert _headline(r)["items"] == 1 and r["track"] == "proprietary"
     co = mr.coincidence(_decisions(), m, _blind(m), rd, m)
     assert co["batches"]["batch_v1_00"]["prefill_wrong_lines"] == 1

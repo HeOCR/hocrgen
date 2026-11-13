@@ -24,10 +24,8 @@ Subcommands:
 - ``claude-predictions`` writes Claude's saved page readings (``ai_readings/``) as ``heocr_engine_prediction.v1``
   files, labelled "Claude (multimodal LLM), not an engine", track proprietary. They feed the yardstick only; they are
   never references and never shown. The 15 readings seeded from the pre-fill are replaced by their image-only re-reads
-  (``pages_v1r/``) or dropped. Readings cover only pre-fill lines with 4+ Hebrew letters, so two variants are written:
-
-  - ``claude_only`` charges the lines Claude did not read;
-  - ``with_prefill_short`` fills those lines from the pre-fill the reading was made on.
+  (``pages_v1r/``) or dropped. A pre-fill line the reading skipped is charged, never filled from the pre-fill, and
+  ``claude_coverage.json`` counts such lines (``unread_prefill_lines``).
 
   The command also writes ``items.txt``, the pages that have a reading.
 - ``subset`` copies a set directory restricted to ``items.txt`` (for prediction sets that cover only some pages).
@@ -433,7 +431,7 @@ def _reference_error(rows: list[dict]) -> dict[str, Any]:
 
 # --- Claude's readings --------------------------------------------------------------------------------------------
 
-def _reading_text(reading: Mapping[str, Any], prefill: str | None, fill_short: bool) -> str:
+def _reading_text(reading: Mapping[str, Any]) -> str:
     """Claude's page text in pre-fill line order, with its missing-text lines after their near_i line."""
     if reading.get("mode") == "image_only":
         return "\n".join(clean(t) for t in reading["printed_lines"] if t.strip())
@@ -441,10 +439,6 @@ def _reading_text(reading: Mapping[str, Any], prefill: str | None, fill_short: b
     read = {ln["i"]: ln["text"] for ln in reading["lines"]}
     for i, text in read.items():
         slots.append((i, 0, 0, text))
-    if fill_short and prefill is not None:
-        for i, text in enumerate(prefill.splitlines()):
-            if i not in read and text.strip():
-                slots.append((i, 0, 0, text))
     for k, m in enumerate(reading.get("missing", [])):
         slots.append((m["near_i"], 1, k, m["text"]))
     return "\n".join(clean(t) for *_, t in sorted(slots) if t.strip())
@@ -477,17 +471,20 @@ def select_readings(readings: Path, manifest: Mapping[str, Any], manifest_v0: Ma
 
 def claude_predictions(readings: Path, manifest: Mapping[str, Any], manifest_v0: Mapping[str, Any], out: Path) -> dict[str, Any]:
     chosen = select_readings(readings, manifest, manifest_v0)
-    for variant in ("claude_only", "with_prefill_short"):
-        d = out / variant
-        if d.exists():
-            shutil.rmtree(d)
-        for key, c in chosen.items():
-            text = _reading_text(c["reading"], c["prefill"], variant == "with_prefill_short")
-            _dump(d / f"{safe(key)}.json", _prediction(c["page"]["image_sha256"], text, name=CLAUDE_ENGINE,
-                                                       version=c["reading"].get("reader", "claude"), track="proprietary",
-                                                       network=True))
+    d = out / "predictions"
+    if d.exists():
+        shutil.rmtree(d)
+    unread = 0
+    for key, c in chosen.items():
+        _dump(d / f"{safe(key)}.json", _prediction(c["page"]["image_sha256"], _reading_text(c["reading"]), name=CLAUDE_ENGINE,
+                                                   version=c["reading"].get("reader", "claude"), track="proprietary",
+                                                   network=True))
+        if c["prefill"] is not None:
+            read = {ln["i"] for ln in c["reading"]["lines"]}
+            unread += sum(1 for i, t in enumerate(c["prefill"].splitlines()) if t.strip() and i not in read)
     (out / "items.txt").write_text("".join(f"midcentury:{k}\n" for k in sorted(chosen)), encoding="utf-8")
     report = {"pages_with_reading": len(chosen), "image_only_rereads": sum(c["batch"] == "v1r" for c in chosen.values()),
+              "unread_prefill_lines": unread,
               "seeded_dropped": sorted(SEEDED - set(chosen)),
               "no_reading": sorted(page_key(p["unit_id"], p["page"]) for p in manifest["pages"]
                                    if page_key(p["unit_id"], p["page"]) not in chosen)}
