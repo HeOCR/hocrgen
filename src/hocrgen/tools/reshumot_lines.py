@@ -609,8 +609,8 @@ def build(args: argparse.Namespace, *, registry: EvalReservedUnitsRegistry | Non
             entries.append(entry)
     seed = getattr(args, "shuffle_seed", None) or DEFAULT_SHUFFLE_SEED
     pool_path = getattr(args, "exclude_6grams", None)
-    pool = load_gram_pool(Path(pool_path)) if pool_path else None
-    pool_digests = frozenset(pool["digests"]) if pool else frozenset()
+    gram_pool = load_gram_pool(Path(pool_path)) if pool_path else None
+    pool_digests = frozenset(gram_pool["digests"]) if gram_pool else frozenset()
     pinned = None
     if getattr(args, "keep_dev_from", None):
         pinned = json.loads(Path(args.keep_dev_from).read_text(encoding="utf-8"))["dev_selection"]["picks"]
@@ -849,12 +849,12 @@ def build(args: argparse.Namespace, *, registry: EvalReservedUnitsRegistry | Non
         summary["snapshots"] = [str(path) for path in snapshots]
         summary["pdf_caches"] = [str(Path(path).resolve()) for path in pdf_caches]
         summary["page_layer_dirs"] = [str(Path(path).resolve()) for path in layer_dirs]
-    if pool is not None:
+    if gram_pool is not None:
         summary["eval_text_overlap_filter"] = {
             "rule": ("a line sharing any word 6-gram (Hebrew-letter words, logical order) with the pool is dropped "
                      "(shares_word_6gram_with_eval_text): amendments quote the text they amend"),
             "pool": str(Path(pool_path).resolve()), "pool_sha256": sha256_bytes(Path(pool_path).read_bytes()),
-            "pool_digests": len(pool_digests), "pool_targets": pool.get("targets"), "pool_built_by": pool.get("built_by"),
+            "pool_digests": len(pool_digests), "pool_targets": gram_pool.get("targets"), "pool_built_by": gram_pool.get("built_by"),
             "rule_origin": NGRAM_ORIGIN, "lines_dropped": drops.get("shares_word_6gram_with_eval_text", 0),
             "line_set_condition": _line_set_condition(registry),
         }

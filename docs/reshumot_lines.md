@@ -157,3 +157,13 @@ Every command that reads a downloaded PDF runs under `python -I` through a runne
 
 v2 is built from both snapshots (tranche v5 for v1's booklets and the 2005 snapshot) with v1's options, plus
 `--keep-dev-from` v1's summary, `--exclude-6grams` and `--shuffle-seed reshumotlines-v2`.
+
+**reshumotlines_v2 (2026-11-12).**
+
+- **Capture.** 139 files of the probed span ספר החוקים 1973–2044 and קובץ התקנות 6386–6450 give 121 born-digital
+  booklets: 64 ספר החוקים (1976–2044) and 57 קובץ התקנות (6391, 6395–6450), 1,466 pages. 1,219 pages pass the gate,
+  317 of them cropped. Most refusals are `missing_expected_phrase`: some prints carry the wrong booklet number in
+  the footer (6397 prints 6367), and some API tables of contents differ from the print.
+- **Set.** 74,161 lines (train 71,533, dev 2,628) from 168 booklets, against v1's 23,642 (20,926 / 2,716) from 54. The
+  dev booklets are v1's, pinned. The eval-text filter drops 3,207 lines, 1,339 of them v1 rows.
+- **v1 identity.** Every other v1 row, image and label is byte-identical in v2 (22,303 rows).
