@@ -399,10 +399,13 @@ def _fake_render(render_dir: Path, rows: list[dict], *, bad_license_id=None, wro
         Image.new("L", (60, 20), 255).save(png)
         gt = png.with_suffix(".gt.txt")
         gt.write_text(("אחר" if row["id"] == wrong_gt_id else row["text"]) + "\n", encoding="utf-8")
-        manifest.append({"id": row["id"], "image": f"lines/{row['id']}.png", "gt": f"lines/{row['id']}.gt.txt",
-                         "font_id": "david-libre-regular", "font_sha256": "a" * 64,
-                         "license": "GPL-2.0" if row["id"] == bad_license_id else "OFL-1.1",
-                         "size": 28, "weight": 400, "preset": "clean_print", "ink_band_height": 21})
+        # the hocrsyngen_line_render.v1 shape (hocrsyngen 90aa2bf, docs/line_render.md)
+        manifest.append({"schema": "hocrsyngen_line_render.v1", "id": row["id"], "image": f"lines/{row['id']}.png",
+                         "label": f"lines/{row['id']}.gt.txt", "font_id": "david-libre-regular",
+                         "font": {"id": "david-libre-regular", "file": "DavidLibre-Regular.ttf", "sha256": "a" * 64,
+                                  "license": "GPL-2.0" if row["id"] == bad_license_id else "OFL-1.1"},
+                         "size_px": 28, "weight": None, "preset": "modern_print_scan_v1", "ink_band_px_otsu2pct": 31,
+                         "synthetic": "rendered"})
     manifest.append({"id": "not-ours", "image": "lines/x.png", "font_id": "x", "license": "OFL-1.1"})
     (render_dir / "manifest.jsonl").write_text("".join(json.dumps(m, ensure_ascii=False) + "\n" for m in manifest), encoding="utf-8")
 
@@ -419,7 +422,8 @@ def test_join_render_writes_the_make_lstmf_shape_with_face_and_provenance(plenar
     joined = [json.loads(line) for line in (out / "manifest.jsonl").read_text(encoding="utf-8").splitlines()]
     for row in joined:
         assert row["face"] == "david-libre-regular" and row["render"]["font_license"] == "OFL-1.1"
-        assert row["render"]["preset"] == "clean_print" and row["render"]["ink_band_height"] == 21
+        assert row["render"]["preset"] == "modern_print_scan_v1" and row["render"]["ink_band_px_otsu2pct"] == 31
+        assert row["render"]["font_sha256"] == "a" * 64 and row["render"]["synthetic"] == "rendered"
         assert row["image"] == f"train/{row['book']}/{row['id']}.png" and row["privacy_gate"] == PLENARY_GATE
         assert (out / row["image"]).with_suffix(".gt.txt").read_text(encoding="utf-8") == row["text"] + "\n"
     assert kl.verify(out, registry=plenary["registry"]) == []

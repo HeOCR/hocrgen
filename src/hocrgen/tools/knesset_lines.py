@@ -106,7 +106,9 @@ DEFAULT_SOFFICE = "/opt/homebrew/bin/soffice"
 DEFAULT_NER_PYTHON = str(Path.home() / ".venvs" / "heocr-ner" / "bin" / "python")
 NER_SCRIPT = Path(__file__).resolve().parent.parent / "privacy" / "ner_stream.py"
 NER_TAGGER = "dicta-il/dictabert-ner over each unit's line stream (ner_stream.py) + cue heuristic"
-DEFAULT_RENDER_CMD = "hocrsyngen render-lines --input {input} --out {out}"
+HOCRSYNGEN_PIN = "90aa2bf354479965f5a079223f97a9101c8e056c"  # HeOCR/hocrsyngen#99, render-lines
+DEFAULT_RENDER_CMD = ("hocrsyngen render-lines --input {input} --output {out} --seed 20261113 --band-range 27 34 "
+                      "--preset modern_print_scan_v1")
 RENDER_LICENSES = frozenset({"OFL-1.1"})  # decision 0018 as amended 2026-11-13: open-licensed rendering fonts only
 
 MARKER = re.compile(r"\s*<<\s*([^<>]*?)\s*>>\s*")
@@ -802,7 +804,8 @@ def join_render(out: Path, render_dir: Path, *, licenses: frozenset[str] = RENDE
         if row is None:
             problems["unknown_id"] += 1
             continue
-        license_ = _field(rendered, "license", "licence", "font_license", "font_licence")
+        font = rendered.get("font") if isinstance(rendered.get("font"), Mapping) else {}
+        license_ = _field(font, "license") or _field(rendered, "license", "licence", "font_license", "font_licence")
         if license_ not in licenses:
             problems["font_license_not_open"] += 1
             continue
@@ -811,7 +814,7 @@ def join_render(out: Path, render_dir: Path, *, licenses: frozenset[str] = RENDE
             problems["image_missing_or_outside"] += 1
             continue
         gt_text = _field(rendered, "text", "gt_text")
-        gt_file = _field(rendered, "gt", "gt_path")
+        gt_file = _field(rendered, "label", "gt", "gt_path")
         if gt_text is None and gt_file:
             gt_path = (render_dir / str(gt_file)).resolve()
             gt_text = gt_path.read_text(encoding="utf-8").rstrip("\n") if root in gt_path.parents and gt_path.is_file() else ""
@@ -822,12 +825,15 @@ def join_render(out: Path, render_dir: Path, *, licenses: frozenset[str] = RENDE
         target.parent.mkdir(parents=True, exist_ok=True)
         shutil.copyfile(image, target)
         target.with_suffix(".gt.txt").write_text(row["text"] + "\n", encoding="utf-8")
-        provenance = {k: rendered.get(k) for k in ("size", "weight", "preset", "ink_band_height", "ink_band_px",
-                                                     "renderer_version", "seed") if k in rendered}
+        provenance = {k: rendered.get(k) for k in (
+            "schema", "size_px", "size_mode", "target_band_px", "band_def", "weight", "preset", "preset_params",
+            "ink_band_px_otsu2pct", "ink_band_frac_otsu2pct", "ink_band_px", "dark_density", "seed", "line_seed",
+            "style_seed", "synthetic", "width", "height") if k in rendered}
         joined.append({**row, "face": _field(rendered, "font_id", "font"), "image": f"train/{row['book']}/{row['id']}.png",
                        "image_sha256": sha256_bytes(target.read_bytes()),
                        "render": {"renderer": "hocrsyngen render-lines", "font_id": rendered.get("font_id"),
-                                  "font_sha256": _field(rendered, "font_sha256", "font_file_sha256"), "font_license": license_,
+                                  "font_sha256": _field(font, "sha256") or _field(rendered, "font_sha256", "font_file_sha256"),
+                                  "font_file": font.get("file"), "font_license": license_,
                                   **provenance}})
     refuse_ungated(SERIES[summary["series_key"]], joined, "knesset_lines render")
     manifest = out / "manifest.jsonl"
@@ -845,7 +851,7 @@ def join_render(out: Path, render_dir: Path, *, licenses: frozenset[str] = RENDE
 
 
 def render(out: Path, render_dir: Path, command: str = DEFAULT_RENDER_CMD) -> dict[str, Any]:  # pragma: no cover
-    """Run ``hocrsyngen render-lines`` on ``render_input.jsonl`` (a stub until it lands), then join its manifest."""
+    """Run ``hocrsyngen render-lines`` (pinned at ``HOCRSYNGEN_PIN``) on ``render_input.jsonl``, then join its manifest."""
 
     args = [part.format(input=str(out / "render_input.jsonl"), out=str(render_dir)) for part in shlex.split(command)]
     subprocess.run(args, check=True)
