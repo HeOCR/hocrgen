@@ -1914,7 +1914,7 @@ A run without the new flags is byte-identical to one before E2e. The plan is in 
 
 ## E2f — Evaluation-reserved units
 
-**Direction: heocr-engine decisions 0017 and 0018. `E2f1` (#178), `E2f2` (#187), `E2f3` (#188) and `E2f4` (#189) and `E2f5` (#193) are merged, and `E2f6` is in review.**
+**Direction: heocr-engine decisions 0017 and 0018. `E2f1` (#178), `E2f2` (#187), `E2f3` (#188) and `E2f4` (#189), `E2f5` (#193) and `E2f6` (#195) are merged.**
 
 - **`E2f1`.** heocr-eval's P-mod unit split file is recorded as `eval_reserved_units.v1`. Eval and unassigned units are pinned to the `eval_reserved` release split, and every training-input builder refuses them.
 - **`E2f2`.** Governs `reshumot_scanned` (its own `reshumot_scanned:` unit prefix; one booklet, one Reshumot source) and `knesset_plenary_k1_12` (`plenary:K<knesset>_<sitting>`). Their rows are unassigned, and so refused, until a split version lists them.
@@ -1924,3 +1924,9 @@ A run without the new flags is byte-identical to one before E2e. The plan is in 
 - **`E2f6`.** Sync to `pmod_unit_split_v5`: the replacement walk applied (5 queue units become dev, the other 35 return to non_eval).
 
 The plan is in [`planning/tasks/e2f-eval-reserved-units.md`](../planning/tasks/e2f-eval-reserved-units.md).
+
+## E2g — Mid-century page review references
+
+**Direction: heocr-engine decisions 0017 and 0018; heocr-eval's mid-century review batch. `E2g1` is in review.**
+
+- **`E2g1`.** `hocrgen.tools.midcentury_review` validates heocr-review's `page_review_decisions.v0` export against the batch manifest (v1) and the blind pre-fill. It writes the first-pass, blind second-pass and cross-pass sets as `evaluate-references` inputs: the reference manifest, eval labels, unit clusters and an asset index. Every page is `within_line`, so it is scored by `line_matched.v1`. Rejected and known-bad pages are excluded. Claude's saved readings are written as proprietary predictions, for the yardstick only, and the error-coincidence test runs per reader batch. Tests use invented fixtures only.
