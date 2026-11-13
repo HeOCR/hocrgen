@@ -107,6 +107,13 @@ def test_build_sets_and_summary(tmp_path):
     assert [ln["text"] for ln in ref["lines"]][-1] == "הערת שוליים"
 
 
+def test_page_without_reference_lines_is_excluded(tmp_path):
+    d = _decisions()
+    d["decisions"][3]["lines"] = [_line([0], "not_on_page", None), _line([1], "not_on_page", None)]
+    s = mr.build(d, _manifest(), _blind(_manifest()), tmp_path / "sets", synthetic_fixture=True, known_bad={})
+    assert {x["page"]: x["reason"] for x in s["excluded"]}[f"{U}#p4"] == "confirmed with no reference lines"
+
+
 def test_refuses_synthetic_without_flag_and_bad_exports(tmp_path):
     m = _manifest()
     with pytest.raises(SystemExit, match="synthetic"):

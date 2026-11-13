@@ -373,6 +373,9 @@ def build(decisions: Mapping[str, Any], manifest: Mapping[str, Any], blind: Mapp
         elif r["page_action"] == "reject":
             excluded.append({"page": page_key(*key), "role": page["role"], "reason": f"rejected: {r['reject_reason']}",
                              "decision": "reject"})
+        elif not _reference_lines(r):
+            excluded.append({"page": page_key(*key), "role": page["role"], "reason": "confirmed with no reference lines",
+                             "decision": "confirm"})
         else:
             pass1.add(page, r)
     error_rows = []
@@ -381,10 +384,14 @@ def build(decisions: Mapping[str, Any], manifest: Mapping[str, Any], blind: Mapp
             excluded.append({"page": page_key(*key) + "@pass2", "role": "blind", "decision": r["page_action"],
                              "reason": "known bad" if key in known_bad else f"rejected: {r.get('reject_reason')}"})
             continue
+        if not _reference_lines(r):
+            excluded.append({"page": page_key(*key) + "@pass2", "role": "blind", "decision": "confirm",
+                             "reason": "confirmed with no reference lines"})
+            continue
         q = by_pass[1].get(key, [None])[0]
         first = q["pass1_at_pass2"] if q and q.get("revised_after_pass2") else q
         pass2.add(pages[key], r)
-        if first and first["page_action"] == "confirm":
+        if first and first["page_action"] == "confirm" and _reference_lines(first):
             text = _page_text(_reference_lines(first))
             cross[pages[key]["image_sha256"]] = text
             e, n = _cer(text, _page_text(_reference_lines(r)))
