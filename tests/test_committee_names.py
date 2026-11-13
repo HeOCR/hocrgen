@@ -68,3 +68,28 @@ def test_refuse_ungated_committee_lines():
     assert refuse_ungated_committee_lines([ok, {"line_id": "x"}]) == 1
     with pytest.raises(UngatedCommitteeLinesError):
         refuse_ungated_committee_lines([plenary_stamp])
+
+
+def test_lead_probe_witness_sharing_mk_surname_same_term():
+    # The invited witness "אורי כהן" shares the surname of MK משה כהן (K24). "מר כהן" in the body
+    # must drop, though the plenary rule alone would keep a bare K24 MK surname.
+    deny = session_denylist(["אורי כהן – עמותת דוגמה"], ROSTER, 24)
+    lines = _lines("אני מבקש להודות למר כהן על עבודתו", "נעבור לסעיף הבא")
+    stream, _ = stream_text(lines)
+    s = stream.index("כהן")
+    spans = [{"start": s, "end": s + 3, "text": "כהן"}]
+    assert gate_committee_lines(lines, spans, ROSTER).kept[0]["line_id"] == "l0"  # without the denylist it leaks
+    res = gate_committee_lines(lines, spans, ROSTER, denylist=deny)
+    assert [r["line_id"] for r in res.dropped] == ["l0"]
+    assert res.dropped[0]["privacy_drop"] == ["session_denylist"]
+
+
+def test_lead_probe_name_broken_across_two_physical_lines():
+    # "רונית" ends the first physical line, "כהן" (a K24 MK surname) starts the second.
+    lines = _lines("הגיעה אלינו פנייה של רונית", "כהן מחיפה בעניין הדיור", "אין כאן שמות")
+    stream, _ = stream_text(lines)
+    s = stream.index("רונית")
+    spans = [{"start": s, "end": s + len("רונית כהן"), "text": "רונית כהן"}]
+    res = gate_committee_lines(lines, spans, ROSTER)
+    assert [r["line_id"] for r in res.dropped] == ["l0", "l1"]
+    assert [r["line_id"] for r in res.kept] == ["l2"]
