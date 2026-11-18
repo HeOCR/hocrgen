@@ -78,6 +78,7 @@ from SECONDARY only the lines whose edition text no PRIMARY aligned page covers 
 from __future__ import annotations
 
 import argparse
+import bisect
 import difflib
 import hashlib
 import json
@@ -183,6 +184,18 @@ def edition_text(root: Path, name: str, work: Mapping[str, Any]) -> str:
     if hashlib.sha256(raw).hexdigest() != want:
         raise SystemExit(f"{path}: sha256 differs from the alignment's text record ({want})")
     return unicodedata.normalize("NFC", raw.decode("utf-8"))
+
+
+def marker_offsets(root: Path, name: str, work: Mapping[str, Any], text: str) -> tuple[list[int], set[int]]:
+    """A text source's marker file ``text/<work_id>.markers.json`` (``text_sources.sefaria_marker_offsets``): sorted
+    anchor offsets and segment starts. It must be pinned to the alignment's text (fail-closed)."""
+    path = root / "text" / f"{name}.markers.json"
+    if not path.exists():
+        raise SystemExit(f"--drop-marker-lines: {path} is missing (written by python -m hocrgen.fetchers.text_sources sefaria)")
+    m = json.loads(path.read_text(encoding="utf-8"))
+    if m.get("text_sha256") != (work.get("text_record") or {}).get("text_sha256") or len(text) != m.get("text_chars", len(text)):
+        raise SystemExit(f"{path}: not pinned to the alignment's text")
+    return sorted(m["anchor_offsets"]), set(m["segment_starts"])
 
 
 def record_id(scan: Mapping[str, Any]) -> str:
@@ -396,7 +409,7 @@ def _named(pairs: Iterable[str] | None) -> dict[str, str]:
 
 def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, str], keep_pointed: bool,
             prefer_placer: Sequence[str] = (), records: Iterable[str] | None = None, exclude_records: Iterable[str] = (),
-            drop_pointed_spans: bool = False):
+            drop_pointed_spans: bool = False, drop_marker_lines: bool = False):
     """Candidate lines per (record, canvas, line) after the line gates, with drop counts, edition niqqud density, the
     per-record alignment-source choice, the alignment dirs not read and the pointed spans dropped per record."""
     best: dict[tuple[str, int, int], dict[str, Any]] = {}
@@ -422,6 +435,7 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
         work = al.get("work") or {}
         text = edition_text(root, pby, work)
         text_source = work.get("text_source") or TEXT_SOURCE_PBY
+        anchors, seg_starts = marker_offsets(root, pby, work, text) if drop_marker_lines and text_source != TEXT_SOURCE_PBY else (None, None)
         for page in al["pages"]:
             if page["status"] != "aligned":
                 continue
@@ -454,6 +468,14 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
                 if sim < MIN_OCR_SIMILARITY:
                     drops["label_disagrees_with_line_ocr"] += 1
                     continue
+                if anchors is not None:
+                    k = bisect.bisect_left(anchors, s)
+                    if k < len(anchors) and anchors[k] <= e:
+                        drops["marker_in_line"] += 1  # the print shows a commentator marker the label lacks
+                        continue
+                    if s in seg_starts:
+                        drops["segment_start"] += 1  # the print shows a se'if or paragraph number the label lacks
+                        continue
                 plain = label(raw)
                 density[rec][0] += len(NIQQUD.findall(unicodedata.normalize("NFD", raw)))
                 density[rec][1] += len(LETTER.findall(raw))
@@ -612,7 +634,7 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     best, drops, density, placer_choice, skipped_dirs, span_drops = collect(
         roots, min_score=args.min_score, pointed=pointed, keep_pointed=args.keep_pointed,
         prefer_placer=args.prefer_placer or (), records=records, exclude_records=exclude_records,
-        drop_pointed_spans=drop_spans)
+        drop_pointed_spans=drop_spans, drop_marker_lines=bool(getattr(args, "drop_marker_lines", False)))
     dens = {rec: round(m / n, 3) if n else 0.0 for rec, (m, n) in sorted(density.items())}
     unresolved = sorted(rec for rec, d in dens.items() if d >= CHECK_POINTED_DENSITY and rec not in pointed and rec not in unpointed)
     if args.schema == "v2" and unresolved:
@@ -719,6 +741,9 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
             summary["node_hints"] = str(args.node_hints)
             summary["lines_by_split_and_proposed_node_hint"] = {sp: dict(sorted(c.items())) for sp, c in sorted(by_hint.items())}
             summary["proposed_node_hint_by_record"] = {rec: hints[rec] for rec in sorted({k[0] for k in keys})}
+        if getattr(args, "drop_marker_lines", False):
+            summary["drop_marker_lines"] = {"rule": "text-source lines whose edition span holds a removed commentator anchor, or starts a segment, are dropped (marker_in_line, segment_start)",
+                                            "markers": "text/<work_id>.markers.json (hocrgen.fetchers.text_sources.sefaria_marker_offsets)"}
         if drop_spans:
             summary["drop_pointed_spans"] = {"min_niqqud_per_letter": MIN_POINTED_DENSITY,
                                              "dropped_by_record": dict(sorted(span_drops.items()))}
@@ -911,6 +936,9 @@ def main(argv: Sequence[str] | None = None) -> int:
     b.add_argument("--exclude-records", nargs="*", help="leave these records out (e.g. those of an earlier set)")
     b.add_argument("--exclude-records-from", action="append",
                    help="file with one record per line (first field; # comments) to leave out (repeatable)")
+    b.add_argument("--drop-marker-lines", action="store_true",
+                   help="text sources: drop lines whose edition span holds a removed commentator anchor or starts a segment "
+                   "(the print shows a marker or number the label lacks); needs text/<work_id>.markers.json")
     b.add_argument("--drop-pointed-spans", action="store_true",
                    help="drop lines of prints not named --pointed whose edition span is pointed (MIN_POINTED_DENSITY)")
     b.add_argument("--summary-note", action="append", help="a note copied into summary.json `notes` (repeatable)")
