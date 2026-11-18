@@ -2,7 +2,7 @@
 
 - **Date:** 2026-11-09
 - **Decided by:** the maintainer (Shay Palachy Affek)
-- **Status:** accepted
+- **Status:** accepted; condition 3 amended on 2026-11-18 (`2026-11-18-ia-known-source-named-digitizer.md`: a digitizer named in the description is a known source)
 - **Applies to:** pairing Project Ben-Yehuda (PBY) texts with Internet Archive (IA) scans of the same printed edition
   (F8f, the PBY ↔ scan alignment), for training and dev
 

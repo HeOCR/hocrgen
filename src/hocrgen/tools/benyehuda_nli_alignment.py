@@ -1612,12 +1612,15 @@ def ia_scan_record(
     nli_snapshot: NliSnapshot | None = None,
     google_hygiene: dict[str, Any] | None = None,
     contributors_listed_in: str = "pby_catalogue",
+    sefaria_version: dict[str, Any] | None = None,
 ) -> dict[str, Any] | str:
     """The report's ``scan`` for an IA item, or an error string when the IA gate rejects it, the ids disagree, or
     its rights justification cannot be filled. ``canvas_indices`` are the canvases aligned (default all);
-    ``google_hygiene`` is the hygiene pass's record for a Google item (``scan.google_hygiene``)."""
+    ``google_hygiene`` is the hygiene pass's record for a Google item (``scan.google_hygiene``). ``sefaria_version``
+    is the Sefaria version record of a ``--text-source sefaria`` text, which the IA gate needs for a scan that
+    Sefaria digitized (2026-11-18 amendment of condition 3)."""
 
-    decision = decide_ia_rights(metadata)
+    decision = decide_ia_rights(metadata, sefaria_version=sefaria_version)
     if decision.identifier != identifier:
         return f"IA metadata is for {decision.identifier!r}, not {identifier!r}"
     if not decision.accepted:
@@ -1694,7 +1697,18 @@ def ia_scan(
         nli_snapshot=load_nli_snapshot(args.nli_snapshot) if args.nli_snapshot is not None else None,
         google_hygiene=google_hygiene,
         contributors_listed_in="pby_catalogue" if args.text_source == text_sources.TEXT_SOURCE_PBY else "text_record",
+        sefaria_version=_sefaria_version(args),
     )
+
+
+def _sefaria_version(args: argparse.Namespace) -> dict[str, Any] | None:  # pragma: no cover - operator path
+    """The Sefaria version evidence of a ``--text-source sefaria`` text record (its licence decision's evidence)."""
+
+    if args.text_source != "sefaria" or args.text_record is None:
+        return None
+    record = json.loads(args.text_record.read_text(encoding="utf-8"))
+    evidence = (record.get("text_licence_decision") or {}).get("evidence") or {}
+    return dict(evidence) or None
 
 
 def text_source_inputs(args: argparse.Namespace) -> tuple[dict[str, str], str, dict[str, Any]] | str:
