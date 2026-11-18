@@ -40,16 +40,18 @@ def test_the_file_record_reads_the_information_template_and_licence() -> None:
     assert f["source"] == SEFARIA_SOURCE and f["licence_templates"] == ["PD-old-70"]
 
 
-def test_a_sefaria_scan_is_accepted_when_its_version_cites_the_same_nli_record() -> None:
+def test_a_sefaria_scan_records_whether_its_version_is_the_same_copy() -> None:
     d = cs.decide_commons_rights(cs.commons_file_record(_api(SEFARIA_SOURCE)), sefaria_version=_version())
     assert d.accepted and d.source_class == cs.SOURCE_CLASS_COMMONS_SEFARIA
     assert d.record["digitizer"]["name"] == "Sefaria"
     assert d.record["nli_record_ids"] == ["990011576720205171"]
-    bad = cs.decide_commons_rights(cs.commons_file_record(_api(SEFARIA_SOURCE)),
-                                   sefaria_version=_version("https://www.nli.org.il/he/books/NNL_ALEPH001234567/NLI"))
-    assert not bad.accepted and bad.reason == "commons_sefaria_scan_nli_record_mismatch"
-    not_dig = cs.decide_commons_rights(cs.commons_file_record(_api(SEFARIA_SOURCE)), sefaria_version=_version(digitized=False))
-    assert not not_dig.accepted and not_dig.reason == "commons_sefaria_version_not_digitized_by_sefaria"
+    assert d.record["edition_evidence"]["same_copy_as_sefaria_version"] is True
+    # A version of another copy, or one Sefaria did not digitize, is recorded but does not reject the file (decision 10).
+    for version, check in ((_version("https://www.nli.org.il/he/books/NNL_ALEPH001234567/NLI"), "commons_sefaria_scan_nli_record_mismatch"),
+                           (_version(digitized=False), "commons_sefaria_version_not_digitized_by_sefaria")):
+        d = cs.decide_commons_rights(cs.commons_file_record(_api(SEFARIA_SOURCE)), sefaria_version=version)
+        assert d.accepted and d.record["digitizer"]["name"] == "unrecorded"
+        assert d.record["edition_evidence"] == {**d.record["edition_evidence"], "same_copy_as_sefaria_version": False, "check": check}
 
 
 def test_no_recorded_scan_source_is_accepted_under_decision_10() -> None:

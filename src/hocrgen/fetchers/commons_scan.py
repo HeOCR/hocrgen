@@ -18,9 +18,10 @@ Rules, from the existing decisions (no new rights rule):
   A recorded scan source is not required: under decision 10 (2026-11-06) a faithful reproduction needs none. The
   digitizer statements found ("Scan by Sefaria of …", "Scanned by …") and the NLI records cited are recorded as evidence,
   with the same checks as the IA gate (``hocrgen.fetchers.ia_iiif.known_source_from_description``).
-- **Edition evidence for a Sefaria text:** when the file says Sefaria scanned it, the Sefaria version's
-  ``versionSource`` NLI record must be one the file cites (``commons_sefaria_scan_nli_record_mismatch`` otherwise). That
-  ties text and scan to the same physical copy.
+- **Edition evidence for a Sefaria text** (recorded, never gating): when the file says Sefaria scanned it,
+  ``edition_evidence`` records whether the Sefaria version is ``digitizedBySefaria`` and cites an NLI record the file
+  cites, i.e. whether text and scan are the same physical copy. Whether the text matches the print is decided by the
+  alignment and the per-book label audit, as for every other source.
 - **The work's status** is computed as for Route B (``hocrgen.fetchers.ia_justification.work_public_domain``), from the
   text record's contributors and their saved Wikidata death years.
 
@@ -155,8 +156,14 @@ def decide_commons_rights(file: Mapping[str, Any], *, sefaria_version: Mapping[s
     if google:
         failures.append("commons_google_scan_needs_wikisource_hygiene")
     sefaria_statements = [s for s in statements["statements"] if s["kind"] == "sefaria"]
-    if sefaria_version is not None and sefaria_statements and not any(s["accepted"] for s in sefaria_statements):
-        failures.append(sefaria_statements[0]["check"].replace("ia_", "commons_", 1))
+    # Edition evidence, not a rights condition (Route C needs no recorded scan source, decision 10): whether the file's
+    # Sefaria statement and the Sefaria version cite the same NLI record. Alignment and the label audit decide the match.
+    edition_evidence = None
+    if sefaria_version is not None and sefaria_statements:
+        ok = any(s["accepted"] for s in sefaria_statements)
+        edition_evidence = {"same_copy_as_sefaria_version": ok,
+                            "check": "sefaria_version_cites_same_nli_record" if ok else sefaria_statements[0]["check"].replace("ia_", "commons_", 1),
+                            "sefaria_version": statements.get("sefaria_version")}
     accepted = not failures
     if statements["established"]:
         digitizer = {"name": statements["digitizer"],
@@ -185,6 +192,7 @@ def decide_commons_rights(file: Mapping[str, Any], *, sefaria_version: Mapping[s
         "google_evidence": google,
         "nli_record_ids": statements["nli_record_ids"],
         "digitizer": digitizer,
+        "edition_evidence": edition_evidence,
         "decision": "accepted" if accepted else "rejected",
         "reason": failures[0] if failures else "commons_pd_scan_accepted",
         "failed_conditions": failures,
