@@ -112,6 +112,19 @@ Each is a known failure of catalogue-matched PBY text. The Sefaria-on-edition ro
 synth-gen has to confirm the font licence (Noto Rashi Hebrew is said to be OFL; to verify). The localizer never labels
 anything.
 
+### 3b. Per-book audit of `rablines_v1` (2026-11-18)
+
+The same method and bar as 3a, an agent check of 32 seeded lines per book:
+
+| Book | Train lines | Word errors | Verdict |
+|---|---:|---:|---|
+| Machzor Vitry, Google copy (§6b pilot; never-trained lines) | 6,100 (+12,106 capped) | 1 / 32 | pass |
+| Lekach Tov, Buber, vols 3–5 | 6,100 (+3,942 capped) | 1 / 32 | pass |
+| Toratan shel Rishonim (PG #43740) | 1,900 | 0 / 32 | pass |
+| Avot de-Rabbi Natan, Schechter | 3,417 | 2 / 32, then a second sample: 4 / 32 (6 / 64) | **fail** |
+
+ADRN stays out of the round. Its errors are a letter that differs from the print, printed footnote numbers missing from the label, and a word cut at a line end. The capped lines of Machzor Vitry and Lekach Tov enter once their pages are refetched (A1).
+
 ### 3a. Per-book audit of `bynli_lines_v3` (2026-11-18)
 
 **Method.** An agent visual check (three subagents and data-collection; not a human review). Each book got 32 seeded lines (`sha256("20261118:phist-audit:bynli3book_<book>:" + id)`), judged under the §3 bar. Kevar and Yedi'ot (dev units) and Zerubavel (excluded) were not audited. Per-book counts are in `tasks/phist-round/audit/bynli3_books/summary.json` (operator-only).
