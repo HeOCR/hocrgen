@@ -233,6 +233,14 @@ work leaves the training pool.
   - **About a third standard square.**
   - **Rashi-script books as their own stratum,** reported apart.
 - **References:** Shay verifies them, line_verify style, in heocr-review, at 2–3 pages per book. The batch is hardest-first, with an agent pre-check flag on each line. A seeded 10% of the verified lines get a blind second human pass. The batch is prepared as an import, but not imported until the lead relays Shay's go.
+- **Candidate list v1** (`docs/phist_eval_holdout_candidates_v1.json`, sent to eval for registration): **30 books**, with the work-level rule.
+  - A. 13 Wikisource books with proofread pages: the 12 above, plus Ma'ayan Ganim on Job (`ws_index_1735193`, 3 proofread pages whose coverage check is pending).
+  - B. 4 Wikisource books with unproofread (quality-1) text only, used as verification candidates: Sefer ha-Nezirim 1910, Ketav Sofer on the Torah 1889, Alim li-Trufa 1778, Mavo Kelali la-Sefarim ha-Hitsonim 1936.
+  - C. 2 edition-text books: Leket Yosher (the `rablines_v1` reserve) and Arukh ha-Shulchan Choshen Mishpat (NLI scan mirror of Warsaw 1884; Sefaria text from the Vilna 1923–29 printing).
+  - D. 8 PBY editions on IA library scans, standard square, none in any line set. Eretz Yisrael (Gur, 1903) was left out because it is pointed.
+  - E. 3 Rashi-script books, a separate stratum: the Rashba responsa (Warsaw 1883), the Chiddushei ha-Rim responsa (Warsaw 1882), and Radak on Genesis (Pressburg 1842, an NLI scan; the Sefaria PD version cites the same NLI record).
+  - So 27 new P-hist books plus audit2's 13 makes 40, and the Rashi stratum has 3. About 13 of the 27 are standard square.
+  - eval's overlap check must also cover the synthetic training text: htext's PBY corpus feeds hocrsyngen, so group D's works may already appear in synthetic lines.
 - **Registration first:** eval registers the final book ids and the work-level rule (which works and volumes are held out together) as a `check_train_overlap` target. **No pool fill starts before that registration.**
 
 ## 7. Decontamination
@@ -285,6 +293,6 @@ Decision 1 is Shay's; decisions 2–6 are heocr-lead's.
   - at least 60% of the text-bearing canvases `aligned` (stock: 1 of 142; the best fold: 25);
   - at least 15 builder-passing lines per aligned page;
   - a 32-line agent audit with at most 1 word-level error.
-  - If the Rashba book becomes an eval hold-out, the test moves to another Robarts Rashi item, Chiddushei ha-Rim.
+  - **The Rashba book is now an eval hold-out (§6a, group E), so the test moves.** It runs on a non-held-out Rashi text: the Rashi columns of one Vilna Shas tractate (IA `Talmud_Bavli_Vilna_images`, "Scanned by Duke University Libraries", which the amended gate accepts), with Sefaria's PD "Vilna Edition" Rashi. The thresholds are the same. The localizer's training text excludes all three group-E works.
 
 — data-collection[claude/claude-code#shay-macbook-m4]@heocr/opensource
