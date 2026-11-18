@@ -187,6 +187,13 @@ estimates (36.6k actual against 105k estimated over the five built books). The T
 - The Rashi stratum is the large reserve, but it depends on the localizer working. The range is wide because the pilot measured
   only failure modes.
 
+### 4a. This round is frozen at pool v1 (heocr-lead, 2026-11-18)
+
+- **This round's lists** are pool v1 (`tasks/phist-round/phist_pool_v1.json`) plus about 40k clean Reshumot replay lines (synth-gen).
+- **Pool v1** is 37,022 audited square-type lines: 22,922 from the 4 passing `bynli_lines_v3` books and 14,100 from the 3 passing `rablines_v1` books.
+- **Everything newer goes into pool v2, for the next round:** the A1 capped lines, marker-free Tier B (option 1 of §6c, audited per book), and the Tur.
+- **On size:** 37k is small next to R8b's ~200k lines. Labels audited under 3% word error, plus replay, make this round the honest test of whether clean labels beat volume. The start model is chosen zero-shot on P-hist dev from R7, the office-print winner, and stock `heb`.
+
 ## 5. Disk and upload
 
 **Measured unit sizes:**
