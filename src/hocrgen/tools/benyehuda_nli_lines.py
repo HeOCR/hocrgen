@@ -96,6 +96,7 @@ from PIL import Image
 
 from hocrgen.fetchers.google_hygiene import boxes_overlap
 from hocrgen.fetchers.ia_iiif import IA_GATE, IA_SOURCE
+from hocrgen.fetchers.commons_scan import COMMONS_GATE, COMMONS_SOURCE, commons_derivation_blocker
 from hocrgen.fetchers.ia_justification import ia_derivation_blocker
 from hocrgen.split.eval_reserved import refuse_eval_reserved_training_input
 from hocrgen.fetchers.text_sources import PROVENANCE_FIELDS, TEXT_SOURCE_PBY
@@ -210,6 +211,8 @@ def rights_accepted(scan: Mapping[str, Any]) -> bool:
         return False
     if scan.get("source") == IA_SOURCE:
         return decision.get("gate") == IA_GATE
+    if scan.get("source") == COMMONS_SOURCE:
+        return decision.get("gate") == COMMONS_GATE
     return scan.get("license_slug") == ACCEPTED_LICENSE
 
 
@@ -395,7 +398,7 @@ def crop_box(image_size: tuple[int, int], bbox_canvas: Sequence[float], canvas_w
 
 def line_id(record: str, canvas_index: int, line_index: int, source: str | None = None) -> str:
     """``ia_<identifier>_…`` for an Internet Archive scan (``source`` is ``scan.source``), else ``nli<record>_…``."""
-    prefix = "ia_" if source == IA_SOURCE else "nli"
+    prefix = "ia_" if source == IA_SOURCE else "" if source == COMMONS_SOURCE else "nli"  # Commons record ids start "cm_"
     return f"{prefix}{record}_c{canvas_index:04d}_l{line_index:03d}"
 
 
@@ -422,13 +425,13 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
         rec = record_id(scan)
         if not rights_accepted(scan):
             continue
-        blocked = ia_derivation_blocker(scan)  # fails closed: no justification, or Google hygiene still pending
+        blocked = ia_derivation_blocker(scan) or commons_derivation_blocker(scan)  # fails closed (no justification, or hygiene pending)
         if blocked is not None:
             drops[blocked] += sum(
                 1 for page in al["pages"] if page["status"] == "aligned"
                 for line in page["lines"] if line.get("class") == "matched" and line.get("pby_span"))
             continue
-        justification_id = rights_justification_id(scan) if scan.get("source") == IA_SOURCE else None
+        justification_id = rights_justification_id(scan) if scan.get("source") in (IA_SOURCE, COMMONS_SOURCE) else None
         method = al.get("method") or {}
         placer, ocr_sub = ocr_placer(method), ocr_subdir(method)
         source = str(ap_path.relative_to(root))
@@ -519,8 +522,8 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
                         "alignment_score": line["score"], "strict_char_similarity": line.get("strict_char_similarity"),
                         "page_quality": page.get("quality"), "_root": root, "_stratum": stratum, "_placer": placer,
                         "_alignment": source, "_page_ocr": ocr_sub}
-                if scan.get("source") == IA_SOURCE:  # NLI rows stay byte-identical
-                    cand["scan_source"] = IA_SOURCE
+                if scan.get("source") in (IA_SOURCE, COMMONS_SOURCE):  # NLI rows stay byte-identical
+                    cand["scan_source"] = scan["source"]
                     cand["source_class"] = scan.get("source_class")
                     cand["rights_justification_id"] = justification_id
                 if text_source != TEXT_SOURCE_PBY:  # PBY rows stay byte-identical
