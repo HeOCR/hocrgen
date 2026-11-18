@@ -630,7 +630,8 @@ def build_ia_rights_justification(
     if failures:
         return JustificationResult(False, failures[0], failures, None)
 
-    digitizer = {"name": digitizer["name"], "evidence": list(digitizer["evidence"])}
+    digitizer = {"name": digitizer["name"], "evidence": list(digitizer["evidence"]),
+                 **({"source_established": digitizer["source_established"]} if digitizer.get("source_established") else {})}
     nli_record = evidence.get("nli_record_id")
     if nli_origin:
         digitizer["origin"] = {"name": DIGITIZER_NLI, "evidence": list(evidence["nli_evidence"]), "nli_record_id": nli_record}

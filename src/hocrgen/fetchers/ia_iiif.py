@@ -4,7 +4,9 @@ The maintainer allowed non-Google library scans on IA for the PBY alignment on 2
 (``planning/decisions/2026-11-09-internet-archive-library-scans.md``). The 2026-11-10 legal strategy
 (``planning/decisions/2026-11-10-legal-strategy.md``) superseded that decision's condition 2 (no Google scans) and,
 by the maintainer's ruling on NLI-origin files, its condition 4 (no files from NLI) for files fetched from IA.
-``decide_ia_rights`` applies the remaining conditions 1, 3 and 5 to an item's IA metadata
+The maintainer amended condition 3 on 2026-11-18
+(``planning/decisions/2026-11-18-ia-known-source-named-digitizer.md``): an item whose description names its
+digitizer is a known source. ``decide_ia_rights`` applies the remaining conditions 1, 3 and 5 to an item's IA metadata
 (``https://archive.org/metadata/<identifier>``), accepts Google-digitized and NLI-origin items with their own
 ``source_class``, and records the digitizer and NLI evidence it found. The NLI gate
 (``hocrgen.fetchers.nli_iiif.decide_nli_rights``) is unchanged and is never applied to IA items. Every accepted item
@@ -29,6 +31,7 @@ IA_SOURCE = "internet_archive"
 IA_GATE = "hocrgen.fetchers.ia_iiif.decide_ia_rights"
 IA_DECISION_RECORD = "planning/decisions/2026-11-09-internet-archive-library-scans.md"
 LEGAL_STRATEGY_DECISION_RECORD = "planning/decisions/2026-11-10-legal-strategy.md"
+KNOWN_SOURCE_DECISION_RECORD = "planning/decisions/2026-11-18-ia-known-source-named-digitizer.md"
 IA_METADATA_URL = "https://archive.org/metadata/{identifier}"
 IA_MANIFEST_URL = "https://iiif.archive.org/iiif/3/{identifier}/manifest.json"
 
@@ -78,6 +81,17 @@ GOOGLE_FIELDS = ("scanner", "contributor", "sponsor", "collection")
 NLI_FIELDS = ("contributor", "sponsor", "collection", "source", "description", "notes", "provenance")
 # An NLI record id (``99…5171``), as cited in an IA item's source, notes or description.
 NLI_RECORD_ID = re.compile(r"(?<!\d)(99\d{10,16}5171)(?!\d)")
+# An old-style NLI Aleph number (``NNL_ALEPH001909530``), as Sefaria's versionSource cites it.
+NLI_ALEPH_ID = re.compile(r"NNL_ALEPH(\d{9})(?!\d)")
+# A digitizer statement in a description: "Scanned by X", "digitized by the X", "The full set was scanned by X in …".
+DIGITIZER_STATEMENT = re.compile(
+    r"\b(?:scanned|digiti[sz]ed|scans?)\s+(?:\S+\s+){0,2}?by\s+(?:the\s+)?(?P<name>[^.,;:()\[\]<>\n“”\"]{2,80})", re.I
+)
+DIGITIZER_NAME_END = re.compile(r"\s+(?:in|from|and|at|on|for|with|of\s+a)\s+.*$", re.I)
+EMAIL_OR_REDACTED = re.compile(r"@|\[email redacted\]", re.I)
+SEFARIA = re.compile(r"\bsefaria\b", re.I)
+DIGITIZER_SEFARIA = "Sefaria"
+DESCRIPTION_FIELDS = ("description", "source", "notes", "provenance")
 
 
 def _values(metadata: Mapping[str, Any], key: str) -> list[str]:
@@ -142,7 +156,104 @@ def nli_record_id(md: Mapping[str, Any]) -> str | None:
     return ids.pop() if len(ids) == 1 else None
 
 
-def decide_ia_rights(metadata: Mapping[str, Any]) -> IaRightsDecision:
+def _plain(text: str) -> str:
+    """A description as plain text: tags dropped, entities for spaces decoded, whitespace collapsed."""
+
+    text = re.sub(r"<[^>]+>", " ", text).replace("&nbsp;", " ").replace("\xa0", " ")
+    return " ".join(text.split())
+
+
+def nli_record_ids(md: Mapping[str, Any]) -> list[str]:
+    """Every NLI record id an item cites (``99…5171``, or an Aleph number in its new-style form), sorted."""
+
+    ids: set[str] = set()
+    for field in NLI_FIELDS:
+        for value in _values(md, field):
+            ids.update(NLI_RECORD_ID.findall(value))
+            ids.update(aleph_to_record_id(m) for m in NLI_ALEPH_ID.findall(value) if not m.startswith("99"))
+    return sorted(ids)
+
+
+def aleph_to_record_id(aleph: str) -> str:
+    """NLI's old Aleph number (9 digits) as its record id: ``001909530`` -> ``990019095300205171``."""
+
+    return f"99{aleph}0205171"
+
+
+def digitizer_statements(md: Mapping[str, Any]) -> list[dict[str, str]]:
+    """The digitizer statements in an item's description, source, notes or provenance (quote, name, kind).
+
+    ``kind`` is ``nli``, ``sefaria`` or ``named``. A statement whose name is an e-mail address (or a redacted one) is
+    no evidence of a source (2026-11-11 text-sources decision, item 6) and is left out."""
+
+    found: list[dict[str, str]] = []
+    for field in DESCRIPTION_FIELDS:
+        for value in _values(md, field):
+            plain = _plain(value)
+            for match in DIGITIZER_STATEMENT.finditer(plain):
+                name = DIGITIZER_NAME_END.sub("", match.group("name")).strip(" -–—'")
+                if len(name) < 2 or EMAIL_OR_REDACTED.search(name):
+                    continue
+                kind = "nli" if NLI.search(name) else "sefaria" if SEFARIA.search(name) else "named"
+                quote = plain[max(0, match.start() - 40): match.end() + 40].strip()
+                found.append({"field": field, "quote": quote, "name": name, "kind": kind})
+    return found
+
+
+def _sefaria_check(statement_ids: list[str], sefaria_version: Mapping[str, Any] | None) -> tuple[bool, str, dict[str, Any] | None]:
+    """A Sefaria digitizer statement counts when the Sefaria version is ``digitizedBySefaria`` and cites an NLI
+    record that the IA item cites too."""
+
+    if not sefaria_version:
+        return False, "ia_sefaria_scan_needs_sefaria_version", None
+    source = str(sefaria_version.get("versionSource") or "")
+    version_ids = sorted(set(NLI_RECORD_ID.findall(source)) | {aleph_to_record_id(m) for m in NLI_ALEPH_ID.findall(source) if not m.startswith("99")})
+    shown = {"title": sefaria_version.get("title"), "versionTitle": sefaria_version.get("versionTitle"),
+             "versionSource": source or None, "digitizedBySefaria": sefaria_version.get("digitizedBySefaria"),
+             "nli_record_ids": version_ids}
+    if sefaria_version.get("digitizedBySefaria") is not True:
+        return False, "ia_sefaria_version_not_digitized_by_sefaria", shown
+    if not statement_ids:
+        return False, "ia_sefaria_scan_cites_no_nli_record", shown
+    if not set(version_ids) & set(statement_ids):
+        return False, "ia_sefaria_scan_nli_record_mismatch", shown
+    return True, "sefaria_version_cites_same_nli_record", shown
+
+
+def known_source_from_description(md: Mapping[str, Any], sefaria_version: Mapping[str, Any] | None = None) -> dict[str, Any]:
+    """Condition 3 as amended on 2026-11-18: does the item's description name its digitizer?
+
+    - a named digitizer (``kind: named``) counts as stated;
+    - NLI counts when the item also cites an NLI record;
+    - Sefaria counts when ``sefaria_version`` (Sefaria's version record: ``digitizedBySefaria``, ``versionSource``)
+      is digitized by Sefaria and cites an NLI record the item cites too.
+
+    Returns ``{"established": bool, "reason", "statements": [...], "nli_record_ids", "sefaria_version"}``; the
+    first statement that passes names the digitizer."""
+
+    ids = nli_record_ids(md)
+    out: dict[str, Any] = {"basis": "description_names_digitizer", "decision_record": KNOWN_SOURCE_DECISION_RECORD,
+                           "statements": [], "nli_record_ids": ids, "sefaria_version": None, "established": False,
+                           "reason": "ia_description_names_no_digitizer", "digitizer": None}
+    reasons: list[str] = []
+    for st in digitizer_statements(md):
+        if st["kind"] == "nli":
+            ok, why = (True, "item_cites_nli_record") if ids else (False, "ia_nli_scan_cites_no_nli_record")
+        elif st["kind"] == "sefaria":
+            ok, why, shown = _sefaria_check(ids, sefaria_version)
+            out["sefaria_version"] = shown
+        else:
+            ok, why = True, "digitizer_named"
+        out["statements"].append({**st, "accepted": ok, "check": why})
+        reasons.append(why)
+        if ok and not out["established"]:
+            out.update(established=True, reason=why, digitizer=DIGITIZER_NLI if st["kind"] == "nli" else DIGITIZER_SEFARIA if st["kind"] == "sefaria" else st["name"])
+    if not out["established"] and reasons:
+        out["reason"] = reasons[0]
+    return out
+
+
+def decide_ia_rights(metadata: Mapping[str, Any], *, sefaria_version: Mapping[str, Any] | None = None) -> IaRightsDecision:
     """Apply the IA conditions still in force (2026-11-09 decision, as amended on 2026-11-10) to an item's metadata.
 
     ``metadata`` is the ``/metadata/<identifier>`` response or its ``metadata`` object. Conditions, in order; the
@@ -155,7 +266,9 @@ def decide_ia_rights(metadata: Mapping[str, Any]) -> IaRightsDecision:
        (``bub_gb_…``, ``…goog``), or the description says it came from Google Books; the evidence is recorded and
        the item gets ``source_class: ia_google_digitized_scan``.
     3. a known source: ``contributor`` names a library (no anonymous uploads), or the item is Google-digitized (a
-       known digitizer). An item with neither is rejected.
+       known digitizer), or (amended 2026-11-18) its description names the digitizer
+       (``known_source_from_description``; a Sefaria scan also needs ``sefaria_version``). An item with none of
+       these is rejected; when only the description could establish the source, its reason is the one given there.
     4. lifted for IA by the maintainer's 2026-11-10 ruling on NLI-origin files: an item whose contributor, sponsor,
        collection, source, description, notes or provenance names NLI is accepted with its NLI evidence (and the NLI
        record id it cites) and ``source_class: ia_nli_origin_scan``. An item that is both keeps the Google class.
@@ -173,6 +286,8 @@ def decide_ia_rights(metadata: Mapping[str, Any]) -> IaRightsDecision:
     contributor = _one(md, "contributor")
     google = google_evidence(md)
     nli = nli_evidence(md)
+    anonymous = not contributor or contributor.strip().lower() in ANONYMOUS
+    described = known_source_from_description(md, sefaria_version) if anonymous and not google else None
     record: dict[str, Any] = {
         "gate": IA_GATE,
         "decision_record": IA_DECISION_RECORD,
@@ -190,6 +305,7 @@ def decide_ia_rights(metadata: Mapping[str, Any]) -> IaRightsDecision:
         "google_evidence": google,
         "nli_evidence": nli,
         "nli_record_id": nli_record_id(md) if nli else None,
+        "known_source": described,
     }
 
     def failures() -> list[str]:
@@ -202,8 +318,10 @@ def decide_ia_rights(metadata: Mapping[str, Any]) -> IaRightsDecision:
         if status is not None and status.strip().lower() not in PUBLIC_DOMAIN_STATUSES:
             found.append(f"ia_copyright_status_not_public_domain:{status}")
         # 3. known source: a named library, or Google as a known digitizer
-        if (not contributor or contributor.strip().lower() in ANONYMOUS) and not google:
+        if anonymous and not google and not (described and described["established"]):
             found.append("ia_anonymous_upload_no_known_library")
+            if described and described["statements"]:
+                found.append(described["reason"])
         # 5. nothing restrictive
         if licenseurl is not None and _licence_key(licenseurl) not in PUBLIC_DOMAIN_LICENCES:
             kind = "non_commercial" if RESTRICTIVE.search(licenseurl) else "not_public_domain"
@@ -243,6 +361,10 @@ def decide_ia_rights(metadata: Mapping[str, Any]) -> IaRightsDecision:
         digitizer = {"name": DIGITIZER_NLI, "evidence": [f"contributor: {contributor}"]}
     elif contributor and contributor.strip().lower() not in ANONYMOUS:
         digitizer = {"name": contributor, "evidence": [f"contributor: {contributor}"]}
+    elif described and described["established"]:
+        digitizer = {"name": described["digitizer"],
+                     "evidence": [f"{st['field']}: {st['quote']}" for st in described["statements"] if st["accepted"]],
+                     "source_established": described}
     else:
         digitizer = None
     if digitizer is not None:
