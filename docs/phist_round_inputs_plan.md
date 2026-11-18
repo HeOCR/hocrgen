@@ -112,6 +112,24 @@ Each is a known failure of catalogue-matched PBY text. The Sefaria-on-edition ro
 synth-gen has to confirm the font licence (Noto Rashi Hebrew is said to be OFL; to verify). The localizer never labels
 anything.
 
+### 3c. Dev units and R7's `bynli_lines_v2` (2026-11-18)
+
+Same method, asked for by heocr-eval and synth-gen:
+
+- **R8b's dev units** (their lines serve as dev references):
+  - Kevar: 0 word errors in 32;
+  - Brainin IA: 1 in 32;
+  - Yedi'ot ha-Teva: 3 in 32. Each is one letter that differs from the print, so it fails, and eval labels its dev numbers accordingly.
+- **R7's training set `bynli_lines_v2`, its 6 largest books:**
+  - `kolsifreperetsbe03smoluoft`: 0;
+  - `kolsifreperetsbe01smoluoft`: 1;
+  - `berashadsky-sipurim-1910`: 1;
+  - `990017640460205171`: 2, which calls for a second sample;
+  - `sifrehazikhronot00mont`: 3 (fail);
+  - `citron-ahorei-hapargod-1923`: 5 (fail; words hyphenated across a line break, where the label carries the whole word).
+  - In all, 13 of 192 lines (about 7%), so v2 is much cleaner than v3.
+  - **Another rule for the v4 rebuild:** a line that ends in a printed hyphen gets a label ending at the hyphen.
+
 ### 3b. Per-book audit of `rablines_v1` (2026-11-18)
 
 The same method and bar as 3a, an agent check of 32 seeded lines per book:
