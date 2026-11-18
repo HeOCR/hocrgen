@@ -288,6 +288,12 @@ Only `.lstmf` is needed for training.
 - **Verdict:** Tier B Shulchan Arukh and Tur are **not usable as they stand**. The next engineering step, and now the gate for Tier B, is to rebuild each printed marker from Sefaria's anchors (commentator → bracket style, numbered in order) and each se'if number from the segments. Then re-run this pilot and audit it.
   - The main-column yield is also low (about 6 lines per page). Most of each page is the Rashi-script commentaries, which wait for the Rashi localizer.
 
+**Option 1, measured (2026-11-18; hocrgen#208, `--drop-marker-lines`).** The same 20 pages, keeping only lines whose edition span holds no removed anchor and does not start a se'if:
+- **64 lines kept;** 113 dropped as `marker_in_line` and 3 as `segment_start`;
+- **the agent audit finds 0 word errors in 32**, and 1 line differs only in punctuation;
+- **the yield is about 3 lines per page,** so roughly 15–20k clean lines from the Shulchan Arukh (without OC) and the Tur, for pool v2;
+- **rebuilding the markers** (option 2) comes after the round starts.
+
 ## 6a. Eval hold-out books (picked before the pool is filled)
 
 **What eval needs.** heocr-eval's power analysis (`eval-domains/scripts/phist_power.py`) asks for at least 30 new
