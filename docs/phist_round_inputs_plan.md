@@ -150,7 +150,9 @@ anything.
   - the failing books stay out, unless a book is re-aligned (the shifted-span books) and passes a fresh audit;
   - the edge check is worth adding later as an extra filter for passing books (about half their bad lines go, at about 2% of their good lines);
   - books whose PBY text was typed from another printing stay out.
-- **These lines were in R8b's (and R9's) training lists.** That affects what those runs learned; the lead decides whether anything follows.
+- **For the record (heocr-lead, 2026-11-18): R8b and R9 trained on `bynli_lines_v3`,** whose books show an audited word-error rate of about 21% (99 of 480 seeded lines; 11 of 15 books fail the bar).
+  - The 11 failing books hold 39,960 of the 62,882 audited train lines.
+  - A P-hist start model trained without them could beat R8b, so this bears on the start-model choice in §8, and on how R8b and R9 results on old print are read.
 - **A1 consequence:** of the capped bynli books, only `zikhronotlebetda01reck` passes, so the capped lines of `sifruthahisoriya11kaha` and `yotsrehasifrutha00zitr` are not added. Machzor Vitry passed (§6b). Lekach Tov gets its own 32-line audit before its capped lines are used.
 
 ## 4. Expected line counts
