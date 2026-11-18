@@ -20,8 +20,7 @@ So the real P-hist pool is about 84k lines today. The Wikisource Page-namespace 
 eligible pages; F8b7 funnel). The PBY edition match on IA was scouted over 679 edition groups (f8f_ia, 55 IA groups).
 
 **`bynli_lines_v3` includes NLI scans fetched through NLI's own IIIF service** (the `f8f_g` root, `public-domain-free-use`
-only, never Google class). The lead's brief says "never the NLI API". Whether those lines stay in a P-hist round is
-decision 2 in §8. They are counted separately below.
+only, never Google class). They stay (§8, decision 2).
 
 ## 2. Source pool
 
@@ -36,10 +35,10 @@ unknown licence. Nothing comes through the NLI API.
    - `bynli_lines_v3`, excluding dev units and the overlap exclusions: *Sifrut ha-Historiya* 1,550, *Yotsrei ha-Sifrut* 1,934 and *Zikhronot le-Beit David* 1,891, so 5,375 lines. Kevar and Yedi'ot are R8b dev units; Zerubavel (638) stays out because of its overlap with audit2 and the ws dev set.
    - Their page images were trashed in the 2026-11-12 cleanup. The refetch manifests exist (`docs/refetch/`), so they must be refetched: about 3,000 pages. Once the cap is lifted, the round needs a mix weight per book instead.
 2. **Lines dropped for print markers in `rablines_v1`.** `print_marker_missing_from_label` (11,130) and `parenthetical_differs_from_print` (3,786). A rule that restores the print's note markers from the edition's anchors could recover part of them. Estimate +5–8k. That needs code and an audit.
-3. **Pointed PBY prints** (`bynli_lines_v3` `pointed_print`, 7,513): a niqqud stratum, only if the round wants one (decision 4).
+3. **Pointed PBY prints** (`bynli_lines_v3` `pointed_print`, 7,513): ordinary training lines if they pass the audit bar; no niqqud stratum this round (decision 4).
 4. **Robarts Rashi-script responsa with Sefaria PD texts.** Both pass the IA gate: *Teshuvot ha-Rashba ha-Meyuchasot la-Ramban* (Warsaw 1883, 142 canvases; Sefaria "Warsaw 1883", PD, NLI record cited) and *She'elot u-Teshuvot Chiddushei ha-Rim* (356 canvases; its Sefaria title is still to be found). **Blocked by localization:** see the pilot in §6.
 
-### Tier B: needs one gate decision (decision 1)
+### Tier B: opened by decision 1 (Shay, 2026-11-18)
 
 The IA gate (`decide_ia_rights`, condition 3 of the 2026-11-09 decision: "the source is known") rejects every item below
 as `ia_anonymous_upload_no_known_library`. Checked 2026-11-18:
@@ -57,7 +56,7 @@ Commons; the aligner's text-source path accepts IA scans only, so they also need
 **Script.** Square type covers the main column of Tur, Shulchan Arukh (without Orach Chaim, which prints Pri Megadim, an eval
 work), Rif and Sefer ha-Mitzvot. Rashi script covers every commentary, Radbaz, Noda bi-Yehuda and the Shas commentaries.
 
-### Tier C: method extension (decision 5)
+### Tier C: method extension (not this round, decision 5)
 
 **Canonical texts on other printings.** A PD Sefaria text of a fixed-text work (for example Mishnah, Midrash Rabbah or the
 Vilna Shas layout) placed on another PD printing of the same work. This is where most of the ~5,500 Hebrew IA text items
@@ -176,31 +175,100 @@ Only `.lstmf` is needed for training.
 - **Conclusion.** The Rashi stratum needs a Rashi-script localizer before any line set (§3). The square-type method's error is the one measured in §3 on the existing sets.
 - **Why the pilot is not on square type.** A square-type pilot on new pages would have needed the 538-page refetch of a capped book. That waits for the refetch in A1.
 
+## 6a. Eval hold-out books (picked before the pool is filled)
+
+**What eval needs.** heocr-eval's power analysis (`eval-domains/scripts/phist_power.py`) asks for at least 30 new
+books, with 2–3 pages each, on top of audit2's 13. The unit is the whole book, so every edition and scan of a held-out
+work leaves the training pool.
+
+**What Wikisource can supply** (checked 2026-11-18):
+- he.wikisource has 141 Index pages, the same set as the 2026-11-06 inventory, and 74 of them pass the Index gate.
+- Already used: audit2 (14 Indexes), `wslines_v1` (9) and line_verify (37 Indexes, exposed). That leaves 33.
+- After merging the volumes of one work, and dropping works with another volume already trained (Tanhuma Buber) or in line_verify (Tosefta Zuckermandel), **12 new books with at least one eligible proofread page remain**, about 32 pages. All 12 are E2d3d single-reviewer Indexes:
+
+| Index | Work | Year | Eligible q3/q4 pages | Look |
+|---|---|---:|---:|---|
+| `ws_index_1720479` | Qav ve-Naqi on Proverbs | 1492 | 11 | rabbinic |
+| `ws_index_1734711` | Liqqutei ha-Pardes | 1519 | 3 | rabbinic |
+| `ws_index_1734721` | Sefer ha-Tapuach | 1799 | 3 | rabbinic (printed before 1800) |
+| `ws_index_1720553` | Ibn Yahya on Ketuvim | 1538 | 2 | rabbinic |
+| `ws_index_223203` | Emunot ve-De'ot | 1562 | 2 | rabbinic |
+| `ws_index_336509` (+ `336537`, vol. I) | Horev | 1895 | 2 | rabbinic |
+| `ws_index_468593` | Safa Ahat le-Kulanu | 1888 | 2 | standard square |
+| `ws_index_359833` | Ohev Ger | (inventory says 2012; to check) | 4 | rabbinic |
+| `ws_index_332868`, `332872` (+ `332869`–`332871`, `332873`) | Beit ha-Midrash (Jellinek) | 1853–77 | 2 | rabbinic |
+| `ws_index_274837` | Or ha-Shem | 1905 | 1 | rabbinic |
+| `ws_index_336554` | ha-Shabbat | 1926 | 1 | rabbinic |
+| `ws_index_331268` | Shevet Shimon | 1884 | 1 | standard square |
+
+**The gap.** That is 12 books, not 30, and they skew rabbinic. The proposal sent to eval and the lead (their decision):
+- Fill the gap with edition-matched books from this pool, each held out whole.
+- Their references come from human verification of the aligned edition text, line_verify style, with candidates from the edition text and never from OCR.
+- The scout's medium-confidence editions fit best, because a human corrects any edition mismatch: Mishnah Romm, the Midrash Rabbah commentaries, Arukh ha-Shulchan, and ADRN with the minor tractates.
+- The two Robarts Rashi-script responsa also fit, and they would give a Rashi stratum.
+- None of these is trained yet, so the hold-out costs little supply.
+
+**Decided (eval and lead, 2026-11-18):**
+- **Take the 12 now.** With audit2's 13 they are the floor, about 25 books.
+  - At most 3 seeded pages per book are scored; Qav ve-Naqi is held out whole but scores 3 pages.
+  - Ohev Ger is held out, but is scored only if its print is really P-hist (its 2012 date needs checking).
+- **Add 15–18 whole books through option 1.**
+  - **Less common works only.** CLEAN bars every edition of a held-out work, so widely printed works such as Mishnah or Midrash Rabbah stay in training.
+  - **About a third standard square.**
+  - **Rashi-script books as their own stratum,** reported apart.
+- **References:** Shay verifies them, line_verify style, in heocr-review, at 2–3 pages per book. The batch is hardest-first, with an agent pre-check flag on each line. A seeded 10% of the verified lines get a blind second human pass. The batch is prepared as an import, but not imported until the lead relays Shay's go.
+- **Registration first:** eval registers the final book ids and the work-level rule (which works and volumes are held out together) as a `check_train_overlap` target. **No pool fill starts before that registration.**
+
 ## 7. Decontamination
+
+**The hold-out comes first.** The §6a books are picked and registered by eval before any line enters the pool; their works are dropped at work level, every edition and scan.
 
 - **Per list:** `tasks/r9-new-printed/scripts/decontam.py LIST DROP_OUT`. It covers every target of heocr-eval's `check_train_overlap.py`, including the audit2 references and every dev and report set, and prints no text. `--extra` adds P-hist dev sets that are not yet targets.
 - **Per work, before alignment:** no edition or Commons file behind an eval, dev, reserved or line_verify Index. These are the scout's exclusion flags, re-checked per batch.
 - **The official CLEAN** on the final list is heocr-eval's (`check_train_overlap.py`), as for R8b and R9.
 
-## 8. Decisions for the lead
+## 8. Decisions (2026-11-18)
 
-1. **IA gate, condition 3.** Should an IA item count as a known source when its description names the digitizer?
-   - The two cases are Sefaria's own scans, where the Sefaria version cites the same NLI record and is `digitizedBySefaria`, and mirrors of NLI's own scans that name the NLI record.
-   - Each item would still need its own `rights_justification`.
-   - This opens Tier B. If the lead reads it as a rights change, it goes to Shay.
-2. **NLI-IIIF lines in `bynli_lines_v3`** (free-use scans fetched from NLI's IIIF service, never Google class): keep them in a P-hist round, or drop them under "never the NLI API"?
-3. **The Rashi localizer** (§3): synthetic Rashi-script lines in an OFL font, trained on a pod for localization only. synth-gen confirms the font licence first.
-4. **Pointed PBY prints** (7.5k) as a niqqud stratum in this round: yes or no?
-5. **Tier C** (canonical texts on other printings): pilot it, or not now.
-6. **Per-book cap and mix weights** once the cap is lifted (A1).
+Decision 1 is Shay's; decisions 2–6 are heocr-lead's.
 
-**Order of work, if decision 1 is yes:**
-1. Refetch the A1 pages, as a light job outside the gate window.
-2. Tur main column: a 20-page square-type pilot with the §3 audit.
-3. Shulchan Arukh and Rif.
-4. The Rashi localizer.
-5. The Rashi stratum, book by book, each with its 32-line audit.
+1. **IA gate, condition 3: approved by Shay** ("Yes, allow it", Shay Palachy Affek, 2026-11-18, in the lead session).
+   - An IA item counts as a known source when its description names the digitizer.
+   - Sefaria's own scans count when the Sefaria version is `digitizedBySefaria` and cites the same NLI record.
+   - Mirrors of NLI's own scans count when they name the NLI record.
+   - Every item has its own `rights_justification`, recording how the source was established. The rest of the IA gate is unchanged.
+   - The decision record and the gate change come in a follow-up PR. **Tier B is open once it merges.**
+2. **NLI-IIIF free-use lines in `bynli_lines_v3` stay.** The "never the NLI API" rule bars Google-class scans fetched through NLI's API (Route A). NLI's own `public-domain-free-use` scans, fetched from its IIIF service, are what R8b trained on and what HeOCR's public statements describe.
+3. **The Rashi localizer: approved.** synth-gen builds it, after confirming the font licence from the upstream notofonts repository. It trains on a pod inside the $150/month budget, and the cost estimate goes to the lead before the run. Its spec is §8a.
+4. **Pointed prints** go in as ordinary training lines at their natural weight, if they pass the audit bar. There is no niqqud stratum and no niqqud eval claim this round, because niqqud is not powered.
+5. **Tier C: not now.**
+6. **No delivery cap.** data-collection delivers every good line. synth-gen applies a seeded per-book cap when it builds the list (lstmtraining has no weights), with 6,100 as the start value, set on P-hist dev. The lead's limit is that no book is above 8% of the round's lines.
 
-If decision 1 is no: A1, then A2, then the Rashi localizer for the two Robarts responsa.
+**The label-error bar (§3) is approved.** `bynli_lines_v3` is audited per book before the round, and any book that fails is fixed or dropped.
+
+**Training format (agreed with synth-gen):**
+- Line sets in the `bynli_lines_v2` shape; labels in NFC, logical order, with niqqud removed. ׳ ״ ־ – — are kept in the labels.
+- synth-gen builds the `.lstmf` files locally with the R8b `make_lstmf.py` and uploads them with their `.gt.txt` only, so eval's CLEAN runs on the exact files that train.
+- The start model is R7 or the office-print winner, whichever scores better on P-hist dev before training. Stock tessdata_best is reported next to it.
+
+**Order of work:**
+1. The eval hold-out list (§6a), registered by eval before any pool fill.
+2. The A1 refetch and the per-book audit of `bynli_lines_v3`.
+3. A Tur main-column pilot, 20 pages, with the §3 audit.
+4. Shulchan Arukh (without OC) and Rif.
+5. The Rashi localizer.
+6. The Rashi stratum, book by book, each with its 32-line audit.
+
+## 8a. Rashi localizer: spec for synth-gen
+
+- **Purpose:** localization only. Its output finds lines and anchors the edition text; it never becomes a label.
+- **Output:** a Tesseract `traineddata` the aligner can load with `--tessdata-dir`. The aligner runs it as `tesseract IMG - -l <name> --psm 3 tsv`, the same call as today.
+  - Page segmentation stays Tesseract's own.
+  - The model only has to read Rashi letters well enough to anchor 8-grams.
+- **Training text:** Sefaria versions whose own licence is PD or CC0, in Rashi-script works. They must be decontaminated against the official targets and the eval hold-out works (§6a). No Rashba or Chiddushei ha-Rim text, because they are pilot and hold-out books.
+- **Acceptance test on the pilot book** (`teshuvotharashba00adreuoft`, 142 canvases, `tasks/phist-round/`), unfolded, compared with stock `heb`:
+  - at least 60% of the text-bearing canvases `aligned` (stock: 1 of 142; the best fold: 25);
+  - at least 15 builder-passing lines per aligned page;
+  - a 32-line agent audit with at most 1 word-level error.
+  - If the Rashba book becomes an eval hold-out, the test moves to another Robarts Rashi item, Chiddushei ha-Rim.
 
 — data-collection[claude/claude-code#shay-macbook-m4]@heocr/opensource
