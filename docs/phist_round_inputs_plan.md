@@ -112,6 +112,43 @@ Each is a known failure of catalogue-matched PBY text. The Sefaria-on-edition ro
 synth-gen has to confirm the font licence (Noto Rashi Hebrew is said to be OFL; to verify). The localizer never labels
 anything.
 
+### 3a. Per-book audit of `bynli_lines_v3` (2026-11-18)
+
+**Method.** An agent visual check (three subagents and data-collection; not a human review). Each book got 32 seeded lines (`sha256("20261118:phist-audit:bynli3book_<book>:" + id)`), judged under the §3 bar. Kevar and Yedi'ot (dev units) and Zerubavel (excluded) were not audited. Per-book counts are in `tasks/phist-round/audit/bynli3_books/summary.json` (operator-only).
+
+| Book | Train lines | Exact | Punct only | Word errors | Verdict |
+|---|---:|---:|---:|---:|---|
+| `seferhademaotmeo0000bern` | 5,350 | 32 | 0 | 0 | pass |
+| `kolkitveylkatsen018800` | 5,721 | 30 | 1 | 1 | pass |
+| `afahleneemaniml00fngoog` | 5,751 | 28 | 3 | 1 | pass |
+| `zikhronotlebetda01reck` | 6,100 | 31 | 0 | 1 | pass |
+| `yotsrehasifrutha00zitr` | 6,100 | 28 | 0 | 4 | fail |
+| `zikhronotlevetda01frie` | 4,150 | 28 | 0 | 4 | fail |
+| `mikhtavimmiarsh00mezagoog` | 3,452 | 25 | 3 | 4 | fail |
+| `sipurim00nombuoft` | 1,291 | 26 | 2 | 4 | fail |
+| `divreyemeolam02schuuoft` | 4,668 | 24 | 3 | 5 | fail |
+| `tsitsimuferaimm00geiggoog` | 633 | 26 | 0 | 6 | fail |
+| `sifruthahisoriya11kaha` | 6,100 | 24 | 1 | 7 | fail |
+| `990026910840205171` | 2,319 | 25 | 0 | 7 | fail |
+| `tserorperaimvehu00kovn` | 3,617 | 12 | 5 | 15 | fail |
+| `korothayehudimb00friegoog` | 2,968 | 14 | 1 | 17 | fail |
+| `bioretletoldotha01gott` | 4,662 | 9 | 0 | 23 | fail |
+
+- **4 of 15 books pass.** Together they hold 22,922 of the 62,882 audited train lines. Over all 480 audited lines, 99 have a word-level error (21%).
+- **The errors have four causes:**
+  - **Shifted spans** (`bioretletoldotha01gott`, `korothayehudimb00friegoog`, part of `divreyemeolam02schuuoft`): the label starts with words from the line above and ends short of the printed line.
+  - **Tight crops** (`tserorperaimvehu00kovn`): the line box cuts off or clips a word at an edge.
+  - **Footnote digits** that differ from the printed marker (`sifruthahisoriya11kaha`, `990026910840205171`, `tsitsimuferaimm00geiggoog`).
+  - **Plene spelling.** The PBY text spells words fuller than the print does, which means it was typed from another printing (`sipurim00nombuoft`, `tsitsimuferaimm00geiggoog`).
+- **For this round:** only the 4 passing books enter the P-hist pool.
+- **Proposed fix (a builder PR), then a v4 rebuild and a re-audit of the failing books:**
+  1. **A line-edge check:** the first and last label words must match the OCR letters at the two ends of the box, which drops shifted spans and clipped crops.
+  2. **More crop padding** at the line ends.
+  3. **Digits rule:** a label's digits must equal the OCR line's digits.
+  4. **Plene spelling can't be fixed.** A book whose PBY text comes from another printing stays out.
+- **These lines were in R8b's (and R9's) training lists.** That affects what those runs learned; the lead decides whether anything follows.
+- **A1 consequence:** of the capped bynli books, only `zikhronotlebetda01reck` passes, so the capped lines of `sifruthahisoriya11kaha` and `yotsrehasifrutha00zitr` are not added. Machzor Vitry passed (§6b). Lekach Tov gets its own 32-line audit before its capped lines are used.
+
 ## 4. Expected line counts
 
 **Yield model.** Batch 1 kept about 23 lines per aligned page, about 17 per canvas. That is 0.35 of the scout's per-book
