@@ -1,0 +1,415 @@
+{
+ "schema": "heocr.phist_eval_holdout_candidates.v1",
+ "date": "2026-11-18",
+ "by": "data-collection",
+ "status": "candidate list for heocr-eval to register",
+ "rule": "Each entry is held out whole. Every unit listed (Wikisource Indexes, IA items, Sefaria works, PBY work ids) and every other edition or scan of the same work leave every training pool, including synthetic text (htext/hocrsyngen). At most 3 seeded pages per book are scored. Ohev Ger is scored only if its print is P-hist. Rashi-script books are a separate stratum, not counted toward the 30.",
+ "counts": {
+  "A_wikisource_proofread": 13,
+  "B_wikisource_unproofread": 4,
+  "C_edition_text": 2,
+  "D_pby_edition": 8,
+  "E_rashi_stratum": 3
+ },
+ "books": [
+  {
+   "book": "ws_index_1720479",
+   "group": "A_wikisource_proofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_1720479"
+   ],
+   "work": "Qav ve-Naqi on Proverbs",
+   "year": 1492,
+   "eligible_proofread_pages": 11,
+   "look": "rabbinic",
+   "reference_path": "E2d3d single-reviewer text, adjudicate"
+  },
+  {
+   "book": "ws_index_1734711",
+   "group": "A_wikisource_proofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_1734711"
+   ],
+   "work": "Liqqutei ha-Pardes",
+   "year": 1519,
+   "eligible_proofread_pages": 3,
+   "look": "rabbinic",
+   "reference_path": "E2d3d single-reviewer text, adjudicate"
+  },
+  {
+   "book": "ws_index_1734721",
+   "group": "A_wikisource_proofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_1734721"
+   ],
+   "work": "Sefer ha-Tapuach",
+   "year": 1799,
+   "eligible_proofread_pages": 3,
+   "look": "rabbinic",
+   "reference_path": "E2d3d single-reviewer text, adjudicate"
+  },
+  {
+   "book": "ws_index_1720553",
+   "group": "A_wikisource_proofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_1720553"
+   ],
+   "work": "Ibn Yahya on Ketuvim",
+   "year": 1538,
+   "eligible_proofread_pages": 2,
+   "look": "rabbinic",
+   "reference_path": "E2d3d single-reviewer text, adjudicate"
+  },
+  {
+   "book": "ws_index_223203",
+   "group": "A_wikisource_proofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_223203"
+   ],
+   "work": "Emunot ve-De'ot",
+   "year": 1562,
+   "eligible_proofread_pages": 2,
+   "look": "rabbinic",
+   "reference_path": "E2d3d single-reviewer text, adjudicate"
+  },
+  {
+   "book": "ws_index_468593",
+   "group": "A_wikisource_proofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_468593"
+   ],
+   "work": "Safa Ahat le-Kulanu",
+   "year": 1888,
+   "eligible_proofread_pages": 2,
+   "look": "standard_square",
+   "reference_path": "E2d3d single-reviewer text, adjudicate"
+  },
+  {
+   "book": "ws_index_359833",
+   "group": "A_wikisource_proofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_359833"
+   ],
+   "work": "Ohev Ger",
+   "year": null,
+   "eligible_proofread_pages": 4,
+   "look": "check_date",
+   "reference_path": "E2d3d single-reviewer text, adjudicate"
+  },
+  {
+   "book": "ws_index_274837",
+   "group": "A_wikisource_proofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_274837"
+   ],
+   "work": "Or ha-Shem",
+   "year": 1905,
+   "eligible_proofread_pages": 1,
+   "look": "rabbinic",
+   "reference_path": "E2d3d single-reviewer text, adjudicate"
+  },
+  {
+   "book": "ws_index_336554",
+   "group": "A_wikisource_proofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_336554"
+   ],
+   "work": "ha-Shabbat",
+   "year": 1926,
+   "eligible_proofread_pages": 1,
+   "look": "rabbinic",
+   "reference_path": "E2d3d single-reviewer text, adjudicate"
+  },
+  {
+   "book": "ws_index_331268",
+   "group": "A_wikisource_proofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_331268"
+   ],
+   "work": "Shevet Shimon",
+   "year": 1884,
+   "eligible_proofread_pages": 1,
+   "look": "standard_square",
+   "reference_path": "E2d3d single-reviewer text, adjudicate"
+  },
+  {
+   "book": "ws_index_336509",
+   "group": "A_wikisource_proofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_336509",
+    "ws_index_336537"
+   ],
+   "work": "Horev (vols I-II)",
+   "year": 1893,
+   "eligible_proofread_pages": 2,
+   "look": "rabbinic",
+   "reference_path": "E2d3d single-reviewer text, adjudicate"
+  },
+  {
+   "book": "ws_index_332868",
+   "group": "A_wikisource_proofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_332868",
+    "ws_index_332869",
+    "ws_index_332870",
+    "ws_index_332871",
+    "ws_index_332872",
+    "ws_index_332873"
+   ],
+   "work": "Beit ha-Midrash (Jellinek, all volumes)",
+   "year": 1853,
+   "eligible_proofread_pages": 2,
+   "look": "rabbinic",
+   "reference_path": "E2d3d single-reviewer text, adjudicate"
+  },
+  {
+   "book": "ws_index_1735193",
+   "group": "A_wikisource_proofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_1735193"
+   ],
+   "work": "Ma'ayan Ganim on Job",
+   "year": 1899,
+   "eligible_proofread_pages": 3,
+   "look": "rabbinic",
+   "reference_path": "proofread pages (coverage check pending), verify"
+  },
+  {
+   "book": "ws_index_344397",
+   "group": "B_wikisource_unproofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_344397"
+   ],
+   "work": "Sefer ha-Nezirim",
+   "year": 1910,
+   "eligible_proofread_pages": 0,
+   "look": "standard_square",
+   "reference_path": "quality-1 Wikisource text as candidates, human verification"
+  },
+  {
+   "book": "ws_index_1717857",
+   "group": "B_wikisource_unproofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_1717857"
+   ],
+   "work": "Ketav Sofer on the Torah",
+   "year": 1889,
+   "eligible_proofread_pages": 0,
+   "look": "rabbinic",
+   "reference_path": "quality-1 Wikisource text as candidates, human verification"
+  },
+  {
+   "book": "ws_index_1705960",
+   "group": "B_wikisource_unproofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_1705960"
+   ],
+   "work": "Alim li-Trufa",
+   "year": 1778,
+   "eligible_proofread_pages": 0,
+   "look": "rabbinic",
+   "reference_path": "quality-1 Wikisource text as candidates, human verification"
+  },
+  {
+   "book": "ws_index_331297",
+   "group": "B_wikisource_unproofread",
+   "source": "wikisource_he_proofread",
+   "units": [
+    "ws_index_331297"
+   ],
+   "work": "Mavo Kelali la-Sefarim ha-Hitsonim",
+   "year": 1936,
+   "eligible_proofread_pages": 0,
+   "look": "standard_square",
+   "reference_path": "quality-1 Wikisource text as candidates, human verification"
+  },
+  {
+   "book": "seferleetyosher00socgoog",
+   "group": "C_edition_text",
+   "source": "internet_archive (Google copy)",
+   "units": [
+    "seferleetyosher00socgoog",
+    "sefaria:Leket Yosher"
+   ],
+   "work": "Leket Yosher, ed. Freimann, Berlin 1903-04",
+   "year": 1903,
+   "look": "rabbinic",
+   "reference_path": "Sefaria PD exact-edition text aligned (rablines reserve), human verification"
+  },
+  {
+   "book": "arukh-ha-shulhan-d-hoshen-mishpat-1884-images",
+   "group": "C_edition_text",
+   "source": "internet_archive (NLI scan mirror)",
+   "units": [
+    "arukh-ha-shulhan-d-hoshen-mishpat-1884-images",
+    "sefaria:Arukh HaShulchan, Choshen Mishpat"
+   ],
+   "work": "Arukh ha-Shulchan, Choshen Mishpat (scan Warsaw 1884; text Vilna 1923-29 printing)",
+   "year": 1884,
+   "look": "rabbinic",
+   "reference_path": "Sefaria PD text of a later printing as candidates, human verification"
+  },
+  {
+   "book": "hayehudimbelodzo00frenuoft",
+   "group": "D_pby_edition",
+   "source": "internet_archive (library scan)",
+   "units": [
+    "hayehudimbelodzo00frenuoft",
+    "pby:58907"
+   ],
+   "work": "ha-Yehudim be-Lodz (Frankel)",
+   "year": 1893,
+   "look": "standard_square",
+   "reference_path": "PBY text (catalogue-matched edition) as candidates, human verification"
+  },
+  {
+   "book": "p1toldothaemunot03menz",
+   "group": "D_pby_edition",
+   "source": "internet_archive (library scan)",
+   "units": [
+    "p1toldothaemunot03menz",
+    "pby:58581"
+   ],
+   "work": "Toldot ha-Emunot ve-ha-Datot (Menzies, tr.)",
+   "year": 1898,
+   "look": "standard_square",
+   "reference_path": "PBY text (catalogue-matched edition) as candidates, human verification"
+  },
+  {
+   "book": "harimonsipur00brau",
+   "group": "D_pby_edition",
+   "source": "internet_archive (library scan)",
+   "units": [
+    "harimonsipur00brau",
+    "pby:10531"
+   ],
+   "work": "ha-Rimon (Brodes)",
+   "year": 1890,
+   "look": "standard_square",
+   "reference_path": "PBY text (catalogue-matched edition) as candidates, human verification"
+  },
+  {
+   "book": "kolsifreperetsbe06smoluoft",
+   "group": "D_pby_edition",
+   "source": "internet_archive (library scan)",
+   "units": [
+    "kolsifreperetsbe06smoluoft",
+    "pby:2075"
+   ],
+   "work": "Me'ah Mikhtavim (Smolenskin)",
+   "year": 1905,
+   "look": "standard_square",
+   "reference_path": "PBY text (catalogue-matched edition) as candidates, human verification"
+  },
+  {
+   "book": "MN41838ucmf_3",
+   "group": "D_pby_edition",
+   "source": "internet_archive (library scan)",
+   "units": [
+    "MN41838ucmf_3",
+    "pby:47854",
+    "pby:47855",
+    "pby:47856",
+    "pby:47857"
+   ],
+   "work": "ha-Eshel (Mezah)",
+   "year": 1893,
+   "look": "standard_square",
+   "reference_path": "PBY text (catalogue-matched edition) as candidates, human verification"
+  },
+  {
+   "book": "givatyerushalayi00wies",
+   "group": "D_pby_edition",
+   "source": "internet_archive (library scan)",
+   "units": [
+    "givatyerushalayi00wies",
+    "pby:46106"
+   ],
+   "work": "Giv'at Yerushalayim (Wiesner)",
+   "year": 1870,
+   "look": "standard_square",
+   "reference_path": "PBY text (catalogue-matched edition) as candidates, human verification"
+  },
+  {
+   "book": "32882013393312-kitveyhtavyovke",
+   "group": "D_pby_edition",
+   "source": "internet_archive (library scan)",
+   "units": [
+    "32882013393312-kitveyhtavyovke",
+    "pby:24530"
+   ],
+   "work": "ha-Yesodot ha-Ivriyim ba-Zhargon (Taviov)",
+   "year": null,
+   "look": "standard_square",
+   "reference_path": "PBY text (catalogue-matched edition) as candidates, human verification"
+  },
+  {
+   "book": "seferhaatsamim00ibne",
+   "group": "D_pby_edition",
+   "source": "internet_archive (library scan)",
+   "units": [
+    "seferhaatsamim00ibne",
+    "pby:17928"
+   ],
+   "work": "Sefer ha-Atsamim (Ibn Ezra)",
+   "year": 1901,
+   "look": "standard_square",
+   "reference_path": "PBY text (catalogue-matched edition) as candidates, human verification"
+  },
+  {
+   "book": "teshuvotharashba00adreuoft",
+   "group": "E_rashi_stratum",
+   "source": "internet_archive",
+   "units": [
+    "teshuvotharashba00adreuoft",
+    "sefaria:Teshuvot haRashba Meyuchas LehaRamban"
+   ],
+   "work": "Teshuvot ha-Rashba ha-Meyuchasot la-Ramban, Warsaw 1883",
+   "year": 1883,
+   "look": "rashi",
+   "reference_path": "Sefaria PD exact-edition text as candidates, human verification; reported as its own stratum"
+  },
+  {
+   "book": "sefersheelotutes00alte",
+   "group": "E_rashi_stratum",
+   "source": "internet_archive",
+   "units": [
+    "sefersheelotutes00alte",
+    "sefaria:Chiddushei HaRim Responsa"
+   ],
+   "work": "Chiddushei ha-Rim Responsa, Warsaw 1882",
+   "year": 1882,
+   "look": "rashi",
+   "reference_path": "Sefaria PD exact-edition text as candidates, human verification; reported as its own stratum"
+  },
+  {
+   "book": "radaq-bereshit-pressburg-1842-images",
+   "group": "E_rashi_stratum",
+   "source": "internet_archive",
+   "units": [
+    "radaq-bereshit-pressburg-1842-images",
+    "sefaria:Radak on Genesis"
+   ],
+   "work": "Radak on Genesis, Pressburg 1842",
+   "year": 1842,
+   "look": "rashi",
+   "reference_path": "Sefaria PD exact-edition text as candidates, human verification; reported as its own stratum"
+  }
+ ]
+}
