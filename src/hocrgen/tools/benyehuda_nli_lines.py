@@ -128,7 +128,9 @@ PAREN_GROUP = re.compile(r"\([^()]*\)")
 MIN_PAREN_SIMILARITY = 0.85
 
 
-MARKER_CHARS = re.compile(r"[()\[\]0-9]")
+MARKER_CHARS = re.compile(r"[()\[\]0-9*°]")
+# A gloss or note marker as its own OCR token: one or two letters closed (or opened) by a bracket, e.g. "יח]" or "(ג".
+MARKER_TOKEN = re.compile(r"^(?:[\[(]?[\u05d0-\u05ea]{1,2}[\])]|[\[(][\u05d0-\u05ea]{1,2}[\])]?|[*°])$")
 
 
 def unlabelled_print_marker(text: str, ocr: str) -> str | None:
@@ -139,6 +141,10 @@ def unlabelled_print_marker(text: str, ocr: str) -> str | None:
     for op, a0, a1, b0, b1 in difflib.SequenceMatcher(None, text, ocr, autojunk=False).get_opcodes():
         if op in ("insert", "replace") and MARKER_CHARS.search(ocr[b0:b1]) and not MARKER_CHARS.search(text[a0:a1]):
             return ocr[b0:b1]
+    if not MARKER_CHARS.search(text):  # a marker token the alignment matched against a letter of the label
+        for token in ocr.split():
+            if MARKER_TOKEN.match(token):
+                return token
     return None
 
 
@@ -382,6 +388,22 @@ def refine(text: str, s: int, e: int, ocr_text: str, reach: int = 2) -> tuple[in
             if best is None or key > best[0]:
                 best = (key, toks[i][0], toks[j][1])
     return best[1], best[2], before, best[0][0]
+
+
+def clip_to_column(box: tuple[int, int, int, int], line: Sequence[float], words) -> tuple[int, int, int, int]:
+    """``box`` with its left and right padding stopped half-way to the nearest OCR word beside the line on the same row
+    (another column or a margin gloss, whose small type may straddle the row), so a crop never shows a neighbour's text. ``line`` is (x, y, w, h) and ``words``
+    the page's Tesseract words (text, conf, (left, top, right, bottom)), all in image pixels."""
+    x, y, w, h = line
+    left, right = box[0], box[2]
+    for _, _, (l, t, r, b) in words:
+        if min(b, y + h) - max(t, y) <= 0.3 * min(h, b - t):  # beside the line only when it shares a third of a row
+            continue
+        if r <= x:
+            left = max(left, round((r + x) / 2))
+        elif l >= x + w:
+            right = min(right, round((l + x + w) / 2))
+    return (left, box[1], right, box[3])
 
 
 def crop_box(image_size: tuple[int, int], bbox_canvas: Sequence[float], canvas_width: float):
@@ -681,6 +703,9 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         rel = Path(split) / rec / f"{lid}.png"
         with Image.open(root / "work" / rec / "img" / f"c{r['canvas_index']:04d}.jpg") as im:
             scale, (x, y, w, h), box = crop_box(im.size, r["bbox_canvas"], r["canvas_size"][0])
+            if getattr(args, "clip_crop_to_column", False):
+                tsv = root / "work" / rec / page_ocr / f"c{r['canvas_index']:04d}.tsv"
+                box = clip_to_column(box, (x, y, w, h), read_tsv_boxes(tsv))
             image_sha = None
             if not args.no_images:
                 (out / rel).parent.mkdir(parents=True, exist_ok=True)
@@ -936,6 +961,8 @@ def main(argv: Sequence[str] | None = None) -> int:
     b.add_argument("--exclude-records", nargs="*", help="leave these records out (e.g. those of an earlier set)")
     b.add_argument("--exclude-records-from", action="append",
                    help="file with one record per line (first field; # comments) to leave out (repeatable)")
+    b.add_argument("--clip-crop-to-column", action="store_true",
+                   help="stop each crop's side padding half-way to the nearest OCR word beside the line (multi-column pages)")
     b.add_argument("--drop-marker-lines", action="store_true",
                    help="text sources: drop lines whose edition span holds a removed commentator anchor or starts a segment "
                    "(the print shows a marker or number the label lacks); needs text/<work_id>.markers.json")

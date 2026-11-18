@@ -57,6 +57,9 @@ TEXT_SOURCES = (TEXT_SOURCE_PBY, TEXT_SOURCE_SEFARIA, TEXT_SOURCE_GUTENBERG)
 RECORD_FORMAT = "hocrgen.text_source_record.v1"
 DECISION_RECORD = "planning/decisions/2026-11-11-text-sources-sefaria-gutenberg.md"
 SEFARIA_NORMALISER = "sefaria_markup.v1"
+SEFARIA_NORMALISER_LEMMA_STOP = "sefaria_markup.v1+lemma_stop"
+# Sefaria separates a commentary's lemma (dibbur ha-matchil) from its comment with " - "; the print has a stop.
+LEMMA_DASH = re.compile(r" +- +")
 GUTENBERG_NORMALISER = "gutenberg_plain_text.v1"
 
 SEFARIA_PUBLIC_DOMAIN = "Public Domain"
@@ -287,7 +290,7 @@ def flatten_sefaria(text: Any, schema: Mapping[str, Any] | None = None, path: st
     return out
 
 
-def sefaria_text(version: Mapping[str, Any], parts: Sequence[str] | None = None) -> tuple[str, dict[str, Any]]:
+def sefaria_text(version: Mapping[str, Any], parts: Sequence[str] | None = None, *, lemma_stop: bool = False) -> tuple[str, dict[str, Any]]:
     """The normalised edition text of a Sefaria download JSON (one segment per line, blank line between top-level
     parts), and its statistics. ``parts`` keeps only those top-level parts (schema node ``enTitle``s), in order."""
 
@@ -312,6 +315,9 @@ def sefaria_text(version: Mapping[str, Any], parts: Sequence[str] | None = None)
             lines.append("")
         top = head
         clean = normalise_sefaria_segment(raw, counts)
+        if lemma_stop:
+            clean, n = LEMMA_DASH.subn(". ", clean)
+            counts["lemma_dashes"] += n
         if clean:
             lines.append(clean)
     body = "\n".join(lines).strip() + "\n"
@@ -344,7 +350,7 @@ def _clean_line_with_markers(line: str) -> tuple[str, list[int]]:
     return "".join(out), marks
 
 
-def sefaria_marker_offsets(version: Mapping[str, Any], parts: Sequence[str] | None = None) -> dict[str, Any]:
+def sefaria_marker_offsets(version: Mapping[str, Any], parts: Sequence[str] | None = None, *, lemma_stop: bool = False) -> dict[str, Any]:
     """Where ``sefaria_text`` removed commentator anchors, and where each segment starts, as offsets into its body.
 
     Printed editions show a marker (a letter in brackets, a symbol) where Sefaria keeps an anchor, and a se'if or
@@ -352,9 +358,10 @@ def sefaria_marker_offsets(version: Mapping[str, Any], parts: Sequence[str] | No
     marker or starting a segment keeps only lines whose printed text is all in the label. The body is recomputed and
     must equal ``sefaria_text``'s, or this raises (fail closed)."""
 
-    body, _ = sefaria_text(version, parts)
+    body, _ = sefaria_text(version, parts, lemma_stop=lemma_stop)
     def normalise_marked(raw: str) -> str:
-        return normalise_sefaria_segment(ANCHOR.sub(MARKER_SENTINEL, raw))
+        out = normalise_sefaria_segment(ANCHOR.sub(MARKER_SENTINEL, raw))
+        return LEMMA_DASH.sub(". ", out) if lemma_stop else out
 
     text = version.get("text")
     schema = version.get("schema")
@@ -635,7 +642,8 @@ def _cmd_sefaria(args: argparse.Namespace) -> int:
         sys.stderr.write(f"rejected by the Sefaria licence gate: {decision.reason}\n")
         return 2
     spec = _load_people(args.spec)
-    text, stats = sefaria_text(version, spec.get("parts"))
+    lemma_stop = bool(spec.get("lemma_stop"))
+    text, stats = sefaria_text(version, spec.get("parts"), lemma_stop=lemma_stop)
     versions_sha = sha256_bytes(args.versions_snapshot.read_bytes()) if args.versions_snapshot else None
     if args.versions_snapshot:
         listed = [v for v in json.loads(args.versions_snapshot.read_bytes()) if v.get("versionTitle") == version.get("versionTitle")
@@ -647,12 +655,12 @@ def _cmd_sefaria(args: argparse.Namespace) -> int:
         work_id=args.work_id, decision=decision, title=str(version.get("title")), he_title=version.get("heTitle"), text=text,
         stats=stats, api_url=sefaria_download_url(str(version.get("title")), str(version.get("versionTitle"))),
         snapshot_sha256=sha256_bytes(data), contributors=spec["contributors"], publication=spec["publication"],
-        script=spec["script"], normaliser=SEFARIA_NORMALISER, anonymous_work=spec.get("anonymous_work"),
+        script=spec["script"], normaliser=SEFARIA_NORMALISER_LEMMA_STOP if lemma_stop else SEFARIA_NORMALISER, anonymous_work=spec.get("anonymous_work"),
         versions_api_url=SEFARIA_VERSIONS_URL.format(title=urllib.parse.quote(str(version.get("title")))) if versions_sha else None,
         versions_snapshot_sha256=versions_sha, digitizer=SEFARIA_DIGITIZER if version.get("digitizedBySefaria") else None,
     )
     _write(args.out_dir, args.work_id, text, record)
-    markers = sefaria_marker_offsets(version, spec.get("parts"))
+    markers = sefaria_marker_offsets(version, spec.get("parts"), lemma_stop=lemma_stop)
     (args.out_dir / f"{args.work_id}.markers.json").write_text(json.dumps(markers) + "\n", encoding="utf-8")
     sys.stdout.write(json.dumps({"work_id": args.work_id, **stats, "markers": len(markers["anchor_offsets"])}, ensure_ascii=False) + "\n")
     return 0
