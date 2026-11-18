@@ -141,11 +141,15 @@ anything.
   - **Footnote digits** that differ from the printed marker (`sifruthahisoriya11kaha`, `990026910840205171`, `tsitsimuferaimm00geiggoog`).
   - **Plene spelling.** The PBY text spells words fuller than the print does, which means it was typed from another printing (`sipurim00nombuoft`, `tsitsimuferaimm00geiggoog`).
 - **For this round:** only the 4 passing books enter the P-hist pool.
-- **Proposed fix (a builder PR), then a v4 rebuild and a re-audit of the failing books:**
-  1. **A line-edge check:** the first and last label words must match the OCR letters at the two ends of the box, which drops shifted spans and clipped crops.
-  2. **More crop padding** at the line ends.
-  3. **Digits rule:** a label's digits must equal the OCR line's digits.
-  4. **Plene spelling can't be fixed.** A book whose PBY text comes from another printing stays out.
+- **Can line-level checks rescue the failing books? Measured on the 480 audited lines, no.**
+  - **Edge check:** the first and last label words against the OCR's end words, by loose skeleton. At a threshold of 0.5 it flags 57 lines (48 bad, 9 good). That leaves the kept lines at 12% bad, against 21% before.
+  - **OCR similarity below 0.9** flags 100 lines (56 bad, 44 good) and leaves 11% bad.
+  - **Letter-count difference** does worse.
+  - **Why:** most of what remains is inside the line (plene spelling, one letter, digits), and stock OCR on this print can't tell the edition's reading from the print's.
+- **So the per-book audit is the gate:**
+  - the failing books stay out, unless a book is re-aligned (the shifted-span books) and passes a fresh audit;
+  - the edge check is worth adding later as an extra filter for passing books (about half their bad lines go, at about 2% of their good lines);
+  - books whose PBY text was typed from another printing stay out.
 - **These lines were in R8b's (and R9's) training lists.** That affects what those runs learned; the lead decides whether anything follows.
 - **A1 consequence:** of the capped bynli books, only `zikhronotlebetda01reck` passes, so the capped lines of `sifruthahisoriya11kaha` and `yotsrehasifrutha00zitr` are not added. Machzor Vitry passed (§6b). Lekach Tov gets its own 32-line audit before its capped lines are used.
 
