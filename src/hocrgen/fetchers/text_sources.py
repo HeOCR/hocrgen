@@ -320,6 +320,82 @@ def sefaria_text(version: Mapping[str, Any], parts: Sequence[str] | None = None)
     return body, stats
 
 
+MARKER_SENTINEL = "\ue000"  # a private-use character standing for a removed commentator anchor (never in a text)
+
+
+def _clean_line_with_markers(line: str) -> tuple[str, list[int]]:
+    """A normalised line with sentinels removed, and the offsets (in the cleaned line) where each sentinel stood.
+
+    Spaces are collapsed and the line stripped exactly as ``normalise_sefaria_segment`` does after removing anchors."""
+
+    out: list[str] = []
+    marks: list[int] = []
+    for ch in line:
+        if ch == MARKER_SENTINEL:
+            marks.append(len(out))
+        elif ch in " \t\u00a0":
+            if out and out[-1] != " ":
+                out.append(" ")
+        else:
+            out.append(ch)
+    while out and out[-1] == " ":
+        out.pop()
+    marks = [min(m, len(out)) for m in marks]
+    return "".join(out), marks
+
+
+def sefaria_marker_offsets(version: Mapping[str, Any], parts: Sequence[str] | None = None) -> dict[str, Any]:
+    """Where ``sefaria_text`` removed commentator anchors, and where each segment starts, as offsets into its body.
+
+    Printed editions show a marker (a letter in brackets, a symbol) where Sefaria keeps an anchor, and a se'if or
+    paragraph number at a segment start; neither is in the edition text. A line builder that drops lines holding a
+    marker or starting a segment keeps only lines whose printed text is all in the label. The body is recomputed and
+    must equal ``sefaria_text``'s, or this raises (fail closed)."""
+
+    body, _ = sefaria_text(version, parts)
+    def normalise_marked(raw: str) -> str:
+        return normalise_sefaria_segment(ANCHOR.sub(MARKER_SENTINEL, raw))
+
+    text = version.get("text")
+    schema = version.get("schema")
+    if parts is not None:
+        nodes = {str(n.get("enTitle") or ""): n for n in (schema or {}).get("nodes") or []}
+        segments = [seg for p in parts for seg in flatten_sefaria(text[p], nodes.get(p), p or "_default")]
+    else:
+        segments = flatten_sefaria(text, schema)
+    lines: list[str] = []
+    line_marks: list[list[int]] = []
+    seg_first: list[bool] = []
+    top = None
+    for ref, raw in segments:
+        head = ref.split("/")[0].split(".")[0]
+        if top is not None and head != top:
+            lines.append(""); line_marks.append([]); seg_first.append(False)
+        top = head
+        marked = normalise_marked(raw)
+        first = True
+        for ln in marked.split("\n"):
+            clean, marks = _clean_line_with_markers(ln)
+            if clean:
+                lines.append(clean); line_marks.append(marks); seg_first.append(first)
+                first = False
+    while lines and not lines[0]:
+        lines.pop(0); line_marks.pop(0); seg_first.pop(0)
+    rebuilt = "\n".join(lines).strip() + "\n"
+    if rebuilt != body:
+        raise ValueError("marker pass does not reproduce the normalised text; refusing")
+    offsets: list[int] = []
+    starts: list[int] = []
+    pos = 0
+    for clean, marks, first in zip(lines, line_marks, seg_first):
+        offsets += [pos + m for m in marks]
+        if first and clean:
+            starts.append(pos)
+        pos += len(clean) + 1
+    return {"format": "hocrgen.sefaria_markers.v1", "text_sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
+            "anchor_offsets": offsets, "segment_starts": starts}
+
+
 GUTENBERG_START = re.compile(r"^\*\*\* START OF TH[EI]S? PROJECT GUTENBERG EBOOK.*?\*\*\*\s*$", re.M)
 GUTENBERG_END = re.compile(r"^\*\*\* END OF TH[EI]S? PROJECT GUTENBERG EBOOK.*?\*\*\*\s*$", re.M)
 GUTENBERG_NOTE = re.compile(r"^\s*הערות על המהדורה אלקטרונית\s*$", re.M)
@@ -576,7 +652,9 @@ def _cmd_sefaria(args: argparse.Namespace) -> int:
         versions_snapshot_sha256=versions_sha, digitizer=SEFARIA_DIGITIZER if version.get("digitizedBySefaria") else None,
     )
     _write(args.out_dir, args.work_id, text, record)
-    sys.stdout.write(json.dumps({"work_id": args.work_id, **stats}, ensure_ascii=False) + "\n")
+    markers = sefaria_marker_offsets(version, spec.get("parts"))
+    (args.out_dir / f"{args.work_id}.markers.json").write_text(json.dumps(markers) + "\n", encoding="utf-8")
+    sys.stdout.write(json.dumps({"work_id": args.work_id, **stats, "markers": len(markers["anchor_offsets"])}, ensure_ascii=False) + "\n")
     return 0
 
 
