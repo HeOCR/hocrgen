@@ -68,6 +68,7 @@ import csv
 import dataclasses
 import datetime as dt
 import hashlib
+import io
 import html
 import json
 import os
@@ -105,6 +106,7 @@ from hocrgen.fetchers.ia_iiif import (
     manifest_label,
     manifest_provider,
 )
+from hocrgen.fetchers import commons_scan
 from hocrgen.fetchers.ia_justification import (
     NliSnapshot,
     WikidataSnapshot,
@@ -1711,6 +1713,43 @@ def _sefaria_version(args: argparse.Namespace) -> dict[str, Any] | None:  # prag
     return dict(evidence) or None
 
 
+def commons_scan_record(
+    args: argparse.Namespace,
+    commons_file: dict[str, Any],
+    snapshot_bytes: bytes,
+    row: dict[str, str],
+    indices: Sequence[int],
+    canvases: Sequence[dict[str, Any]],
+) -> dict[str, Any] | str:  # pragma: no cover - operator path
+    """The report's ``scan`` for a Commons file (Route C), or why the gate or the rights justification refuses it."""
+
+    if args.wikidata_snapshots is None or args.as_of is None:
+        return "--wikidata-snapshots and --as-of are required for a Commons scan (its rights justification)."
+    decision = commons_scan.decide_commons_rights(commons_file, sefaria_version=_sefaria_version(args))
+    if not decision.accepted:
+        return f"scan rejected by the Commons gate: {decision.reason}"
+    justification = commons_scan.build_commons_rights_justification(
+        commons_file, decision, catalogue_row=row, wikidata=load_wikidata_snapshots(args.wikidata_snapshots),
+        as_of=dt.date.fromisoformat(args.as_of), api_snapshot_sha256=hashlib.sha256(snapshot_bytes).hexdigest(),
+        image_urls=[canvases[i]["image_url"] for i in indices])
+    if not justification.accepted:
+        return f"scan rejected by the Commons rights justification: {justification.reason}"
+    return {
+        "source": commons_scan.COMMONS_SOURCE,
+        "record_id": "cm_" + hashlib.sha1(str(commons_file["title"]).encode("utf-8")).hexdigest()[:12],
+        "commons_file": commons_file["title"],
+        "commons_file_sha1": commons_file["sha1"],
+        "commons_description_url": commons_file["descriptionurl"],
+        "api_snapshot_sha256": hashlib.sha256(snapshot_bytes).hexdigest(),
+        "canvas_count": len(canvases),
+        "source_class": decision.source_class,
+        "rights_decision": decision.evidence(),
+        "rights_justification": justification.record,
+        "label": commons_file["title"],
+        "attribution": "Wikimedia Commons",
+    }
+
+
 def text_source_inputs(args: argparse.Namespace) -> tuple[dict[str, str], str, dict[str, Any]] | str:
     """(justification row, edition text, report ``work``) for ``--text-source``, or the reason ``align`` must refuse."""
 
@@ -1723,13 +1762,13 @@ def text_source_inputs(args: argparse.Namespace) -> tuple[dict[str, str], str, d
         return row, pby_body(args.pby_text.read_text(encoding="utf-8")), work
     if args.text_record is None:
         return f"--text-record is required for --text-source {args.text_source}."
-    if args.source != "ia":
-        return "text sources other than pby are aligned to Internet Archive scans only (--source ia)."
+    if args.source not in ("ia", "commons"):
+        return "text sources other than pby are aligned to Internet Archive or Commons scans only (--source ia|commons)."
     record = json.loads(args.text_record.read_text(encoding="utf-8"))
     if record.get("text_source") != args.text_source:
         return f"the text record is a {record.get('text_source')!r} record, not {args.text_source!r}."
     text = args.pby_text.read_bytes().decode("utf-8")  # no newline translation: the record's sha256 is of the bytes
-    refused = text_sources.check_text_record(record, text, ia_identifier=args.ia_identifier)
+    refused = text_sources.check_text_record(record, text, ia_identifier=args.ia_identifier if args.source == "ia" else None)
     if refused is not None:
         return refused
     work = {**text_sources.work_fields(record), "text_path": f"text/{record['work_id']}.txt", "text_record": record}
@@ -1747,6 +1786,14 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
     if args.source == "ia":
         canvases = ia_v3_canvases(manifest)
         scan_or_error = ia_scan(args, manifest, manifest_bytes, row, _parse_range(args.canvases, len(canvases)))
+        if isinstance(scan_or_error, str):
+            sys.stderr.write(scan_or_error + "\n")
+            return 2
+        scan = scan_or_error
+    elif args.source == "commons":
+        commons_file = commons_scan.commons_file_record(manifest)
+        canvases = commons_scan.commons_canvases(commons_file)
+        scan_or_error = commons_scan_record(args, commons_file, manifest_bytes, row, _parse_range(args.canvases, len(canvases)), canvases)
         if isinstance(scan_or_error, str):
             sys.stderr.write(scan_or_error + "\n")
             return 2
@@ -1797,6 +1844,8 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
 
     def page_image(index: int) -> tuple[Path, int, int]:
         """The canvas's cached image (fetched when missing), the canvas width, and the HTTP status (200 if cached)."""
+        if canvases[index].get("image_url"):
+            return commons_page_image(index)
         canvas = resolve_canvas_size(canvases[index], lambda: info_json(canvas_image_service(canvases[index])))
         canvases[index] = canvas
         service = canvas_image_service(canvas)
@@ -1815,6 +1864,26 @@ def _cmd_align(args: argparse.Namespace) -> int:  # pragma: no cover - operator 
             if status == 200:
                 image_path.write_bytes(body)
         return image_path, canvas_width, status
+
+    def commons_page_image(index: int) -> tuple[Path, int, int]:
+        """A Commons page thumbnail, downsized to --image-width; the canvas takes the saved image's size."""
+        image_path = work_dir / "img" / f"c{index:04d}.jpg"
+        status = 200
+        if not image_path.exists():
+            status, body = fetch(canvases[index]["image_url"])
+            if status == 200 and body.startswith(b"\xff\xd8"):
+                with Image.open(io.BytesIO(body)) as im:
+                    im.load()
+                    out = im.convert("RGB")
+                    if out.width > args.image_width:
+                        out = out.resize((args.image_width, round(out.height * args.image_width / out.width)), Image.LANCZOS)
+                    out.save(image_path, quality=92)
+            elif status == 200:
+                status = 415
+        if image_path.exists():
+            with Image.open(image_path) as im:
+                canvases[index] = {**canvases[index], "width": im.width, "height": im.height, "hocrgen_size_source": "commons_thumbnail"}
+        return image_path, int(canvases[index].get("width") or args.image_width), status
 
     google = args.source == "ia" and scan.get("source_class") == SOURCE_CLASS_GOOGLE
     excluded: list[dict[str, Any]] = []
@@ -1976,9 +2045,10 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     align = sub.add_parser("align", help="OCR (localization only) and align one PBY work to its matched scan.")
     align.add_argument(
         "--source",
-        choices=("nli", "ia"),
+        choices=("nli", "ia", "commons"),
         default="nli",
-        help="Scan source: nli (NLI IIIF v2, NLI gate) or ia (Internet Archive IIIF v3, IA gate). Default nli.",
+        help="Scan source: nli (NLI IIIF v2, NLI gate), ia (Internet Archive IIIF v3, IA gate) or commons (a Wikimedia"
+        " Commons scan file, Route C, text sources only; --manifest is then the saved Commons API response). Default nli.",
     )
     align.add_argument(
         "--text-source",
