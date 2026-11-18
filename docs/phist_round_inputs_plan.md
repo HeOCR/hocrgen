@@ -175,6 +175,22 @@ Only `.lstmf` is needed for training.
 - **Conclusion.** The Rashi stratum needs a Rashi-script localizer before any line set (§3). The square-type method's error is the one measured in §3 on the existing sets.
 - **Why the pilot is not on square type.** A square-type pilot on new pages would have needed the 538-page refetch of a capped book. That waits for the refetch in A1.
 
+## 6b. Pilot 2 (2026-11-18): square type, 20 new pages, measured label error
+
+- **What it is.** Machzor Vitry (ed. Hurwitz, Berlin 1889–97), the Google copy on IA (`mahzor-vitri-abraham-berliner-1893`, Route B), with Sefaria's PD version "Machzor Vitry, Berlin, 1893-97". This is the A1 case: an aligned book whose lines were cut by the 6,100 cap.
+- **Pages.** 20 canvases, drawn by `sha256("20261118:phist-pilot:" + canvas)` from the book's 793 high-quality aligned pages.
+  - Their images were refetched (the 2026-11-12 cleanup had trashed them), at 1 request per second.
+  - The full-size sha256 of all 20 matches the original fetch record.
+- **Build.** The unchanged `benyehuda_nli_lines build` (main at 8bdf893) on a root holding only those 20 pages and their alignment, uncapped, at min score 0.9.
+  - Result: **448 lines, 22.4 per page**, of which 150 are already in `rablines_v1` and **298 were never trained**.
+  - Drops: `print_marker_missing_from_label` 62, `outside_repertoire` 32, `below_min_score` 15, `label_disagrees_with_line_ocr` 13, `parenthetical_differs_from_print` 12, `taller_than_one_line` 9.
+- **Audit.** A seeded agent check of 32 of the 298 new lines, by `sha256("20261118:phist-audit:mvg_pilot:" + id)`:
+  - **30 exact**;
+  - **1 word-level error:** the last word of the line is missing from the label;
+  - 1 punctuation only: the edition writes commas where the print has stops;
+  - 1 letter uncertain (נ or ג), not counted.
+- **Verdict.** 1 word error in 32 meets the approved bar (at most 1 in 32), so the book qualifies, and the A1 refetch for the capped books can go ahead. The square-type method on exact-edition text behaves as `rablines_v1` did in §3. The yield matches the batch-1 model: 22 lines per aligned page.
+
 ## 6a. Eval hold-out books (picked before the pool is filled)
 
 **What eval needs.** heocr-eval's power analysis (`eval-domains/scripts/phist_power.py`) asks for at least 30 new
