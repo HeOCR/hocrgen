@@ -346,6 +346,34 @@ work leaves the training pool.
   - eval's overlap check must also cover the synthetic training text: htext's PBY corpus feeds hocrsyngen, so group D's works may already appear in synthetic lines.
 - **Registration first:** eval registers the final book ids and the work-level rule (which works and volumes are held out together) as a `check_train_overlap` target. **No pool fill starts before that registration.**
 
+## 6d. Rashi localizer acceptance test (2026-11-18)
+
+- **What was tested:** synth-gen's `rashi_loc` (sha256 a926b3e5…). It was trained on a pod from stock `heb` on 59,226 synthetic Noto Rashi lines of Sefaria PD Rashi on the Torah, for localization only.
+- **Test setup:**
+  - **Scan:** IA `Talmud_Bavli_Vilna_images` (vol. 17, "Scanned by Duke University Libraries"), canvases 106–145.
+  - **Text:** Sefaria's PD "Vilna Edition" Rashi on Zevachim.
+  - **A pilot-only relaxation:** that version names its printing by NLI record but has no year in its title. The edition-tie check was relaxed for this test (`scripts/pilot_rashi_tool.py`), and the licence check is unchanged.
+  - **No line from the test enters any pool.**
+
+| | stock `heb` | `rashi_loc` | §8a bar |
+|---|---:|---:|---|
+| Canvases aligned (of 40) | 31 | **37 (92.5%)** | ≥ 60% |
+| Median page score | 0.81 | 0.92 | |
+| Builder-passing lines | 35 | **896 (24.2 per aligned page)** | ≥ 15 per page |
+| Word errors in 32 audited lines | — | **6** | ≤ 1 |
+
+- **Verdict: the localizer passes, but the Rashi line pipeline does not yet.** None of the 6 errors is a localization error:
+  - **3 crop bleed:** the line box takes in fragments of the neighbouring margin column.
+  - **2 printed glosses' markers** (such as יח]) that the Rashi text does not carry.
+  - **1 enlarged first word** of a comment, missing from the label.
+  - **Also systematic:** Sefaria writes " - " after each lemma where the print has a stop. That is punctuation only, but it is on every comment.
+- **Fixes before Rashi lines enter any pool:**
+  1. tighter horizontal crop padding on multi-column pages, or clipping each crop to its column;
+  2. a marker check against the line OCR for letter-plus-bracket markers;
+  3. normalising Sefaria's lemma dash to the printed stop for Talmud commentaries.
+- **Then** re-run this test with a fresh audit.
+- **Setup note for anyone re-running the test:** the aligner reads Tesseract's `tsv` config from `--tessdata-dir`, so a model folder needs `configs/` next to its traineddata.
+
 ## 7. Decontamination
 
 **The hold-out comes first.** The §6a books are picked and registered by eval before any line enters the pool; their works are dropped at work level, every edition and scan.
