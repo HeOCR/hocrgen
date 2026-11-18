@@ -9,7 +9,18 @@ approved by Shay on 2026-11-18. This was desk research only.
 Tags: *(verified 2026-11-18)* means the primary page or API was loaded and re-checked by data-collection. *(inferred)*
 is a reading of the evidence. `not visible` means it can't be seen without accepting the gate.
 
-## Verdicts
+## Rulings (Shay, via heocr-lead, 2026-11-18)
+
+- **Gate accepted on 2026-11-18.** The lead accepted the Hugging Face gate of `ivrit-ai/hebrew-handwriting-ocr-benchmark`
+  in Shay's own browser session, on Shay's instruction. This counts as accepting the ivrit.ai licence's terms.
+- **Publishing per-engine scores counts as research** (decision 0023, open by default). ivrit.ai is not asked first.
+- **Import.** A light job, run after that night's registered gate run, into heocr-restricted-eval only. The import keeps
+  only image and gold text, and drops the writer block, notes, `user_id`s and fingerprints. The data never goes into
+  training, HASH, the review app or any release. The benchmark's 10 writers are held out of all future training data.
+- **Gold text.** Use the gated dataset only. The ungated `test_gold.jsonl` in the Space is not used.
+- **Transcriptor corpus.** No request to ivrit.ai for now. Shay will ask once HeOCR has publications and traction.
+
+## Verdicts (desk research, before the rulings)
 
 | Source | Eval | Training | Verdict | What Shay must accept |
 |---|---|---|---|---|
