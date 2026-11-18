@@ -180,7 +180,7 @@ estimates (36.6k actual against 105k estimated over the five built books). The T
 | A2, print markers | +5–8k (estimate) | 0 | needs code and an audit |
 | A3, pointed PBY | 7.5k (niqqud stratum) | 0 | optional |
 | A4, Robarts responsa | 0 | 0 now; ~20k with a Rashi localizer | Rashba, Chiddushei ha-Rim |
-| B, after decision 1 | ~70k (Tur, SA without OC, Rif, Sefer ha-Mitzvot main text) | ~150–450k once a Rashi localizer exists | the square main text needs no new model |
+| B, after decision 1 | ~70k (Tur, SA without OC, Rif, Sefer ha-Mitzvot main text): **needs marker reconstruction first (§6c); pilot 3 kept about 6 lines per page** | ~150–450k once a Rashi localizer exists | |
 
 - **Without new decisions:** about 110–120k real P-hist lines (existing plus Tier A).
 - **With decision 1:** about 190k square-type lines.
@@ -246,6 +246,22 @@ Only `.lstmf` is needed for training.
   - 1 punctuation only: the edition writes commas where the print has stops;
   - 1 letter uncertain (נ or ג), not counted.
 - **Verdict.** 1 word error in 32 meets the approved bar (at most 1 in 32), so the book qualifies, and the A1 refetch for the capped books can go ahead. The square-type method on exact-edition text behaves as `rablines_v1` did in §3. The yield matches the batch-1 model: 22 lines per aligned page.
+
+## 6c. Pilot 3 (2026-11-18): Shulchan Arukh main text on Sefaria's Commons scan (Tier B)
+
+- **What it is:**
+  - **Scan:** `File:שולחן ערוך יורה דעה חלק ראשון.pdf` (Commons, 295 pages, `PD-old-100-1996`). It says "Scan by Sefaria of NNL_ALEPH001157672", and the Route C gate of hocrgen#207 accepts it.
+  - **Text:** Sefaria's PD "Ashlei Ravrevei: Shulchan Aruch Yoreh Deah, Lemberg, 1888". It cites another NLI record (002097765) and is not marked `digitizedBySefaria`, so it may not be the same copy; #207 records this as edition evidence.
+  - **Pages:** 20 seeded consecutive pages (199–218).
+- **Alignment:** 20 of 20 pages aligned, median 0.936.
+- **Lines:** the builder kept 118 (5.9 per page; the main column is a small part of each page). It dropped 73 below min score, 63 for `print_marker_missing_from_label`, and 4 for disagreeing with the OCR.
+- **Audit:** 16 of 32 sampled lines were read, enough for a verdict: about 10 of 16 labels miss what the print shows.
+  - **Se'if numbers:** the letters ה, ח, יא, יג at the start of a se'if.
+  - **Commentators' marker letters** in brackets, such as (ג), [כ], [א], which point to the Taz, the Shakh and the others.
+  - One label starts with the previous line's word.
+- **Why:** the Sefaria text has these as commentator anchors and segment numbers, and `sefaria_markup.v1` removes them (35,333 anchors in this text). The builder's print-marker gate catches only markers the OCR reads.
+- **Verdict:** Tier B Shulchan Arukh and Tur are **not usable as they stand**. The next engineering step, and now the gate for Tier B, is to rebuild each printed marker from Sefaria's anchors (commentator → bracket style, numbered in order) and each se'if number from the segments. Then re-run this pilot and audit it.
+  - The main-column yield is also low (about 6 lines per page). Most of each page is the Rashi-script commentaries, which wait for the Rashi localizer.
 
 ## 6a. Eval hold-out books (picked before the pool is filled)
 
