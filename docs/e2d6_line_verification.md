@@ -1,5 +1,7 @@
 # E2d6: single-line verification of real printed lines
 
+> **Development / selection evidence; not a performance claim.** Held-out results: https://heocr.github.io/benchmarks.html
+
 > **Status (2026-11-11).** The tool and the first batch (`line_verify_v1`, 1,500 lines) are built. The first ingest
 > of the maintainer's decisions put 198 verified lines from 25 books into
 > [`line_verify_references.json`](./line_verify_references.json) (see [First ingest](#first-ingest-2026-11-11)). No

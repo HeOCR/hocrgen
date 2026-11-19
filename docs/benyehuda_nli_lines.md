@@ -1,5 +1,7 @@
 # Real line sets from the Ben-Yehuda × NLI alignment
 
+> **Development / selection evidence; not a performance claim.** Held-out results: https://heocr.github.io/benchmarks.html
+
 `hocrgen.tools.benyehuda_nli_lines` turns F8f alignments (`benyehuda_nli_alignment`) into line-image sets for
 recognizer fine-tuning (R6 Tesseract and later), and measures whether OCR output could serve as line labels.
 
