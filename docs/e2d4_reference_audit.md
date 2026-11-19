@@ -1,5 +1,7 @@
 # E2d4: an audit of the scored printed reference pages
 
+> **Development / selection evidence; not a performance claim.** Held-out results: https://heocr.github.io/benchmarks.html
+
 > **Status (2026-11-07).** The agent audit is committed as **proposals**. The maintainer has decided 103 of them
 > (all accepted), and a standing rule resolves 13 more ([E2d4b](#e2d4b-the-space-before-punctuation-rule)); 403
 > are still undecided. Reference text has now changed by human decision on 6 scored pages, and by the rule on 5

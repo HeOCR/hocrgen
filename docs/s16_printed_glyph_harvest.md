@@ -1,5 +1,7 @@
 # S16: printed glyph harvest from real scans
 
+> **Development / selection evidence; not a performance claim.** Held-out results: https://heocr.github.io/benchmarks.html
+
 `hocrgen.tools.glyph_harvest` cuts glyph images out of real scanned printed
 Hebrew pages and writes them as a `printed_glyph_bank.v1` directory. hocrsyngen
 reads that bank to compose synthetic book pages from real letterpress, with
