@@ -376,6 +376,12 @@ work leaves the training pool.
 - **Then** re-run this test with a fresh audit.
 - **Setup note for anyone re-running the test:** the aligner reads Tesseract's `tsv` config from `--tessdata-dir`, so a model folder needs `configs/` next to its traineddata.
 
+### Training-side Zevachim retest (lead decision, 2026-11-21)
+
+Eval or evalcheck must first confirm that no Zevachim page or Rashi-on-Zevachim edition is in any test reservation. Until that source-level clearance is recorded, the prior acceptance material stays closed. Use only material cleared for training and audit. The label source is Sefaria's *Rashi on Zevachim*, Hebrew *Vilna Edition*, listed as **Public Domain**. Retain the text source record with its snapshot hash and catalogue link (`NNL_ALEPH001300957`).
+
+For training eligibility, a passing visual audit establishes that the labels match this print. Record the basis as **audit-established print match; edition year unverified**. The general edition-tie gate still applies to other sources. Use `build --rashi-crop-guard --drop-marker-lines` to stage an audit-only candidate set. For each book, freeze the candidate manifest, exclude prior audited IDs from the new draw, and order the remaining IDs by SHA-256 of `20261121:phist-audit:rashi-crop-guard-v1:<book>:<line_id>`. Visually compare the crops and labels for the first 32 IDs. At most one word error passes. Exactly two errors require the next disjoint 32 IDs under the per-book rule in §3. Keep failed or unaudited candidates out of the pool. A passing audit also leaves the final roster subject to the normal CLEAN check, the 8% cap per book, and unchanged replay membership.
+
 ## 7. Decontamination
 
 **The hold-out comes first.** The §6a books are picked and registered by eval before any line enters the pool; their works are dropped at work level, every edition and scan.

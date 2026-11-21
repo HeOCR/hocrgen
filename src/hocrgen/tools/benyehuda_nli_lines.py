@@ -92,7 +92,7 @@ from multiprocessing import Pool
 from pathlib import Path
 from typing import Any
 
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from hocrgen.fetchers.google_hygiene import boxes_overlap
 from hocrgen.fetchers.ia_iiif import IA_GATE, IA_SOURCE
@@ -132,6 +132,8 @@ MIN_PAREN_SIMILARITY = 0.85
 MARKER_CHARS = re.compile(r"[()\[\]0-9*°]")
 # A gloss or note marker as its own OCR token: one or two letters closed (or opened) by a bracket, e.g. "יח]" or "(ג".
 MARKER_TOKEN = re.compile(r"^(?:[\[(]?[\u05d0-\u05ea]{1,2}[\])]|[\[(][\u05d0-\u05ea]{1,2}[\])]?|[*°])$")
+MIN_COLUMN_GAP = 0.85  # in line heights
+MIN_REGION_ADVANTAGE = 0.12  # similarity above the next-best region
 
 
 def unlabelled_print_marker(text: str, ocr: str) -> str | None:
@@ -393,6 +395,70 @@ def refine(text: str, s: int, e: int, ocr_text: str, reach: int = 2) -> tuple[in
     return best[1], best[2], before, best[0][0]
 
 
+def matched_crop_region(text, start, end, words, line_height):
+    """Select the unambiguous OCR region that supports the aligned edition span."""
+    regions = []
+    left_edge = None
+    for word in words:  # right-to-left order from words_in_box
+        left, _, right, _ = word[-1]
+        if left_edge is None or left_edge - right > MIN_COLUMN_GAP * line_height:
+            regions.append([])
+            left_edge = left
+        regions[-1].append(word)
+        left_edge = min(left_edge, left)
+    if not regions:
+        return None
+
+    candidates = []
+    for region in regions:
+        ocr = label(" ".join(word[0] for word in region))
+        span = refine(text, start, end, ocr)
+        candidates.append((span, region))
+    candidates.sort(key=lambda candidate: candidate[0][3], reverse=True)
+    span, region = candidates[0]
+    if len(candidates) > 1:
+        s, e, _, similarity = span
+        # An isolated fragment elsewhere in the nearby edition text is not
+        # enough evidence to discard the rest of the printed line.
+        if (similarity - candidates[1][0][3] < MIN_REGION_ADVANTAGE
+                or min(e, end) - max(s, start) < 0.6 * (end - start)
+                or len(LETTER.findall(text[s:e])) < 8):
+            return None
+    return span, region
+
+
+def unboxed_marker_ink(image, box, words, line_height):
+    """Flag compact dark glyphs outside OCR word boxes, including dropped stars.
+
+    This conservative screen also rejects other unexplained glyphs of similar
+    size. Marks connected to a word or covered by its OCR box can still pass.
+    """
+    left, top, _, _ = box
+    crop = image.crop(box).convert("L")
+    draw = ImageDraw.Draw(crop)
+    for _, _, (x0, y0, x1, y1) in words:
+        draw.rectangle((x0 - left - 1, y0 - top - 1, x1 - left, y1 - top), fill=255)
+    width, _ = crop.size
+    ink = {divmod(i, width) for i, value in enumerate(crop.tobytes()) if value < 100}
+    min_side = max(2, round(0.12 * line_height))
+    max_side = max(min_side, round(0.7 * line_height))
+    while ink:
+        y, x = ink.pop()
+        component = [(y, x)]
+        for cy, cx in component:
+            for dy in (-1, 0, 1):
+                for dx in (-1, 0, 1):
+                    neighbour = (cy + dy, cx + dx)
+                    if neighbour in ink:
+                        ink.remove(neighbour)
+                        component.append(neighbour)
+        ys, xs = zip(*component)
+        w, h = max(xs) - min(xs) + 1, max(ys) - min(ys) + 1
+        if min_side <= w <= max_side and min_side <= h <= max_side and len(component) >= 4:
+            return True
+    return False
+
+
 def clip_to_column(box: tuple[int, int, int, int], line: Sequence[float], words) -> tuple[int, int, int, int]:
     """``box`` with its left and right padding stopped half-way to the nearest OCR word beside the line on the same row
     (another column or a margin gloss, whose small type may straddle the row), so a crop never shows a neighbour's text. ``line`` is (x, y, w, h) and ``words``
@@ -434,7 +500,7 @@ def _named(pairs: Iterable[str] | None) -> dict[str, str]:
 
 def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, str], keep_pointed: bool,
             prefer_placer: Sequence[str] = (), records: Iterable[str] | None = None, exclude_records: Iterable[str] = (),
-            drop_pointed_spans: bool = False, drop_marker_lines: bool = False):
+            drop_pointed_spans: bool = False, drop_marker_lines: bool = False, rashi_crop_guard: bool = False):
     """Candidate lines per (record, canvas, line) after the line gates, with drop counts, edition niqqud density, the
     per-record alignment-source choice, the alignment dirs not read and the pointed spans dropped per record."""
     best: dict[tuple[str, int, int], dict[str, Any]] = {}
@@ -460,13 +526,16 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
         work = al.get("work") or {}
         text = edition_text(root, pby, work)
         text_source = work.get("text_source") or TEXT_SOURCE_PBY
+        guard_rashi = rashi_crop_guard and work.get("script") == "rashi"
         anchors, seg_starts = marker_offsets(root, pby, work, text) if drop_marker_lines and text_source != TEXT_SOURCE_PBY else (None, None)
         for page in al["pages"]:
             if page["status"] != "aligned":
                 continue
             idx = page["canvas_index"]
             with Image.open(root / "work" / rec / "img" / f"c{idx:04d}.jpg") as opened:
-                page_scale = page["canvas_size"][0] / opened.size[0]
+                image_size = opened.size
+                page_scale = page["canvas_size"][0] / image_size[0]
+                gray_page = opened.convert("L") if guard_rashi else None
             tsv = root / "work" / rec / ocr_sub / f"c{idx:04d}.tsv"
             if not tsv.exists():
                 raise SystemExit(f"page OCR missing for {source}: {tsv}")
@@ -487,8 +556,29 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
                     drops["taller_than_one_line"] += 1
                     continue
                 s0, e0 = line["pby_span"]
-                inside = words_in_box(words, [v / page_scale for v in line["bbox"]])
-                s, e, sim_before, sim = refine(text, s0, e0, label(" ".join(wd[0] for wd in inside)))
+                bbox_canvas = line["bbox"]
+                bbox_image = [v / page_scale for v in bbox_canvas]
+                inside = words_in_box(words, bbox_image)
+                guarded_crop = None
+                if gray_page is not None:
+                    region = matched_crop_region(text, s0, e0, inside, bbox_image[3])
+                    if region is None:
+                        drops["rashi_unclear_column"] += 1
+                        continue
+                    (s, e, sim_before, sim), inside = region
+                    left = min(word[-1][0] for word in inside)
+                    top = min(word[-1][1] for word in inside)
+                    right = max(word[-1][2] for word in inside)
+                    bottom = max(word[-1][3] for word in inside)
+                    bbox_image = (left, top, right - left, bottom - top)
+                    bbox_canvas = [v * page_scale for v in bbox_image]
+                    _, _, box = crop_box(image_size, bbox_canvas, page["canvas_size"][0])
+                    guarded_crop = clip_to_column(box, bbox_image, words)
+                    if unboxed_marker_ink(gray_page, guarded_crop, inside, bbox_image[3]):
+                        drops["rashi_unboxed_marker_ink"] += 1
+                        continue
+                else:
+                    s, e, sim_before, sim = refine(text, s0, e0, label(" ".join(wd[0] for wd in inside)))
                 raw = text[s:e]
                 if sim < MIN_OCR_SIMILARITY:
                     drops["label_disagrees_with_line_ocr"] += 1
@@ -538,12 +628,14 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
                     continue
                 key = (rec, idx, line["line"])
                 cand = {"record_id": rec, "pby_id": pby, "canvas_index": idx, "canvas_id": page["canvas_id"],
-                        "line_index": line["line"], "bbox_canvas": line["bbox"], "canvas_size": page["canvas_size"],
+                        "line_index": line["line"], "bbox_canvas": bbox_canvas, "canvas_size": page["canvas_size"],
                         "text": gt, "pby_span": [s, e], "pby_span_alignment": [s0, e0], "span_adjusted": [s, e] != [s0, e0],
                         "ocr_similarity_before": round(sim_before, 4), "ocr_similarity": round(sim, 4),
                         "alignment_score": line["score"], "strict_char_similarity": line.get("strict_char_similarity"),
                         "page_quality": page.get("quality"), "_root": root, "_stratum": stratum, "_placer": placer,
                         "_alignment": source, "_page_ocr": ocr_sub}
+                if guarded_crop is not None:
+                    cand["_guarded_crop"] = guarded_crop
                 if scan.get("source") in (IA_SOURCE, COMMONS_SOURCE):  # NLI rows stay byte-identical
                     cand["scan_source"] = scan["source"]
                     cand["source_class"] = scan.get("source_class")
@@ -659,7 +751,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     best, drops, density, placer_choice, skipped_dirs, span_drops = collect(
         roots, min_score=args.min_score, pointed=pointed, keep_pointed=args.keep_pointed,
         prefer_placer=args.prefer_placer or (), records=records, exclude_records=exclude_records,
-        drop_pointed_spans=drop_spans, drop_marker_lines=bool(getattr(args, "drop_marker_lines", False)))
+        drop_pointed_spans=drop_spans, drop_marker_lines=bool(getattr(args, "drop_marker_lines", False)),
+        rashi_crop_guard=bool(getattr(args, "rashi_crop_guard", False)))
     dens = {rec: round(m / n, 3) if n else 0.0 for rec, (m, n) in sorted(density.items())}
     unresolved = sorted(rec for rec, d in dens.items() if d >= CHECK_POINTED_DENSITY and rec not in pointed and rec not in unpointed)
     if args.schema == "v2" and unresolved:
@@ -700,13 +793,16 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         r = dict(best[key])
         root, stratum, placer = r.pop("_root"), r.pop("_stratum"), r.pop("_placer")
         alignment, page_ocr = r.pop("_alignment"), r.pop("_page_ocr")
+        guarded_crop = r.pop("_guarded_crop", None)
         rec = r["record_id"]
         split = "dev" if rec in dev else "train"
         lid = line_id(*key, source=r.get("scan_source"))
         rel = Path(split) / rec / f"{lid}.png"
         with Image.open(root / "work" / rec / "img" / f"c{r['canvas_index']:04d}.jpg") as im:
             scale, (x, y, w, h), box = crop_box(im.size, r["bbox_canvas"], r["canvas_size"][0])
-            if getattr(args, "clip_crop_to_column", False):
+            if guarded_crop is not None:
+                box = guarded_crop
+            elif getattr(args, "clip_crop_to_column", False):
                 tsv = root / "work" / rec / page_ocr / f"c{r['canvas_index']:04d}.tsv"
                 box = clip_to_column(box, (x, y, w, h), read_tsv_boxes(tsv))
             image_sha = None
@@ -775,6 +871,9 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         if drop_spans:
             summary["drop_pointed_spans"] = {"min_niqqud_per_letter": MIN_POINTED_DENSITY,
                                              "dropped_by_record": dict(sorted(span_drops.items()))}
+    if getattr(args, "rashi_crop_guard", False):
+        summary["rashi_crop_guard"] = {"min_column_gap_in_line_heights": MIN_COLUMN_GAP,
+                                       "min_region_advantage": MIN_REGION_ADVANTAGE}
     if overlap:
         summary["drop_overlap"] = {"pairs": overlap, "dropped": overlap_dropped}
     if reserve or scripts:
@@ -966,6 +1065,8 @@ def main(argv: Sequence[str] | None = None) -> int:
                    help="file with one record per line (first field; # comments) to leave out (repeatable)")
     b.add_argument("--clip-crop-to-column", action="store_true",
                    help="stop each crop's side padding half-way to the nearest OCR word beside the line (multi-column pages)")
+    b.add_argument("--rashi-crop-guard", action="store_true",
+                   help="for Rashi lines, select the unambiguous aligned word region and reject isolated unboxed ink")
     b.add_argument("--drop-marker-lines", action="store_true",
                    help="text sources: drop lines whose edition span holds a removed commentator anchor or starts a segment "
                    "(the print shows a marker or number the label lacks); needs text/<work_id>.markers.json")
