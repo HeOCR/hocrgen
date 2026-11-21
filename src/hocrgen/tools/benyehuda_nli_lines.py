@@ -82,6 +82,7 @@ import bisect
 import difflib
 import hashlib
 import json
+import math
 import os
 import re
 import subprocess
@@ -361,6 +362,26 @@ def words_in_box(words, box, slack=2):
     return sorted(inside, key=lambda wd: -wd[-1][2])  # right to left
 
 
+def suspicious_horizontal_gap(words, line_height: float, gap_ratio: float) -> bool:
+    """Flag a line with a wide gap between OCR words, in units of line height.
+
+    This is only a conservative guard for merged columns, not proof of a clean
+    crop: the OCR may miss a margin word, marker, or whole column. Missing or
+    invalid geometry fails closed when the guard is enabled.
+    """
+    if line_height <= 0 or not words:
+        return True
+    boxes = sorted((wd[-1] for wd in words), key=lambda box: box[0])
+    if any(len(box) != 4 or box[2] <= box[0] or box[3] <= box[1] for box in boxes):
+        return True
+    right = boxes[0][2]
+    for box in boxes[1:]:
+        if box[0] - right > gap_ratio * line_height:
+            return True
+        right = max(right, box[2])
+    return False
+
+
 def refine(text: str, s: int, e: int, ocr_text: str, reach: int = 2) -> tuple[int, int, float, float]:
     """Snap an approximate line span to whole words: among word boundaries within ``reach`` words of each edge, keep
     the span whose label best matches Tesseract's reading of the line. The label text stays the edition's."""
@@ -412,7 +433,8 @@ def _named(pairs: Iterable[str] | None) -> dict[str, str]:
 
 def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, str], keep_pointed: bool,
             prefer_placer: Sequence[str] = (), records: Iterable[str] | None = None, exclude_records: Iterable[str] = (),
-            drop_pointed_spans: bool = False, drop_marker_lines: bool = False):
+            drop_pointed_spans: bool = False, drop_marker_lines: bool = False,
+            reject_gap_ratio: float | None = None):
     """Candidate lines per (record, canvas, line) after the line gates, with drop counts, edition niqqud density, the
     per-record alignment-source choice, the alignment dirs not read and the pointed spans dropped per record."""
     best: dict[tuple[str, int, int], dict[str, Any]] = {}
@@ -466,6 +488,9 @@ def collect(roots: Sequence[Path], *, min_score: float, pointed: Mapping[str, st
                     continue
                 s0, e0 = line["pby_span"]
                 inside = words_in_box(words, [v / page_scale for v in line["bbox"]])
+                if reject_gap_ratio is not None and suspicious_horizontal_gap(inside, line["bbox"][3] / page_scale, reject_gap_ratio):
+                    drops["suspicious_horizontal_gap"] += 1
+                    continue
                 s, e, sim_before, sim = refine(text, s0, e0, label(" ".join(wd[0] for wd in inside)))
                 raw = text[s:e]
                 if sim < MIN_OCR_SIMILARITY:
@@ -634,10 +659,14 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
     if records is not None and set(records) & exclude_records:
         raise SystemExit(f"records both --records and --exclude-records: {sorted(set(records) & exclude_records)}")
     drop_spans = bool(getattr(args, "drop_pointed_spans", False))
+    gap_ratio = getattr(args, "reject_gap_ratio", None)
+    if gap_ratio is not None and (not math.isfinite(gap_ratio) or gap_ratio <= 0):
+        raise SystemExit("--reject-gap-ratio must be a positive finite number")
     best, drops, density, placer_choice, skipped_dirs, span_drops = collect(
         roots, min_score=args.min_score, pointed=pointed, keep_pointed=args.keep_pointed,
         prefer_placer=args.prefer_placer or (), records=records, exclude_records=exclude_records,
-        drop_pointed_spans=drop_spans, drop_marker_lines=bool(getattr(args, "drop_marker_lines", False)))
+        drop_pointed_spans=drop_spans, drop_marker_lines=bool(getattr(args, "drop_marker_lines", False)),
+        reject_gap_ratio=gap_ratio)
     dens = {rec: round(m / n, 3) if n else 0.0 for rec, (m, n) in sorted(density.items())}
     unresolved = sorted(rec for rec, d in dens.items() if d >= CHECK_POINTED_DENSITY and rec not in pointed and rec not in unpointed)
     if args.schema == "v2" and unresolved:
@@ -750,6 +779,8 @@ def build(args: argparse.Namespace) -> dict[str, Any]:
         if drop_spans:
             summary["drop_pointed_spans"] = {"min_niqqud_per_letter": MIN_POINTED_DENSITY,
                                              "dropped_by_record": dict(sorted(span_drops.items()))}
+    if gap_ratio is not None:
+        summary["reject_gap_ratio"] = gap_ratio
     if overlap:
         summary["drop_overlap"] = {"pairs": overlap, "dropped": overlap_dropped}
     if reserve or scripts:
@@ -939,6 +970,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     b.add_argument("--exclude-records", nargs="*", help="leave these records out (e.g. those of an earlier set)")
     b.add_argument("--exclude-records-from", action="append",
                    help="file with one record per line (first field; # comments) to leave out (repeatable)")
+    b.add_argument("--reject-gap-ratio", type=float, help="drop lines with an OCR word gap greater than this multiple of line height; a guard, not an audit")
     b.add_argument("--drop-marker-lines", action="store_true",
                    help="text sources: drop lines whose edition span holds a removed commentator anchor or starts a segment "
                    "(the print shows a marker or number the label lacks); needs text/<work_id>.markers.json")

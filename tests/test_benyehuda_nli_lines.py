@@ -586,3 +586,12 @@ def test_drop_overlap_keeps_only_what_the_primary_copy_lacks():
     out = bl.drop_covered_by_primary(best, drops, {"robarts00x": "google00x"}, {"robarts00x": [("sefaria_w", 0, 20)]})
     assert set(best) == {("google00x", 0, 1), ("other00x", 0, 0)}
     assert out == {"robarts00x=google00x": 1} and drops["covered_by_primary_copy"] == 1
+
+
+def test_reject_gap_guard_is_opt_in_and_records_threshold(tmp_path, root):
+    # The fixture's adjacent OCR word boxes have a four-pixel gap and a
+    # fifteen-pixel line height, so a threshold of 0.2 rejects multiword lines.
+    summary, rows = _build(tmp_path, root, "--reject-gap-ratio", "0.2")
+    assert summary["reject_gap_ratio"] == 0.2
+    assert summary["dropped"]["suspicious_horizontal_gap"] > 0
+    assert not rows

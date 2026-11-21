@@ -151,3 +151,9 @@ No rule reaches 99%. R6's remaining errors are mostly its own letter confusions:
 decision is that whole-line OCR labels are not used, and labels stay the edition text.
 
 Tests: `tests/test_benyehuda_nli_lines.py` (network-free; synthetic alignment root).
+
+### Optional merged-column gap guard
+
+`build --reject-gap-ratio R` drops a candidate when neighbouring OCR word boxes within the aligned line have a horizontal gap larger than `R` times the line-box height; the build summary records the chosen positive finite `R` and counts these drops under `suspicious_horizontal_gap`. The guard is opt-in. Choose and audit the threshold on suitable real training/development material; no threshold is endorsed here.
+
+This is a conservative geometry screen, not a column segmenter or a label audit. It can reject normal spaced text, and it cannot catch a margin word or a marker that OCR misses, a merged OCR word, or a narrow gap. A surviving line is not evidence of a correct crop or label. Rashi remains blocked pending fixes for missed markers and a separate, passing real-data audit under the P-hist rules.
