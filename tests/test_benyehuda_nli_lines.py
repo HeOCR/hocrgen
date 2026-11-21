@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 import pytest
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from hocrgen.tools import benyehuda_nli_lines as bl
 
@@ -530,6 +530,26 @@ def test_text_source_rows_carry_provenance_and_script(tmp_path, root):
     assert summary["text_provenance"]["seferleet00goog"]["sefaria_leket_yosher"]["text_version_title"] == "Berlin, 1903"
     # PBY rows are unchanged: no text-source keys.
     assert not any({"work_id", "script", "text_source"} & set(r) for r in rows if r["record_id"] != "seferleet00goog")
+
+
+def test_rashi_crop_guard_cuts_the_selected_region_and_drops_unboxed_marker(tmp_path, root):
+    _as_text_source(root, "2", "sefaria_rashi_fixture", "rashi-fixture", script="rashi")
+    page = root / "work" / "rashi-fixture"
+    tsv = page / "ocr" / "c0000.tsv"
+    data = tsv.read_text(encoding="utf-8")
+    data = data.replace("\t112\t32\t36\t", "\t112\t32\t29\t", 1)
+    tsv.write_text(data + "5\t1\t1\t1\t0\t4\t12\t12\t20\t10\t90\tהערה\n", encoding="utf-8")
+    image = Image.new("L", IMAGE, 255)
+    draw = ImageDraw.Draw(image)
+    draw.rectangle((145, 35, 148, 38), fill=0)  # marker between words on line 1
+    image.save(page / "img" / "c0000.jpg")
+    summary, rows = _build(tmp_path, root, "--rashi-crop-guard")
+    rashi = {row["line_index"]: row for row in rows if row["record_id"] == "rashi-fixture"}
+    assert rashi[0]["text"] == "ספר חדש ויפה"
+    assert rashi[0]["crop_box_image"][0] > 32
+    assert 1 not in rashi
+    assert summary["dropped"]["rashi_unboxed_marker_ink"] == 1
+    assert summary["rashi_crop_guard"]["min_column_gap_in_line_heights"] > 0
 
 
 def test_text_source_text_must_match_its_record(tmp_path, root):

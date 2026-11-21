@@ -376,6 +376,14 @@ work leaves the training pool.
 - **Then** re-run this test with a fresh audit.
 - **Setup note for anyone re-running the test:** the aligner reads Tesseract's `tsv` config from `--tessdata-dir`, so a model folder needs `configs/` next to its traineddata.
 
+### Training-side retest on a fresh tractate (lead decision, 2026-11-21)
+
+Use a different tractate from the Zevachim localizer pilot. The first proposed source is **Gittin**, from the separately identified 1886 volume in the [archive catalogue](https://archive.org/metadata/Talmud_Bavli_Vilna_images). The archive lists a Public Domain Mark. The proposed pilot covers leaves **35–74 inclusive**, from the `Talmud_Bavli_Vilna_A_V10_Gittin_1886_images` scan only. The volume's scan index is `Talmud_Bavli_Vilna_A_V10_Gittin_1886_images_scandata.xml` (catalogue SHA-1 `40667407d654b2ae519b160e0794883307f3e342`). Identify each image by the volume stem and leaf, since the archive item contains several volumes. Fetch individual pages from the volume's JP2 archive after clearance.
+
+Use the Hebrew *Vilna Edition* of [Sefaria's *Rashi on Gittin*](https://www.sefaria.org/api/texts/versions/Rashi%20on%20Gittin), listed as **Public Domain**. Retain its text snapshot hash, source record and catalogue link (`NNL_ALEPH001300957`). Evalcheck must first confirm that the images, physical volume and edition are outside test reservations. The archive item and Sefaria catalogue identifiers are shared with Zevachim, so the source check must resolve the scope of those aliases. The original pilot pages stay outside this retest.
+
+For training eligibility, a passing visual audit establishes that the labels match this print. Record the basis as **audit-established print match; edition year unverified**. The general edition-tie gate still applies to other sources. Use Tesseract 5.5.3 and `rashi_loc` (SHA-256 `a926b3e52d1e9a7fa781e8f3adb2620da343ca5b4a3c31af85b015cfb17a62bc`) for localization, then `build --rashi-crop-guard --drop-marker-lines` to stage an audit-only candidate set. For each book, freeze the candidate manifest, exclude prior audited IDs from the new draw, and order the remaining IDs by SHA-256 of `20261121:phist-audit:rashi-crop-guard-v1:<book>:<line_id>`. Visually compare the crops and labels for the first 32 IDs. At most one word error passes. Exactly two errors require the next disjoint 32 IDs under the per-book rule in §3. Keep failed or unaudited candidates out of the pool. A passing audit also leaves the final roster subject to the normal CLEAN check, the 8% cap per book, and unchanged replay membership.
+
 ## 7. Decontamination
 
 **The hold-out comes first.** The §6a books are picked and registered by eval before any line enters the pool; their works are dropped at work level, every edition and scan.
