@@ -1,5 +1,7 @@
 # P-hist training round: inputs plan and pilot (2026-11-18)
 
+> **Development / selection evidence; not a performance claim.** Held-out results: https://heocr.github.io/benchmarks.html
+
 Task from heocr-lead, 2026-11-18. The goal is to have the inputs of an old-Hebrew (P-hist) training round ready, so that
 it can start on the HeOCR/heocr-compute pods as soon as Shay picks it. This document covers the source pool and its
 licences, the line ground-truth method, the expected line counts, disk and upload sizes, and a pilot with measured label

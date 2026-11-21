@@ -321,6 +321,6 @@ def test_align_refuses_a_tampered_text_or_record_and_non_ia_scans(tmp_path):
     assert "not 'sefaria'" in tool.text_source_inputs(args)
     tool, args = _align_args(tmp_path, record, text)
     args.source = "nli"
-    assert "Internet Archive scans only" in tool.text_source_inputs(args)
+    assert "Internet Archive or Commons scans only" in tool.text_source_inputs(args)  # NLI scans are still refused
     args.source, args.text_source, args.catalogue = "ia", "pby", None
     assert "--catalogue and --pby-id are required" in tool.text_source_inputs(args)

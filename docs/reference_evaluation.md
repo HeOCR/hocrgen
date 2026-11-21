@@ -1,5 +1,7 @@
 # Reference-aware evaluation
 
+> **Development / selection evidence; not a performance claim.** Held-out results: https://heocr.github.io/benchmarks.html
+
 `hocrgen.reference_evaluation` scores explicit predictions against reviewed or adjudicated `benchmark_transcription_reference.v1` records. It does not acquire references or run an OCR engine. Existing `hocrgen.evaluation` and `evaluate-benchmark` retain their raw E2a behavior.
 
 **Direction (2026-11-06).** Synthetic gold is the headline scored set for now. Evaluation is to move, over time, to real scans only, with separate printed and handwritten tracks. `E2d1`/`E2d2` add a printed modality track beside it ([modality tracks](#modality-tracks-and-real-printed-references-e2d1-e2d2)); the cutover is `E2d5`. `E2d4` audits the printed references ([`e2d4_reference_audit.md`](./e2d4_reference_audit.md)). See [`planning/tasks/e2d-real-scan-evaluation.md`](../planning/tasks/e2d-real-scan-evaluation.md).

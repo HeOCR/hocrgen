@@ -521,40 +521,21 @@ def _join_years(contributors: Sequence[Mapping[str, Any]]) -> str:
     return ", ".join(parts)
 
 
-def build_ia_rights_justification(
-    metadata: Mapping[str, Any],
+def work_public_domain(
+    md: Mapping[str, Any],
     *,
     catalogue_row: Mapping[str, str],
     wikidata: Mapping[str, WikidataSnapshot],
     as_of: dt.date,
-    metadata_sha256: str,
-    manifest_url: str,
-    manifest_sha256: str,
-    canvas_count: int,
-    image_urls: Sequence[str],
     nli_snapshot: NliSnapshot | None = None,
-    hygiene: Any = None,
-    decision: IaRightsDecision | None = None,
     contributors_listed_in: str = "pby_catalogue",
-) -> JustificationResult:
-    """The ``rights_justification`` of an IA item, or the reason it cannot be justified (and so is rejected).
+) -> dict[str, Any]:
+    """The work's public-domain status from its contributors, publication year and place (shared by Routes B and C).
 
-    ``image_urls`` are the image sources actually used (the IIIF image service of each aligned canvas). ``hygiene``
-    is PR B's front-matter and watermark record for a Google item; until it is given it is ``"pending"`` for Google
-    items and ``"none"`` for others. ``contributors_listed_in`` is ``"pby_catalogue"`` for a PBY catalogue row and
-    ``"text_record"`` for a Sefaria or Project Gutenberg text record's row (``text_sources.justification_row``).
-    """
+    ``md`` is the scan's own metadata when it has any (IA metadata; ``{}`` for a Commons file paired with a text
+    record). Returns ``failures`` plus every part the justification records."""
 
-    decision = decision or decide_ia_rights(metadata)
-    if not decision.accepted:
-        return JustificationResult(False, f"ia_gate_rejected:{decision.reason}", [decision.reason], None)
-    md = _md(metadata)
-    evidence = decision.evidence()
-    identifier = decision.identifier or ""
-    google = decision.source_class == SOURCE_CLASS_GOOGLE
-    nli_origin = bool(evidence.get("nli_evidence"))
     failures: list[str] = []
-
     listed_in = contributors_listed_in
     contributors, contributors_basis = _contributors(catalogue_row, md, wikidata, nli_snapshot, as_of.year, listed_in)
     anonymous = json.loads(catalogue_row["anonymous_work"]) if listed_in != "pby_catalogue" and catalogue_row.get("anonymous_work") else None
@@ -617,6 +598,51 @@ def build_ia_rights_justification(
             if year is not None else "publication year unknown",
             "publication_year": year,
         }
+    return {"failures": failures, "contributors": contributors, "contributors_basis": contributors_basis,
+            "anonymous": anonymous, "years": years, "year": year, "place": place, "presumed": presumed,
+            "israel_status": israel_status, "us_status": us_status, "listed_in": listed_in}
+
+
+def build_ia_rights_justification(
+    metadata: Mapping[str, Any],
+    *,
+    catalogue_row: Mapping[str, str],
+    wikidata: Mapping[str, WikidataSnapshot],
+    as_of: dt.date,
+    metadata_sha256: str,
+    manifest_url: str,
+    manifest_sha256: str,
+    canvas_count: int,
+    image_urls: Sequence[str],
+    nli_snapshot: NliSnapshot | None = None,
+    hygiene: Any = None,
+    decision: IaRightsDecision | None = None,
+    contributors_listed_in: str = "pby_catalogue",
+) -> JustificationResult:
+    """The ``rights_justification`` of an IA item, or the reason it cannot be justified (and so is rejected).
+
+    ``image_urls`` are the image sources actually used (the IIIF image service of each aligned canvas). ``hygiene``
+    is PR B's front-matter and watermark record for a Google item; until it is given it is ``"pending"`` for Google
+    items and ``"none"`` for others. ``contributors_listed_in`` is ``"pby_catalogue"`` for a PBY catalogue row and
+    ``"text_record"`` for a Sefaria or Project Gutenberg text record's row (``text_sources.justification_row``).
+    """
+
+    decision = decision or decide_ia_rights(metadata)
+    if not decision.accepted:
+        return JustificationResult(False, f"ia_gate_rejected:{decision.reason}", [decision.reason], None)
+    md = _md(metadata)
+    evidence = decision.evidence()
+    identifier = decision.identifier or ""
+    google = decision.source_class == SOURCE_CLASS_GOOGLE
+    nli_origin = bool(evidence.get("nli_evidence"))
+    failures: list[str] = []
+
+    wpd = work_public_domain(md, catalogue_row=catalogue_row, wikidata=wikidata, as_of=as_of, nli_snapshot=nli_snapshot,
+                             contributors_listed_in=contributors_listed_in)
+    failures.extend(wpd["failures"])
+    listed_in, contributors, contributors_basis = wpd["listed_in"], wpd["contributors"], wpd["contributors_basis"]
+    anonymous, years, year, place, presumed = wpd["anonymous"], wpd["years"], wpd["year"], wpd["place"], wpd["presumed"]
+    israel_status, us_status = wpd["israel_status"], wpd["us_status"]
 
     image_check = _image_count_check(md, canvas_count)
     if (evidence.get("mediatype") or "").lower() != "texts":

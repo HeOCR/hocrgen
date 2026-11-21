@@ -1,5 +1,7 @@
 # Scanned Reshumot lines labelled with OLB text (`olbreshumotlines_v1`)
 
+> **Development / selection evidence; not a performance claim.** Held-out results: https://heocr.github.io/benchmarks.html
+
 `hocrgen.tools.olb_reshumot_lines` cuts line images from the **scanned** booklets of ספר החוקים and קובץ התקנות
 (1948 to mid-2005: ספר החוקים 1–1975, קובץ התקנות 1–6394) and labels each with the same-wording text of Hebrew
 Wikisource's ספר החוקים הפתוח (OLB). It is the mid-century modern-print line set (decision 0018: new printed).
