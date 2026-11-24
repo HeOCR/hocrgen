@@ -106,6 +106,13 @@ Each is a known failure of catalogue-matched PBY text. The Sefaria-on-edition ro
   2. digits in a label must match the line's OCR digits;
   3. for PBY, prefer a Sefaria or PG text of the same edition where one exists.
 
+**Even HaEzer Tier B disposition.** [PR #211](https://github.com/HeOCR/hocrgen/pull/211)
+completed the EH line-edge screen. The original roster remains **FLAG** after
+visual audit. The stricter 266-crop candidate had zero confirmed word errors
+on its fresh 32-crop sample and remains subject to independent review and
+CLEAN before pool admission. Use the [screen and audit receipt](../reports/phist-eh-20261121/README.md)
+for the EH-specific follow-up.
+
 **Rashi script needs its own localizer** (§6). The proposal:
 1. render Sefaria PD Rashi-script texts in an open Rashi font, synthetically;
 2. fine-tune a Tesseract model on those lines for localization only, on a pod;
